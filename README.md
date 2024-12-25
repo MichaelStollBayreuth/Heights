@@ -43,7 +43,7 @@ these requirements.
   the non-archimedean ones instead of just one `finprod` over all places.
   A big advantage is that it is now quite easy to set up an instance of
   `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
-  preparatory worl).
+  preparatory work).
 
 ## Main definitions
 
