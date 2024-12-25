@@ -136,6 +136,17 @@ lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
   simp_rw [H]
   exact max_eq_iSup (v x) 1
 
+lemma NumberField.FinitePlace.add_le [NumberField K] (v : FinitePlace K) (x y : K) :
+    v (x + y) ≤ max (v x) (v y) := by
+  simp_rw [← NumberField.FinitePlace.norm_embedding_eq, map_add]
+  rcases le_total ‖embedding v.maximalIdeal x‖ ‖embedding v.maximalIdeal y‖ with h | h
+  · refine le_sup_of_le_right ?_
+    rw [Valued.toNormedField.norm_le_iff] at h ⊢
+    exact sup_of_le_right h ▸ Valuation.map_add_le_max' Valued.v ..
+  · refine le_sup_of_le_left ?_
+    rw [Valued.toNormedField.norm_le_iff] at h ⊢
+    exact sup_of_le_left h ▸ Valuation.map_add_le_max' Valued.v ..
+
 end aux
 
 noncomputable section
@@ -202,10 +213,6 @@ section number_field
 
 open NumberField
 
-lemma _root_.NumberField.FinitePlace.add_le [NumberField K] (v : FinitePlace K) (x y : K) :
-    v (x + y) ≤ max (v x) (v y) := by
-  sorry
-
 instance instAdmissibleAbsValues [NumberField K] : AdmissibleAbsValues K where
   ArchAbsVal := InfinitePlace K
   archAbsVal v := v.val
@@ -219,6 +226,7 @@ instance instAdmissibleAbsValues [NumberField K] : AdmissibleAbsValues K where
   product_formula := prod_abs_eq_one
 
 end number_field
+
 
 /-!
 ### Heights of field elements
