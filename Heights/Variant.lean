@@ -219,7 +219,7 @@ section number_field
 
 open NumberField
 
-instance instAdmissibleAbsValues [NumberField K] : AdmissibleAbsValues K where
+instance _root_.NumberField.instAdmissibleAbsValues [NumberField K] : AdmissibleAbsValues K where
   ArchAbsVal := InfinitePlace K
   archAbsVal v := v.val
   archAbsVal_fintype := inferInstance
