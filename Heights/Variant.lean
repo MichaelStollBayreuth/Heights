@@ -199,7 +199,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   mulSupport_nonarchAbsVal_finite {x : K} (_ : x ≠ 0) : (nonarchAbsVal · x).mulSupport.Finite
   /-- The product formula -/
   product_formula {x : K} (_ : x ≠ 0) :
-      (∏ v : ArchAbsVal, archAbsVal v x ^ weight v) * ∏ᶠ v : NonarchAbsVal, nonarchAbsVal v x = 1
+      (∏ v, archAbsVal v x ^ weight v) * ∏ᶠ v, nonarchAbsVal v x = 1
 
 open AdmissibleAbsValues
 
