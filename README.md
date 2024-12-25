@@ -13,26 +13,37 @@ The general set-up for heights is the following. Let `K` be a field.
 
 ## Implementation
 
-In the context of the product formula (and to allow for some flexibility as to normalizations),
-it makes sense to weaken the triangle inequality for archimedean absolute values from
-`|x+y| ≤ |x| + |y|` to `|x+y| ≤ C_v * max |x| |y|` for some constant `C_v`.
-(The usual triangle inequality implies this with `C_v = 2`, but it will still be true
-for powers of an archimedean absolute value.) The main motivation is that we want
-to allow the square of the standard absolute value on a complex embedding of a number field.
-The requirement "all but finitely many absolute values are non-archimedean" then translates into
-`C_v = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
-`AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
-use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A further disadvantage
-is that the obtain less-than-optimal bounds for heights of sums with more than two terms,
-e.g., we get that `H_ℚ (x + y + z) ≤ 4 * H_ℚ x * H_ℚ y * H_ℚ z` instead of `≤ 3 * ⋯`.
+We try two implementations of the class `AdmissibleAbsValues K` that reflects
+these requirements.
 
-A possible alternative could be to use a family of `AbsoluteValue`s together with a family
-of exponents `e_v` such that the product formula holds in the form `∏ v, |x|_v ^ e_v = 1`.
-Disadvangtages of this approach are the mostly unnecessary additional degrees of freedom
-in the pairs `(|·|_v, e_v)` and that we need to separately encode the requirement that
-all but finitely many of the absolute values are non-archimedean.
+* In [__Basic.lean__](Heights/Basic.lean) we use *one* indexing type for *all*
+  absolute values, non-archimedean and archimedean alike. Since we want to use
+  powers of standard archimedean absolute values, we only require a weaker triangle inequality:
+  `|x+y|_v ≤ C_v * max |x|_v |y|_v` for some constant `C_v`.
+  (The usual triangle inequality implies this with `C_v = 2`.) 
+  The requirement "all but finitely many absolute values are non-archimedean" then translates into
+  `C_v = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
+  `AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
+  use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A slight further disadvantage
+  is that the obtain less-than-optimal bounds for heights of sums with more than two terms,
+  e.g., we get that `H_ℚ (x + y + z) ≤ 4 * H_ℚ x * H_ℚ y * H_ℚ z` instead of `≤ 3 * ⋯`.
+  A downside of this approach is that it becomes rather cumbersome to set up the relevant
+  structure for a number field. The natural indexing type is the sum type
+  `InfinitePlace K ⊕ FinitePlace K`, which requires all functions and proofs to
+  either go via `Sum.elim` or `match` expressions, and the API for such functions
+  (e.g., for `mulSupport` or `finprod`) is a bit lacking.
 
-We realize the first alternative above via the class `AdmissibleAbsValues K`.
+* In [__Variant.lean__](Heights/Variant.lean) we instead use *two* indexing types,
+  one for the archimedean and one for the non-archimedean absolute values.
+  For the archimedean ones, we need "weights" (which are the exponents with which
+  the absolute values occur in the product formula). We can then use the type `AbsoluteValue K ℝ`.
+  A downside is that the definitions of the various heights (and therefore also the
+  proofs of their basic properties) are more involved, because they involve a
+  product of a `Finset.prod` for the archimedean absolute values and a `finprod` for
+  the non-archimedean ones instead of just one `finprod` over all places.
+  A big advantage is that it is now quite easy to set up an instance of
+  `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
+  preparatory worl).
 
 ## Main definitions
 
