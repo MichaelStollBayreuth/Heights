@@ -147,13 +147,25 @@ lemma NumberField.FinitePlace.add_le [NumberField K] (v : FinitePlace K) (x y : 
     rw [Valued.toNormedField.norm_le_iff] at h ⊢
     exact sup_of_le_left h ▸ Valuation.map_add_le_max' Valued.v ..
 
+private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  nth_rewrite 1 [← mul_one b]
+  gcongr
+  · exact le_max_left _ 1
+  · exact le_max_right _ 1
+
+private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  rw [mul_comm]
+  exact le_mul_max_max_left b a
+
+private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
+  nth_rewrite 1 [← mul_one 1]
+  gcongr <;> exact le_max_right ..
+
 end aux
 
 noncomputable section
 
 namespace Height
-
-open NNReal
 
 /-!
 ### Families of admissible absolute values
@@ -170,8 +182,6 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   archAbsVal : ArchAbsVal → AbsoluteValue K ℝ
   /-- There are only finitely many archimedean absolute values. -/
   [archAbsVal_fintype : Fintype ArchAbsVal]
-  /- /-- A `FunLike` instance for archimedean absolute values -/
-  [archFunLike : FunLike ArchAbsVal K ℝ] -/
   /-- The weights of the archimedean absolute values.
       They show up as exponents in the product formula. -/
   weight : ArchAbsVal → ℕ
@@ -181,10 +191,6 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   NonarchAbsVal : Type*
   /-- The nonarchimedean absolute values. -/
   nonarchAbsVal : NonarchAbsVal → AbsoluteValue K ℝ
-  /- /-- A `FunLike` instance for nonarchimedean absolute values -/
-  [nonarchFunLike : FunLike NonarchAbsVal K ℝ]
-  /-- The nonarchiemdean absolute values are indeed nonarchimedean. -/
-  [nonarchimedeanHomClass : NonarchimedeanHomClass NonarchAbsVal K ℝ] -/
   /-- The nonarchiemdean absolute values are indeed nonarchimedean. -/
   strong_triangle_ineq :
       ∀ (v : NonarchAbsVal) (x y : K), nonarchAbsVal v (x + y) ≤
@@ -197,7 +203,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
 
 open AdmissibleAbsValues
 
-attribute [instance] archAbsVal_fintype /- archFunLike nonarchFunLike nonarchimedeanHomClass -/
+attribute [instance] archAbsVal_fintype
 
 variable (K : Type*) [Field K] [aav : AdmissibleAbsValues K]
 
@@ -244,7 +250,7 @@ lemma mulHeight₁_zero : mulHeight₁ (0 : K) = 1 := by
 
 @[simp]
 lemma mulHeight₁_one : mulHeight₁ (1 : K) = 1 := by
-  simp only [mulHeight₁, map_one, max_self, one_pow, Finset.prod_const_one, finprod_one, mul_one]
+  simp [mulHeight₁]
 
 lemma one_le_mulHeight₁ (x : K) : 1 ≤ mulHeight₁ x := by
   classical
@@ -269,11 +275,11 @@ def logHeight₁ (x : K) : ℝ := Real.log (mulHeight₁ x)
 
 @[simp]
 lemma logHeight₁_zero : logHeight₁ (0 : K) = 0 := by
-  simp only [logHeight₁, mulHeight₁_zero, coe_one, Real.log_one]
+  simp [logHeight₁]
 
 @[simp]
 lemma logHeight₁_one : logHeight₁ (1 : K) = 0 := by
-  simp only [logHeight₁, mulHeight₁_one, coe_one, Real.log_one]
+  simp [logHeight₁]
 
 lemma zero_le_logHeight₁ (x : K) : 0 ≤ logHeight₁ x :=
   Real.log_nonneg <| mod_cast one_le_mulHeight₁ x
@@ -383,7 +389,7 @@ lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) 
 /-- The logarithmic height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n` times its logarithmic height. -/
 lemma logHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : logHeight (x ^ n) = n * logHeight x := by
-  simp only [logHeight, mulHeight_pow hx, coe_pow, Real.log_pow]
+  simp [logHeight, mulHeight_pow hx]
 
 /-- The multiplicative height of the inverse of a field element `x`
 is the same as the multiplicative height of `x`. -/
@@ -415,7 +421,7 @@ lemma mulHeight₁_pow (x : K) (n : ℕ) : mulHeight₁ (x ^ n) = mulHeight₁ x
 /-- The logarithmic height of the `n`th power of a field element `x` (with `n : ℕ`)
 is `n` times the multiplicative height of `x`. -/
 lemma logHeight₁_pow (x : K) (n : ℕ) : logHeight₁ (x ^ n) = n * logHeight₁ x := by
-  simp only [logHeight₁, mulHeight₁_pow, coe_pow, Real.log_pow]
+  simp only [logHeight₁, mulHeight₁_pow, Real.log_pow]
 
 /-- The multiplicative height of the `n`th power of a field element `x` (with `n : ℤ`)
 is the `|n|`th power of the multiplicative height of `x`. -/
@@ -429,60 +435,40 @@ lemma mulHeight₁_zpow (x : K) (n : ℤ) : mulHeight₁ (x ^ n) = mulHeight₁ 
 /-- The logarithmic height of the `n`th power of a field element `x` (with `n : ℤ`)
 is `|n|` times the multiplicative height of `x`. -/
 lemma logHeight₁_zpow (x : K) (n : ℤ) : logHeight₁ (x ^ n) = n.natAbs * logHeight₁ x := by
-  simp only [logHeight₁, mulHeight₁_zpow, coe_pow, Real.log_pow]
+  simp only [logHeight₁, mulHeight₁_zpow, Real.log_pow]
 
 /-- The multiplicative height of `x + y` is at most the `2 ^ totalWeight K`
 times the product of the multiplicative heights of `x` and `y`. -/
 lemma mulHeight₁_add_le (x y : K) :
     mulHeight₁ (x + y) ≤ 2 ^ totalWeight K * mulHeight₁ x * mulHeight₁ y := by
   simp only [mulHeight₁, totalWeight]
-  /- have hf₁ : (Function.mulSupport fun v↦ triangleIneqBound v * ((absValue v) x ⊔ 1)).Finite :=
-    Function.mulSupport_mul_finite mulSupport_ineqBounds_finite <| mulSupport_max_absValue_finite x -/
   have hf₂ : (Function.mulSupport fun v ↦
       ((nonarchAbsVal v) x ⊔ 1) * ((nonarchAbsVal v) y ⊔ 1)).Finite :=
-    Function.mulSupport_mul_finite (mulSupport_max_absValue_finite x) <|
-      mulSupport_max_absValue_finite y
+    Function.mulSupport_mul_finite (mulSupport_max_absValue_finite x)
+      (mulSupport_max_absValue_finite y)
   rw [← Finset.prod_pow_eq_pow_sum, mul_mul_mul_comm, ← mul_assoc, ← mul_assoc,
     ← Finset.prod_mul_distrib, ← Finset.prod_mul_distrib, mul_assoc,
     ← finprod_mul_distrib (mulSupport_max_absValue_finite x) (mulSupport_max_absValue_finite y)]
   simp_rw [← mul_pow]
   gcongr with v
   · -- 0 ≤ ∏ᶠ (v : NonarchAbsVal K), (nonarchAbsVal v) (x + y) ⊔ 1
-    exact finprod_nonneg fun v ↦ zero_le_one.trans (le_max_right _ 1)
+    exact finprod_nonneg fun _ ↦ zero_le_one.trans (le_max_right _ 1)
   · -- (archAbsVal v) (x + y) ⊔ 1 ≤ 2 * ((archAbsVal v) y ⊔ 1) * ((archAbsVal v) x ⊔ 1)
     refine sup_le ?_ ?_
     · refine ((archAbsVal v).add_le x y).trans ?_
       rw [show (2 : ℝ) = 1 + 1 by norm_num, add_mul, one_mul, add_mul]
-      gcongr
-      · nth_rewrite 1 [← one_mul <| archAbsVal v x]
-        gcongr
-        · exact le_max_right _ 1
-        · exact le_max_left _ 1
-      · nth_rewrite 1 [← mul_one <| archAbsVal v y]
-        gcongr
-        · exact le_max_left _ 1
-        · exact le_max_right _ 1
+      exact add_le_add (le_mul_max_max_right ..) (le_mul_max_max_left ..)
     · refine (show (1 : ℝ) ≤ 2 * 1 by norm_num).trans ?_
       rw [mul_assoc]
-      gcongr
-      nth_rewrite 1 [← one_mul 1]
-      gcongr <;> exact le_max_right _ 1
+      exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two
   · -- ∏ᶠ v, (nonarchAbsVal v) (x + y) ⊔ 1 ≤ ∏ᶠ v, ((nonarchAbsVal v) x ⊔ 1) * ((nonarchAbsVal v) y ⊔ 1)
     refine finprod_mono' (mulSupport_max_absValue_finite _)
-      (fun _ ↦ zero_le_one.trans <| le_max_right _ 1) hf₂ fun v ↦ sup_le ?_ ?_
-    · refine (strong_triangle_ineq v x y).trans <| sup_le ?_ ?_
-      · nth_rewrite 1 [← mul_one <| nonarchAbsVal v x]
-        gcongr
-        · exact le_max_left _ 1
-        · exact le_max_right _ 1
-      · nth_rewrite 1 [← one_mul <| nonarchAbsVal v y]
-        gcongr
-        · exact le_max_right _ 1
-        · exact le_max_left _ 1
-    · nth_rewrite 1 [← mul_one 1]
-      gcongr <;> exact le_max_right _ 1
+      (fun _ ↦ zero_le_one.trans <| le_max_right _ 1) hf₂ fun v ↦ sup_le ?_ <| one_le_mul_max_max ..
+    exact (strong_triangle_ineq v x y).trans <|
+      sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)
 
-/-- The logarithmic height of `x + y` is at most the `totalWeight K * log 2`
+open Real in
+/-- The logarithmic height of `x + y` is at most `totalWeight K * log 2`
 plus the sum of the logarithmic heights of `x` and `y`. -/
 lemma logHeight₁_add_le (x y : K) :
     logHeight₁ (x + y) ≤ totalWeight K * Real.log 2 + logHeight₁ x + logHeight₁ y := by
@@ -490,9 +476,8 @@ lemma logHeight₁_add_le (x y : K) :
   have hx : mulHeight₁ x ≠ 0 := mulHeight₁_ne_zero x
   have hy : mulHeight₁ y ≠ 0 := mulHeight₁_ne_zero y
   simp only [logHeight₁]
-  rw [ ← Real.log_pow, ← Real.log_mul hb hx, ← Real.log_mul ((mul_ne_zero_iff_right hx).mpr hb) hy]
-  refine Real.log_le_log (zero_lt_one.trans_le <| one_le_mulHeight₁ _) ?_
-  exact_mod_cast mulHeight₁_add_le x y
+  rw [ ← log_pow, ← log_mul hb hx, ← log_mul ((mul_ne_zero_iff_right hx).mpr hb) hy]
+  exact log_le_log (zero_lt_one.trans_le <| one_le_mulHeight₁ _) <| mod_cast mulHeight₁_add_le x y
 
 /-- The multiplicative height of a finite sum of field elements is at most
 `2 ^ ((n-1) ' totalWeight K)` times the product of the individual multiplicative
@@ -518,6 +503,7 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
           nth_rewrite 2 [← one_mul <| totalWeight K]
           rw [← add_mul, Nat.sub_add_cancel <| Finset.one_le_card.mpr hs, ← mul_assoc]
 
+open Real in
 /-- The logarithmic height of a finite sum of field elements is at most
 `(n-1) * totalWeight K * log 2` plus the sum of the individual multiplicative
 heights, where `n` is the number of terms. -/
@@ -526,9 +512,8 @@ lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
     logHeight₁ (∑ a ∈ s, x a) ≤
       ((s.card - 1) * totalWeight K : ) * Real.log 2 + ∑ a ∈ s, logHeight₁ (x a) := by
   simp only [logHeight₁]
-  rw [← Real.log_pow, ← Real.log_prod _ _ <| fun a _ ↦ mulHeight₁_ne_zero (x a),
-    ← Real.log_mul ?h₁ ?h₂]
-  · exact Real.log_le_log (mulHeight₁_pos _) <| mod_cast mulHeight₁_sum_le ..
+  rw [← log_pow, ← log_prod _ _ <| fun a _ ↦ mulHeight₁_ne_zero (x a), ← log_mul ?h₁ ?h₂]
+  · exact log_le_log (mulHeight₁_pos _) <| mod_cast mulHeight₁_sum_le ..
   case h₁ => exact pow_ne_zero _ two_ne_zero
   case h₂ => exact Finset.prod_ne_zero_iff.mpr fun a _ ↦ mulHeight₁_ne_zero (x a)
 
@@ -540,7 +525,7 @@ end Height
 
 namespace Projectivization
 
-open NNReal Height AdmissibleAbsValues
+open Height AdmissibleAbsValues
 
 variable {K : Type*} [Field K] [aav : AdmissibleAbsValues K] {ι : Type*} [Fintype ι]
 
