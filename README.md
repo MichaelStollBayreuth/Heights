@@ -79,7 +79,7 @@ We define the following variants.
 * `mulHeight₁ x` and `logHeight₁ x` for `x : K`. This is the height of an element of `K`.
 * `mulHeight x` and `logHeight x` for `x : ι → K` with `ι` finite. This is the height
   of a tuple of elements of `K` representing a point in projective space.
-  It is invariant under scaling by nonzero elements of `K` (for `x ≠ 0`).
+  It is invariant under scaling by nonzero elements of `K`.
 * `mulHeight_finsupp x` and `logHeight_finsupp x` for `x : α →₀ K`. This is the same
   as the height of `x` restricted to any finite subtype containing the support of `x`.
 * `Projectivization.mulHeight` and `Projectivization.logHeight` on
