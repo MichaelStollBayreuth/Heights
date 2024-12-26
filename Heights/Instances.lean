@@ -17,16 +17,13 @@ We provide instances of `Height.AdmissibleAbsValues` for
 
 lemma Function.sumElim_apply {α β γ M : Type*} (f : α → γ → M) (g : β → γ → M) (x : α ⊕ β) (y : γ) :
     (Sum.elim f g) x y = Sum.elim (f · y) (g · y) x := by
-  -- rfl -- tactic 'rfl' failed
-  -- apply? -- apply? didn't find any relevant lemmas
-  -- simp -- simp made no progress
   cases x with
   | inl a => rfl
   | inr b => rfl
 
 lemma Function.sumElim_apply' {α β γ M : Type*} (f : α → γ → M) (g : β → γ → M) (y : γ) :
     ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) :=
-  funext fun x ↦ sumElim_apply f g x y
+  funext (sumElim_apply f g · y)
 
 lemma MonoidWithZeroHom.sumElim_apply' {α β γ M : Type*} [MonoidWithZero γ] [MonoidWithZero M]
     (f : α → γ →*₀ M) (g : β → γ →*₀ M) (y : γ) :
