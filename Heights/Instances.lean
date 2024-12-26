@@ -121,14 +121,12 @@ instance NumberField.instAdmissibleAbsValues :
         fun v ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom).comp <|
           powMonoidWithZeroHom v.mult_ne_zero
       triangleIneqBound := Sum.elim (fun _ ↦ 1) fun v ↦ 2 ^ v.mult
-      weak_triangle_inequality w := by
+      weak_triangle_inequality w x y := by
         cases w with
         | inl v =>
-            intro x y
             simpa only [Sum.elim_inl, ← NNReal.coe_le_coe, one_mul, NNReal.coe_max,
               v.nnabs_comp_apply] using NonarchimedeanHomClass.map_add_le_max v x y
         | inr v =>
-            intro x y
             simp only [Sum.elim_inr, ← NNReal.coe_le_coe, NNReal.coe_mul, NNReal.coe_pow,
               NNReal.coe_ofNat, NNReal.coe_max, v.nnabs_comp_apply]
             calc
