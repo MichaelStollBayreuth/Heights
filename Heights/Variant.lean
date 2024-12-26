@@ -244,8 +244,10 @@ def logHeight_finsupp {α :Type*} (x : α →₀ K) : ℝ := Real.log (mulHeight
 -/
 
 /-- The multiplicative height of a (nonzero) tuple does not change under scaling. -/
-lemma mulHeight_mul_eq_mulHeight {x : ι → K} (hx : x ≠ 0) {c : K} (hc : c ≠ 0) :
+lemma mulHeight_mul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     mulHeight (c • x) = mulHeight x := by
+  rcases eq_or_ne x 0 with rfl | hx
+  · rw [smul_zero]
   have  : Nonempty ι := by
     have ⟨i, hi⟩ : ∃ i, x i ≠ 0 := Function.ne_iff.mp hx
     exact Nonempty.intro i
@@ -263,9 +265,9 @@ lemma mulHeight_mul_eq_mulHeight {x : ι → K} (hx : x ≠ 0) {c : K} (hc : c �
     mul_mul_mul_comm, product_formula hc, one_mul]
 
 /-- The logarithmic height of a (nonzero) tuple does not change under scaling. -/
-lemma logHeight_mul_eq_logHeight {x : ι → K} (hx : x ≠ 0) {c : K} (hc : c ≠ 0) :
+lemma logHeight_mul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     logHeight (c • x) = logHeight x := by
-  simp only [logHeight, mulHeight_mul_eq_mulHeight hx hc]
+  simp only [logHeight, mulHeight_mul_eq_mulHeight hc]
 
 lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := by
   simp only [mulHeight₁, mulHeight, Nat.succ_eq_add_one, Nat.reduceAdd]
