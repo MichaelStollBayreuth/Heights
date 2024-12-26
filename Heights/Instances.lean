@@ -98,6 +98,9 @@ lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
     Real.toNNReal_eq_one, not_iff_not]
   rfl
 
+-- The `Real.nnabs.comp ⋯` below could be avoided by using `R`-valued absolute values
+-- in `AdmissibleAbsValues` (instead of `ℝ≥0`-valued ones).
+-- Compare [Variant.lean](Heights/Variant.lean).
 noncomputable
 instance NumberField.instAdmissibleAbsValues :
     AdmissibleAbsValues K where
