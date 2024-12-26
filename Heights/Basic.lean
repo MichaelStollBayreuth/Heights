@@ -92,6 +92,8 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   /-- The product formula -/
   product_formula {x : K} (_ : x ≠ 0) : ∏ᶠ v : Vals, absValue v x = 1
 
+/-- The `heightSumBound` of a field  `K` with `AdmissibleAbsValues` is the product of all
+the constants `triangleEqBound v` for `v` a place of `K`. -/
 def heightSumBound (K : Type*) [Field K] [aav : AdmissibleAbsValues K] : ℝ≥0 :=
   ∏ᶠ v : aav.Vals, aav.triangleIneqBound v
 

@@ -112,6 +112,8 @@ attribute [instance] archAbsVal_fintype
 
 variable (K : Type*) [Field K] [aav : AdmissibleAbsValues K]
 
+/-- The `totalWeiht` of a field with `AdmissibleAbsValues` is the sum of the weights of
+the archimedean palces. -/
 def totalWeight : ℕ := ∑ v : ArchAbsVal K, weight v
 
 variable {K}
