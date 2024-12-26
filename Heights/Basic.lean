@@ -280,8 +280,7 @@ lemma mulHeight₁_inv (x : K) : mulHeight₁ (x⁻¹) = mulHeight₁ x := by
   · have H : x • ![x⁻¹, 1] = ![1, x] := by
       ext1 i
       fin_cases i <;> simp [hx]
-    have H' : ![x⁻¹, 1] ≠ 0 := Function.ne_iff.mpr ⟨1, by simp⟩
-    rw [← mulHeight_mul_eq_mulHeight H' hx, H, mulHeight_swap]
+    rw [← mulHeight_mul_eq_mulHeight hx, H, mulHeight_swap]
 
 /-- The logarithmic height of the inverse of a field element `x`
 is the same as the logarithmic height of `x`. -/
@@ -413,7 +412,7 @@ variable {K : Type*} [Field K] [aav : AdmissibleAbsValues K] {ι : Type*} [Finty
 private
 lemma mulHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
     mulHeight a.val = mulHeight b.val :=
-  h ▸ mulHeight_mul_eq_mulHeight b.prop fun H ↦ a.prop <| (H ▸ h).trans <| zero_smul K b.val
+  h ▸ mulHeight_mul_eq_mulHeight fun H ↦ a.prop <| (H ▸ h).trans <| zero_smul K b.val
 
 private
 lemma logHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
