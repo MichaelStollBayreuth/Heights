@@ -219,7 +219,7 @@ def logHeight_finsupp {α :Type*} (x : α →₀ K) : ℝ := Real.log (mulHeight
 -/
 
 /-- The multiplicative height of a (nonzero) tuple does not change under scaling. -/
-lemma mulHeight_mul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
+lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     mulHeight (c • x) = mulHeight x := by
   rcases eq_or_ne x 0 with rfl | hx
   · rw [smul_zero]
@@ -228,9 +228,9 @@ lemma mulHeight_mul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     product_formula hc, one_mul]
 
 /-- The logarithmic height of a (nonzero) tuple does not change under scaling. -/
-lemma logHeight_mul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
+lemma logHeight_smul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     logHeight (c • x) = logHeight x := by
-  simp only [logHeight, mulHeight_mul_eq_mulHeight hc]
+  simp only [logHeight, mulHeight_smul_eq_mulHeight hc]
 
 lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := by
   simp only [mulHeight₁, mulHeight, Nat.succ_eq_add_one, Nat.reduceAdd]
@@ -280,7 +280,7 @@ lemma mulHeight₁_inv (x : K) : mulHeight₁ (x⁻¹) = mulHeight₁ x := by
   · have H : x • ![x⁻¹, 1] = ![1, x] := by
       ext1 i
       fin_cases i <;> simp [hx]
-    rw [← mulHeight_mul_eq_mulHeight hx, H, mulHeight_swap]
+    rw [← mulHeight_smul_eq_mulHeight hx, H, mulHeight_swap]
 
 /-- The logarithmic height of the inverse of a field element `x`
 is the same as the logarithmic height of `x`. -/
@@ -412,7 +412,7 @@ variable {K : Type*} [Field K] [aav : AdmissibleAbsValues K] {ι : Type*} [Finty
 private
 lemma mulHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
     mulHeight a.val = mulHeight b.val :=
-  h ▸ mulHeight_mul_eq_mulHeight fun H ↦ a.prop <| (H ▸ h).trans <| zero_smul K b.val
+  h ▸ mulHeight_smul_eq_mulHeight fun H ↦ a.prop <| (H ▸ h).trans <| zero_smul K b.val
 
 private
 lemma logHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
