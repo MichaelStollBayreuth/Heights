@@ -29,7 +29,7 @@ lemma Function.sumElim_apply (f : α → γ → M) (g : β → γ → M) (x : α
   | inl a => rfl
   | inr b => rfl
 
-lemma Function.sumElim_apply'(f : α → γ → M) (g : β → γ → M) (y : γ) :
+lemma Function.sumElim_apply' (f : α → γ → M) (g : β → γ → M) (y : γ) :
     (Sum.elim f g · y) = Sum.elim (f · y) (g · y) :=
   funext (sumElim_apply f g · y)
 
@@ -44,7 +44,6 @@ lemma MonoidWithZeroHom.sumElim_apply' [MonoidWithZero γ] [MonoidWithZero M]
 @[to_additive]
 lemma Function.mulSupport_sumElim [One M] {f : α → M} {g : β → M} :
     (Sum.elim f g).mulSupport = Sum.inl '' f.mulSupport ∪ Sum.inr '' g.mulSupport := by
-  simp only [mulSupport]
   ext1 x
   cases x with
   | inl a => simp
@@ -75,9 +74,7 @@ lemma finprod_sum [CommMonoid M] {f : α → M} {g : β → M}
     finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hg).symm.subset,
     ← Finset.prod_sum_elim]
   congr
-  refine Finset.eq_disjSum_iff.mpr ⟨?_, ?_⟩
-  · exact Finset.ext_iff.mpr fun _ ↦ by simp
-  · exact Finset.ext_iff.mpr fun _ ↦ by simp
+  refine Finset.eq_disjSum_iff.mpr ⟨?_, ?_⟩ <;> exact Finset.ext_iff.mpr fun _ ↦ by simp
 
 /-!
 ### Instance for number fields
