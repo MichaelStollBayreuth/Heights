@@ -385,8 +385,8 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
             Nat.sub_add_cancel <| Finset.one_le_card.mpr hs, ← mul_assoc]
 
 /-- The logarithmic height of a finite sum of field elements is at most the `(n-1)` times the `log`
-of the "height sum bound" of the parent field plus the sum of the individual multiplicative
-heights, where `n` is the number of terms. -/
+of the "height sum bound" of the parent field plus the sum of the individual logarithmic heights,
+where `n` is the number of terms. -/
 -- We can get better bounds if we are more specific with the archimedean absolute values
 -- in the definition of `AdmissibleAbsValues`.
 lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
