@@ -15,17 +15,25 @@ We provide instances of `Height.AdmissibleAbsValues` for
 
 -/
 
-lemma Function.sumElim_apply {α β γ M : Type*} (f : α → γ → M) (g : β → γ → M) (x : α ⊕ β) (y : γ) :
+/-!
+### Missing API
+
+We collect a number of API lemmas for functions of the form `Sum.elim f g`.
+-/
+
+variable {α β γ M : Type*}
+
+lemma Function.sumElim_apply (f : α → γ → M) (g : β → γ → M) (x : α ⊕ β) (y : γ) :
     (Sum.elim f g) x y = Sum.elim (f · y) (g · y) x := by
   cases x with
   | inl a => rfl
   | inr b => rfl
 
-lemma Function.sumElim_apply' {α β γ M : Type*} (f : α → γ → M) (g : β → γ → M) (y : γ) :
+lemma Function.sumElim_apply'(f : α → γ → M) (g : β → γ → M) (y : γ) :
     ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) :=
   funext (sumElim_apply f g · y)
 
-lemma MonoidWithZeroHom.sumElim_apply' {α β γ M : Type*} [MonoidWithZero γ] [MonoidWithZero M]
+lemma MonoidWithZeroHom.sumElim_apply' [MonoidWithZero γ] [MonoidWithZero M]
     (f : α → γ →*₀ M) (g : β → γ →*₀ M) (y : γ) :
     ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) := by
   ext1 x
@@ -34,7 +42,7 @@ lemma MonoidWithZeroHom.sumElim_apply' {α β γ M : Type*} [MonoidWithZero γ] 
   | inr b => rfl
 
 @[to_additive]
-lemma Function.mulSupport_sumElim {M α β : Type*} [One M] {f : α → M} {g : β → M} :
+lemma Function.mulSupport_sumElim [One M] {f : α → M} {g : β → M} :
     (Sum.elim f g).mulSupport = Sum.inl '' f.mulSupport ∪ Sum.inr '' g.mulSupport := by
   simp only [mulSupport]
   ext1 x
@@ -43,21 +51,21 @@ lemma Function.mulSupport_sumElim {M α β : Type*} [One M] {f : α → M} {g : 
   | inr b => simp
 
 @[to_additive]
-lemma Function.mulSupport_sumElim_finite {M α β : Type*} [One M] {f : α → M} {g : β → M}
+lemma Function.mulSupport_sumElim_finite [One M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     (Sum.elim f g).mulSupport.Finite := by
   rw [mulSupport_sumElim]
   exact Set.finite_union.mpr ⟨hf.image Sum.inl, hg.image Sum.inr⟩
 
 @[to_additive]
-lemma Function.mulSupport_sumElim_finite' {α β M : Type*} [Finite β] [One M] (f : β → M) :
+lemma Function.mulSupport_sumElim_finite' [Finite β] [One M] (f : β → M) :
     (Function.mulSupport (Sum.elim (fun _ : α ↦ 1) f)).Finite := by
   refine mulSupport_sumElim_finite ?_ <| Set.toFinite _
   rw [mulSupport_one]
   exact Set.finite_empty
 
 @[to_additive]
-lemma finprod_sum {M α β : Type*} [CommMonoid M] {f : α → M} {g : β → M}
+lemma finprod_sum [CommMonoid M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     ∏ᶠ x, Sum.elim f g x = (∏ᶠ a, f a) * ∏ᶠ b, g b := by
   have hfg := Function.mulSupport_sumElim_finite hf hg
@@ -71,24 +79,13 @@ lemma finprod_sum {M α β : Type*} [CommMonoid M] {f : α → M} {g : β → M}
   · exact Finset.ext_iff.mpr fun _ ↦ by simp
   · exact Finset.ext_iff.mpr fun _ ↦ by simp
 
-lemma NumberField.FinitePlace.add_le {K : Type*} [Field K] [NumberField K] (v : FinitePlace K)
-    (x y : K) :
-    v (x + y) ≤ max (v x) (v y) := by
-  simp_rw [← NumberField.FinitePlace.norm_embedding_eq, map_add]
-  rcases le_total ‖embedding v.maximalIdeal x‖ ‖embedding v.maximalIdeal y‖ with h | h
-  · refine le_sup_of_le_right ?_
-    rw [Valued.toNormedField.norm_le_iff] at h ⊢
-    exact sup_of_le_right h ▸ Valuation.map_add_le_max' Valued.v ..
-  · refine le_sup_of_le_left ?_
-    rw [Valued.toNormedField.norm_le_iff] at h ⊢
-    exact sup_of_le_left h ▸ Valuation.map_add_le_max' Valued.v ..
+/-!
+### Instance for number fields
+-/
 
 open Height AdmissibleAbsValues NumberField
 
 variable {K : Type*} [Field K] [NumberField K]
-
-instance : NonarchimedeanHomClass (FinitePlace K) K ℝ where
-  map_add_le_max v a b := FinitePlace.add_le v a b
 
 lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
     (Function.mulSupport fun v : FinitePlace K ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom) x).Finite := by

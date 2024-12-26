@@ -1,4 +1,4 @@
-import Mathlib
+import Heights.Auxiliary
 
 /-!
 # Basic theory of heights
@@ -59,41 +59,6 @@ We define the following variants.
 
 
 -/
-
-/-!
-### Auxiliary statements
-
-These fill API gaps in Mathlib and should eventually go there.
--/
-
-section aux
-
-variable {α β : Type*}
-
-lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
-  eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
-
-@[to_additive]
-lemma finprod_mono [OrderedCommMonoid β] {f g : α → β} (hf : f.mulSupport.Finite)
-    (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  have hf₁ : f.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_left, s]
-  have hg₁ : g.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
-    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
-  exact Finset.prod_le_prod' fun i _ ↦ h i
-
-@[to_additive]
-lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
-    (hg : g.mulSupport.Finite) :
-    (Function.mulSupport fun a ↦ f a * g a).Finite :=
-  (hf.union hg).subset <| mulSupport_mul f g
-
-end aux
 
 noncomputable section
 
