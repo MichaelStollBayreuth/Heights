@@ -12,8 +12,8 @@ The general set-up for heights is the following. Let `K` be a field.
 * We need a finite family of archimedean absolute values on `K` (with values in `ℝ`).
 * Each of these comes with a weight `weight v`.
 * We also have a familiy of non-archimedean (i.e., `|x+y| ≤ max |x| |y|`) absolute values.
-* For a given `x ≠ 0` in `K`, `|x|_v = 1` for all but finitely many (non-archimedean) `v`.
-* We have the *product formula* `∏ v : arch, |x|_v^(weight v) * ∏ v : nonarch, |x|_v = 1`
+* For a given `x ≠ 0` in `K`, `|x|ᵥ = 1` for all but finitely many (non-archimedean) `v`.
+* We have the *product formula* `∏ v : arch, |x|ᵥ^(weight v) * ∏ v : nonarch, |x|ᵥ = 1`
   for all `x ≠ 0` in `K`.
 
 ## Implementation

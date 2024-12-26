@@ -9,30 +9,30 @@ We aim at a level of generality that allows to apply the theory to algebraic num
 and to function fields (and possibly beyond).
 
 The general set-up for heights is the following. Let `K` be a field.
-* We need a family of absolute values `|·|_v` on `K`.
+* We need a family of absolute values `|·|ᵥ` on `K`.
 * All but finitely many of these are non-archimedean (i.e., `|x+y| ≤ max |x| |y|`).
-* For a given `x ≠ 0` in `K`, `|x|_v = 1` for all but finitely many `v`.
-* We have the *product formula* `∏ v, |x|_v = 1` for all `x ≠ 0` in `K`.
+* For a given `x ≠ 0` in `K`, `|x|ᵥ = 1` for all but finitely many `v`.
+* We have the *product formula* `∏ v, |x|ᵥ = 1` for all `x ≠ 0` in `K`.
 
 ## Implementation
 
 In the context of the product formula (and to allow for some flexibility as to normalizations),
 it makes sense to weaken the triangle inequality for archimedean absolute values from
-`|x+y| ≤ |x| + |y|` to `|x+y| ≤ C_v * max |x| |y|` for some constant `C_v`.
-(The usual triangle inequality implies this with `C_v = 2`, but it will still be true
+`|x+y| ≤ |x| + |y|` to `|x+y| ≤ Cᵥ * max |x| |y|` for some constant `Cᵥ`.
+(The usual triangle inequality implies this with `Cᵥ = 2`, but it will still be true
 for powers of an archimedean absolute value.) The main motivation is that we want
 to allow the square of the standard absolute value on a complex embedding of a number field.
 The requirement "all but finitely many absolute values are non-archimedean" then translates into
-`C_v = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
+`Cᵥ = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
 `AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
 use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A further disadvantage
 is that the obtain less-than-optimal bounds for heights of sums with more than two terms,
 e.g., we get that `H_ℚ (x + y + z) ≤ 4 * H_ℚ x * H_ℚ y * H_ℚ z` instead of `≤ 3 * ⋯`.
 
 A possible alternative could be to use a family of `AbsoluteValue`s together with a family
-of exponents `e_v` such that the product formula holds in the form `∏ v, |x|_v ^ e_v = 1`.
+of exponents `eᵥ` such that the product formula holds in the form `∏ v, |x|ᵥ ^ eᵥ = 1`.
 Disadvangtages of this approach are the mostly unnecessary additional degrees of freedom
-in the pairs `(|·|_v, e_v)` and that we need to separately encode the requirement that
+in the pairs `(|·|ᵥ, eᵥ)` and that we need to separately encode the requirement that
 all but finitely many of the absolute values are non-archimedean.
 
 We realize the first alternative above via the class `AdmissibleAbsValues K`.

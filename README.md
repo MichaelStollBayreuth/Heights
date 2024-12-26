@@ -6,10 +6,10 @@ We aim at a level of generality that allows to apply the theory to algebraic num
 and to function fields (and possibly beyond).
 
 The general set-up for heights is the following. Let `K` be a field.
-* We need a family of absolute values `|·|_v` on `K`.
+* We need a family of absolute values `|·|ᵥ` on `K`.
 * All but finitely many of these are non-archimedean (i.e., `|x+y| ≤ max |x| |y|`).
-* For a given `x ≠ 0` in `K`, `|x|_v = 1` for all but finitely many `v`.
-* We have the *product formula* `∏ v, |x|_v = 1` for all `x ≠ 0` in `K`.
+* For a given `x ≠ 0` in `K`, `|x|ᵥ = 1` for all but finitely many `v`.
+* We have the *product formula* `∏ v, |x|ᵥ = 1` for all `x ≠ 0` in `K`.
 
 ## Implementation
 
@@ -19,10 +19,10 @@ these requirements.
 * In [__Basic.lean__](Heights/Basic.lean) we use *one* indexing type for *all*
   absolute values, non-archimedean and archimedean alike. Since we want to use
   powers of standard archimedean absolute values, we only require a weaker triangle inequality:
-  `|x+y|_v ≤ C_v * max |x|_v |y|_v` for some constant `C_v`.
-  (The usual triangle inequality implies this with `C_v = 2`.) 
+  `|x+y|ᵥ ≤ Cᵥ * max |x|ᵥ |y|ᵥ` for some constant `Cᵥ`.
+  (The usual triangle inequality implies this with `Cᵥ = 2`.) 
   The requirement "all but finitely many absolute values are non-archimedean" then translates into
-  `C_v = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
+  `Cᵥ = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
   `AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
   use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A slight further disadvantage
   is that the obtain less-than-optimal bounds for heights of sums with more than two terms,
