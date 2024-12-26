@@ -84,13 +84,31 @@ open Height AdmissibleAbsValues NumberField
 
 variable {K : Type*} [Field K] [NumberField K]
 
-lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
-    (Function.mulSupport fun v : FinitePlace K ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom) x).Finite := by
-  convert mulSupport_finite hx
-  refine Set.ext fun v ↦ ?_
+-- Helper lemmas
+
+private
+lemma NumberField.FinitePlace.nnabs_comp_apply (v : FinitePlace K) (x : K) :
+    ((Real.nnabs.comp v.val.toMonoidWithZeroHom) x : ℝ) = v x := by
   simp only [MonoidWithZeroHom.coe_comp, AbsoluteValue.coe_toMonoidWithZeroHom,
-    Function.comp_apply, apply_nonneg, Real.nnabs_of_nonneg, Function.mem_mulSupport, ne_eq,
-    Real.toNNReal_eq_one, not_iff_not]
+    Function.comp_apply, apply_nonneg, Real.nnabs_of_nonneg, Real.coe_toNNReal', sup_of_le_left]
+  rfl
+
+private
+lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
+    (Function.mulSupport
+      fun v : FinitePlace K ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom) x).Finite := by
+  convert mulSupport_finite hx
+  rw [← Function.mulSupport_comp_eq (g := ((↑) : NNReal → ℝ)) NNReal.coe_eq_one, Function.comp_def]
+  simp only [nnabs_comp_apply]
+
+omit [NumberField K] in
+private
+lemma NumberField.InfinitePlace.nnabs_comp_apply (v : InfinitePlace K) (x : K) :
+    (Real.nnabs.comp v.val.toMonoidWithZeroHom).comp (powMonoidWithZeroHom v.mult_ne_zero) x =
+      v x ^ v.mult:= by
+  simp only [MonoidWithZeroHom.coe_comp, AbsoluteValue.coe_toMonoidWithZeroHom,
+    coe_powMonoidWithZeroHom, Function.comp_apply, AbsoluteValue.map_pow, apply_nonneg, pow_nonneg,
+    Real.nnabs_of_nonneg, Real.coe_toNNReal', sup_of_le_left]
   rfl
 
 -- The `Real.nnabs.comp ⋯` below could be avoided by using `R`-valued absolute values
@@ -101,32 +119,21 @@ instance NumberField.instAdmissibleAbsValues :
     AdmissibleAbsValues K where
       Vals := FinitePlace K ⊕ InfinitePlace K
       absValue := Sum.elim (fun v ↦ Real.nnabs.comp v.val.toMonoidWithZeroHom)
-        fun v ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom).comp <| powMonoidWithZeroHom v.mult_ne_zero
+        fun v ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom).comp <|
+          powMonoidWithZeroHom v.mult_ne_zero
       triangleIneqBound := Sum.elim (fun _ ↦ 1) fun v ↦ 2 ^ v.mult
       weak_triangle_inequality w := by
         cases w with
         | inl v =>
             intro x y
-            simp only [Sum.elim_inl, MonoidWithZeroHom.coe_comp,
-              AbsoluteValue.coe_toMonoidWithZeroHom, Function.comp_apply, apply_nonneg,
-              Real.nnabs_of_nonneg, one_mul, Real.toNNReal_le_toNNReal_iff]
-            rw [Real.toNNReal_le_iff_le_coe]
-            push_cast
-            rw [Real.coe_toNNReal _ (v.val.nonneg x), Real.coe_toNNReal _ (v.val.nonneg y)]
-            exact NonarchimedeanHomClass.map_add_le_max v x y
+            simpa only [Sum.elim_inl, ← NNReal.coe_le_coe, one_mul, NNReal.coe_max,
+              v.nnabs_comp_apply] using NonarchimedeanHomClass.map_add_le_max v x y
         | inr v =>
             intro x y
-            simp only [Sum.elim_inr, MonoidWithZeroHom.coe_comp,
-              AbsoluteValue.coe_toMonoidWithZeroHom, coe_powMonoidWithZeroHom, Function.comp_apply,
-              AbsoluteValue.map_pow, apply_nonneg, pow_nonneg, Real.nnabs_of_nonneg]
-            rw [Real.toNNReal_le_iff_le_coe]
-            push_cast
-            rw [Real.coe_toNNReal _ <| pow_nonneg (v.val.nonneg x) _,
-              Real.coe_toNNReal _ <| pow_nonneg (v.val.nonneg y) _]
+            simp only [Sum.elim_inr, ← NNReal.coe_le_coe, NNReal.coe_mul, NNReal.coe_pow,
+              NNReal.coe_ofNat, NNReal.coe_max, v.nnabs_comp_apply]
             calc
-            _ ≤ (v x + v y) ^ v.mult := by
-              gcongr
-              exact v.val.add_le' x y
+            _ ≤ (v x + v y) ^ v.mult := pow_le_pow_left₀ (apply_nonneg v _) (v.val.add_le' ..) _
             _ ≤ (2 * (v x ⊔ v y)) ^ v.mult := by
               gcongr
               rcases le_total (v x) (v y) with h | h <;>
@@ -140,30 +147,17 @@ instance NumberField.instAdmissibleAbsValues :
       mulSupport_ineqBounds_finite := Function.mulSupport_sumElim_finite' _
       mulSupport_absValues_finite hx := by
         rw [MonoidWithZeroHom.sumElim_apply']
-        exact Function.mulSupport_sumElim_finite (FinitePlace.mulSupport_finite' hx) <| Set.toFinite _
+        exact Function.mulSupport_sumElim_finite (FinitePlace.mulSupport_finite' hx) <|
+          Set.toFinite _
       product_formula hx := by
         apply_fun ((↑) : NNReal → ℝ) using NNReal.coe_injective
-        simp only [NNReal.coe_one]
-        rw [← prod_abs_eq_one hx, mul_comm, MonoidWithZeroHom.sumElim_apply',
+        rw [NNReal.coe_one, ← prod_abs_eq_one hx, mul_comm, MonoidWithZeroHom.sumElim_apply',
           finprod_sum ((FinitePlace.mulSupport_finite' hx)) (Set.toFinite _)]
         push_cast
         have (x : NNReal) : NNReal.toRealHom x = NNReal.toRealHom.toMonoidHom x := rfl
         simp_rw [← NNReal.coe_toRealHom, this]
         congr
         · rw [MonoidHom.map_finprod _ (FinitePlace.mulSupport_finite' hx)]
-          congr
-          ext1 v
-          simp only [RingHom.toMonoidHom_eq_coe, MonoidWithZeroHom.coe_comp,
-            AbsoluteValue.coe_toMonoidWithZeroHom, Function.comp_apply, apply_nonneg,
-            Real.nnabs_of_nonneg, MonoidHom.coe_coe, NNReal.coe_toRealHom, Real.coe_toNNReal',
-            sup_of_le_left]
-          rfl
+          simp only [← this, NNReal.coe_toRealHom, FinitePlace.nnabs_comp_apply]
         · rw [finprod_eq_prod_of_fintype, map_prod]
-          congr
-          ext1 v
-          simp only [RingHom.toMonoidHom_eq_coe, MonoidWithZeroHom.coe_comp,
-            AbsoluteValue.coe_toMonoidWithZeroHom, coe_powMonoidWithZeroHom, Function.comp_apply,
-            AbsoluteValue.map_pow, apply_nonneg, pow_nonneg, Real.nnabs_of_nonneg,
-            MonoidHom.coe_coe, NNReal.coe_toRealHom, Real.coe_toNNReal', sup_of_le_left, ne_eq,
-            InfinitePlace.mult_ne_zero, not_false_eq_true, pow_left_inj₀]
-          rfl
+          simp only [← this, NNReal.coe_toRealHom, InfinitePlace.nnabs_comp_apply]
