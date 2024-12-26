@@ -73,6 +73,7 @@ variable {α β : Type*}
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
+@[to_additive]
 lemma finprod_mono [OrderedCommMonoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) (h : f ≤ g) :
     ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
@@ -86,6 +87,7 @@ lemma finprod_mono [OrderedCommMonoid β] {f g : α → β} (hf : f.mulSupport.F
     finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
   exact Finset.prod_le_prod' fun i _ ↦ h i
 
+@[to_additive]
 lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) :
     (Function.mulSupport fun a ↦ f a * g a).Finite :=

@@ -72,6 +72,7 @@ lemma ciSupℝ_pow [Fintype α] [Nonempty α] {f : α → ℝ} (hf : ∀ a, 0 �
   exact Monotone.map_ciSup_of_continuousAt ((continuous_pow n).continuousAt)
     (pow_left_mono n) (Finite.bddAbove_range _)
 
+@[to_additive]
 lemma finprod_mono [OrderedCommMonoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) (h : f ≤ g) :
     ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
@@ -101,6 +102,7 @@ lemma finprod_mono' [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β
     finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
   exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
 
+@[to_additive]
 lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) :
     (Function.mulSupport fun a ↦ f a * g a).Finite :=
