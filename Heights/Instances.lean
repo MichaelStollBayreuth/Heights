@@ -24,18 +24,18 @@ We collect a number of API lemmas for functions of the form `Sum.elim f g`.
 variable {α β γ M : Type*}
 
 lemma Function.sumElim_apply (f : α → γ → M) (g : β → γ → M) (x : α ⊕ β) (y : γ) :
-    (Sum.elim f g) x y = Sum.elim (f · y) (g · y) x := by
+    Sum.elim f g x y = Sum.elim (f · y) (g · y) x := by
   cases x with
   | inl a => rfl
   | inr b => rfl
 
 lemma Function.sumElim_apply'(f : α → γ → M) (g : β → γ → M) (y : γ) :
-    ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) :=
+    (Sum.elim f g · y) = Sum.elim (f · y) (g · y) :=
   funext (sumElim_apply f g · y)
 
 lemma MonoidWithZeroHom.sumElim_apply' [MonoidWithZero γ] [MonoidWithZero M]
     (f : α → γ →*₀ M) (g : β → γ →*₀ M) (y : γ) :
-    ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) := by
+    (Sum.elim f g · y) = Sum.elim (f · y) (g · y) := by
   ext1 x
   cases x with
   | inl a => rfl
