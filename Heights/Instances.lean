@@ -125,7 +125,7 @@ instance NumberField.instAdmissibleAbsValues :
         cases w with
         | inl v =>
             simpa only [Sum.elim_inl, ← NNReal.coe_le_coe, one_mul, NNReal.coe_max,
-              v.nnabs_comp_apply] using NonarchimedeanHomClass.map_add_le_max v x y
+              v.nnabs_comp_apply] using v.add_le x y
         | inr v =>
             simp only [Sum.elim_inr, ← NNReal.coe_le_coe, NNReal.coe_mul, NNReal.coe_pow,
               NNReal.coe_ofNat, NNReal.coe_max, v.nnabs_comp_apply]
