@@ -36,14 +36,19 @@ lemma MonoidWithZeroHom.sumElim_apply' {α β γ M : Type*} [MonoidWithZero γ] 
   | inl a => rfl
   | inr b => rfl
 
-/- lemma Function.mulSupport_sumElim {M α β : Type*} [One M] {f : α → M} {g : β → M} :
-    (Sum.elim f g).mulSupport = f.mulSupport.disjSum g.mulSupport := by -- no `Set.disjSum`...?
-  sorry -/
+lemma Function.mulSupport_sumElim {M α β : Type*} [One M] {f : α → M} {g : β → M} :
+    (Sum.elim f g).mulSupport = Sum.inl '' f.mulSupport ∪ Sum.inr '' g.mulSupport := by
+  simp only [mulSupport]
+  ext1 x
+  cases x with
+  | inl a => simp
+  | inr b => simp
 
 lemma Function.mulSupport_sumElim_finite {M α β : Type*} [One M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     (Sum.elim f g).mulSupport.Finite := by
-  sorry
+  rw [mulSupport_sumElim]
+  exact Set.finite_union.mpr ⟨hf.image Sum.inl, hg.image Sum.inr⟩
 
 lemma Function.mulSupport_sumElim_finite' {α β M : Type*} [Finite β] [One M] (f : β → M) :
     (Function.mulSupport (Sum.elim (fun _ : α ↦ 1) f)).Finite := by
