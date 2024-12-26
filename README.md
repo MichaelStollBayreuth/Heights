@@ -32,6 +32,8 @@ these requirements.
   `InfinitePlace K ⊕ FinitePlace K`, which requires all functions and proofs to
   either go via `Sum.elim` or `match` expressions, and the API for such functions
   (e.g., for `mulSupport` or `finprod`) is a bit lacking.
+  See [__Instance.lean__](Heights/Instances.lean) for an incimplete attempt at providing
+  an instance of `AdmissibleAbsValues` for a number field.
 
 * In [__Variant.lean__](Heights/Variant.lean) we instead use *two* indexing types,
   one for the archimedean and one for the non-archimedean absolute values.
