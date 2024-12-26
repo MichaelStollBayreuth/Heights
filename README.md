@@ -47,6 +47,27 @@ these requirements.
   `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
   preparatory work).
 
+There are actually two independent design decisions involved:
+* absolute values with values in `ℝ≥0` vs. with values in `ℝ`
+* one common indexing type vs. two separate ones for archimedean/non-archimedean
+  absolute values
+
+The two versions implemented here combine the first choices (Basic.lean) or the
+second choices (Variant.lean) in both.
+
+Advantage of `ℝ≥0` over `ℝ`:
+* `ℝ≥0` is an `OrderedCommMonoid` (which `ℝ` is not); this gives access to a broader API
+  for arguments that involve the order (which are rather pervasive in our context).
+
+Disadvantage:
+* The `FinitePlace`s and `InfinitePlace`s of a `NumberField` are defined to be
+  `AbsoluteValue`s with values in `ℝ`, so there is some friction in translating
+  to a setting with `ℝ≥0`-valued absolute values. See [Instance.lean](Heights/Instances.lean)
+  for what this means. (Instead of using `ℝ` in `AdmissibleAbsValues`, one could
+  of course refactor the other side to use `ℝ≥0`. I don't have a feeling for the
+  ramifications of that.)
+
+
 ## Main definitions
 
 We define *multiplicative heights* and *logarithmic heights* (which are just defined to
