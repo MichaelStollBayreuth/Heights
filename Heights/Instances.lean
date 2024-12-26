@@ -39,6 +39,10 @@ lemma Function.mulSupport_sumElim_finite {M α β : Type*} [One M] {f : α → M
     (Sum.elim f g).mulSupport.Finite := by
   sorry
 
+lemma Function.mulSupport_sumElim_finite' {α β M : Type*} [Finite β] [One M] (f : β → M) :
+    (Function.mulSupport (Sum.elim (fun x : α ↦ 1) f)).Finite := by
+  sorry
+
 lemma finprod_sum {M α β : Type*} [CommMonoid M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     ∏ᶠ x, Sum.elim f g x = (∏ᶠ a, f a) * ∏ᶠ b, g b := by
@@ -62,6 +66,15 @@ variable {K : Type*} [Field K] [NumberField K]
 
 instance : NonarchimedeanHomClass (FinitePlace K) K ℝ where
   map_add_le_max v a b := FinitePlace.add_le v a b
+
+lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
+    (Function.mulSupport fun v : FinitePlace K ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom) x).Finite := by
+  convert mulSupport_finite hx
+  refine Set.ext fun v ↦ ?_
+  simp only [MonoidWithZeroHom.coe_comp, AbsoluteValue.coe_toMonoidWithZeroHom,
+    Function.comp_apply, apply_nonneg, Real.nnabs_of_nonneg, Function.mem_mulSupport, ne_eq,
+    Real.toNNReal_eq_one, not_iff_not]
+  rfl
 
 noncomputable
 instance NumberField.instAdmissibleAbsValues :
@@ -104,20 +117,33 @@ instance NumberField.instAdmissibleAbsValues :
               rcases le_total (v x) (v y) with h | h <;>
               { simp only [h, sup_of_le_right, right_eq_sup, sup_of_le_left, left_eq_sup]
                 gcongr }
-      mulSupport_ineqBounds_finite := by
-        simp only [Function.mulSupport]
-        sorry
+      mulSupport_ineqBounds_finite := Function.mulSupport_sumElim_finite' _
       mulSupport_absValues_finite hx := by
         rw [MonoidWithZeroHom.sumElim_apply']
-        refine Function.mulSupport_sumElim_finite ?_ <| Set.toFinite _
-        convert NumberField.FinitePlace.mulSupport_finite hx
-        refine Set.ext fun v ↦ ?_
-        simp only [MonoidWithZeroHom.coe_comp, AbsoluteValue.coe_toMonoidWithZeroHom,
-          Function.comp_apply, apply_nonneg, Real.nnabs_of_nonneg, Function.mem_mulSupport, ne_eq,
-          Real.toNNReal_eq_one, not_iff_not]
-        rfl
+        exact Function.mulSupport_sumElim_finite (FinitePlace.mulSupport_finite' hx) <| Set.toFinite _
       product_formula hx := by
         apply_fun ((↑) : NNReal → ℝ) using NNReal.coe_injective
         simp only [NNReal.coe_one]
-        rw [← prod_abs_eq_one hx, mul_comm]
-        sorry
+        rw [← prod_abs_eq_one hx, mul_comm, MonoidWithZeroHom.sumElim_apply',
+          finprod_sum ((FinitePlace.mulSupport_finite' hx)) (Set.toFinite _)]
+        push_cast
+        have (x : NNReal) : NNReal.toRealHom x = NNReal.toRealHom.toMonoidHom x := rfl
+        simp_rw [← NNReal.coe_toRealHom, this]
+        congr
+        · rw [MonoidHom.map_finprod _ (FinitePlace.mulSupport_finite' hx)]
+          congr
+          ext1 v
+          simp only [RingHom.toMonoidHom_eq_coe, MonoidWithZeroHom.coe_comp,
+            AbsoluteValue.coe_toMonoidWithZeroHom, Function.comp_apply, apply_nonneg,
+            Real.nnabs_of_nonneg, MonoidHom.coe_coe, NNReal.coe_toRealHom, Real.coe_toNNReal',
+            sup_of_le_left]
+          rfl
+        · rw [finprod_eq_prod_of_fintype, map_prod]
+          congr
+          ext1 v
+          simp only [RingHom.toMonoidHom_eq_coe, MonoidWithZeroHom.coe_comp,
+            AbsoluteValue.coe_toMonoidWithZeroHom, coe_powMonoidWithZeroHom, Function.comp_apply,
+            AbsoluteValue.map_pow, apply_nonneg, pow_nonneg, Real.nnabs_of_nonneg,
+            MonoidHom.coe_coe, NNReal.coe_toRealHom, Real.coe_toNNReal', sup_of_le_left, ne_eq,
+            InfinitePlace.mult_ne_zero, not_false_eq_true, pow_left_inj₀]
+          rfl
