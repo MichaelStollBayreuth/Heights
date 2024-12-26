@@ -68,7 +68,6 @@ lemma finprod_sum [CommMonoid M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     ∏ᶠ x, Sum.elim f g x = (∏ᶠ a, f a) * ∏ᶠ b, g b := by
   have hfg := Function.mulSupport_sumElim_finite hf hg
-  let s : Finset (α ⊕ β) := hfg.toFinset
   rw [finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hfg).symm.subset,
     finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hf).symm.subset,
     finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hg).symm.subset,
