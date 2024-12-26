@@ -32,7 +32,13 @@ lemma MonoidWithZeroHom.sumElim_apply' {α β γ M : Type*} [MonoidWithZero γ] 
     (f : α → γ →*₀ M) (g : β → γ →*₀ M) (y : γ) :
     ((Sum.elim f g) · y) = Sum.elim (f · y) (g · y) := by
   ext1 x
-  sorry
+  cases x with
+  | inl a => rfl
+  | inr b => rfl
+
+/- lemma Function.mulSupport_sumElim {M α β : Type*} [One M] {f : α → M} {g : β → M} :
+    (Sum.elim f g).mulSupport = f.mulSupport.disjSum g.mulSupport := by -- no `Set.disjSum`...?
+  sorry -/
 
 lemma Function.mulSupport_sumElim_finite {M α β : Type*} [One M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
@@ -40,13 +46,24 @@ lemma Function.mulSupport_sumElim_finite {M α β : Type*} [One M] {f : α → M
   sorry
 
 lemma Function.mulSupport_sumElim_finite' {α β M : Type*} [Finite β] [One M] (f : β → M) :
-    (Function.mulSupport (Sum.elim (fun x : α ↦ 1) f)).Finite := by
-  sorry
+    (Function.mulSupport (Sum.elim (fun _ : α ↦ 1) f)).Finite := by
+  refine mulSupport_sumElim_finite ?_ <| Set.toFinite _
+  rw [mulSupport_one]
+  exact Set.finite_empty
 
 lemma finprod_sum {M α β : Type*} [CommMonoid M] {f : α → M} {g : β → M}
     (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) :
     ∏ᶠ x, Sum.elim f g x = (∏ᶠ a, f a) * ∏ᶠ b, g b := by
-  sorry
+  have hfg := Function.mulSupport_sumElim_finite hf hg
+  let s : Finset (α ⊕ β) := hfg.toFinset
+  rw [finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hfg).symm.subset,
+    finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hf).symm.subset,
+    finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hg).symm.subset,
+    ← Finset.prod_sum_elim]
+  congr
+  refine Finset.eq_disjSum_iff.mpr ⟨?_, ?_⟩
+  · exact Finset.ext_iff.mpr fun _ ↦ by simp
+  · exact Finset.ext_iff.mpr fun _ ↦ by simp
 
 lemma NumberField.FinitePlace.add_le {K : Type*} [Field K] [NumberField K] (v : FinitePlace K)
     (x y : K) :
