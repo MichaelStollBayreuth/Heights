@@ -253,9 +253,9 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
   simp only [mulHeight, Pi.smul_apply, smul_eq_mul, map_mul]
   conv =>
     enter [1, 1, 2, v]
-    rw [← ciSupℝ_pow fun i ↦ mul_nonneg (AbsoluteValue.nonneg ..) (AbsoluteValue.nonneg ..),
+    rw [← Real.iSup_pow_of_nonneg fun _ ↦ by positivity,
       ← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg .., mul_pow,
-      ciSupℝ_pow fun i ↦ (AbsoluteValue.nonneg ..)]
+      Real.iSup_pow_of_nonneg fun _ ↦ (AbsoluteValue.nonneg ..)]
   conv =>
     enter [1, 2, 1, v]
     rw [← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg ..]
@@ -271,7 +271,7 @@ lemma logHeight_smul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
 lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := by
   simp only [mulHeight₁, mulHeight, Nat.succ_eq_add_one, Nat.reduceAdd]
   congr <;> ext1 v
-  · rw [(archAbsVal v).max_one_eq_iSup, ciSupℝ_pow fun _ ↦ AbsoluteValue.nonneg ..]
+  · rw [(archAbsVal v).max_one_eq_iSup, Real.iSup_pow_of_nonneg fun _ ↦ AbsoluteValue.nonneg ..]
   · exact AbsoluteValue.max_one_eq_iSup ..
 
 lemma logHeight₁_eq_logHeight (x : K) : logHeight₁ x = logHeight ![x, 1] := by
@@ -284,9 +284,9 @@ lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) 
   simp only [mulHeight, Pi.pow_apply, map_pow]
   rw [mul_pow, finprod_pow <| mulSupport_iSup_absValue_finite hx, ← Finset.prod_pow]
   congr 2 <;> ext1 v
-  · rw [ciSupℝ_pow fun _ ↦ pow_nonneg (AbsoluteValue.nonneg ..) _]
+  · rw [Real.iSup_pow_of_nonneg fun _ ↦ by positivity]
     simp only [pow_right_comm]
-  · exact (ciSupℝ_pow (fun _ ↦ AbsoluteValue.nonneg ..) n).symm
+  · exact (Real.iSup_pow_of_nonneg (fun _ ↦ AbsoluteValue.nonneg ..) n).symm
 
 /-- The logarithmic height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n` times its logarithmic height. -/
@@ -382,7 +382,8 @@ lemma logHeight₁_add_le (x y : K) :
 heights, where `n` is the number of terms. -/
 -- We can get better bounds if we are more specific with the archimedean absolute values.
 lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
-    mulHeight₁ (∑ a ∈ s, x a) ≤ 2 ^ ((s.card - 1) * totalWeight K) * ∏ a ∈ s, mulHeight₁ (x a) := by
+    mulHeight₁ (∑ a ∈ s, x a) ≤
+      2 ^ ((s.card - 1) * totalWeight K) * ∏ a ∈ s, mulHeight₁ (x a) := by
   induction s using Finset.induction with
   | empty => simp
   | @insert a s ha ih =>
@@ -391,7 +392,8 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
       · simp only [ha, not_false_eq_true, Finset.sum_insert, Finset.card_insert_of_not_mem,
           add_tsub_cancel_right, Finset.prod_insert]
         calc
-        _ ≤ 2 ^ totalWeight K * mulHeight₁ (x a) * mulHeight₁ (∑ b ∈ s, x b) := mulHeight₁_add_le ..
+        _ ≤ 2 ^ totalWeight K * mulHeight₁ (x a) * mulHeight₁ (∑ b ∈ s, x b) :=
+          mulHeight₁_add_le ..
         _ ≤ 2 ^ totalWeight K * mulHeight₁ (x a) *
               (2 ^ ((s.card - 1) * totalWeight K) * ∏ b ∈ s, mulHeight₁ (x b)) := by
           gcongr
