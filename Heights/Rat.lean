@@ -23,7 +23,9 @@ lemma Rat.isReal_infinitePlace : Rat.infinitePlace.IsReal :=
 
 -- (up to here)
 
-/- lemma ciSup_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
+-- The following are not needed, after all, but might be useful eventually.
+/-
+lemma ciSup_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
     [TopologicalSpace R] [OrderClosedTopology R] [AddMonoidWithOne R] [AddLeftMono R]
     [ZeroLEOneClass R] (f : ι → ℕ) :
     ⨆ i, (f i : R) = (⨆ i, f i : ) := by
@@ -31,14 +33,16 @@ lemma Rat.isReal_infinitePlace : Rat.infinitePlace.IsReal :=
   refine (Monotone.map_ciSup_of_continuousAt ?_ Nat.mono_cast (Finite.bddAbove_range f)).symm
   exact continuous_of_discreteTopology.continuousAt -/
 
-/- lemma ciInf_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
+/-
+lemma ciInf_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
     [TopologicalSpace R] [OrderClosedTopology R] [AddMonoidWithOne R] [AddLeftMono R]
     [ZeroLEOneClass R] (f : ι → ℕ) :
     ⨅ i, (f i : R) = (⨅ i, f i : ) := by
   refine (Monotone.map_ciInf_of_continuousAt ?_ Nat.mono_cast (Finite.bddBelow_range f)).symm
   exact continuous_of_discreteTopology.continuousAt -/
 
-/- lemma Real.iSup_inv_eq_iInf {ι : Type*} [Fintype ι] [Nonempty ι] {f : ι → ℝ} (hf : ∀ i, 0 < f i) :
+/-
+lemma Real.iSup_inv_eq_iInf {ι : Type*} [Fintype ι] [Nonempty ι] {f : ι → ℝ} (hf : ∀ i, 0 < f i) :
     ⨆ i, (f i)⁻¹ = (⨅ i, f i)⁻¹ := by
   have ⟨i, hi⟩ := exists_eq_ciInf_of_finite (f := f)
   have H₀ : 0 < ⨅ i, f i := hi ▸ hf i
@@ -112,8 +116,8 @@ def RingEquiv.mapIsDedekindDomainHeightOneSpectrum {R S : Type*} [CommRing R] [I
 
 /-- A ring isomorphism (of Dedekind domains) induces an equivalence
 between the height one spectra. -/
-def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R] [IsDedekindDomain R]
-    [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) :
+def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R]
+    [IsDedekindDomain R] [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) :
     IsDedekindDomain.HeightOneSpectrum R ≃ IsDedekindDomain.HeightOneSpectrum S where
       toFun := e.mapIsDedekindDomainHeightOneSpectrum
       invFun := e.symm.mapIsDedekindDomainHeightOneSpectrum
@@ -142,7 +146,9 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     ⨆ i, v (x i) = 1 := by
   let v' : IsDedekindDomain.HeightOneSpectrum (RingOfIntegers ℚ) := v.maximalIdeal
   have ⟨i, hi⟩ : ∃ i, ‖(embedding v.maximalIdeal) (Rat.ringOfIntegersEquiv.symm (x i))‖ = 1 := by
-    conv => enter [1, i]; rw [NumberField.norm_eq_one_iff_not_mem v' (Rat.ringOfIntegersEquiv.symm (x i))]
+    conv =>
+      enter [1, i]
+      rw [NumberField.norm_eq_one_iff_not_mem v' (Rat.ringOfIntegersEquiv.symm (x i))]
     by_contra! H
     let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
     have hx' i : x i ∈ pI.asIdeal := by
