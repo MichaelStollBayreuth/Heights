@@ -1,4 +1,4 @@
-import Heights.Variant
+import Heights.Instances
 
 /-!
 ### Heights over ℚ

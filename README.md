@@ -16,7 +16,7 @@ The general set-up for heights is the following. Let `K` be a field.
 We try two implementations of the class `AdmissibleAbsValues K` that reflects
 these requirements.
 
-* In [__Basic.lean__](Heights/Basic.lean) we use *one* indexing type for *all*
+* In [__Basic-Alternative.lean__](Heights/Basic-Alternative.lean) we use *one* indexing type for *all*
   absolute values, non-archimedean and archimedean alike. Since we want to use
   powers of standard archimedean absolute values, we only require a weaker triangle inequality:
   `|x+y|ᵥ ≤ Cᵥ * max |x|ᵥ |y|ᵥ` for some constant `Cᵥ`.
@@ -32,10 +32,10 @@ these requirements.
   `InfinitePlace K ⊕ FinitePlace K`, which requires all functions and proofs to
   either go via `Sum.elim` or `match` expressions, and the API for such functions
   (e.g., for `mulSupport` or `finprod`) is a bit lacking.
-  See [__Instances.lean__](Heights/Instances.lean) for an attempt at providing
+  See [__Instances-Alternative.lean__](Heights/Instances-Alternative.lean) for an attempt at providing
   an instance of `AdmissibleAbsValues` for a number field.
 
-* In [__Variant.lean__](Heights/Variant.lean) we instead use *two* indexing types,
+* In [__Basic.lean__](Heights/Basic.lean) we instead use *two* indexing types,
   one for the archimedean and one for the non-archimedean absolute values.
   For the archimedean ones, we need "weights" (which are the exponents with which
   the absolute values occur in the product formula). We can then use the type `AbsoluteValue K ℝ`.
@@ -45,7 +45,7 @@ these requirements.
   the non-archimedean ones instead of just one `finprod` over all places.
   A big advantage is that it is now quite easy to set up an instance of
   `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
-  preparatory work).
+  preparatory work); see [__Instances.lean__](Heights/Instances.lean).
 
 There are actually two independent design decisions involved:
 * absolute values with values in `ℝ≥0` vs. with values in `ℝ`
@@ -62,7 +62,8 @@ Advantage of `ℝ≥0` over `ℝ`:
 Disadvantage:
 * The `FinitePlace`s and `InfinitePlace`s of a `NumberField` are defined to be
   `AbsoluteValue`s with values in `ℝ`, so there is some friction in translating
-  to a setting with `ℝ≥0`-valued absolute values. See [Instance.lean](Heights/Instances.lean)
+  to a setting with `ℝ≥0`-valued absolute values.
+  See [Instances-Alternative.lean](Heights/Instances-Alternative.lean)
   for what this means. (Instead of using `ℝ` in `AdmissibleAbsValues`, one could
   of course refactor the other side to use `ℝ≥0`. I don't have a feeling for the
   ramifications of that.)
@@ -91,4 +92,5 @@ We define the following variants.
 Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
 we also show:
 * The multiplicative height of a tuple of rational numbers consisting of coprime integers
-  is the maximum of the absolute values of the entries (`Rat.mulHeight_eq_max_abs_of_gcd_eq_one`).
+  is the maximum of the absolute values of the entries
+  (see `Rat.mulHeight_eq_max_abs_of_gcd_eq_one` in [__Rat.lean__](Heights/Rat.lean)).
