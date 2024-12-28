@@ -135,6 +135,8 @@ def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R] 
 --   sorry
 attribute [local instance 2000] NormedField.toNorm
 
+/-- The term corresponding to a finite place in the definition of the multiplicative height
+of a tuple of rational numbers equals `1` if the tuple consists of coprime integers. -/
 lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι : Type*}
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
@@ -162,8 +164,10 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
 
 open Height
 
+/-- The multiplicative height of a tuple of rational numbers that consists of coprime integers
+is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
-    (hx : Finset.gcd .univ x = 1) :
+    (hx : Finset.univ.gcd x = 1) :
     mulHeight (((↑) : ℤ →  ℚ) ∘ x) = ⨆ i, |x i| := by
   simp only [mulHeight]
   conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
@@ -177,5 +181,7 @@ lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty
       Int.cast_mono (Finite.bddAbove_range _)).symm
   · exact finprod_eq_one_of_forall_eq_one
       fun v ↦ Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one v hx
+
+
 
 end rat
