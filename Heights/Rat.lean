@@ -90,7 +90,7 @@ def Int.natPrimesEquivHeightOneSpectrum : Nat.Primes ≃ IsDedekindDomain.Height
           exact IsDedekindDomain.HeightOneSpectrum.ne_bot I this
       rwa [← Int.prime_iff_natAbs_prime]⟩
   left_inv p := Subtype.ext <| heightOneSpectrum_aux₂ p
-  right_inv I :=IsDedekindDomain.HeightOneSpectrum.ext_iff.mpr <| heightOneSpectrum_aux₁ I
+  right_inv I := IsDedekindDomain.HeightOneSpectrum.ext_iff.mpr <| heightOneSpectrum_aux₁ I
 
 /-- If `v` is an element of the height one spectrum of `ℤ`, then membership in the associated
 ideal is equivalent to divisibility by the corresponding prime number. -/
