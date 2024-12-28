@@ -145,31 +145,27 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
   let v' : IsDedekindDomain.HeightOneSpectrum (RingOfIntegers ℚ) := v.maximalIdeal
-  have ⟨i, hi⟩ : ∃ i, ‖(embedding v.maximalIdeal) (Rat.ringOfIntegersEquiv.symm (x i))‖ = 1 := by
-    conv =>
-      enter [1, i]
-      rw [NumberField.norm_eq_one_iff_not_mem v' (Rat.ringOfIntegersEquiv.symm (x i))]
+  have ⟨i, hi⟩ : ∃ i, ‖(embedding v') (Rat.ringOfIntegersEquiv.symm (x i))‖ = 1 := by
+    simp_rw [NumberField.norm_eq_one_iff_not_mem]
     by_contra! H
     let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
-    have hx' i : x i ∈ pI.asIdeal := by
-      rw [show pI.asIdeal = Ideal.map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
-        Ideal.mem_map_of_equiv]
-      exact ⟨ringOfIntegersEquiv.symm (x i), H i, RingEquiv.apply_symm_apply ..⟩
     let p := Int.natPrimesEquivHeightOneSpectrum.symm pI
-    simp_rw [pI.mem_iff_dvd] at hx'
-    have : (p : ℤ) ∣ 1 := by
-      rw [← hx]
-      exact Finset.dvd_gcd fun i _ ↦ hx' i
-    exact p.prop.not_dvd_one <| mod_cast this
+    have h i : (p : ℤ) ∣ x i := by
+      rw [← pI.mem_iff_dvd, show pI.asIdeal = .map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
+        Ideal.mem_map_of_equiv]
+      exact ⟨_, H i, RingEquiv.apply_symm_apply ..⟩
+    refine p.prop.not_dvd_one ?_
+    rw [← Int.ofNat_dvd, Nat.cast_one, ← hx]
+    exact Finset.dvd_gcd fun i _ ↦ h i
   have H i : (x i : ℚ) = Rat.ringOfIntegersEquiv.symm (x i) := by
     simp only [eq_intCast, map_intCast]
   simp_rw [H, ← NumberField.FinitePlace.norm_embedding_eq]
-  refine le_antisymm ?_ ?_
-  · exact Real.iSup_le (fun i ↦ NumberField.norm_le_one v' _) zero_le_one
-  · exact le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
+  exact le_antisymm (Real.iSup_le (fun i ↦ NumberField.norm_le_one v' _) zero_le_one) <|
+    le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
 
 open Height
 
+open AdmissibleAbsValues in
 /-- The multiplicative height of a tuple of rational numbers that consists of coprime integers
 is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
@@ -178,9 +174,8 @@ lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty
   simp only [mulHeight]
   conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
   congr 1
-  · simp only [AdmissibleAbsValues.ArchAbsVal, AdmissibleAbsValues.archAbsVal, Function.comp_apply,
-      AdmissibleAbsValues.weight, NumberField.InfinitePlace.mult, pow_ite, pow_one,
-      Rat.prod_infinitePlace, Rat.isReal_infinitePlace, ↓reduceIte]
+  · simp only [ArchAbsVal, archAbsVal, Function.comp_apply, weight, InfinitePlace.mult, pow_ite,
+      pow_one, prod_infinitePlace, isReal_infinitePlace, ↓reduceIte]
     have (i : ι) : Rat.infinitePlace.val (x i) = Rat.infinitePlace (x i) := rfl
     conv => enter [1, 1, i]; rw [this, Rat.infinitePlace_apply]
     exact_mod_cast (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
