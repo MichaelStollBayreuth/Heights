@@ -52,43 +52,37 @@ lemma Real.iSup_inv_eq_iInf {ι : Type*} [Fintype ι] [Nonempty ι] {f : ι → 
 
 -- The following material could go into `Mathlib.RingTheory.DedekindDomain.Ideal`
 
+open Ideal
+
 lemma Int.heightOneSpectrum_aux₁ (I : IsDedekindDomain.HeightOneSpectrum ℤ) :
-    Ideal.span {((Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs : ℤ)} = I.asIdeal := by
+    span {((Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs : ℤ)} = I.asIdeal := by
   have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
-  rw [Ideal.submodule_span_eq] at this
+  rw [submodule_span_eq] at this
   rw [this, span_natAbs]
   convert rfl
 
 lemma Int.heightOneSpectrum_aux₂ (p : Nat.Primes) :
-    (Submodule.IsPrincipal.principal <| Ideal.span {(p.val : ℤ)}).choose.natAbs = p := by
-  have := (Submodule.IsPrincipal.principal <| Ideal.span {(p.val : ℤ)}).choose_spec
-  rw [Ideal.submodule_span_eq, Ideal.span_singleton_eq_span_singleton,
-    associated_iff_natAbs] at this
-  rw [← this]
-  rfl
+    (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose.natAbs = p := by
+  have := (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose_spec
+  rw [submodule_span_eq, span_singleton_eq_span_singleton, associated_iff_natAbs] at this
+  rw [← this, natAbs_cast]
 
 /-- The canonical bijection between the set of prime numbers and the height one spectrum of `ℤ` -/
 noncomputable
 def Int.natPrimesEquivHeightOneSpectrum : Nat.Primes ≃ IsDedekindDomain.HeightOneSpectrum ℤ where
-  toFun p := .mk (Ideal.span {(p.val : ℤ)})
-    (by refine (Ideal.span_singleton_prime <| mod_cast p.prop.ne_zero).mpr ?_
-        rw [← Nat.prime_iff_prime_int]
-        exact p.prop)
-    (by simp only [ne_eq, Ideal.span_singleton_eq_bot, Nat.cast_eq_zero]
+  toFun p := .mk (span {(p.val : ℤ)})
+    ((span_singleton_prime <| mod_cast p.prop.ne_zero).mpr <| Nat.prime_iff_prime_int.mp p.prop)
+    (by simp only [ne_eq, span_singleton_eq_bot, Nat.cast_eq_zero]
         exact_mod_cast p.prop.ne_zero)
   invFun I :=
-    have := IsPrincipalIdealRing.principal I.asIdeal
     ⟨(Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs, by
       have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
-      have hm : I.asIdeal.IsPrime := IsDedekindDomain.HeightOneSpectrum.isPrime I
-      have : Prime (Submodule.IsPrincipal.principal I.asIdeal).choose := by
-        rw [← Ideal.span_singleton_prime ?h, ← Ideal.submodule_span_eq, ← this]
-        exact hm
-        case h =>
-          intro hf
-          rw [hf, Ideal.submodule_span_eq, Ideal.span_singleton_eq_bot.mpr rfl] at this
-          exact IsDedekindDomain.HeightOneSpectrum.ne_bot I this
-      rwa [← Int.prime_iff_natAbs_prime]⟩
+      have h : (Submodule.IsPrincipal.principal I.asIdeal).choose ≠ 0 := by
+        intro hf
+        rw [hf, submodule_span_eq, span_singleton_eq_bot.mpr rfl] at this
+        exact I.ne_bot this
+      rw [← Int.prime_iff_natAbs_prime, ← span_singleton_prime h, ← submodule_span_eq, ← this]
+      exact I.isPrime⟩
   left_inv p := Subtype.ext <| heightOneSpectrum_aux₂ p
   right_inv I := IsDedekindDomain.HeightOneSpectrum.ext_iff.mpr <| heightOneSpectrum_aux₁ I
 
@@ -96,23 +90,23 @@ def Int.natPrimesEquivHeightOneSpectrum : Nat.Primes ≃ IsDedekindDomain.Height
 ideal is equivalent to divisibility by the corresponding prime number. -/
 lemma IsDedekindDomain.HeightOneSpectrum.mem_iff_dvd (v : HeightOneSpectrum ℤ) (x : ℤ) :
     x ∈ v.asIdeal ↔ (Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ) ∣ x := by
-  have : v.asIdeal = Ideal.span {(Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ)} := by
-    simp only [Int.natPrimesEquivHeightOneSpectrum, Ideal.submodule_span_eq, Equiv.coe_fn_symm_mk]
+  have : v.asIdeal = span {(Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ)} := by
+    simp only [Int.natPrimesEquivHeightOneSpectrum, submodule_span_eq, Equiv.coe_fn_symm_mk]
     have := (Submodule.IsPrincipal.principal v.asIdeal).choose_spec
-    rw [Ideal.submodule_span_eq] at this
-    exact this.trans <| Ideal.span_singleton_eq_span_singleton.mpr <| Int.associated_natAbs _
-  simpa only [this] using Ideal.mem_span_singleton
+    rw [submodule_span_eq] at this
+    exact this.trans <| span_singleton_eq_span_singleton.mpr <| Int.associated_natAbs _
+  simpa only [this] using mem_span_singleton
 
 /-- A ring isomorphism `R → S` induces a map from the height one spectrum of `R` to that of `S`. -/
 def RingEquiv.mapIsDedekindDomainHeightOneSpectrum {R S : Type*} [CommRing R] [IsDedekindDomain R]
     [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) (v : IsDedekindDomain.HeightOneSpectrum R) :
     IsDedekindDomain.HeightOneSpectrum S :=
-  .mk (Ideal.map e v.asIdeal)
+  .mk (map e v.asIdeal)
       (by have := v.isPrime
-          exact Ideal.map_isPrime_of_equiv e (I := v.asIdeal))
+          exact map_isPrime_of_equiv e (I := v.asIdeal))
       (by have := v.ne_bot
           contrapose! this
-          rwa [Ideal.map_eq_bot_iff_of_injective <| RingEquiv.injective e] at this)
+          rwa [map_eq_bot_iff_of_injective <| RingEquiv.injective e] at this)
 
 /-- A ring isomorphism (of Dedekind domains) induces an equivalence
 between the height one spectra. -/
@@ -122,12 +116,12 @@ def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R]
       toFun := e.mapIsDedekindDomainHeightOneSpectrum
       invFun := e.symm.mapIsDedekindDomainHeightOneSpectrum
       left_inv v := by
-        simp only [mapIsDedekindDomainHeightOneSpectrum, Ideal.map_symm]
-        exact IsDedekindDomain.HeightOneSpectrum.ext <| Ideal.comap_map_of_bijective e e.bijective
+        simp only [mapIsDedekindDomainHeightOneSpectrum, map_symm]
+        exact IsDedekindDomain.HeightOneSpectrum.ext <| comap_map_of_bijective e e.bijective
       right_inv v := by
-        simp only [mapIsDedekindDomainHeightOneSpectrum, Ideal.map_symm]
+        simp only [mapIsDedekindDomainHeightOneSpectrum, map_symm]
         exact IsDedekindDomain.HeightOneSpectrum.ext <|
-          Ideal.map_comap_of_surjective e e.surjective _
+          map_comap_of_surjective e e.surjective _
 
 -- (up to here)
 
@@ -152,7 +146,7 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     let p := Int.natPrimesEquivHeightOneSpectrum.symm pI
     have h i : (p : ℤ) ∣ x i := by
       rw [← pI.mem_iff_dvd, show pI.asIdeal = .map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
-        Ideal.mem_map_of_equiv]
+        mem_map_of_equiv]
       exact ⟨_, H i, RingEquiv.apply_symm_apply ..⟩
     refine p.prop.not_dvd_one ?_
     rw [← Int.ofNat_dvd, Nat.cast_one, ← hx]
