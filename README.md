@@ -85,3 +85,10 @@ We define the following variants.
 * `Projectivization.mulHeight` and `Projectivization.logHeight` on
   `Projectivization K (ι → K)` (with a `Fintype ι`). This is the height of a point
   on projective space (with fixed basis).
+
+## Main results
+
+Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
+we also show:
+* The multiplicative height of a tuple of rational numbers consisting of coprime integers
+  is the maximum of the absolute values of the entries (`Rat.mulHeight_eq_max_abs_of_gcd_eq_one`).
