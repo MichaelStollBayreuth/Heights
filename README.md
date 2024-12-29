@@ -95,6 +95,9 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
   is the maximum of the absolute values of the entries
   (see `Rat.mulHeight_eq_max_abs_of_gcd_eq_one` in [__Rat.lean__](Heights/Rat.lean)).
 * The height on projective space over `ℚ` satisfies the *Northcott Property*:
-  the set of elements of bounded height is finite (see `Rat.finite_of_mulHeight_le`
-  and `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
+  the set of elements of bounded height is finite (see
+  `Projectivization.Rat.finite_of_mulHeight_le` and `Projectivization.Rat.finite_of_logHeight_le`
+  in [__Rat.lean__](Heights/Rat.lean)).
+* The height on `ℚ` satisfies the *Northcott Property* (see `Rat.finite_of_mulHeight_le` and
+  `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
  

@@ -273,11 +273,12 @@ lemma Rat.mulHeight_coprimeIntToProjective_eq (x : { x : ι → ℤ // Finset.un
 
 /-- The height on `ℙⁿ(ℚ)` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (multiplicative) height. -/
-lemma Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
+lemma Projectivization.Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
     {x : Projectivization ℚ (ι → ℚ) | x.mulHeight ≤ B}.Finite := by
-  let s := {x : { x : ι → ℤ  // Finset.univ.gcd x = 1 } | mulHeight (((↑) : ℤ → ℚ) ∘  x.val) ≤ B}
+  let s := {x : { x : ι → ℤ  // Finset.univ.gcd x = 1 } |
+    Height.mulHeight (((↑) : ℤ → ℚ) ∘  x.val) ≤ B}
   have hs : s.Finite := by
-    simp only [s, mulHeight_eq_max_abs_of_gcd_eq_one']
+    simp only [s, Rat.mulHeight_eq_max_abs_of_gcd_eq_one']
     refine Set.Finite.of_finite_image ?_ Set.injOn_subtype_val
     refine Set.Finite.subset (s := {x | ∀ i, |x i| ≤ B}) ?_ fun x hx ↦ ?_
     · refine Set.forall_finite_image_eval_iff.mp fun i ↦ ?_
@@ -296,18 +297,56 @@ lemma Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
         exact Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
           Int.cast_mono (Finite.bddAbove_range _)
       exact (ciSup_le_iff <| Finite.bddAbove_range _).mp <| this ▸ hx.1
-  refine Set.Finite.of_surjOn coprimeIntToProjective (fun x hx ↦ ?_) hs
+  refine Set.Finite.of_surjOn Rat.coprimeIntToProjective (fun x hx ↦ ?_) hs
   · rw [Set.mem_image, Subtype.exists]
-    have ⟨y, hy⟩ := coprimeIntToProjective_surjective x
-    exact ⟨y.val, y.prop, by simp [s, mulHeight_coprimeIntToProjective_eq, hy, Set.mem_setOf.mp hx], hy⟩
+    have ⟨y, hy⟩ := Rat.coprimeIntToProjective_surjective x
+    exact ⟨y.val, y.prop,
+      by simp [s, Rat.mulHeight_coprimeIntToProjective_eq, hy, Set.mem_setOf.mp hx], hy⟩
 
 /-- The height on `ℙⁿ(ℚ)` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (logarithmic) height. -/
-lemma Rat.finite_of_logHeight_le [Nonempty ι] (B : ℝ) :
+lemma Projectivization.Rat.finite_of_logHeight_le [Nonempty ι] (B : ℝ) :
     {x : Projectivization ℚ (ι → ℚ) | x.logHeight ≤ B}.Finite := by
   have H (x : Projectivization ℚ (ι → ℚ)) : x.logHeight ≤ B ↔ x.mulHeight ≤ B.exp := by
     rw [x.logHeight_eq_log_mulHeight]
     exact Real.log_le_iff_le_exp x.mulHeight_pos
   simpa only [H] using finite_of_mulHeight_le (Real.exp B)
+
+/-- The map from a field `K` to the projectivization of a two-dimensional `K`-vector space
+given by sending `x` to `(x : 1)`. -/
+-- better namespace than `_root_`?
+def toProjectivization {K : Type*} [Field K] (x : K) : Projectivization K (Fin 2 → K) :=
+  .mk K ![x, 1] <| by simp
+
+lemma toProjectivization_injective {K : Type*} [Field K] :
+    Function.Injective (toProjectivization (K := K)) := by
+  intro x y h
+  simp only [toProjectivization, Projectivization.mk_eq_mk_iff', Matrix.smul_cons, smul_eq_mul,
+    mul_one, Matrix.smul_empty] at h
+  have ⟨a, ha⟩ := h
+  have ha₀ := congrFun ha 0
+  have ha₁ := congrFun ha 1
+  simp only [Fin.isValue, Matrix.cons_val_zero] at ha₀
+  simp only [Fin.isValue, Matrix.cons_val_one, Matrix.head_cons] at ha₁
+  simpa [ha₁] using ha₀.symm
+
+/-- The height on `ℚ` satisfies the *Northcott Property*: there are only finitely many
+points of bounded (multiplicative) height. -/
+lemma Rat.finite_of_mulHeight_le (B : ℝ) : {x : ℚ | mulHeight₁ x ≤ B}.Finite := by
+  refine Set.Finite.of_finite_image ?_ toProjectivization_injective.injOn
+  simp_rw [Set.image, mulHeight₁_eq_mulHeight, Set.mem_setOf]
+  have : {x | ∃ a : ℚ, mulHeight ![a, 1] ≤ B ∧ toProjectivization a = x} ⊆
+      {x | x.mulHeight ≤ B} := by
+    intro x hx
+    simp only [Set.mem_setOf] at hx ⊢
+    obtain ⟨a, ha, rfl⟩ := hx
+    exact ha
+  exact Set.Finite.subset (Projectivization.Rat.finite_of_mulHeight_le B) this
+
+/-- The height on `ℚ` satisfies the *Northcott Property*: there are only finitely many
+points of bounded (logarithmic) height. -/
+lemma Rat.finite_of_logHeight_le (B : ℝ) : {x : ℚ | logHeight₁ x ≤ B}.Finite := by
+  simpa only [logHeight₁, Real.log_le_iff_le_exp <| mulHeight₁_pos _]
+    using finite_of_mulHeight_le (Real.exp B)
 
 end projective
