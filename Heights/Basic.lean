@@ -277,6 +277,15 @@ lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := 
 lemma logHeight₁_eq_logHeight (x : K) : logHeight₁ x = logHeight ![x, 1] := by
   simp only [logHeight₁, logHeight, mulHeight₁_eq_mulHeight x]
 
+lemma mulHeight₁_div_eq_mulHeight (x : K) {y : K} (hy : y ≠ 0) :
+    mulHeight₁ (x / y) = mulHeight ![x, y] := by
+  rw [mulHeight₁_eq_mulHeight, ← mulHeight_smul_eq_mulHeight hy]
+  simp [mul_div_cancel₀ x hy]
+
+lemma logHeight₁_div_eq_logHeight (x : K) {y : K} (hy : y ≠ 0) :
+    logHeight₁ (x / y) = logHeight ![x, y] := by
+  rw [logHeight₁, logHeight, mulHeight₁_div_eq_mulHeight x hy]
+
 /-- The multiplicative height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n`th power of its multiplicative height. -/
 lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) = mulHeight x ^ n := by
