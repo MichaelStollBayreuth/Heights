@@ -90,7 +90,7 @@ We define the following variants.
 ## Main results
 
 Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
-we also show:
+we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 * The multiplicative height of a tuple of rational numbers consisting of coprime integers
   is the maximum of the absolute values of the entries
   (see `Rat.mulHeight_eq_max_abs_of_gcd_eq_one` in [__Rat.lean__](Heights/Rat.lean)).
