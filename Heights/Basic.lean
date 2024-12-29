@@ -240,6 +240,29 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     finprod_mul_distrib (mulSupport_nonarchAbsVal_finite hc) (mulSupport_iSup_absValue_finite hx),
     mul_mul_mul_comm, product_formula hc, one_mul]
 
+lemma one_le_mulHeight {x : ι → K} (hx : x ≠ 0) : 1 ≤ mulHeight x := by
+  have ⟨i, hi⟩ : ∃ i, x i ≠ 0 := Function.ne_iff.mp hx
+  rw [← mulHeight_smul_eq_mulHeight <| inv_ne_zero hi, mulHeight]
+  refine one_le_mul_of_one_le_of_one_le ?_ ?_
+  · classical
+    refine Finset.one_le_prod Finset.univ fun v ↦ ?_
+    refine le_ciSup_of_le (Finite.bddAbove_range _) i ?_
+    rw [Pi.smul_apply, smul_eq_mul, AbsoluteValue.map_mul, map_inv₀,
+      inv_mul_cancel₀ <| (AbsoluteValue.ne_zero_iff _).mpr hi, one_pow]
+  · refine one_le_finprod fun v ↦ ?_
+    refine le_ciSup_of_le (Finite.bddAbove_range _) i ?_
+    rw [Pi.smul_apply, smul_eq_mul, AbsoluteValue.map_mul, map_inv₀,
+      inv_mul_cancel₀ <| (AbsoluteValue.ne_zero_iff _).mpr hi]
+
+lemma mulHeight_pos {x : ι → K} (hx : x ≠ 0) : 0 < mulHeight x :=
+  zero_lt_one.trans_le <| one_le_mulHeight hx
+
+lemma mulHeight.ne_zero {x : ι → K} (hx : x ≠ 0) : mulHeight x ≠ 0 :=
+  (mulHeight_pos hx).ne'
+
+lemma zero_le_logHeight {x : ι → K} (hx : x ≠ 0) : 0 ≤ logHeight x :=
+  Real.log_nonneg <| one_le_mulHeight hx
+
 /-- The logarithmic height of a (nonzero) tuple does not change under scaling. -/
 lemma logHeight_smul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     logHeight (c • x) = logHeight x := by
@@ -429,5 +452,23 @@ def logHeight (x : Projectivization K (ι → K)) : ℝ :=
 lemma mulHeight_mk {x : ι → K} (hx : x ≠ 0) : mulHeight (mk K x hx) = Height.mulHeight x := rfl
 
 lemma logHeight_mk {x : ι → K} (hx : x ≠ 0) : logHeight (mk K x hx) = Height.logHeight x := rfl
+
+lemma logHeight_eq_log_mulHeight (x : Projectivization K (ι → K)) :
+    logHeight x = Real.log (mulHeight x) := by
+  rw [← x.mk_rep, mulHeight_mk, logHeight_mk, Height.logHeight]
+
+lemma one_le_mulHeight (x : Projectivization K (ι → K)) : 1 ≤ mulHeight x := by
+  rw [← x.mk_rep, mulHeight_mk]
+  exact Height.one_le_mulHeight x.rep_nonzero
+
+lemma mulHeight_pos (x : Projectivization K (ι → K)) : 0 < mulHeight x :=
+  zero_lt_one.trans_le <| one_le_mulHeight x
+
+lemma mulHeight_ne_zero (x : Projectivization K (ι → K)) : mulHeight x ≠ 0 :=
+  (mulHeight_pos x).ne'
+
+lemma zero_le_logHeight (x : Projectivization K (ι → K)) : 0 ≤ logHeight x := by
+  rw [logHeight_eq_log_mulHeight]
+  exact Real.log_nonneg <| x.one_le_mulHeight
 
 end Projectivization
