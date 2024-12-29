@@ -94,3 +94,7 @@ we also show:
 * The multiplicative height of a tuple of rational numbers consisting of coprime integers
   is the maximum of the absolute values of the entries
   (see `Rat.mulHeight_eq_max_abs_of_gcd_eq_one` in [__Rat.lean__](Heights/Rat.lean)).
+* The height on projective space over `ℚ` satisfies the *Northcott Property*:
+  the set of elements of bounded height is finite (see `Rat.finite_of_mulHeight_le`
+  and `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
+ 
