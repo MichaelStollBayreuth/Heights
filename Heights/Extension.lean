@@ -18,6 +18,17 @@ Sections 6 and 7.
 ### Auxiliary lemmas
 -/
 
+section Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+lemma Real.rpow_right_inj {x y z : ℝ} (hx₀ : 0 < x) (hx₁ : x ≠ 1) : x ^ y = x ^ z ↔ y = z := by
+  refine ⟨fun H ↦ ?_, fun H ↦ by rw [H]⟩
+  rcases hx₁.lt_or_lt with h | h
+  · exact le_antisymm ((rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.symm.le) <|
+      (rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.le
+  · exact le_antisymm ((rpow_le_rpow_left_iff h).mp H.le) ((rpow_le_rpow_left_iff h).mp H.symm.le)
+
+end Mathlib.Analysis.SpecialFunctions.Pow.Real
+
 section Mathlib.Algebra.Order.Archimedean.Basic
 
 variable {α : Type*} [LinearOrderedSemifield α] [Archimedean α] [ExistsAddOfLE α]
@@ -162,12 +173,28 @@ variable [Nontrivial R] (F : Type*) [Field F] [Algebra F R]
 def restrict (v : AbsoluteValue R S) : AbsoluteValue F S :=
   v.comp (RingHom.injective (algebraMap F R))
 
+variable {F}
+
 lemma apply_algebraMap (v : AbsoluteValue R S) (x : F) : v (algebraMap F R x) = v.restrict F x := rfl
 
 lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNontrivial) :
     v.IsNontrivial := by
   obtain ⟨x, hx₀, hx₁⟩ := h
   exact ⟨algebraMap F R x, (map_ne_zero _).mpr hx₀, hx₁⟩
+
+/-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
+must be equal. -/
+lemma eq_of_equivalent_and_restrict_eq (v₁ v₂ : AbsoluteValue R ℝ) (h₁ : v₁ ≈ v₂)
+    (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
+    v₁ = v₂ := by
+  obtain ⟨c, hc₀, hc₁⟩ := h₁
+  obtain ⟨x, hx⟩ := h₃.exists_abv_gt_one
+  suffices c = 1 by simpa [this] using hc₁
+  have H : v₁ (algebraMap F R x) = v₂ (algebraMap F R x) := by
+    simp only [apply_algebraMap, h₂]
+  rw [← congrFun hc₁, apply_algebraMap, eq_comm] at H
+  nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at H
+  exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
 
 end restrict
 
