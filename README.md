@@ -100,4 +100,9 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
   in [__Rat.lean__](Heights/Rat.lean)).
 * The height on `ℚ` satisfies the *Northcott Property* (see `Rat.finite_of_mulHeight_le` and
   `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
- 
+
+### Some more foundational material on absolute values
+
+* We show that two absolute values on a field are equivalent if and only if they induce
+  the same topology (see `AbsoluteValue.equiv_iff_isHomeomorph`in
+  [__Extension.lean__](Heights/Extension.lean)).
