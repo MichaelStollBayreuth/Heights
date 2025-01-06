@@ -184,7 +184,7 @@ lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNon
 
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_equivalent_and_restrict_eq (v₁ v₂ : AbsoluteValue R ℝ) (h₁ : v₁ ≈ v₂)
+lemma eq_of_equivalent_and_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
     (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
     v₁ = v₂ := by
   obtain ⟨c, hc₀, hc₁⟩ := h₁
@@ -424,9 +424,14 @@ variable (v : AbsoluteValue F ℝ) [CompleteSpace (WithAbs v)]
 -- Lemma 6.1
 private lemma lemma_6_1 :
     Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.restrict F = v }) := by
-  refine subsingleton_iff.mpr fun v₁ v₂ ↦ ?_
-
-  sorry
+  by_cases hv : v.IsNontrivial
+  · refine subsingleton_iff.mpr fun v₁ v₂ ↦ ?_
+    have hr : v₁.val.restrict F = v₂.val.restrict F := by
+      rw [v₁.prop, v₂.prop]
+    ext1
+    refine eq_of_equivalent_and_restrict_eq ?_ hr (by rwa [v₁.prop])
+    sorry
+  · sorry
 
 end complete
 
