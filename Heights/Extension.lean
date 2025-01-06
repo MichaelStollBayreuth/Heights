@@ -182,6 +182,8 @@ implies equivalence) into two steps:
 
 * `AbsoluteValue.equiv_of_abv_lt_one_iff`: if `{x | v₁ x < 1} = {x | v₂ x < 1}`,
   then `v₁ ≈ v₂`.
+
+The main result is `AbsoluteValue.equiv_iff_isHomeomorph`.
 -/
 
 section withAbs
