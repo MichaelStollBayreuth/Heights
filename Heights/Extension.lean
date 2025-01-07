@@ -20,12 +20,22 @@ Sections 6 and 7.
 
 section Mathlib.Analysis.SpecialFunctions.Pow.Real
 
-lemma Real.rpow_right_inj {x y z : ℝ} (hx₀ : 0 < x) (hx₁ : x ≠ 1) : x ^ y = x ^ z ↔ y = z := by
+namespace Real
+
+lemma rpow_right_inj {x y z : ℝ} (hx₀ : 0 < x) (hx₁ : x ≠ 1) : x ^ y = x ^ z ↔ y = z := by
   refine ⟨fun H ↦ ?_, fun H ↦ by rw [H]⟩
   rcases hx₁.lt_or_lt with h | h
   · exact le_antisymm ((rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.symm.le) <|
       (rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.le
   · exact le_antisymm ((rpow_le_rpow_left_iff h).mp H.le) ((rpow_le_rpow_left_iff h).mp H.symm.le)
+
+lemma rpow_pow_comm {x : ℝ} (hx : 0 ≤ x) (y : ℝ) (n : ℕ) : (x ^ y) ^ n = (x ^ n) ^ y := by
+  simp_rw [← rpow_natCast, ← rpow_mul hx, mul_comm y]
+
+lemma rpow_zpow_comm {x : ℝ} (hx : 0 ≤ x) (y : ℝ) (n : ℤ) : (x ^ y) ^ n = (x ^ n) ^ y := by
+  simp_rw [← rpow_intCast, ← rpow_mul hx, mul_comm y]
+
+end Real
 
 end Mathlib.Analysis.SpecialFunctions.Pow.Real
 
@@ -371,11 +381,10 @@ lemma equiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v₁
       have hv₁y : 0 < v₁ (y ^ n) := v₁.pos <| pow_ne_zero n hy₀
       obtain ⟨m, hm₁, hm₂⟩ : ∃ m : ℤ, v₁ (y ^ n) ^ e < v₂ c ^ m ∧ v₂ c ^ m < v₂ (y ^ n) := by
         refine exists_zpow_btwn_of_lt_mul ?_ (rpow_pos_of_pos hv₁y e) hcv₂ hc₂
-        rwa [div_pow, ← v₂.map_pow, div_lt_iff₀ (v₂.pos <| pow_ne_zero n hy₀), ← rpow_natCast,
-          ← rpow_mul hyv₁, mul_comm, rpow_mul hyv₁, rpow_natCast, mul_comm, ← v₁.map_pow] at hn
-      rw [← he, ← rpow_intCast _ m, ← rpow_mul hcv₁', mul_comm, rpow_mul hcv₁', rpow_intCast,
-        rpow_lt_rpow_iff (v₁.nonneg _) (zpow_nonneg hcv₁' m) he₀, ← div_lt_one (zpow_pos hcv₁ m),
-        ← map_zpow₀, ← map_div₀] at hm₁
+        rwa [div_pow, ← v₂.map_pow, div_lt_iff₀ (v₂.pos <| pow_ne_zero n hy₀), rpow_pow_comm hyv₁,
+          mul_comm, ← v₁.map_pow] at hn
+      rw [← he, rpow_zpow_comm hcv₁', rpow_lt_rpow_iff (v₁.nonneg _) (zpow_nonneg hcv₁' m) he₀,
+        ← div_lt_one (zpow_pos hcv₁ m), ← map_zpow₀, ← map_div₀] at hm₁
       rw [← map_zpow₀, ← one_lt_div (v₂.pos (by exact zpow_ne_zero m hc₀)), ← map_div₀] at hm₂
       exact (h _).mp hm₁ |>.trans hm₂ |>.false
     simp only [not_lt] at key
