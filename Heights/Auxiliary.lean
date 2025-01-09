@@ -111,6 +111,8 @@ end aux
 
 section Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+-- #20608
+
 namespace Real
 
 lemma rpow_right_inj {x y z : ℝ} (hx₀ : 0 < x) (hx₁ : x ≠ 1) : x ^ y = x ^ z ↔ y = z := by
@@ -131,6 +133,8 @@ end Real
 end Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 section Mathlib.Algebra.Order.Archimedean.Basic
+
+-- #20612
 
 variable {α : Type*} [LinearOrderedSemifield α] [Archimedean α] [ExistsAddOfLE α]
 
@@ -303,6 +307,8 @@ section API
 variable {R : Type*} [Semiring R] {S : Type*} [OrderedSemiring S]
 
 section nontrivial
+
+-- #20588
 
 /-- An absolute value on a semiring `R` without zero divisors is *nontrivial* if it takes
 a value `≠ 1` on a nonzero element.
