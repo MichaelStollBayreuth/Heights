@@ -87,7 +87,7 @@ variable  {𝕜 E E' : Type*} [NontriviallyNormedField 𝕜] [CompleteSpace 𝕜
 
 /-- The homeomorphism induced by a linear isomorphism between two finite-dimensional vector spaces
 over a complete nontrivially normed field. -/
-def _root_.FiniteDimensional.homeomorph_of_linearEquiv (f : E ≃ₗ[𝕜] E') : E ≃ₜ E' :=
+def FiniteDimensional.homeomorph_of_linearEquiv (f : E ≃ₗ[𝕜] E') : E ≃ₜ E' :=
   Homeomorph.mk f f.toLinearMap.continuous_of_finiteDimensional <| by
     have : FiniteDimensional 𝕜 E' := Module.Finite.equiv f
     exact f.symm.toLinearMap.continuous_of_finiteDimensional
@@ -101,30 +101,30 @@ variable {R : Type*} [Ring R]
 lemma AbsoluteValue.norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
-/-- The topology on `R` induced by an absolute value `v`. -/
+/- /-- The topology on `R` induced by an absolute value `v`. -/
 noncomputable
 def AbsoluteValue.topology (v : AbsoluteValue R ℝ) : TopologicalSpace R :=
   letI _ := v.toNormedRing
-  inferInstance
+  inferInstance -/
 
-lemma AbsoluteValue.topology_coinduced_eq (v : AbsoluteValue R ℝ) :
+/- lemma AbsoluteValue.topology_coinduced_eq (v : AbsoluteValue R ℝ) :
     letI t : TopologicalSpace (WithAbs v) := inferInstance
     v.topology.coinduced (WithAbs.equiv v).symm = t :=
-  rfl
+  rfl -/
 
-lemma AbsoluteValue.topology_eq_coinduced (v : AbsoluteValue R ℝ) :
+/- lemma AbsoluteValue.topology_eq_coinduced (v : AbsoluteValue R ℝ) :
     letI t : TopologicalSpace (WithAbs v) := inferInstance
     v.topology = t.coinduced (WithAbs.equiv v) :=
-  rfl
+  rfl -/
 
-lemma TopologicalSpace.isHomeomorph_iff_eq_coinduced {X Y : Type*} (t : TopologicalSpace Y)
+/- lemma TopologicalSpace.isHomeomorph_iff_eq_coinduced {X Y : Type*} (t : TopologicalSpace Y)
     [TopologicalSpace X] (e : X ≃ Y) :
     IsHomeomorph e ↔ t = TopologicalSpace.coinduced e inferInstance := by
   rw [isHomeomorph_iff_exists_homeomorph]
   refine ⟨fun ⟨h, hh⟩ ↦ hh ▸ (Homeomorph.coinduced_eq h).symm, fun H ↦ ?_⟩
-  exact ⟨e.toHomeomorph fun _ ↦ by convert isOpen_coinduced.symm, rfl⟩
+  exact ⟨e.toHomeomorph fun _ ↦ by convert isOpen_coinduced.symm, rfl⟩ -/
 
-lemma TopologicalSpace.isHomeomorph_iff_induced_eq {X Y : Type*} (t : TopologicalSpace Y)
+/- lemma TopologicalSpace.isHomeomorph_iff_induced_eq {X Y : Type*} (t : TopologicalSpace Y)
     [TopologicalSpace X] (e : X ≃ Y) :
     IsHomeomorph e ↔ t.induced e = (inferInstance : TopologicalSpace X) := by
   rw [t.isHomeomorph_iff_eq_coinduced]
@@ -133,19 +133,19 @@ lemma TopologicalSpace.isHomeomorph_iff_induced_eq {X Y : Type*} (t : Topologica
     exact induced_id
   · apply_fun TopologicalSpace.coinduced e at H
     rw [← H, ← e.induced_symm, induced_compose, e.self_comp_symm]
-    exact induced_id.symm
+    exact induced_id.symm -/
 
-/-- The homeomorphism between `WithAbs v` and the underlying ring with the induced topology. -/
+/- /-- The homeomorphism between `WithAbs v` and the underlying ring with the induced topology. -/
 def AbsoluteValue.homeomorph (v : AbsoluteValue R ℝ) :
     @Homeomorph (WithAbs v) R inferInstance v.topology :=
   letI inst := v.topology
-  (WithAbs.equiv v).toHomeomorph fun _ ↦ isOpen_coinduced.symm
+  (WithAbs.equiv v).toHomeomorph fun _ ↦ isOpen_coinduced.symm -/
 
 namespace WithAbs
 
-lemma isHomeomorph_equiv_iff (t : TopologicalSpace R) (v : AbsoluteValue R ℝ) :
+/- lemma isHomeomorph_equiv_iff (t : TopologicalSpace R) (v : AbsoluteValue R ℝ) :
     IsHomeomorph (equiv v) ↔ t = v.topology :=
-  t.isHomeomorph_iff_eq_coinduced _
+  t.isHomeomorph_iff_eq_coinduced _ -/
 
 @[simp]
 theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl
@@ -513,8 +513,7 @@ absolute values- -/
 abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃ WithAbs v₂ :=
   (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm
 
-private
-lemma continuous_equiv_withAbs_withAbs {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+private lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
   obtain ⟨c, hc₀, hc₁⟩ := h
   rw [Metric.continuous_iff]
@@ -541,8 +540,8 @@ def homeomorph_of_equiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) : 
   invFun := (WithAbs.equiv v₁).symm ∘ WithAbs.equiv v₂
   left_inv _ := rfl
   right_inv _ := rfl
-  continuous_toFun := continuous_equiv_withAbs_withAbs h
-  continuous_invFun := continuous_equiv_withAbs_withAbs (Setoid.symm h)
+  continuous_toFun := continuous_withAbs_equiv₂ h
+  continuous_invFun := continuous_withAbs_equiv₂ (Setoid.symm h)
 
 open Filter Topology in
 /-- If two absolute values on a field `F` induce the same topology and an element of `F` has
@@ -630,7 +629,7 @@ lemma equiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
   exact isHomeomorph_iff_exists_homeomorph.mpr
     ⟨homeomorph_of_equiv H, by simp [homeomorph_of_equiv]⟩
 
-/-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
+/- /-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
 lemma equiv_iff_same_topology (v₁ v₂ : AbsoluteValue F ℝ) :
     v₁ ≈ v₂ ↔ v₁.topology = v₂.topology := by
   rw [equiv_iff_isHomeomorph, v₁.topology_eq_coinduced, v₂.topology_eq_coinduced, WithAbs.equiv₂,
@@ -641,7 +640,7 @@ lemma equiv_iff_same_topology (v₁ v₂ : AbsoluteValue F ℝ) :
     simpa only [Equiv.self_comp_symm, CompTriple.comp_eq, Equiv.induced_symm] using H.symm
   · apply_fun TopologicalSpace.coinduced (WithAbs.equiv v₂).symm at H
     rw [coinduced_compose, coinduced_compose] at H
-    simpa only [Equiv.symm_comp_self, coinduced_id] using H.symm
+    simpa only [Equiv.symm_comp_self, coinduced_id] using H.symm -/
 
 end equiv
 
@@ -657,8 +656,8 @@ then there is a unique extension of `v` to an absolute value `v'` on `F'`, and `
 is complete with respect to `v'`.
 -/
 
-variable {F F' : Type*} [Field F] [Field F'] [Algebra F F']
-variable (v : AbsoluteValue F ℝ)
+variable {F F' : Type*} [Field F] [Field F'] [Algebra F F'] [FiniteDimensional F F']
+variable (v : AbsoluteValue F ℝ) [CompleteSpace (WithAbs v)]
 
 /- lemma _root_.WithAbs.complete [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
     [Fact v.IsNontrivial] (v' : AbsoluteValue F' ℝ) [Fact <| v'.restrict F = v] :
@@ -666,9 +665,8 @@ variable (v : AbsoluteValue F ℝ)
   FiniteDimensional.complete (WithAbs v) (WithAbs v') -/
 
 variable {v} in
-lemma isEquiv_of_restrict_eq [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
-    {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.IsNontrivial) (h₁ : v₁.restrict F = v)
-    (h₂ : v₂.restrict F = v) :
+private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.IsNontrivial)
+    (h₁ : v₁.restrict F = v) (h₂ : v₂.restrict F = v) :
     v₁ ≈ v₂ := by
   rw [equiv_iff_isHomeomorph]
   let e : WithAbs v₁ ≃ₗ[WithAbs v] WithAbs v₂ := {
@@ -685,17 +683,14 @@ lemma isEquiv_of_restrict_eq [CompleteSpace (WithAbs v)] [FiniteDimensional F F'
   exact isHomeomorph_iff_exists_homeomorph.mpr ⟨FiniteDimensional.homeomorph_of_linearEquiv e, rfl⟩
 
 -- Lemma 6.1, "at most one"
-private lemma lemma_6_1_a [CompleteSpace (WithAbs v)] [FiniteDimensional F F'] :
-    Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.restrict F = v }) := by
+private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.restrict F = v }) := by
+  refine subsingleton_iff.mpr fun v₁ v₂ ↦ ?_
   by_cases hv : v.IsNontrivial
-  · refine subsingleton_iff.mpr fun v₁ v₂ ↦ ?_
-    have hr : v₁.val.restrict F = v₂.val.restrict F := by
-      rw [v₁.prop, v₂.prop]
+  · have hr : v₁.val.restrict F = v₂.val.restrict F := by rw [v₁.prop, v₂.prop]
     ext1
     refine eq_of_equivalent_and_restrict_eq ?_ hr (by rwa [v₁.prop])
     exact isEquiv_of_restrict_eq hv v₁.prop v₂.prop
-  · refine subsingleton_iff.mpr fun v₁ v₂ ↦ ?_
-    have hv₁ := trivial_of_finiteDimensional_of_restrict v₁.prop hv
+  · have hv₁ := trivial_of_finiteDimensional_of_restrict v₁.prop hv
     have hv₂ := trivial_of_finiteDimensional_of_restrict v₂.prop hv
     ext1
     exact eq_of_not_isNontrivial hv₁ hv₂
