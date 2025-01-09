@@ -94,6 +94,33 @@ def FiniteDimensional.homeomorph_of_linearEquiv (f : E ≃ₗ[𝕜] E') : E ≃�
 
 end Mathlib.Topology.Algebra.Module.FiniteDimension
 
+-- more API lemmas
+
+section
+
+lemma Algebra.charpoly_aeval_self_eq_zero {F R : Type*} [Field F] [Ring R]
+    [Algebra F R] [FiniteDimensional F R] (x : R) :
+    (LinearMap.mulLeft F x).charpoly.aeval x = 0 := by
+  let p := (LinearMap.mulLeft F x).charpoly
+  have : p.aeval (LinearMap.mulLeft F x) = 0 := LinearMap.aeval_self_charpoly _
+  apply_fun (· 1) at this
+  simp only [Polynomial.aeval_endomorphism, LinearMap.pow_mulLeft, LinearMap.mulLeft_apply,
+    mul_one, LinearMap.zero_apply] at this
+  rw [Polynomial.sum_eq_of_subset _ (p := p) (by simp) Polynomial.supp_subset_range_natDegree_succ] at this
+  rwa [Polynomial.aeval_eq_sum_range]
+
+lemma LinearMap.charpoly_eraseLead_natDegree_le {F R : Type*} [Field F] [AddCommGroup R]
+    [Nontrivial R] [Module F R] [FiniteDimensional F R] (f : R →ₗ[F] R) :
+  f.charpoly.eraseLead.natDegree + 1 ≤ Module.finrank F R := by
+  have hnd := f.charpoly_natDegree
+  by_cases hnc : f.charpoly.nextCoeff = 0
+  · have : 0 < Module.finrank F R := Module.finrank_pos
+    have := Polynomial.natDegree_eraseLead_le_of_nextCoeff_eq_zero hnc
+    omega
+  · exact hnd ▸ (Polynomial.natDegree_eraseLead_add_one hnc).le
+
+end
+
 section Mathlib.Analysis.Normed.Ring.WithAbs
 
 variable {R : Type*} [Ring R]
@@ -315,34 +342,6 @@ lemma eq_of_equivalent_and_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ :
   nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at H
   exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
 
--- extracted API lemmas
-
-section
-
-lemma Algebra.charpoly_aeval_self_eq_zero {F R : Type*} [Field F] [Ring R]
-    [Algebra F R] [FiniteDimensional F R] (x : R) :
-    (LinearMap.mulLeft F x).charpoly.aeval x = 0 := by
-  let p := (LinearMap.mulLeft F x).charpoly
-  have : p.aeval (LinearMap.mulLeft F x) = 0 := LinearMap.aeval_self_charpoly _
-  apply_fun (· 1) at this
-  simp only [Polynomial.aeval_endomorphism, LinearMap.pow_mulLeft, LinearMap.mulLeft_apply,
-    mul_one, LinearMap.zero_apply] at this
-  rw [Polynomial.sum_eq_of_subset _ (p := p) (by simp) Polynomial.supp_subset_range_natDegree_succ] at this
-  rwa [Polynomial.aeval_eq_sum_range]
-
-lemma LinearMap.charpoly_eraseLead_natDegree_le {F R : Type*} [Field F] [AddCommGroup R]
-    [Nontrivial R] [Module F R] [FiniteDimensional F R] (f : R →ₗ[F] R) :
-  f.charpoly.eraseLead.natDegree + 1 ≤ Module.finrank F R := by
-  have hnd := f.charpoly_natDegree
-  by_cases hnc : f.charpoly.nextCoeff = 0
-  · have hn₁ : 0 < Module.finrank F R := Module.finrank_pos
-    have := Polynomial.natDegree_eraseLead_le_of_nextCoeff_eq_zero hnc
-    omega
-  · exact hnd ▸ (Polynomial.natDegree_eraseLead_add_one hnc).le
-
-end
-
---
 
 /-- The extension of the trivial absolute value on a field `F` to a finite-dimensional `F`-algebra
 that is a division ring is trivial. -/
