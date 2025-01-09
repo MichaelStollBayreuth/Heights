@@ -53,7 +53,6 @@ lemma eq_of_equivalent_and_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ :
   nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at H
   exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
 
-
 /-- The extension of the trivial absolute value on a field `F` to a finite-dimensional `F`-algebra
 that is a division ring is trivial. -/
 lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Nontrivial R]
@@ -130,14 +129,7 @@ end restrict
 /-!
 ### Two absolute values are equivalent iff they induce the same topology
 
-This is Theorem 1.1 in Conrad's notes. We split the interesting direction (same topology
-implies equivalence) into two steps:
-
-* `AbsoluteValue.abv_lt_one_iff_of_isHomeomorph`: if `v₁` and `v₂` induce the same
-  topology, then `{x | v₁ x < 1} = {x | v₂ x < 1}`.
-
-* `AbsoluteValue.equiv_of_abv_lt_one_iff`: if `{x | v₁ x < 1} = {x | v₂ x < 1}`,
-  then `v₁ ≈ v₂`.
+This is Theorem 1.1 in Conrad's notes.
 
 The main result is `AbsoluteValue.equiv_iff_isHomeomorph`.
 -/
@@ -191,8 +183,6 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
       simp only [H, not_false_eq_true, ne_eq, this, not_isNontrivial_apply] at hy
       contrapose! hy
       exact one_half_lt_one.le
-
-variable {F : Type*} [Field F]
 
 /-- A field with a nontrivial absolute value on it is a nontrivially normed field. -/
 noncomputable
