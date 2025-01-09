@@ -101,6 +101,7 @@ variable {R : Type*} [Ring R]
 lemma AbsoluteValue.norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
+/-- The topology on `R` induced by an absolute value `v`. -/
 noncomputable
 def AbsoluteValue.topology (v : AbsoluteValue R ℝ) : TopologicalSpace R :=
   letI _ := v.toNormedRing
@@ -134,6 +135,7 @@ lemma TopologicalSpace.isHomeomorph_iff_induced_eq {X Y : Type*} (t : Topologica
     rw [← H, ← e.induced_symm, induced_compose, e.self_comp_symm]
     exact induced_id.symm
 
+/-- The homeomorphism between `WithAbs v` and the underlying ring with the induced topology. -/
 def AbsoluteValue.homeomorph (v : AbsoluteValue R ℝ) :
     @Homeomorph (WithAbs v) R inferInstance v.topology :=
   letI inst := v.topology
@@ -326,7 +328,6 @@ lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Non
     simpa only [v'.map_pow] using pow_unbounded_of_one_lt _ hx
   let p := (LinearMap.mulLeft F (x ^ m)).charpoly
   have hp₁ : p.Monic := LinearMap.charpoly_monic _
-  have hp₀ : p ≠ 0 := Polynomial.Monic.ne_zero hp₁
   have : p.aeval (x ^ m) = 0 := by
     have : p.aeval (LinearMap.mulLeft F (x ^ m)) = 0 := LinearMap.aeval_self_charpoly _
     apply_fun (· 1) at this
@@ -437,6 +438,7 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
 
 variable {F : Type*} [Field F]
 
+/-- A field with a nontrivial absolute value on it is a nontrivially normed field. -/
 noncomputable
 def IsNontrivial.nontriviallyNormedField {v : AbsoluteValue F ℝ} (hv : v.IsNontrivial) :
     NontriviallyNormedField (WithAbs v) where
@@ -472,6 +474,8 @@ lemma eq_of_not_isNontrivial {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : ¬ v₁.I
 
 variable {F : Type*} [Field F]
 
+/-- The identity map of `F` as a map between normed field structures on `F` induced by two
+absolute values- -/
 abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃ WithAbs v₂ :=
   (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm
 
@@ -557,7 +561,6 @@ lemma equiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v₁
       have hyv₁ := v₁.nonneg y
       have hy₀ : y ≠ 0 := v₂.ne_zero_iff.mp ((rpow_nonneg hyv₁ e).trans_lt hy).ne'
       obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hcv₂ <| (div_lt_one (v₂.pos hy₀)).mpr hy
-      have hv₁y : 0 < v₁ (y ^ n) := v₁.pos <| pow_ne_zero n hy₀
       obtain ⟨m, hm₁, hm₂⟩ : ∃ m : ℤ, v₁ (y ^ n) ^ e < v₂ c ^ m ∧ v₂ c ^ m < v₂ (y ^ n) := by
         have hv₂y := v₂.pos <| pow_ne_zero n hy₀
         refine exists_zpow_btwn_of_lt_mul ?_ hv₂y hcv₂ hc₂
