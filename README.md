@@ -105,4 +105,4 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 
 * We show that two absolute values on a field are equivalent if and only if they induce
   the same topology (see `AbsoluteValue.equiv_iff_isHomeomorph`in
-  [__Extension.lean__](Heights/Extension.lean)).
+  [__Equivalence.lean__](Heights/Equivalence.lean)).
