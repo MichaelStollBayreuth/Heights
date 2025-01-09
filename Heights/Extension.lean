@@ -207,6 +207,13 @@ lemma equiv_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : Wi
 lemma equiv_symm_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : S) :
     (WithAbs.equiv v).symm (c • x) = c • (WithAbs.equiv v).symm x := rfl
 
+@[simp]
+lemma equiv_apply_algebraMap {R S : Type*} [CommRing R] [Ring S] [Algebra R S]
+    {v : AbsoluteValue R ℝ} (v' : AbsoluteValue S ℝ) (x : WithAbs v) :
+    WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x) =
+      algebraMap R S (WithAbs.equiv v x) :=
+  rfl
+
 end WithAbs
 
 end Mathlib.Analysis.Normed.Ring.WithAbs
@@ -368,6 +375,33 @@ lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Non
     refine zpow_le_one_of_nonpos₀ (one_le_pow₀ hx.le) ?_
     simp only [Finset.mem_range] at hi
     omega
+
+variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
+
+lemma algebraMap_withAbs_apply (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
+    algebraMap (WithAbs v) (WithAbs v') x =
+      (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) := by
+  rw [← WithAbs.equiv_apply_algebraMap v', Equiv.symm_apply_apply]
+
+variable [Nontrivial F']
+
+@[simp]
+lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) (x : WithAbs v) :
+    v' (WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x)) = v (WithAbs.equiv v x) := by
+  rw [WithAbs.equiv_apply_algebraMap, apply_algebraMap, h]
+
+@[fun_prop]
+lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) :
+    Continuous <| algebraMap (WithAbs v) (WithAbs v') := by
+  rw [continuous_iff_continuous_dist]
+  conv => enter [1, x]; simp only [algebraMap_withAbs_apply v']
+  simp_rw [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv_sub, Equiv.apply_symm_apply, ← map_sub,
+    apply_algebraMap, h, ← WithAbs.equiv_sub, ← norm_eq_abv, ← dist_eq_norm_sub]
+  exact continuous_dist
+
+instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] :
+    ContinuousSMul (WithAbs v) (WithAbs v') where
+  continuous_smul := (continuous_algebraMap_iff_smul _ _).mp <| continuous_algebraMap Fact.out
 
 end restrict
 
@@ -624,40 +658,12 @@ is complete with respect to `v'`.
 -/
 
 variable {F F' : Type*} [Field F] [Field F'] [Algebra F F']
-variable {v : AbsoluteValue F ℝ}
+variable (v : AbsoluteValue F ℝ)
 
-lemma _root_.WithAbs.equiv_apply_algebraMap (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
-    WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x) =
-      algebraMap F F' (WithAbs.equiv v x) :=
-  rfl
-
-lemma algebraMap_withAbs_apply (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
-    algebraMap (WithAbs v) (WithAbs v') x =
-      (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) := by
-  rw [← WithAbs.equiv_apply_algebraMap v', Equiv.symm_apply_apply]
-
-lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) (x : WithAbs v) :
-    v' (WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x)) = v (WithAbs.equiv v x) := by
-  rw [WithAbs.equiv_apply_algebraMap, apply_algebraMap, h]
-
-lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) :
-    Continuous <| algebraMap (WithAbs v) (WithAbs v') := by
-  rw [continuous_iff_continuous_dist]
-  conv => enter [1, x]; simp only [algebraMap_withAbs_apply v']
-  simp_rw [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv_sub, Equiv.apply_symm_apply, ← map_sub,
-    apply_algebraMap, h, ← WithAbs.equiv_sub, ← norm_eq_abv, ← dist_eq_norm_sub]
-  exact continuous_dist
-
-instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] :
-    ContinuousSMul (WithAbs v) (WithAbs v') where
-      continuous_smul := (continuous_algebraMap_iff_smul _ _).mp <| continuous_algebraMap Fact.out
-
-variable (v)
-
-lemma _root_.WithAbs.complete [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
+/- lemma _root_.WithAbs.complete [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
     [Fact v.IsNontrivial] (v' : AbsoluteValue F' ℝ) [Fact <| v'.restrict F = v] :
     CompleteSpace (WithAbs v') :=
-  FiniteDimensional.complete (WithAbs v) (WithAbs v')
+  FiniteDimensional.complete (WithAbs v) (WithAbs v') -/
 
 variable {v} in
 lemma isEquiv_of_restrict_eq [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
