@@ -315,6 +315,35 @@ lemma eq_of_equivalent_and_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ :
   nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at H
   exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
 
+-- extracted API lemmas
+
+section
+
+lemma Algebra.charpoly_aeval_self_eq_zero {F R : Type*} [Field F] [Ring R]
+    [Algebra F R] [FiniteDimensional F R] (x : R) :
+    (LinearMap.mulLeft F x).charpoly.aeval x = 0 := by
+  let p := (LinearMap.mulLeft F x).charpoly
+  have : p.aeval (LinearMap.mulLeft F x) = 0 := LinearMap.aeval_self_charpoly _
+  apply_fun (· 1) at this
+  simp only [Polynomial.aeval_endomorphism, LinearMap.pow_mulLeft, LinearMap.mulLeft_apply,
+    mul_one, LinearMap.zero_apply] at this
+  rw [Polynomial.sum_eq_of_subset _ (p := p) (by simp) Polynomial.supp_subset_range_natDegree_succ] at this
+  rwa [Polynomial.aeval_eq_sum_range]
+
+lemma LinearMap.charpoly_eraseLead_natDegree_le {F R : Type*} [Field F] [AddCommGroup R]
+    [Nontrivial R] [Module F R] [FiniteDimensional F R] (f : R →ₗ[F] R) :
+  f.charpoly.eraseLead.natDegree + 1 ≤ Module.finrank F R := by
+  have hnd := f.charpoly_natDegree
+  by_cases hnc : f.charpoly.nextCoeff = 0
+  · have hn₁ : 0 < Module.finrank F R := Module.finrank_pos
+    have := Polynomial.natDegree_eraseLead_le_of_nextCoeff_eq_zero hnc
+    omega
+  · exact hnd ▸ (Polynomial.natDegree_eraseLead_add_one hnc).le
+
+end
+
+--
+
 /-- The extension of the trivial absolute value on a field `F` to a finite-dimensional `F`-algebra
 that is a division ring is trivial. -/
 lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Nontrivial R]
@@ -330,51 +359,34 @@ lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Non
   intro x hx₀
   by_contra! hx
   let n := Module.finrank F R
-  have hn₁ : 0 < n := Module.finrank_pos
   obtain ⟨m, hm⟩ : ∃ m : ℕ, n < v' (x ^ m) := by
     simpa only [v'.map_pow] using pow_unbounded_of_one_lt _ hx
+  contrapose! hm; clear hm
+  have hxm : x ^ m ≠ 0 := pow_ne_zero m hx₀
+  -- write `x ^ m` as a linear combination of `≤ n` terms `c • (x ^ m) ^ (-i)` with `i ≥ 0`
   let p := (LinearMap.mulLeft F (x ^ m)).charpoly
   have hp₁ : p.Monic := LinearMap.charpoly_monic _
-  have : p.aeval (x ^ m) = 0 := by
-    have : p.aeval (LinearMap.mulLeft F (x ^ m)) = 0 := LinearMap.aeval_self_charpoly _
-    apply_fun (· 1) at this
-    simp only [Polynomial.aeval_endomorphism, LinearMap.pow_mulLeft, LinearMap.mulLeft_apply,
-      mul_one, LinearMap.zero_apply] at this
-    rw [Polynomial.sum_eq_of_subset _ (p := p) (by simp) Polynomial.supp_subset_range_natDegree_succ] at this
-    rwa [Polynomial.aeval_eq_sum_range]
   have hpn : p.natDegree = n := LinearMap.charpoly_natDegree _
+  have H : p.aeval (x ^ m) = 0 := Algebra.charpoly_aeval_self_eq_zero _
   rw [← p.eraseLead_add_C_mul_X_pow, Polynomial.aeval_add, Polynomial.aeval_eq_sum_range,
-    add_eq_zero_iff_eq_neg'] at this
-  simp only [hp₁, Polynomial.Monic.leadingCoeff, map_one, one_mul, map_pow,
-    Polynomial.aeval_X] at this
-  have hxm : x ^ m ≠ 0 := pow_ne_zero m hx₀
-  apply_fun (· * (x ^ m) ^ (-n + 1 : ℤ)) at this
-  rw [hpn, ← zpow_natCast, ← zpow_add' (.inl hxm), add_neg_cancel_left, zpow_one, neg_mul] at this
-  have pel : p.eraseLead.natDegree + 1 ≤ n := by
-    rw [← hpn]
-    by_cases hnc : p.nextCoeff = 0
-    · have := Polynomial.natDegree_eraseLead_le_of_nextCoeff_eq_zero hnc
-      omega
-    · exact (Polynomial.natDegree_eraseLead_add_one hnc).le
-  rw [Finset.sum_mul] at this
-  conv at this =>
-    enter [2, 1, 2, i]
-    rw [smul_mul_assoc, ← zpow_natCast, ← zpow_add' (.inl hxm)]
-  refine (hm.trans_le ?_).false
-  rw [this, v'.map_neg]
+    add_eq_zero_iff_eq_neg', hp₁.leadingCoeff, map_one, one_mul, map_pow, Polynomial.aeval_X] at H
+  apply_fun (· * (x ^ m) ^ (-n + 1 : ℤ)) at H
+  rw [hpn, ← zpow_natCast, ← zpow_add' (.inl hxm), add_neg_cancel_left, zpow_one, neg_mul,
+    Finset.sum_mul] at H
+  conv at H => enter [2, 1, 2, i]; rw [smul_mul_assoc, ← zpow_natCast, ← zpow_add' (.inl hxm)]
+  rw [H, v'.map_neg]; clear H
+  have pel : p.eraseLead.natDegree + 1 ≤ n := LinearMap.charpoly_eraseLead_natDegree_le _
   have pel' : (p.eraseLead.natDegree + 1 : ℝ) ≤ n := mod_cast pel
   have help (N : ℕ) : (N + 1 : ℝ) = ∑ i ∈ Finset.range (N + 1), 1 := by simp
   refine (v'.sum_le ..).trans (LE.le.trans ?_ pel')
   conv_rhs => rw [help]
   refine Finset.sum_le_sum fun i hi ↦ ?_
-  simp only [Algebra.smul_def]
-  rw [v'.map_mul, apply_algebraMap, h]
+  rw [Algebra.smul_def, v'.map_mul, apply_algebraMap, h]
   rcases eq_or_ne (p.eraseLead.coeff i) 0 with H | H
   · simp [H]
-  · simp only [ne_eq, H, not_false_eq_true, hv, map_zpow₀, AbsoluteValue.map_pow, one_mul]
-    refine zpow_le_one_of_nonpos₀ (one_le_pow₀ hx.le) ?_
+  · simp only [ne_eq, H, not_false_eq_true, hv, map_zpow₀, v'.map_pow, one_mul]
     simp only [Finset.mem_range] at hi
-    omega
+    exact zpow_le_one_of_nonpos₀ (one_le_pow₀ hx.le) <| by omega
 
 variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 
@@ -486,7 +498,7 @@ instance _root_.WihAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact <
 
 end withAbs
 
-section equiv
+section equiv_trivial
 
 variable {R : Type*} [Ring R]
 
@@ -505,6 +517,10 @@ lemma eq_of_not_isNontrivial {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : ¬ v₁.I
   rcases eq_or_ne x 0 with rfl | hx
   · simp
   · simp [h₁, h₂, hx]
+
+end equiv_trivial
+
+section equiv
 
 variable {F : Type*} [Field F]
 
