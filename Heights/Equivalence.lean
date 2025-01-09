@@ -129,51 +129,7 @@ variable {R : Type*} [Ring R]
 lemma AbsoluteValue.norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
-/- /-- The topology on `R` induced by an absolute value `v`. -/
-noncomputable
-def AbsoluteValue.topology (v : AbsoluteValue R ℝ) : TopologicalSpace R :=
-  letI _ := v.toNormedRing
-  inferInstance -/
-
-/- lemma AbsoluteValue.topology_coinduced_eq (v : AbsoluteValue R ℝ) :
-    letI t : TopologicalSpace (WithAbs v) := inferInstance
-    v.topology.coinduced (WithAbs.equiv v).symm = t :=
-  rfl -/
-
-/- lemma AbsoluteValue.topology_eq_coinduced (v : AbsoluteValue R ℝ) :
-    letI t : TopologicalSpace (WithAbs v) := inferInstance
-    v.topology = t.coinduced (WithAbs.equiv v) :=
-  rfl -/
-
-/- lemma TopologicalSpace.isHomeomorph_iff_eq_coinduced {X Y : Type*} (t : TopologicalSpace Y)
-    [TopologicalSpace X] (e : X ≃ Y) :
-    IsHomeomorph e ↔ t = TopologicalSpace.coinduced e inferInstance := by
-  rw [isHomeomorph_iff_exists_homeomorph]
-  refine ⟨fun ⟨h, hh⟩ ↦ hh ▸ (Homeomorph.coinduced_eq h).symm, fun H ↦ ?_⟩
-  exact ⟨e.toHomeomorph fun _ ↦ by convert isOpen_coinduced.symm, rfl⟩ -/
-
-/- lemma TopologicalSpace.isHomeomorph_iff_induced_eq {X Y : Type*} (t : TopologicalSpace Y)
-    [TopologicalSpace X] (e : X ≃ Y) :
-    IsHomeomorph e ↔ t.induced e = (inferInstance : TopologicalSpace X) := by
-  rw [t.isHomeomorph_iff_eq_coinduced]
-  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-  · rw [H, ← e.induced_symm, induced_compose, e.symm_comp_self]
-    exact induced_id
-  · apply_fun TopologicalSpace.coinduced e at H
-    rw [← H, ← e.induced_symm, induced_compose, e.self_comp_symm]
-    exact induced_id.symm -/
-
-/- /-- The homeomorphism between `WithAbs v` and the underlying ring with the induced topology. -/
-def AbsoluteValue.homeomorph (v : AbsoluteValue R ℝ) :
-    @Homeomorph (WithAbs v) R inferInstance v.topology :=
-  letI inst := v.topology
-  (WithAbs.equiv v).toHomeomorph fun _ ↦ isOpen_coinduced.symm -/
-
 namespace WithAbs
-
-/- lemma isHomeomorph_equiv_iff (t : TopologicalSpace R) (v : AbsoluteValue R ℝ) :
-    IsHomeomorph (equiv v) ↔ t = v.topology :=
-  t.isHomeomorph_iff_eq_coinduced _ -/
 
 @[simp]
 theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl
@@ -644,19 +600,6 @@ lemma equiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
   refine ⟨fun H ↦ ?_, fun H ↦ equiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
   exact isHomeomorph_iff_exists_homeomorph.mpr
     ⟨homeomorph_of_equiv H, by simp [homeomorph_of_equiv]⟩
-
-/- /-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
-lemma equiv_iff_same_topology (v₁ v₂ : AbsoluteValue F ℝ) :
-    v₁ ≈ v₂ ↔ v₁.topology = v₂.topology := by
-  rw [equiv_iff_isHomeomorph, v₁.topology_eq_coinduced, v₂.topology_eq_coinduced, WithAbs.equiv₂,
-   TopologicalSpace.isHomeomorph_iff_eq_coinduced]
-  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-  · apply_fun TopologicalSpace.coinduced (WithAbs.equiv v₂) at H
-    rw [coinduced_compose, Equiv.coe_trans, ← Function.comp_assoc] at H
-    simpa only [Equiv.self_comp_symm, CompTriple.comp_eq, Equiv.induced_symm] using H.symm
-  · apply_fun TopologicalSpace.coinduced (WithAbs.equiv v₂).symm at H
-    rw [coinduced_compose, coinduced_compose] at H
-    simpa only [Equiv.symm_comp_self, coinduced_id] using H.symm -/
 
 end equiv
 
