@@ -78,6 +78,22 @@ lemma exists_zpow_btwn_of_lt_mul {a b c : α} (h : a < b * c) (hb₀ : 0 < b) (h
 
 end Mathlib.Algebra.Order.Archimedean.Basic
 
+section Mathlib.Topology.Algebra.Module.FiniteDimension
+
+variable  {𝕜 E E' : Type*} [NontriviallyNormedField 𝕜] [CompleteSpace 𝕜] [AddCommGroup E]
+  [Module 𝕜 E] [FiniteDimensional 𝕜 E] [TopologicalSpace E] [TopologicalAddGroup E]
+  [ContinuousSMul 𝕜 E] [T2Space E] [AddCommGroup E'] [Module 𝕜 E'] [TopologicalSpace E']
+  [TopologicalAddGroup E'] [ContinuousSMul 𝕜 E'] [T2Space E']
+
+/-- The homeomorphism induced by a linear isomorphism between two finite-dimensional vector spaces
+over a complete nontrivially normed field. -/
+def _root_.FiniteDimensional.homeomorph_of_linearEquiv (f : E ≃ₗ[𝕜] E') : E ≃ₜ E' :=
+  Homeomorph.mk f f.toLinearMap.continuous_of_finiteDimensional <| by
+    have : FiniteDimensional 𝕜 E' := Module.Finite.equiv f
+    exact f.symm.toLinearMap.continuous_of_finiteDimensional
+
+end Mathlib.Topology.Algebra.Module.FiniteDimension
+
 section Mathlib.Analysis.Normed.Ring.WithAbs
 
 variable {R : Type*} [Ring R]
@@ -640,22 +656,6 @@ lemma _root_.WithAbs.complete [CompleteSpace (WithAbs v)] [FiniteDimensional F F
     CompleteSpace (WithAbs v') :=
   FiniteDimensional.complete (WithAbs v) (WithAbs v')
 
-section equivalence_of_norms
-
-variable  {𝕜 E E' : Type*} [NontriviallyNormedField 𝕜] [AddCommGroup E] [Module 𝕜 E]
-  [TopologicalSpace E] [TopologicalAddGroup E] [ContinuousSMul 𝕜 E] [AddCommGroup E']
-  [Module 𝕜 E'] [TopologicalSpace E'] [TopologicalAddGroup E'] [ContinuousSMul 𝕜 E']
-  [CompleteSpace 𝕜] [T2Space E] [T2Space E'] [FiniteDimensional 𝕜 E]
-
-/-- The homeomorphism induced by a linear isomorphism between two finite-dimensional vector spaces
-over a complete nontrivially normed field. -/
-def _root_.FiniteDimensional.homeomorph_of_linearEquiv (f : E ≃ₗ[𝕜] E') : E ≃ₜ E' :=
-  Homeomorph.mk f f.toLinearMap.continuous_of_finiteDimensional <| by
-    have : FiniteDimensional 𝕜 E' := Module.Finite.equiv f
-    exact f.symm.toLinearMap.continuous_of_finiteDimensional
-
-end equivalence_of_norms
-
 variable {v} in
 lemma isEquiv_of_restrict_eq [CompleteSpace (WithAbs v)] [FiniteDimensional F F']
     {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.IsNontrivial) (h₁ : v₁.restrict F = v)
@@ -694,5 +694,3 @@ private lemma lemma_6_1_a [CompleteSpace (WithAbs v)] [FiniteDimensional F F'] :
 end complete
 
 end AbsoluteValue
-
--- AbsoluteValue.toNormedField AbsoluteValue.Completion
