@@ -368,4 +368,75 @@ lemma IsNontrivial.exists_abv_lt_one {F : Type*} [Field F] {v : AbsoluteValue F 
 
 end nontrivial
 
+section nonarchimedean
+
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
+
+lemma isNonarchimedean_of_isEquiv {v' : AbsoluteValue F ℝ} (h₁ : v ≈ v')
+    (h₂ : IsNonarchimedean v) :
+    IsNonarchimedean v' := by
+  sorry
+
+lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial := by
+  contrapose! h
+  rw [not_isNontrivial_iff] at h
+  intro x y
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp
+  rcases eq_or_ne y 0 with rfl | hy
+  · simp
+  rcases eq_or_ne (x + y) 0 with hxy | hxy
+  · simp [hx, hy, hxy]
+  simp [hx, hy, hxy, h]
+
+lemma le_one_on_nat_of_nonarchimedean (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Nat.cast_add, Nat.cast_one]
+    exact (h n 1).trans <| by simp [ih]
+
+open IsUltrametricDist in
+lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
+  contrapose! h
+  let p := ringChar F
+  have : CharP (WithAbs v) p := ringChar.charP F
+  have : NeZero p := ⟨mt (CharP.ringChar_zero_iff_CharZero _).mp h⟩
+  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ 1 := by
+    let φ := ZMod.castHom (m := p) dvd_rfl (WithAbs v)
+    obtain ⟨B, hB⟩ : ∃ B, ∀ a : ZMod p, ‖φ a‖ ≤ B := Finite.exists_le _
+    refine le_of_forall_pos_le_add fun ε hε ↦ ?_
+    obtain ⟨m, hm⟩ := pow_unbounded_of_one_lt B <| lt_add_of_pos_right 1 hε
+    refine (pow_le_pow_iff_left₀ (norm_nonneg _) (by linarith) m.zero_ne_add_one.symm).mp ?_
+    rw [← norm_pow, pow_succ (1 + ε), ← Nat.cast_pow, ← map_natCast φ, ← mul_one (‖_‖)]
+    have hε' := lt_add_of_pos_right 1 hε -- for `gcongr` below
+    gcongr
+    exact (hB _).trans hm.le
+  exact isUltrametricDist_iff_isNonarchimedean_norm.mp <|
+    isUltrametricDist_of_forall_norm_natCast_le_one H
+
+open Rat.AbsoluteValue
+
+lemma _root_.Rat.AbsoluteValue.isNonarchimedean_padic (p : ℕ) [Fact p.Prime] :
+    IsNonarchimedean (padic p) := by
+  sorry
+
+lemma _root_.Rat.AbsoluteValue.padic_of_nonarchimedean {v : AbsoluteValue ℚ ℝ}
+    (h : IsNonarchimedean v) (h' : v.IsNontrivial) :
+    ∃ (p : ℕ) (_ : Fact p.Prime), v ≈ padic p := by
+  replace h' : v ≠ .trivial := (isNontrivial_iff_ne_trivial v).mp h'
+  refine (equiv_padic_of_bounded h' ?_).exists
+  exact le_one_on_nat_of_nonarchimedean h
+
+lemma _root_.Rat.AbsoluteValue.real_of_archimedean {v : AbsoluteValue ℚ ℝ}
+    (h : ¬ IsNonarchimedean v) :
+    v ≈ real := by
+  refine Or.resolve_right (equiv_real_or_padic v ?_) fun H ↦ ?_
+  · rw [← isNontrivial_iff_ne_trivial]
+    exact isNontrivial_of_archimedean h
+  · obtain ⟨p, fp, hp⟩ := H.exists
+    exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
+
+end nonarchimedean
+
 end API

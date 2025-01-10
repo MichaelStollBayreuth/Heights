@@ -14,7 +14,6 @@ We follow [Brian Conrad's notes}(http://math.stanford.edu/~conrad/676Page/handou
 Sections 6 and 7.
 -/
 
-
 section complete
 
 namespace AbsoluteValue
@@ -64,6 +63,34 @@ private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.rest
     have hv₂ := trivial_of_finiteDimensional_of_restrict v₂.prop hv
     ext1
     exact eq_of_not_isNontrivial hv₁ hv₂
+
+
+section GelfandMazur
+
+/-!
+### A version of the Gelfand-Mazur Theorem
+
+We show that a complete field with real-valued archimedean absolute value must be
+isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
+-/
+
+variable {F : Type} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
+
+def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* F := by
+  have : CharZero F := charZero_of_archimedean h
+  let e₀ := Rat.castHom F
+  let _ : Algebra ℚ F := e₀.toAlgebra
+  let v₀ := v.restrict ℚ
+
+  sorry
+
+theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
+    (∃ e : ℝ ≃+* F, letI : Algebra ℝ F := RingHom.toAlgebra e; v.restrict ℝ ≈ .abs)
+      ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e; v.restrict ℂ ≈ Complex.abs := by
+
+  sorry
+
+end GelfandMazur
 
 end AbsoluteValue
 
