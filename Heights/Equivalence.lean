@@ -343,6 +343,6 @@ lemma equiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
     v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equiv₂ v₁ v₂) := by
   refine ⟨fun H ↦ ?_, fun H ↦ equiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
   exact isHomeomorph_iff_exists_homeomorph.mpr
-    ⟨homeomorph_of_equiv H, by simp [homeomorph_of_equiv]⟩
-
+    ⟨homeomorph_of_equiisNontrivial_iff_ne_trivialiv]⟩
+isNontrivial_iff_ne_trivial
 end equiv

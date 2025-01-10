@@ -318,7 +318,7 @@ of `· = 0` in `R`. -/
 def IsNontrivial (v : AbsoluteValue R S) : Prop :=
   ∃ x ≠ 0, v x ≠ 1
 
-lemma isNontrivial_iff_not_eq_trivial [DecidableEq R] [NoZeroDivisors R] [Nontrivial S]
+lemma isNontrivial_iff_ne_trivial [DecidableEq R] [NoZeroDivisors R] [Nontrivial S]
     (v : AbsoluteValue R S) :
     v.IsNontrivial ↔ v ≠ .trivial := by
   refine ⟨fun ⟨x, hx₀, hx₁⟩ h ↦ hx₁ <| h.symm ▸ trivial_apply hx₀, fun H ↦ ?_⟩
