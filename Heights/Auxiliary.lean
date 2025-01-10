@@ -218,6 +218,8 @@ end
 
 section Mathlib.Analysis.Normed.Ring.WithAbs
 
+-- #20642
+
 variable {R : Type*} [Ring R]
 
 namespace WithAbs
@@ -269,7 +271,7 @@ instance algebra_right {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : Ab
     Algebra R (WithAbs v) :=
   inferInstanceAs <| Algebra R S
 
--- these two require heavier imports
+-- these two require heavier imports (so are not part of #20642)
 
 instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : AbsoluteValue F ℝ} :
     FiniteDimensional (WithAbs v) S :=
