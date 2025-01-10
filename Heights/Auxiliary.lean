@@ -220,10 +220,10 @@ section Mathlib.Analysis.Normed.Ring.WithAbs
 
 variable {R : Type*} [Ring R]
 
-lemma AbsoluteValue.norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
-    ‖x‖ = v (WithAbs.equiv v x) := rfl
-
 namespace WithAbs
+
+lemma norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
+    ‖x‖ = v (WithAbs.equiv v x) := rfl
 
 @[simp]
 theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl

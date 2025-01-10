@@ -99,12 +99,15 @@ lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Non
 
 variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 
-lemma algebraMap_withAbs_apply (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
-    algebraMap (WithAbs v) (WithAbs v') x =
-      (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) := by
+@[simp]
+lemma equiv_symm_apply_algebraMap (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
+    (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) =
+      algebraMap (WithAbs v) (WithAbs v') x := by
   rw [← WithAbs.equiv_apply_algebraMap v', Equiv.symm_apply_apply]
 
 variable [Nontrivial F']
+
+open WithAbs
 
 @[simp]
 lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) (x : WithAbs v) :
@@ -115,7 +118,7 @@ lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = 
 lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) :
     Continuous <| algebraMap (WithAbs v) (WithAbs v') := by
   rw [continuous_iff_continuous_dist]
-  conv => enter [1, x]; simp only [algebraMap_withAbs_apply v']
+  conv => enter [1, x]; simp only [← equiv_symm_apply_algebraMap v']
   simp_rw [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv_sub, Equiv.apply_symm_apply, ← map_sub,
     apply_algebraMap, h, ← WithAbs.equiv_sub, ← norm_eq_abv, ← dist_eq_norm_sub]
   exact continuous_dist
@@ -135,6 +138,8 @@ The main result is `AbsoluteValue.equiv_iff_isHomeomorph`.
 -/
 
 section withAbs
+
+open WithAbs
 
 variable {R : Type*} [Ring R]
 
@@ -223,6 +228,8 @@ end equiv_trivial
 section equiv
 
 variable {F : Type*} [Field F]
+
+open WithAbs
 
 /-- The identity map of `F` as a map between normed field structures on `F` induced by two
 absolute values- -/
