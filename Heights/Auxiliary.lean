@@ -269,6 +269,8 @@ instance algebra_right {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : Ab
     Algebra R (WithAbs v) :=
   inferInstanceAs <| Algebra R S
 
+-- these two require heavier imports
+
 instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : AbsoluteValue F ℝ} :
     FiniteDimensional (WithAbs v) S :=
   inferInstanceAs <| FiniteDimensional F S
@@ -276,6 +278,8 @@ instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : Abso
 instance fd_right [Ring S] [Module F S] [FiniteDimensional F S] (v : AbsoluteValue S ℝ) :
     FiniteDimensional F (WithAbs v) :=
   inferInstanceAs <| FiniteDimensional F S
+
+--
 
 @[simp]
 lemma equiv_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : WithAbs v) :

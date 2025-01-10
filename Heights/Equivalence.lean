@@ -333,8 +333,8 @@ lemma equiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v₁
       simp_all only [not_false_eq_true, ne_eq, not_exists, not_and, not_lt, implies_true]
     have H₂ := mt IsNontrivial.exists_abv_lt_one H'
     classical
-    rw [of_not_not <| (isNontrivial_iff_not_eq_trivial v₁).not.mp H₁,
-      of_not_not <| (isNontrivial_iff_not_eq_trivial v₂).not.mp H₂]
+    rw [of_not_not <| (isNontrivial_iff_ne_trivial v₁).not.mp H₁,
+      of_not_not <| (isNontrivial_iff_ne_trivial v₂).not.mp H₂]
 
 open Filter Topology in
 /-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
@@ -343,6 +343,5 @@ lemma equiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
     v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equiv₂ v₁ v₂) := by
   refine ⟨fun H ↦ ?_, fun H ↦ equiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
   exact isHomeomorph_iff_exists_homeomorph.mpr
-    ⟨homeomorph_of_equiisNontrivial_iff_ne_trivialiv]⟩
-isNontrivial_iff_ne_trivial
+    ⟨homeomorph_of_equiv H, by simp [homeomorph_of_equiv]⟩
 end equiv
