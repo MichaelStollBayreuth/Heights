@@ -427,8 +427,8 @@ lemma isNonarchimedean_of_le_one_on_nat (h : ∀ n : ℕ, v n ≤ 1) : IsNonarch
 lemma isNonarchimedean_of_bounded_on_nat {B : ℝ} (h : ∀ n : ℕ, v n ≤ B) : IsNonarchimedean v :=
   isNonarchimedean_of_le_one_on_nat <| le_one_on_nat_of_bounded h
 
-/-- An absolute value on a field is nonarchimedean if and only if its values on the image of `ℕ`
-are bounded by `1`. -/
+/-- An absolute value on a field is nonarchimedean if and only if it is bounded by `1`
+on the image of `ℕ`. -/
 lemma isNonarchimedean_iff_le_one_on_nat : IsNonarchimedean v ↔ ∀ n : ℕ, v n ≤ 1 :=
   ⟨le_one_on_nat_of_isNonarchimedean, isNonarchimedean_of_bounded_on_nat⟩
 
