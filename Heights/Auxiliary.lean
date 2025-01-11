@@ -13,6 +13,12 @@ variable {α β : Type*}
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
+lemma max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
+    max (x ^ c) (y ^ c) = max x y ^ c := by
+  rcases le_total x y with h | h
+  · simpa only [h, sup_of_le_right, sup_eq_right] using Real.rpow_le_rpow hx h hc
+  · simpa only [h, sup_of_le_left, sup_eq_left] using Real.rpow_le_rpow hy h hc
+
 lemma Real.iSup_pow_of_nonneg [Fintype α] [Nonempty α] {f : α → ℝ} (hf : ∀ a, 0 ≤ f a) (n : ℕ) :
     (⨆ a, f a) ^ n = ⨆ a, (f a ^ n) := by
   have H a : ((f a).toNNReal  : ℝ) = f a := Real.coe_toNNReal (f a) (hf a)
@@ -370,12 +376,21 @@ end nontrivial
 
 section nonarchimedean
 
-variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
+variable {R : Type*} [Ring R] {v : AbsoluteValue R ℝ}
 
-lemma isNonarchimedean_of_isEquiv {v' : AbsoluteValue F ℝ} (h₁ : v ≈ v')
+/-- A version of `AbsoluteValue.isEquiv_def` that uses `AbsoluteValue.IsEquiv`. -/
+lemma isEquiv_def' {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ v.Equiv v' := Iff.rfl
+
+lemma isEquiv_def {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ ∃ c : ℝ, c > 0 ∧ (v · ^ c) = v' := Iff.rfl
+
+lemma isNonarchimedean_of_isEquiv {v' : AbsoluteValue R ℝ} (h₁ : v ≈ v')
     (h₂ : IsNonarchimedean v) :
     IsNonarchimedean v' := by
-  sorry
+  intro x y
+  specialize h₂ x y
+  obtain ⟨c, hc₀, hc⟩ := h₁
+  simp_rw [← hc, max_map_rpow (v.nonneg x) (v.nonneg y) hc₀.le]
+  exact Real.rpow_le_rpow (v.nonneg _) h₂ hc₀.le
 
 lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial := by
   contrapose! h
@@ -389,46 +404,71 @@ lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial :
   · simp [hx, hy, hxy]
   simp [hx, hy, hxy, h]
 
-lemma le_one_on_nat_of_nonarchimedean (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by
+lemma le_one_on_nat_of_nonarchimedean [Nontrivial R] (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by
   induction n with
   | zero => simp
   | succ n ih =>
     rw [Nat.cast_add, Nat.cast_one]
     exact (h n 1).trans <| by simp [ih]
 
+lemma le_one_on_nat_of_bounded [Nontrivial R] {B : ℝ} (h : ∀ n : ℕ, v n ≤ B) (n : ℕ) : v n ≤ 1 := by
+  contrapose! h
+  obtain ⟨m, hm⟩ := pow_unbounded_of_one_lt B h
+  exact ⟨n ^ m, by rwa [Nat.cast_pow, map_pow]⟩
+
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
+
 open IsUltrametricDist in
+lemma isNonarchimedean_of_le_one_on_nat (h : ∀ n : ℕ, v n ≤ 1) : IsNonarchimedean v :=
+  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ 1 := h n
+  isUltrametricDist_iff_isNonarchimedean_norm.mp <|
+    isUltrametricDist_of_forall_norm_natCast_le_one H
+
+lemma isNonarchimedean_of_bounded_on_nat {B : ℝ} (h : ∀ n : ℕ, v n ≤ B) : IsNonarchimedean v :=
+  isNonarchimedean_of_le_one_on_nat <| le_one_on_nat_of_bounded h
+
+/-- An absolute value on a field is nonarchimedean if and only if its values on the image of `ℕ`
+are bounded by `1`. -/
+lemma isNonarchimedean_iff_le_one_on_nat : IsNonarchimedean v ↔ ∀ n : ℕ, v n ≤ 1 :=
+  ⟨le_one_on_nat_of_nonarchimedean, isNonarchimedean_of_bounded_on_nat⟩
+
+/-- A field with an archimedea absolute value has characteristic zero. -/
 lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
   contrapose! h
   let p := ringChar F
   have : CharP (WithAbs v) p := ringChar.charP F
   have : NeZero p := ⟨mt (CharP.ringChar_zero_iff_CharZero _).mp h⟩
-  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ 1 := by
-    let φ := ZMod.castHom (m := p) dvd_rfl (WithAbs v)
-    obtain ⟨B, hB⟩ : ∃ B, ∀ a : ZMod p, ‖φ a‖ ≤ B := Finite.exists_le _
-    refine le_of_forall_pos_le_add fun ε hε ↦ ?_
-    obtain ⟨m, hm⟩ := pow_unbounded_of_one_lt B <| lt_add_of_pos_right 1 hε
-    refine (pow_le_pow_iff_left₀ (norm_nonneg _) (by linarith) m.zero_ne_add_one.symm).mp ?_
-    rw [← norm_pow, pow_succ (1 + ε), ← Nat.cast_pow, ← map_natCast φ, ← mul_one (‖_‖)]
-    have hε' := lt_add_of_pos_right 1 hε -- for `gcongr` below
-    gcongr
-    exact (hB _).trans hm.le
-  exact isUltrametricDist_iff_isNonarchimedean_norm.mp <|
-    isUltrametricDist_of_forall_norm_natCast_le_one H
+  let φ := ZMod.castHom (m := p) dvd_rfl (WithAbs v)
+  obtain ⟨B, hB⟩ : ∃ B, ∀ a : ZMod p, ‖φ a‖ ≤ B := Finite.exists_le _
+  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ B := by
+    have := hB n
+    simpa only [map_natCast φ] using hB n
+  exact isNonarchimedean_of_bounded_on_nat H
 
-open Rat.AbsoluteValue
+end nonarchimedean
 
-lemma _root_.Rat.AbsoluteValue.isNonarchimedean_padic (p : ℕ) [Fact p.Prime] :
-    IsNonarchimedean (padic p) := by
-  sorry
+end API
 
-lemma _root_.Rat.AbsoluteValue.padic_of_nonarchimedean {v : AbsoluteValue ℚ ℝ}
+end AbsoluteValue
+
+section rat
+
+open AbsoluteValue
+
+namespace Rat.AbsoluteValue
+
+lemma isNonarchimedean_padic (p : ℕ) [Fact p.Prime] :
+    IsNonarchimedean (padic p) :=
+  isNonarchimedean_of_le_one_on_nat fun n ↦ padic_le_one p n
+
+lemma padic_of_nonarchimedean {v : AbsoluteValue ℚ ℝ}
     (h : IsNonarchimedean v) (h' : v.IsNontrivial) :
     ∃ (p : ℕ) (_ : Fact p.Prime), v ≈ padic p := by
   replace h' : v ≠ .trivial := (isNontrivial_iff_ne_trivial v).mp h'
   refine (equiv_padic_of_bounded h' ?_).exists
   exact le_one_on_nat_of_nonarchimedean h
 
-lemma _root_.Rat.AbsoluteValue.real_of_archimedean {v : AbsoluteValue ℚ ℝ}
+lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ}
     (h : ¬ IsNonarchimedean v) :
     v ≈ real := by
   refine Or.resolve_right (equiv_real_or_padic v ?_) fun H ↦ ?_
@@ -437,6 +477,6 @@ lemma _root_.Rat.AbsoluteValue.real_of_archimedean {v : AbsoluteValue ℚ ℝ}
   · obtain ⟨p, fp, hp⟩ := H.exists
     exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
 
-end nonarchimedean
+end Rat.AbsoluteValue
 
-end API
+end rat
