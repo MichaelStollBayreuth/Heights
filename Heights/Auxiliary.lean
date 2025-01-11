@@ -456,20 +456,20 @@ instance : CompletableTopField (WithAbs v) where
     rw [Metric.cauchy_iff] at hc ⊢
     obtain ⟨hf₁, hf₂⟩ := hc
     refine ⟨Filter.map_neBot, ?_⟩
-    rw [Filter.inf_eq_bot_iff] at hn
-    obtain ⟨U, hU, V, hV, hUV⟩ := hn
-    rw [Metric.mem_nhds_iff] at hU
-    obtain ⟨ε, hε₀, hε⟩ := hU
+    obtain ⟨U, hU, V, hV, hUV⟩ := Filter.inf_eq_bot_iff.mp hn
+    obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU
     intro δ hδ₀
     obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε ^ 2) (by positivity)
     let t' := t ∩ V
-    have ht'₁ : t' ∈ f := Filter.inter_mem ht₁ hV
-    have ht'₂ : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 := by aesop
+    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 :=
+      fun x hx y hy ↦
+        ht₂ x (Set.mem_of_mem_inter_left hx) y (Set.mem_of_mem_inter_left hy)
     simp_rw [Filter.mem_map]
-    refine ⟨(· ⁻¹) ⁻¹' t', by simpa using ht'₁, fun x hx y hy ↦ ?_⟩
+    refine ⟨(· ⁻¹) ⁻¹' t', by simpa only [Set.inv_preimage, inv_inv] using Filter.inter_mem ht₁ hV,
+      fun x hx y hy ↦ ?_⟩
     simp only [Set.inv_preimage, Set.mem_inv] at hx hy
-    specialize ht'₂ x⁻¹ hx y⁻¹ hy
-    rw [dist_eq_norm_sub] at ht'₂ ⊢
+    specialize h x⁻¹ hx y⁻¹ hy
+    rw [dist_eq_norm_sub] at h ⊢
     have h₀ {z : WithAbs v} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
       rintro rfl
       simp only [inv_zero] at hz
@@ -486,13 +486,13 @@ instance : CompletableTopField (WithAbs v) where
     have hxε := Hε hx
     have hyε := Hε hy
     rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
-      div_lt_iff₀ (by simp [hx₀, hy₀])] at ht'₂
-    refine ht'₂.trans_le ?_
+      div_lt_iff₀ (by simp [hx₀, hy₀])] at h
+    refine h.trans_le ?_
     rw [mul_assoc]
     conv_rhs => rw [← mul_one δ]
     gcongr
     rw [sq]
-    calc
+    calc ε * ε * (‖x‖ * ‖y‖)
     _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by gcongr
     _ = 1 := by field_simp
 
