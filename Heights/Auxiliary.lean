@@ -452,7 +452,49 @@ variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
 -- This is needed to get `Field v.Completion`
 instance : CompletableTopField (WithAbs v) where
   t0 := (inferInstanceAs <| T0Space _).t0
-  nice f hc hn := by sorry
+  nice f hc hn := by
+    rw [Metric.cauchy_iff] at hc ⊢
+    obtain ⟨hf₁, hf₂⟩ := hc
+    refine ⟨Filter.map_neBot, ?_⟩
+    rw [Filter.inf_eq_bot_iff] at hn
+    obtain ⟨U, hU, V, hV, hUV⟩ := hn
+    rw [Metric.mem_nhds_iff] at hU
+    obtain ⟨ε, hε₀, hε⟩ := hU
+    intro δ hδ₀
+    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε ^ 2) (by positivity)
+    let t' := t ∩ V
+    have ht'₁ : t' ∈ f := Filter.inter_mem ht₁ hV
+    have ht'₂ : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 := by aesop
+    simp_rw [Filter.mem_map]
+    refine ⟨(· ⁻¹) ⁻¹' t', by simpa using ht'₁, fun x hx y hy ↦ ?_⟩
+    simp only [Set.inv_preimage, Set.mem_inv] at hx hy
+    specialize ht'₂ x⁻¹ hx y⁻¹ hy
+    rw [dist_eq_norm_sub] at ht'₂ ⊢
+    have h₀ {z : WithAbs v} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
+      rintro rfl
+      simp only [inv_zero] at hz
+      exact (Set.mem_empty_iff_false _).mp <|
+        hUV ▸ Set.mem_inter (hε <| Metric.mem_ball_self hε₀) (Set.mem_of_mem_inter_right hz)
+    have Hε {z : WithAbs v} (hz : z⁻¹ ∈ t') : ‖z‖ ≤ ε⁻¹ := by
+      have : z⁻¹ ∉ Metric.ball 0 ε :=
+        fun H ↦ (Set.mem_empty_iff_false _).mp <|
+          hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
+      simp only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] at this
+      exact le_inv_of_le_inv₀ hε₀ this
+    have hx₀ := h₀ hx
+    have hy₀ := h₀ hy
+    have hxε := Hε hx
+    have hyε := Hε hy
+    rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
+      div_lt_iff₀ (by simp [hx₀, hy₀])] at ht'₂
+    refine ht'₂.trans_le ?_
+    rw [mul_assoc]
+    conv_rhs => rw [← mul_one δ]
+    gcongr
+    rw [sq]
+    calc
+    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by gcongr
+    _ = 1 := by field_simp
 
 end completion
 
