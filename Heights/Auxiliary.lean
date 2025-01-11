@@ -404,7 +404,7 @@ lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial :
   · simp [hx, hy, hxy]
   simp [hx, hy, hxy, h]
 
-lemma le_one_on_nat_of_nonarchimedean [Nontrivial R] (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by
+lemma le_one_on_nat_of_isNonarchimedean [Nontrivial R] (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by
   induction n with
   | zero => simp
   | succ n ih =>
@@ -430,7 +430,7 @@ lemma isNonarchimedean_of_bounded_on_nat {B : ℝ} (h : ∀ n : ℕ, v n ≤ B) 
 /-- An absolute value on a field is nonarchimedean if and only if its values on the image of `ℕ`
 are bounded by `1`. -/
 lemma isNonarchimedean_iff_le_one_on_nat : IsNonarchimedean v ↔ ∀ n : ℕ, v n ≤ 1 :=
-  ⟨le_one_on_nat_of_nonarchimedean, isNonarchimedean_of_bounded_on_nat⟩
+  ⟨le_one_on_nat_of_isNonarchimedean, isNonarchimedean_of_bounded_on_nat⟩
 
 /-- A field with an archimedea absolute value has characteristic zero. -/
 lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
@@ -461,20 +461,27 @@ lemma isNonarchimedean_padic (p : ℕ) [Fact p.Prime] :
     IsNonarchimedean (padic p) :=
   isNonarchimedean_of_le_one_on_nat fun n ↦ padic_le_one p n
 
-lemma padic_of_nonarchimedean {v : AbsoluteValue ℚ ℝ}
+lemma padic_of_isNonarchimedean {v : AbsoluteValue ℚ ℝ}
     (h : IsNonarchimedean v) (h' : v.IsNontrivial) :
     ∃ (p : ℕ) (_ : Fact p.Prime), v ≈ padic p := by
   replace h' : v ≠ .trivial := (isNontrivial_iff_ne_trivial v).mp h'
   refine (equiv_padic_of_bounded h' ?_).exists
-  exact le_one_on_nat_of_nonarchimedean h
+  exact le_one_on_nat_of_isNonarchimedean h
 
-lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ}
-    (h : ¬ IsNonarchimedean v) :
+/-- A nontrivial absolute value on `ℚ` is nonarchimedean if and only if it is equivalent to
+a `p`-adic absolute value for some prime `p`. -/
+lemma isNonarchimedean_iff_equiv_padic {v : AbsoluteValue ℚ ℝ} (h : v.IsNontrivial) :
+    IsNonarchimedean v ↔ ∃ (p : ℕ) (_ : Fact p.Prime), v ≈ padic p :=
+  ⟨fun a ↦ padic_of_isNonarchimedean a h,
+    fun ⟨p, _, hp⟩ ↦ isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p⟩
+
+/-- An archimedean absolute value on `ℚ` must be equivalent to the standard absolute value. -/
+lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v) :
     v ≈ real := by
   refine Or.resolve_right (equiv_real_or_padic v ?_) fun H ↦ ?_
   · rw [← isNontrivial_iff_ne_trivial]
     exact isNontrivial_of_archimedean h
-  · obtain ⟨p, fp, hp⟩ := H.exists
+  · obtain ⟨p, _, hp⟩ := H.exists
     exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
 
 end Rat.AbsoluteValue
