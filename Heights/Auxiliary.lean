@@ -432,7 +432,7 @@ are bounded by `1`. -/
 lemma isNonarchimedean_iff_le_one_on_nat : IsNonarchimedean v ↔ ∀ n : ℕ, v n ≤ 1 :=
   ⟨le_one_on_nat_of_isNonarchimedean, isNonarchimedean_of_bounded_on_nat⟩
 
-/-- A field with an archimedea absolute value has characteristic zero. -/
+/-- A field with an archimedean absolute value has characteristic zero. -/
 lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
   contrapose! h
   let p := ringChar F
@@ -446,6 +446,17 @@ lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
   exact isNonarchimedean_of_bounded_on_nat H
 
 end nonarchimedean
+
+section completion
+
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
+
+-- This is needed to get `Field v.Completion`
+instance : CompletableTopField (WithAbs v) where
+  t0 := (inferInstanceAs <| T0Space _).t0
+  nice f hc hn := by sorry
+
+end completion
 
 end API
 
@@ -483,6 +494,16 @@ lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v
     exact isNontrivial_of_archimedean h
   · obtain ⟨p, _, hp⟩ := H.exists
     exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
+
+open Completion Topology in
+noncomputable
+def ringEquiv_completion_real : real.Completion ≃+* ℝ := by
+  let f : WithAbs real →+* ℝ := (algebraMap ℚ ℝ).comp (WithAbs.ringEquiv real)
+  have hf (x : WithAbs real) : ‖f x‖ = real x := rfl
+  let e := extensionEmbedding_of_comp hf
+  refine RingEquiv.ofBijective e ⟨e.injective, ?_⟩
+  have : IsClosedEmbedding e := isClosedEmbedding_extensionEmbedding_of_comp hf
+  exact RingHom.fieldRange_eq_top_iff.mp <| Real.subfield_eq_of_closed this.isClosed_range
 
 end Rat.AbsoluteValue
 

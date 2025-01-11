@@ -76,11 +76,14 @@ isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 
 variable {F : Type} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
+/-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
 def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* F := by
   have : CharZero F := charZero_of_archimedean h
   let e₀ := Rat.castHom F
   let _ : Algebra ℚ F := e₀.toAlgebra
   let v₀ := v.restrict ℚ
+  have hv₀ : ¬ IsNonarchimedean v₀ := mt isNonarchmedean_restrict_iff.mp h
+  replace hv₀ : v₀ ≈ Rat.AbsoluteValue.real := Rat.AbsoluteValue.real_of_archimedean hv₀
 
   sorry
 

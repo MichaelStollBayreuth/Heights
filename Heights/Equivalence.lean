@@ -127,6 +127,15 @@ instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] 
     ContinuousSMul (WithAbs v) (WithAbs v') where
   continuous_smul := (continuous_algebraMap_iff_smul _ _).mp <| continuous_algebraMap Fact.out
 
+lemma isNonarchmedean_restrict_iff {F' : Type*} [Field F'] [Algebra F F']
+    {v : AbsoluteValue F' ℝ} :
+    IsNonarchimedean (v.restrict F) ↔ IsNonarchimedean v := by
+  have H (n : ℕ) : v.restrict F n = v n := by
+    rw [← apply_algebraMap]
+    congr
+    exact algebraMap.coe_natCast n
+  simp_rw [isNonarchimedean_iff_le_one_on_nat, H]
+
 end restrict
 
 /-!
