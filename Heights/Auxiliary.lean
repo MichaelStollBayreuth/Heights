@@ -438,11 +438,9 @@ lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
   let p := ringChar F
   have : CharP (WithAbs v) p := ringChar.charP F
   have : NeZero p := ⟨mt (CharP.ringChar_zero_iff_CharZero _).mp h⟩
-  let φ := ZMod.castHom (m := p) dvd_rfl (WithAbs v)
+  let φ := ZMod.castHom (dvd_refl p) (WithAbs v)
   obtain ⟨B, hB⟩ : ∃ B, ∀ a : ZMod p, ‖φ a‖ ≤ B := Finite.exists_le _
-  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ B := by
-    have := hB n
-    simpa only [map_natCast φ] using hB n
+  have H (n : ℕ) : ‖(n : WithAbs v)‖ ≤ B := map_natCast φ n ▸ hB n
   exact isNonarchimedean_of_bounded_on_nat H
 
 end nonarchimedean
