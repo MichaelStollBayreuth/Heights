@@ -13,6 +13,7 @@ variable {α β : Type*}
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
+-- [Mathlib.Analysis.SpecialFunctions.Pow.Real]
 lemma Real.max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
     max (x ^ c) (y ^ c) = max x y ^ c := by
   rcases le_total x y with h | h
@@ -117,6 +118,8 @@ end aux
 
 section Mathlib.Analysis.MeanInequalitiesPow
 
+-- #20685
+
 namespace Real
 
 lemma add_rpow_le_rpow_add {p : ℝ} {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp1 : 1 ≤ p) :
@@ -154,7 +157,7 @@ section completion
 variable {F : Type*} [NormedField F]
 
 -- This is needed to get `Field v.Completion`
-instance NormedField.toCompletableTopField : CompletableTopField F where
+instance NormedField.instCompletableTopField : CompletableTopField F where
   t0 := (inferInstanceAs <| T0Space _).t0
   nice f hc hn := by
     rw [Metric.cauchy_iff] at hc ⊢
