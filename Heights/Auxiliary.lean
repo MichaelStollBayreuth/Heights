@@ -117,7 +117,6 @@ end aux
 
 section completion
 
-
 variable {F : Type*} [NormedField F]
 
 -- This is needed to get `Field v.Completion`
@@ -499,10 +498,6 @@ lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
   exact isNonarchimedean_of_bounded_on_nat H
 
 end nonarchimedean
-
-section completion
-
-end completion
 
 end API
 
