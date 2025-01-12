@@ -324,6 +324,12 @@ namespace WithAbs
 lemma norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
+lemma equiv_apply_eq_ringEquiv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
+    equiv v x = ringEquiv v x := rfl
+
+lemma equiv_symm_apply_eq_ringEquiv_symm (v : AbsoluteValue R ℝ) (x : R) :
+    (equiv v).symm x = (ringEquiv v).symm x := rfl
+/-
 @[simp]
 theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl
 
@@ -337,9 +343,9 @@ theorem equiv_pow {v : AbsoluteValue R ℝ} (x : WithAbs v) (n : ℕ) :
 @[simp]
 theorem equiv_symm_pow {v : AbsoluteValue R ℝ} (x : R) (n : ℕ) :
     (WithAbs.equiv v).symm (x ^ n) = (WithAbs.equiv v).symm x ^ n := rfl
-
+-/
 variable {F : Type*} [Field F]
-
+/-
 @[simp]
 theorem equiv_zpow {v : AbsoluteValue F ℝ} (x : WithAbs v) (n : ℤ) :
     (WithAbs.equiv v) (x ^ n) = (WithAbs.equiv v) x ^ n := rfl
@@ -347,7 +353,7 @@ theorem equiv_zpow {v : AbsoluteValue F ℝ} (x : WithAbs v) (n : ℤ) :
 @[simp]
 theorem equiv_symm_zpow {v : AbsoluteValue F ℝ} (x : F) (n : ℤ) :
     (WithAbs.equiv v).symm (x ^ n) = (WithAbs.equiv v).symm x ^ n := rfl
-
+ -/
 variable {S : Type*}
 
 instance commRing {R : Type*} [CommRing R] (v : AbsoluteValue R ℝ) : CommRing (WithAbs v) :=
@@ -382,17 +388,16 @@ instance fd_right [Ring S] [Module F S] [FiniteDimensional F S] (v : AbsoluteVal
 
 @[simp]
 lemma equiv_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : WithAbs v) :
-    WithAbs.equiv v (c • x) = c • WithAbs.equiv v x := rfl
+    equiv v (c • x) = c • equiv v x := rfl
 
 @[simp]
 lemma equiv_symm_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : S) :
-    (WithAbs.equiv v).symm (c • x) = c • (WithAbs.equiv v).symm x := rfl
+    (equiv v).symm (c • x) = c • (equiv v).symm x := rfl
 
 @[simp]
 lemma equiv_apply_algebraMap {R S : Type*} [CommRing R] [Ring S] [Algebra R S]
     {v : AbsoluteValue R ℝ} (v' : AbsoluteValue S ℝ) (x : WithAbs v) :
-    WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x) =
-      algebraMap R S (WithAbs.equiv v x) :=
+    equiv v' (algebraMap (WithAbs v) (WithAbs v') x) = algebraMap R S (equiv v x) :=
   rfl
 
 end WithAbs

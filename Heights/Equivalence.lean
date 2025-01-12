@@ -247,10 +247,10 @@ lemma tendsto_nhds_zero_iff_abv_lt_one [Nontrivial R] (v : AbsoluteValue R ℝ) 
     Tendsto (fun n : ℕ ↦ (WithAbs.equiv v).symm x ^ n) atTop (𝓝 0) ↔ v x < 1 := by
   refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
   · rw [Metric.tendsto_atTop] at H
-    simp only [dist_zero_right, norm_eq_abv, WithAbs.equiv_pow, Equiv.apply_symm_apply] at H
     obtain ⟨n, hn⟩ := H 1 zero_lt_one
+    simp only [ge_iff_le, equiv_symm_apply_eq_ringEquiv_symm, dist_zero_right, norm_eq_abv,
+      equiv_apply_eq_ringEquiv, map_pow, RingEquiv.apply_symm_apply] at hn
     replace hn := hn n le_rfl
-    rw [map_pow] at hn
     refine (pow_lt_one_iff_of_nonneg (v.nonneg x) ?_).mp hn
     rintro rfl
     simp at hn
@@ -294,7 +294,7 @@ def IsNontrivial.nontriviallyNormedField {v : AbsoluteValue F ℝ} (hv : v.IsNon
   non_trivial := hv.exists_abv_gt_one
 
 noncomputable
-instance _root_.WihAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact <| v.IsNontrivial] :
+instance _root_.WithAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact <| v.IsNontrivial] :
     NontriviallyNormedField (WithAbs v) :=
   (Fact.out : v.IsNontrivial).nontriviallyNormedField
 
