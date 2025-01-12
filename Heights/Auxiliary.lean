@@ -115,6 +115,63 @@ instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
 
 end aux
 
+section completion
+
+
+variable {F : Type*} [NormedField F]
+
+-- This is needed to get `Field v.Completion`
+instance : CompletableTopField F where
+  t0 := (inferInstanceAs <| T0Space _).t0
+  nice f hc hn := by
+    rw [Metric.cauchy_iff] at hc ⊢
+    obtain ⟨hf₁, hf₂⟩ := hc
+    refine ⟨Filter.map_neBot, ?_⟩
+    obtain ⟨U, hU, V, hV, hUV⟩ := Filter.inf_eq_bot_iff.mp hn
+    obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU
+    intro δ hδ₀
+    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε ^ 2) (by positivity)
+    let t' := t ∩ V
+    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 :=
+      fun x hx y hy ↦
+        ht₂ x (Set.mem_of_mem_inter_left hx) y (Set.mem_of_mem_inter_left hy)
+    simp_rw [Filter.mem_map]
+    refine ⟨(· ⁻¹) ⁻¹' t', by simpa only [Set.inv_preimage, inv_inv] using Filter.inter_mem ht₁ hV,
+      fun x hx y hy ↦ ?_⟩
+    simp only [Set.inv_preimage, Set.mem_inv] at hx hy
+    specialize h x⁻¹ hx y⁻¹ hy
+    rw [dist_eq_norm_sub] at h ⊢
+    have h₀ {z : F} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
+      rintro rfl
+      simp only [inv_zero] at hz
+      exact (Set.mem_empty_iff_false _).mp <|
+        hUV ▸ Set.mem_inter (hε <| Metric.mem_ball_self hε₀) (Set.mem_of_mem_inter_right hz)
+    have Hε {z : F} (hz : z⁻¹ ∈ t') : ‖z‖ ≤ ε⁻¹ := by
+      have : z⁻¹ ∉ Metric.ball 0 ε :=
+        fun H ↦ (Set.mem_empty_iff_false _).mp <|
+          hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
+      simp only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] at this
+      exact le_inv_of_le_inv₀ hε₀ this
+    have hx₀ := h₀ hx
+    have hy₀ := h₀ hy
+    have hxε := Hε hx
+    have hyε := Hε hy
+    rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
+      div_lt_iff₀ (by simp [hx₀, hy₀])] at h
+    refine h.trans_le ?_
+    rw [mul_assoc]
+    conv_rhs => rw [← mul_one δ]
+    gcongr
+    rw [sq]
+    calc ε * ε * (‖x‖ * ‖y‖)
+    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by gcongr
+    _ = 1 := by field_simp
+
+noncomputable
+example {F  : Type*} [Field F] {v : AbsoluteValue F ℝ} : Field v.Completion := inferInstance
+
+end completion
+
 section Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 -- #20608
@@ -446,55 +503,6 @@ lemma charZero_of_archimedean (h : ¬ IsNonarchimedean v) : CharZero F := by
 end nonarchimedean
 
 section completion
-
-variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
-
--- This is needed to get `Field v.Completion`
-instance : CompletableTopField (WithAbs v) where
-  t0 := (inferInstanceAs <| T0Space _).t0
-  nice f hc hn := by
-    rw [Metric.cauchy_iff] at hc ⊢
-    obtain ⟨hf₁, hf₂⟩ := hc
-    refine ⟨Filter.map_neBot, ?_⟩
-    obtain ⟨U, hU, V, hV, hUV⟩ := Filter.inf_eq_bot_iff.mp hn
-    obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU
-    intro δ hδ₀
-    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε ^ 2) (by positivity)
-    let t' := t ∩ V
-    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 :=
-      fun x hx y hy ↦
-        ht₂ x (Set.mem_of_mem_inter_left hx) y (Set.mem_of_mem_inter_left hy)
-    simp_rw [Filter.mem_map]
-    refine ⟨(· ⁻¹) ⁻¹' t', by simpa only [Set.inv_preimage, inv_inv] using Filter.inter_mem ht₁ hV,
-      fun x hx y hy ↦ ?_⟩
-    simp only [Set.inv_preimage, Set.mem_inv] at hx hy
-    specialize h x⁻¹ hx y⁻¹ hy
-    rw [dist_eq_norm_sub] at h ⊢
-    have h₀ {z : WithAbs v} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
-      rintro rfl
-      simp only [inv_zero] at hz
-      exact (Set.mem_empty_iff_false _).mp <|
-        hUV ▸ Set.mem_inter (hε <| Metric.mem_ball_self hε₀) (Set.mem_of_mem_inter_right hz)
-    have Hε {z : WithAbs v} (hz : z⁻¹ ∈ t') : ‖z‖ ≤ ε⁻¹ := by
-      have : z⁻¹ ∉ Metric.ball 0 ε :=
-        fun H ↦ (Set.mem_empty_iff_false _).mp <|
-          hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
-      simp only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] at this
-      exact le_inv_of_le_inv₀ hε₀ this
-    have hx₀ := h₀ hx
-    have hy₀ := h₀ hy
-    have hxε := Hε hx
-    have hyε := Hε hy
-    rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
-      div_lt_iff₀ (by simp [hx₀, hy₀])] at h
-    refine h.trans_le ?_
-    rw [mul_assoc]
-    conv_rhs => rw [← mul_one δ]
-    gcongr
-    rw [sq]
-    calc ε * ε * (‖x‖ * ‖y‖)
-    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by gcongr
-    _ = 1 := by field_simp
 
 end completion
 
