@@ -121,7 +121,7 @@ section completion
 variable {F : Type*} [NormedField F]
 
 -- This is needed to get `Field v.Completion`
-instance : CompletableTopField F where
+instance NormedField.toCompletableTopField : CompletableTopField F where
   t0 := (inferInstanceAs <| T0Space _).t0
   nice f hc hn := by
     rw [Metric.cauchy_iff] at hc ⊢
