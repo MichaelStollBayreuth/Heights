@@ -130,9 +130,9 @@ instance NormedField.toCompletableTopField : CompletableTopField F where
     obtain ⟨U, hU, V, hV, hUV⟩ := Filter.inf_eq_bot_iff.mp hn
     obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU
     intro δ hδ₀
-    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε ^ 2) (by positivity)
+    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε * ε) (by positivity)
     let t' := t ∩ V
-    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε ^ 2 :=
+    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε * ε :=
       fun x hx y hy ↦
         ht₂ x (Set.mem_of_mem_inter_left hx) y (Set.mem_of_mem_inter_left hy)
     simp_rw [Filter.mem_map]
@@ -141,30 +141,25 @@ instance NormedField.toCompletableTopField : CompletableTopField F where
     simp only [Set.inv_preimage, Set.mem_inv] at hx hy
     specialize h x⁻¹ hx y⁻¹ hy
     rw [dist_eq_norm_sub] at h ⊢
+    have hinv {z : F} (hz : z⁻¹ ∈ t') : z⁻¹ ∉ Metric.ball 0 ε :=
+      fun H ↦ (Set.mem_empty_iff_false _).mp <|
+        hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
     have h₀ {z : F} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
       rintro rfl
-      simp only [inv_zero] at hz
-      exact (Set.mem_empty_iff_false _).mp <|
-        hUV ▸ Set.mem_inter (hε <| Metric.mem_ball_self hε₀) (Set.mem_of_mem_inter_right hz)
+      exact inv_zero (G₀ := F) ▸ hinv hz <| Metric.mem_ball_self hε₀
     have Hε {z : F} (hz : z⁻¹ ∈ t') : ‖z‖ ≤ ε⁻¹ := by
-      have : z⁻¹ ∉ Metric.ball 0 ε :=
-        fun H ↦ (Set.mem_empty_iff_false _).mp <|
-          hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
-      simp only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] at this
-      exact le_inv_of_le_inv₀ hε₀ this
+      refine le_inv_of_le_inv₀ hε₀ ?_
+      simpa only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] using hinv hz
     have hx₀ := h₀ hx
     have hy₀ := h₀ hy
-    have hxε := Hε hx
-    have hyε := Hε hy
     rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
       div_lt_iff₀ (by simp [hx₀, hy₀])] at h
     refine h.trans_le ?_
-    rw [mul_assoc]
+    rw [mul_assoc, mul_assoc, ← mul_assoc ε]
     conv_rhs => rw [← mul_one δ]
     gcongr
-    rw [sq]
     calc ε * ε * (‖x‖ * ‖y‖)
-    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by gcongr
+    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by have hxε := Hε hx; have hyε := Hε hy; gcongr
     _ = 1 := by field_simp
 
 noncomputable
