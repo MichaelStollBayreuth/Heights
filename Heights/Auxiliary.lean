@@ -13,7 +13,7 @@ variable {α β : Type*}
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
-lemma max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
+lemma Real.max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
     max (x ^ c) (y ^ c) = max x y ^ c := by
   rcases le_total x y with h | h
   · simpa only [h, sup_of_le_right, sup_eq_right] using Real.rpow_le_rpow hx h hc
@@ -477,7 +477,7 @@ lemma isNonarchimedean_of_isEquiv {v' : AbsoluteValue R ℝ} (h₁ : v ≈ v')
   intro x y
   specialize h₂ x y
   obtain ⟨c, hc₀, hc⟩ := h₁
-  simp_rw [← hc, max_map_rpow (v.nonneg x) (v.nonneg y) hc₀.le]
+  simp_rw [← hc, Real.max_map_rpow (v.nonneg x) (v.nonneg y) hc₀.le]
   exact Real.rpow_le_rpow (v.nonneg _) h₂ hc₀.le
 
 lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial := by
