@@ -152,7 +152,7 @@ instance NormedField.toCompletableTopField : CompletableTopField F where
       simpa only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] using hinv hz
     have hx₀ := h₀ hx
     have hy₀ := h₀ hy
-    rw [show x⁻¹ - y⁻¹ = (y - x) / (x * y) by field_simp, norm_div, norm_mul, norm_sub_rev,
+    rw [inv_sub_inv hx₀ hy₀, norm_div, norm_mul, norm_sub_rev,
       div_lt_iff₀ (by simp [hx₀, hy₀])] at h
     refine h.trans_le ?_
     rw [mul_assoc, mul_assoc, ← mul_assoc ε]
