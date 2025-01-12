@@ -15,11 +15,35 @@ implies equivalence) into two steps:
 The main result is `AbsoluteValue.equiv_iff_isHomeomorph`.
 -/
 
+namespace AbsoluteValue
+
+/-!
+### More API for AboluteValue.IsEquiv
+-/
+
+section isEquiv
+
+variable {R : Type*} [Semiring R]
+
+lemma rpow_add_le (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) (x y : R) :
+    v (x + y) ^ e ≤ v x ^ e + v y ^ e := by
+  calc
+  _ ≤ (v x + v y) ^ e := Real.rpow_le_rpow (v.nonneg _) (v.add_le x y) h₀.le
+  _ ≤ v x ^ e + v y ^ e := Real.rpow_add_le_add_rpow (v.nonneg _) (v.nonneg _) h₀.le h₁
+
+noncomputable
+def rpow (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) : AbsoluteValue R ℝ where
+  toFun := (v ·) ^ e
+  map_mul' x y := by simp only [Pi.pow_apply, v.map_mul, Real.mul_rpow (v.nonneg _) (v.nonneg _)]
+  nonneg' x := by simpa only [Pi.pow_apply] using Real.rpow_nonneg (v.nonneg _) _
+  eq_zero' x := by simp [Real.rpow_eq_zero_iff_of_nonneg (v.nonneg _), v.eq_zero, h₀.ne']
+  add_le' x y := by simpa only [Pi.pow_apply] using rpow_add_le v h₀ h₁ x y
+
+end isEquiv
+
 /-!
 ### Auxiliary lemmas
 -/
-
-namespace AbsoluteValue
 
 section restrict
 
