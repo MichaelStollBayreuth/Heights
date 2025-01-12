@@ -15,13 +15,14 @@ implies equivalence) into two steps:
 The main result is `AbsoluteValue.equiv_iff_isHomeomorph`.
 -/
 
-namespace AbsoluteValue
 
 /-!
 ### More API for AboluteValue.IsEquiv
 -/
 
 section isEquiv
+
+namespace AbsoluteValue
 
 variable {R : Type*} [Semiring R]
 
@@ -31,6 +32,14 @@ lemma rpow_add_le (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e �
   _ ≤ (v x + v y) ^ e := Real.rpow_le_rpow (v.nonneg _) (v.add_le x y) h₀.le
   _ ≤ v x ^ e + v y ^ e := Real.rpow_add_le_add_rpow (v.nonneg _) (v.nonneg _) h₀.le h₁
 
+lemma rpow_add_le_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {e : ℝ}
+    (he : 0 < e) (x y : R) :
+    v (x + y) ^ e ≤ v x ^ e ⊔ v y ^ e := by
+  calc
+  _ ≤ (v x ⊔ v y) ^ e := Real.rpow_le_rpow (v.nonneg _) (hv x y) he.le
+  _ = v x ^ e ⊔ v y ^ e := (Real.max_map_rpow (v.nonneg _) (v.nonneg _) he.le).symm
+
+@[simps]
 noncomputable
 def rpow (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) : AbsoluteValue R ℝ where
   toFun := (v ·) ^ e
@@ -39,11 +48,66 @@ def rpow (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) : A
   eq_zero' x := by simp [Real.rpow_eq_zero_iff_of_nonneg (v.nonneg _), v.eq_zero, h₀.ne']
   add_le' x y := by simpa only [Pi.pow_apply] using rpow_add_le v h₀ h₁ x y
 
+@[simps]
+noncomputable
+def rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {e : ℝ}
+    (he : 0 < e) :
+    AbsoluteValue R ℝ where
+  toFun := (v ·) ^ e
+  map_mul' x y := by simp only [Pi.pow_apply, v.map_mul, Real.mul_rpow (v.nonneg _) (v.nonneg _)]
+  nonneg' x := by simpa only [Pi.pow_apply] using Real.rpow_nonneg (v.nonneg _) _
+  eq_zero' x := by simp [Real.rpow_eq_zero_iff_of_nonneg (v.nonneg _), v.eq_zero, he.ne']
+  add_le' x y := by
+    simp only [Pi.pow_apply]
+    exact (rpow_add_le_of_isNonarchimedean hv he x y).trans <|
+      max_le_add_of_nonneg (by positivity) (by positivity)
+
+lemma isEquiv_rpow (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) :
+    v.rpow h₀ h₁ ≈ v :=
+  Setoid.symm ⟨e, h₀, rfl⟩
+
+lemma isEquiv_rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {e : ℝ}
+    (he : 0 < e) :
+    v.rpow_of_isNonarchimedean hv he ≈ v :=
+  Setoid.symm <| ⟨e, he, rfl⟩
+
+lemma isNonarchimedean_rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v)
+    {e : ℝ} (he : 0 < e) :
+    IsNonarchimedean (v.rpow_of_isNonarchimedean hv he) := by
+  intro x y
+  simpa only [rpow_of_isNonarchimedean, coe_mk, MulHom.coe_mk, Pi.pow_apply]
+    using rpow_add_le_of_isNonarchimedean hv he x y
+
+end AbsoluteValue
+
+namespace Rat.AbsoluteValue
+
+/-- If an absolute value `v` on `ℚ` is equivalent to the standard absolute value `|·|`,
+then `v = |·| ^ e` for some `0 < e ≤ 1`. -/
+lemma eq_rpow_of_isEquiv_real {v : AbsoluteValue ℚ ℝ} (hv : v ≈ real) :
+    ∃ (e : ℝ) (h₀ : 0 < e) (h₁ : e ≤ 1), v = real.rpow h₀ h₁ := by
+  obtain ⟨e, he₀, he⟩ := Setoid.symm hv
+  refine ⟨e, he₀, ?_, by ext1; simp [← congrFun he, AbsoluteValue.rpow]⟩
+  have h₂ := congrFun he 2
+  simp only [real_eq_abs, Nat.abs_ofNat, cast_ofNat] at h₂
+  have h : (2 : ℝ) ^ e ≤ 2 ^ (1 : ℝ) := by
+    calc
+    _ = v 2 := h₂
+    _ = v (1 + 1) := by rw [one_add_one_eq_two]
+    _ ≤ v 1 + v 1 := v.add_le 1 1
+    _ = 1 + 1 := by rw [v.map_one]
+    _ = 2 ^ (1 : ℝ) := by rw [Real.rpow_one, one_add_one_eq_two]
+  exact (Real.strictMono_rpow_of_base_gt_one one_lt_two).le_iff_le.mp h
+
+end Rat.AbsoluteValue
+
 end isEquiv
 
 /-!
 ### Auxiliary lemmas
 -/
+
+namespace AbsoluteValue
 
 section restrict
 
