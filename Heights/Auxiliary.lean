@@ -159,8 +159,11 @@ instance NormedField.toCompletableTopField : CompletableTopField F where
     conv_rhs => rw [← mul_one δ]
     gcongr
     calc ε * ε * (‖x‖ * ‖y‖)
-    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) := by have hxε := Hε hx; have hyε := Hε hy; gcongr
-    _ = 1 := by field_simp
+    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) :=
+      mul_le_mul_of_nonneg_left
+        (mul_le_mul (Hε hx) (Hε hy) (norm_pos_iff.mpr hy₀).le (inv_pos_of_pos hε₀).le)
+        (mul_pos hε₀ hε₀).le
+    _ = 1 := by rw [mul_mul_mul_comm, mul_inv_cancel₀ hε₀.ne', one_mul]
 
 noncomputable
 example {F  : Type*} [Field F] {v : AbsoluteValue F ℝ} : Field v.Completion := inferInstance
