@@ -10,7 +10,7 @@ autoImplicit = false
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "0b74e84c50e04a158e97442a7fb34acb0200d621"
+rev = "v4.15.0"
 
 [[lean_lib]]
 name = "Heights"
