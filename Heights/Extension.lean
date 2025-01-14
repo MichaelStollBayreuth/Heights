@@ -102,7 +102,7 @@ variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 lemma equiv_symm_apply_algebraMap (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
     (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) =
       algebraMap (WithAbs v) (WithAbs v') x := by
-  rw [← WithAbs.equiv_apply_algebraMap v', Equiv.symm_apply_apply]
+  rw [← WithAbs.equiv_apply_algebraMap v', RingEquiv.symm_apply_apply]
 
 variable [Nontrivial F']
 
@@ -118,8 +118,8 @@ lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) 
     Continuous <| algebraMap (WithAbs v) (WithAbs v') := by
   rw [continuous_iff_continuous_dist]
   conv => enter [1, x]; simp only [← equiv_symm_apply_algebraMap v']
-  simp_rw [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv_sub, Equiv.apply_symm_apply, ← map_sub,
-    apply_algebraMap, h, ← WithAbs.equiv_sub, ← norm_eq_abv, ← dist_eq_norm_sub]
+  simp_rw [dist_eq_norm_sub, norm_eq_abv, map_sub, RingEquiv.apply_symm_apply, ← map_sub,
+    apply_algebraMap, h, ← norm_eq_abv, ← dist_eq_norm_sub]
   exact continuous_dist
 
 instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] :

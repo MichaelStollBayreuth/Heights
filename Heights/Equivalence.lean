@@ -127,14 +127,13 @@ lemma tendsto_nhds_zero_iff_abv_lt_one [Nontrivial R] (v : AbsoluteValue R ℝ) 
   refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
   · rw [Metric.tendsto_atTop] at H
     obtain ⟨n, hn⟩ := H 1 zero_lt_one
-    simp only [ge_iff_le, equiv_symm_apply_eq_ringEquiv_symm, dist_zero_right, norm_eq_abv,
-      equiv_apply_eq_ringEquiv, map_pow, RingEquiv.apply_symm_apply] at hn
+    simp only [ge_iff_le, dist_zero_right, norm_eq_abv, map_pow, RingEquiv.apply_symm_apply] at hn
     replace hn := hn n le_rfl
     refine (pow_lt_one_iff_of_nonneg (v.nonneg x) ?_).mp hn
     rintro rfl
     simp at hn
   · refine tendsto_pow_atTop_nhds_zero_of_norm_lt_one ?_
-    rwa [norm_eq_abv, Equiv.apply_symm_apply]
+    rwa [norm_eq_abv]
 
 variable {F : Type*} [Field F]
 
@@ -210,10 +209,7 @@ open WithAbs
 /-- The identity map of `F` as a map between normed field structures on `F` induced by two
 absolute values- -/
 abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
-  (WithAbs.ringEquiv v₁).trans (WithAbs.ringEquiv v₂).symm
-
-lemma _root_.WithAbs.equiv₂_apply (v₁ v₂ : AbsoluteValue F ℝ) (x : WithAbs v₁) :
-    WithAbs.equiv₂ v₁ v₂ x = (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm x := rfl
+  (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm
 
 lemma _root_.WithAbs.equiv₂_symm_eq (v₁ v₂ : AbsoluteValue F ℝ) :
     (WithAbs.equiv₂ v₁ v₂).symm = WithAbs.equiv₂ v₂ v₁ := by
@@ -227,18 +223,15 @@ lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ �
   simp only [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv₂, Equiv.trans_apply,
     Equiv.apply_symm_apply]
   intro x ε hε₀
-  -- simp only [gt_iff_lt, equiv_sub, RingEquiv.coe_trans, Function.comp_apply]
   conv =>
     enter [1, δ, 2, y, 2, 1]
-    rw [← map_sub, RingEquiv.coe_trans, Function.comp_apply,
-      show ∀ y : WithAbs v₂, equiv v₂ y = ringEquiv v₂ y from fun _ ↦ rfl,
-      RingEquiv.apply_symm_apply]
+    rw [← map_sub, RingEquiv.coe_trans, Function.comp_apply, RingEquiv.apply_symm_apply]
   refine ⟨ε ^ (1 / c), Real.rpow_pos_of_pos hε₀ _, fun y h ↦ ?_⟩
   let x' := WithAbs.equiv v₁ x
   let y' := WithAbs.equiv v₁ y
   have hx : x = (WithAbs.equiv v₁).symm x' := rfl
   have hy : y = (WithAbs.equiv v₁).symm y' := rfl
-  rw [hx, hy, ← WithAbs.equiv_symm_sub, Equiv.apply_symm_apply] at h
+  rw [hx, hy, ← map_sub, RingEquiv.apply_symm_apply] at h
   rw [map_sub, hx, hy]
   simp only [Equiv.apply_symm_apply, ← hc₁]
   calc v₁ (y' - x') ^ c

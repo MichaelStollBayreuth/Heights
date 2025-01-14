@@ -224,11 +224,11 @@ namespace WithAbs
 lemma norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
-lemma equiv_apply_eq_ringEquiv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
+/- lemma equiv_apply_eq_ringEquiv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     equiv v x = ringEquiv v x := rfl
 
 lemma equiv_symm_apply_eq_ringEquiv_symm (v : AbsoluteValue R ℝ) (x : R) :
-    (equiv v).symm x = (ringEquiv v).symm x := rfl
+    (equiv v).symm x = (ringEquiv v).symm x := rfl -/
 /-
 @[simp]
 theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl
@@ -422,7 +422,7 @@ lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v
 open Completion Topology in
 noncomputable
 def ringEquiv_completion_real : real.Completion ≃+* ℝ := by
-  let f : WithAbs real →+* ℝ := (algebraMap ℚ ℝ).comp (WithAbs.ringEquiv real)
+  let f : WithAbs real →+* ℝ := (algebraMap ℚ ℝ).comp (WithAbs.equiv real)
   have hf (x : WithAbs real) : ‖f x‖ = real x := rfl
   let e := extensionEmbedding_of_comp hf
   refine RingEquiv.ofBijective e ⟨e.injective, ?_⟩
