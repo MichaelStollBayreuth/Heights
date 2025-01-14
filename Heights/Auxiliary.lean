@@ -116,42 +116,6 @@ instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
 
 end aux
 
-section Mathlib.Analysis.MeanInequalitiesPow
-
--- #20685
-
-namespace Real
-
-lemma add_rpow_le_rpow_add {p : ℝ} {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp1 : 1 ≤ p) :
-     a ^ p + b ^ p ≤ (a + b) ^ p := by
-  lift a to NNReal using ha
-  lift b to NNReal using hb
-  exact_mod_cast NNReal.add_rpow_le_rpow_add a b hp1
-
-lemma rpow_add_rpow_le_add {p : ℝ} {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp1 : 1 ≤ p) :
-    (a ^ p + b ^ p) ^ (1 / p) ≤ a + b := by
-  lift a to NNReal using ha
-  lift b to NNReal using hb
-  exact_mod_cast NNReal.rpow_add_rpow_le_add a b hp1
-
-lemma rpow_add_rpow_le {p q : ℝ} {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp_pos : 0 < p)
-    (hpq : p ≤ q) :
-    (a ^ q + b ^ q) ^ (1 / q) ≤ (a ^ p + b ^ p) ^ (1 / p) := by
-  lift a to NNReal using ha
-  lift b to NNReal using hb
-  exact_mod_cast NNReal.rpow_add_rpow_le a b hp_pos hpq
-
-lemma rpow_add_le_add_rpow {p : ℝ} {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (hp : 0 ≤ p)
-    (hp1 : p ≤ 1) :
-    (a + b) ^ p ≤ a ^ p + b ^ p := by
-  lift a to NNReal using ha
-  lift b to NNReal using hb
-  exact_mod_cast NNReal.rpow_add_le_add_rpow a b hp hp1
-
-end Real
-
-end Mathlib.Analysis.MeanInequalitiesPow
-
 section completion
 
 variable {F : Type*} [NormedField F]
@@ -205,70 +169,6 @@ noncomputable
 example {F  : Type*} [Field F] {v : AbsoluteValue F ℝ} : Field v.Completion := inferInstance
 
 end completion
-
-section Mathlib.Analysis.SpecialFunctions.Pow.Real
-
--- #20608
-
-namespace Real
-
-lemma rpow_right_inj {x y z : ℝ} (hx₀ : 0 < x) (hx₁ : x ≠ 1) : x ^ y = x ^ z ↔ y = z := by
-  refine ⟨fun H ↦ ?_, fun H ↦ by rw [H]⟩
-  rcases hx₁.lt_or_lt with h | h
-  · exact le_antisymm ((rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.symm.le) <|
-      (rpow_le_rpow_left_iff_of_base_lt_one hx₀ h).mp H.le
-  · exact le_antisymm ((rpow_le_rpow_left_iff h).mp H.le) ((rpow_le_rpow_left_iff h).mp H.symm.le)
-
-lemma rpow_pow_comm {x : ℝ} (hx : 0 ≤ x) (y : ℝ) (n : ℕ) : (x ^ y) ^ n = (x ^ n) ^ y := by
-  simp_rw [← rpow_natCast, ← rpow_mul hx, mul_comm y]
-
-lemma rpow_zpow_comm {x : ℝ} (hx : 0 ≤ x) (y : ℝ) (n : ℤ) : (x ^ y) ^ n = (x ^ n) ^ y := by
-  simp_rw [← rpow_intCast, ← rpow_mul hx, mul_comm y]
-
-end Real
-
-end Mathlib.Analysis.SpecialFunctions.Pow.Real
-
-section Mathlib.Algebra.Order.Archimedean.Basic
-
--- #20612
-
-variable {α : Type*} [LinearOrderedSemifield α] [Archimedean α] [ExistsAddOfLE α]
-
-lemma exists_pow_btwn_of_lt_mul {a b c : α} (h : a < b * c) (hb₀ : 0 < b) (hb₁ : b ≤ 1)
-    (hc₀ : 0 < c) (hc₁ : c < 1) :
-    ∃ n : ℕ, a < c ^ n ∧ c ^ n < b := by
-  have := exists_pow_lt_of_lt_one hb₀ hc₁
-  refine ⟨Nat.find this, h.trans_le ?_, Nat.find_spec this⟩
-  by_contra! H
-  have hn : Nat.find this ≠ 0 := by
-    intro hf
-    simp only [hf, pow_zero] at H
-    exact (H.trans <| Left.mul_lt_of_le_of_lt_one_of_pos hb₁ hc₁ hb₀).false
-  rw [(Nat.succ_pred_eq_of_ne_zero hn).symm, pow_succ, mul_lt_mul_right hc₀] at H
-  exact Nat.find_min this (Nat.sub_one_lt hn) H
-
-lemma exists_zpow_btwn_of_lt_mul {a b c : α} (h : a < b * c) (hb₀ : 0 < b) (hc₀ : 0 < c)
-    (hc₁ : c < 1) :
-    ∃ n : ℤ, a < c ^ n ∧ c ^ n < b := by
-  rcases le_or_lt a 0 with ha | ha
-  · obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hb₀ hc₁
-    exact ⟨n, ha.trans_lt (zpow_pos hc₀ _), mod_cast hn⟩
-  · rcases le_or_lt b 1 with hb₁ | hb₁
-    · obtain ⟨n, hn⟩ := exists_pow_btwn_of_lt_mul h hb₀ hb₁ hc₀ hc₁
-      exact ⟨n, mod_cast hn⟩
-    · rcases lt_or_le a 1 with ha₁ | ha₁
-      · refine ⟨0, ?_⟩
-        rw [zpow_zero]
-        exact ⟨ha₁, hb₁⟩
-      · have : b⁻¹ < a⁻¹ * c := by rwa [lt_inv_mul_iff₀' ha, inv_mul_lt_iff₀ hb₀]
-        obtain ⟨n, hn₁, hn₂⟩ :=
-          exists_pow_btwn_of_lt_mul this (inv_pos_of_pos ha) (inv_le_one_of_one_le₀ ha₁) hc₀ hc₁
-        refine ⟨-n, ?_, ?_⟩
-        · rwa [lt_inv_comm₀ (pow_pos hc₀ n) ha, ← zpow_natCast, ← zpow_neg] at hn₂
-        · rwa [inv_lt_comm₀ hb₀ (pow_pos hc₀ n), ← zpow_natCast, ← zpow_neg] at hn₁
-
-end Mathlib.Algebra.Order.Archimedean.Basic
 
 section Mathlib.Topology.Algebra.Module.FiniteDimension
 
@@ -414,68 +314,12 @@ section API
 
 variable {R : Type*} [Semiring R] {S : Type*} [OrderedSemiring S]
 
-section nontrivial
-
--- #20588
-
-/-- An absolute value on a semiring `R` without zero divisors is *nontrivial* if it takes
-a value `≠ 1` on a nonzero element.
-
-This has the advantage over `v ≠ .trivial` that it does not require decidability
-of `· = 0` in `R`. -/
-def IsNontrivial (v : AbsoluteValue R S) : Prop :=
-  ∃ x ≠ 0, v x ≠ 1
-
-lemma isNontrivial_iff_ne_trivial [DecidableEq R] [NoZeroDivisors R] [Nontrivial S]
-    (v : AbsoluteValue R S) :
-    v.IsNontrivial ↔ v ≠ .trivial := by
-  refine ⟨fun ⟨x, hx₀, hx₁⟩ h ↦ hx₁ <| h.symm ▸ trivial_apply hx₀, fun H ↦ ?_⟩
-  contrapose! H
-  simp only [IsNontrivial] at H
-  push_neg at H
-  ext1 x
-  rcases eq_or_ne x 0 with rfl | hx
-  · simp
-  · simp [H, hx]
-
-lemma not_isNontrivial_iff (v : AbsoluteValue R S) :
-    ¬ v.IsNontrivial ↔ ∀ x ≠ 0, v x = 1 := by
-  simp only [IsNontrivial]
-  push_neg
-  rfl
-
-@[simp]
-lemma not_isNontrivial_apply {v : AbsoluteValue R S} (hv : ¬ v.IsNontrivial) {x : R} (hx : x ≠ 0) :
-    v x = 1 :=
-  v.not_isNontrivial_iff.mp hv _ hx
-
-lemma IsNontrivial.exists_abv_gt_one {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
-    (h : v.IsNontrivial) :
-    ∃ x, 1 < v x := by
-  obtain ⟨x, hx₀, hx₁⟩ := h
-  rcases hx₁.lt_or_lt with h | h
-  · refine ⟨x⁻¹, ?_⟩
-    rw [map_inv₀]
-    exact (one_lt_inv₀ <| v.pos hx₀).mpr h
-  · exact ⟨x, h⟩
-
-lemma IsNontrivial.exists_abv_lt_one {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
-    (h : v.IsNontrivial) :
-    ∃ x ≠ 0, v x < 1 := by
-  obtain ⟨y, hy⟩ := h.exists_abv_gt_one
-  have hy₀ := v.ne_zero_iff.mp <| (zero_lt_one.trans hy).ne'
-  refine ⟨y⁻¹, inv_ne_zero hy₀, ?_⟩
-  rw [map_inv₀]
-  exact (inv_lt_one₀ <| v.pos hy₀).mpr hy
-
-end nontrivial
-
 section nonarchimedean
 
 variable {R : Type*} [Ring R] {v : AbsoluteValue R ℝ}
 
 /-- A version of `AbsoluteValue.isEquiv_def` that uses `AbsoluteValue.IsEquiv`. -/
-lemma isEquiv_def' {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ v.Equiv v' := Iff.rfl
+lemma isEquiv_def' {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ v.IsEquiv v' := Iff.rfl
 
 lemma isEquiv_def {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ ∃ c : ℝ, c > 0 ∧ (v · ^ c) = v' := Iff.rfl
 
@@ -558,7 +402,6 @@ lemma isNonarchimedean_padic (p : ℕ) [Fact p.Prime] :
 lemma padic_of_isNonarchimedean {v : AbsoluteValue ℚ ℝ}
     (h : IsNonarchimedean v) (h' : v.IsNontrivial) :
     ∃ (p : ℕ) (_ : Fact p.Prime), v ≈ padic p := by
-  replace h' : v ≠ .trivial := (isNontrivial_iff_ne_trivial v).mp h'
   refine (equiv_padic_of_bounded h' ?_).exists
   exact le_one_on_nat_of_isNonarchimedean h
 
@@ -572,11 +415,9 @@ lemma isNonarchimedean_iff_equiv_padic {v : AbsoluteValue ℚ ℝ} (h : v.IsNont
 /-- An archimedean absolute value on `ℚ` must be equivalent to the standard absolute value. -/
 lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v) :
     v ≈ real := by
-  refine Or.resolve_right (equiv_real_or_padic v ?_) fun H ↦ ?_
-  · rw [← isNontrivial_iff_ne_trivial]
-    exact isNontrivial_of_archimedean h
-  · obtain ⟨p, _, hp⟩ := H.exists
-    exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
+  refine Or.resolve_right (equiv_real_or_padic v <| isNontrivial_of_archimedean h) fun H ↦ ?_
+  obtain ⟨p, _, hp⟩ := H.exists
+  exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
 
 open Completion Topology in
 noncomputable

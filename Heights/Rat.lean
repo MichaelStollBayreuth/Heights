@@ -17,10 +17,6 @@ lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ �
     ∏ v, f v = f Rat.infinitePlace := by
   simp only [← Finset.singleton_eq_univ Rat.infinitePlace, Finset.prod_singleton]
 
-@[simp]
-lemma Rat.isReal_infinitePlace : Rat.infinitePlace.IsReal :=
-  InfinitePlace.isReal_iff.mpr <| IsSelfAdjoint.all Rat.infinitePlace.embedding
-
 -- (up to here)
 
 -- The following are not needed, after all, but might be useful eventually.

@@ -306,7 +306,7 @@ variable {R : Type*} [Ring R]
 
 lemma equiv_iff_eq_of_not_isNontrivial {v₁ v₂ : AbsoluteValue R ℝ} (h : ¬ v₁.IsNontrivial) :
     v₁ ≈ v₂ ↔ v₁ = v₂ := by
-  refine ⟨fun ⟨c, hc₀, hc₁⟩ ↦ ?_, fun H ↦ H ▸ equiv_refl v₂⟩
+  refine ⟨fun ⟨c, hc₀, hc₁⟩ ↦ ?_, fun H ↦ H ▸ isEquiv_refl v₂⟩
   ext1 x
   rcases eq_or_ne x 0 with rfl | hx
   · simp
