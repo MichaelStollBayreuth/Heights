@@ -40,8 +40,8 @@ private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.I
   rw [equiv_iff_isHomeomorph]
   let e : WithAbs v₁ ≃ₗ[WithAbs v] WithAbs v₂ := {
     toFun := WithAbs.equiv₂ v₁ v₂
-    map_add' := by simp
-    map_smul' := by simp
+    map_add' x y := rfl
+    map_smul' c x := rfl
     invFun := WithAbs.equiv₂ v₂ v₁
     left_inv x := by simp
     right_inv x := by simp
@@ -77,13 +77,16 @@ isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 variable {F : Type} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
 /-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
-def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* F := by
+def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* WithAbs v := by
   have : CharZero F := charZero_of_archimedean h
-  let e₀ := Rat.castHom F
-  let _ : Algebra ℚ F := e₀.toAlgebra
+  have : CharZero (WithAbs v) := charZero_of_archimedean h
+  let e₀ := Rat.castHom (WithAbs v)
+  let _ : Algebra ℚ (WithAbs v) := e₀.toAlgebra
   let v₀ := v.restrict ℚ
   have hv₀ : ¬ IsNonarchimedean v₀ := mt isNonarchmedean_restrict_iff.mp h
   replace hv₀ : v₀ ≈ Rat.AbsoluteValue.real := Rat.AbsoluteValue.real_of_archimedean hv₀
+  let e' : v₀.Completion →+* WithAbs v :=
+    Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
 
   sorry
 

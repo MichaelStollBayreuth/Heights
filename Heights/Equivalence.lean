@@ -330,8 +330,11 @@ open WithAbs
 
 /-- The identity map of `F` as a map between normed field structures on `F` induced by two
 absolute values- -/
-abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃ WithAbs v₂ :=
-  (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm
+abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
+  (WithAbs.ringEquiv v₁).trans (WithAbs.ringEquiv v₂).symm
+
+lemma _root_.WithAbs.equiv₂_apply (v₁ v₂ : AbsoluteValue F ℝ) (x : WithAbs v₁) :
+    WithAbs.equiv₂ v₁ v₂ x = (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm x := rfl
 
 private lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
@@ -340,14 +343,19 @@ private lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h :
   simp only [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv₂, Equiv.trans_apply,
     Equiv.apply_symm_apply]
   intro x ε hε₀
-  conv => enter [1, δ, 2, y, 2, 1]; rw [← WithAbs.equiv_symm_sub, ← WithAbs.equiv_sub]
+  -- simp only [gt_iff_lt, equiv_sub, RingEquiv.coe_trans, Function.comp_apply]
+  conv =>
+    enter [1, δ, 2, y, 2, 1]
+    rw [← map_sub, RingEquiv.coe_trans, Function.comp_apply,
+      show ∀ y : WithAbs v₂, equiv v₂ y = ringEquiv v₂ y from fun _ ↦ rfl,
+      RingEquiv.apply_symm_apply]
   refine ⟨ε ^ (1 / c), Real.rpow_pos_of_pos hε₀ _, fun y h ↦ ?_⟩
   let x' := WithAbs.equiv v₁ x
   let y' := WithAbs.equiv v₁ y
   have hx : x = (WithAbs.equiv v₁).symm x' := rfl
   have hy : y = (WithAbs.equiv v₁).symm y' := rfl
   rw [hx, hy, ← WithAbs.equiv_symm_sub, Equiv.apply_symm_apply] at h
-  rw [Equiv.apply_symm_apply, WithAbs.equiv_sub, hx, hy]
+  rw [map_sub, hx, hy]
   simp only [Equiv.apply_symm_apply, ← hc₁]
   calc v₁ (y' - x') ^ c
   _ < (ε ^ (1 / c)) ^ c := by gcongr
@@ -362,6 +370,10 @@ def homeomorph_of_equiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) : 
   right_inv _ := rfl
   continuous_toFun := continuous_withAbs_equiv₂ h
   continuous_invFun := continuous_withAbs_equiv₂ (Setoid.symm h)
+
+lemma homeomorph_of_equiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    ⇑(homeomorph_of_equiv h) = ⇑(equiv₂ v₁ v₂) :=
+  rfl
 
 open Filter Topology in
 /-- If two absolute values on a field `F` induce the same topology and an element of `F` has
@@ -389,9 +401,9 @@ lemma abv_lt_one_iff_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
   refine ⟨abv_lt_one_of_isHomeomorph h, abv_lt_one_of_isHomeomorph ?_⟩
   obtain ⟨φ, hφ⟩ := isHomeomorph_iff_exists_homeomorph.mp h
   refine isHomeomorph_iff_exists_homeomorph.mpr ⟨φ.symm, ?_⟩
-  apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (WithAbs.equiv v₁).symm ∘ WithAbs.equiv v₂) at hφ
+  apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (WithAbs.equiv₂ v₂ v₁)) at hφ
   simp only [Homeomorph.symm_comp_self, CompTriple.comp_eq] at hφ
-  rw [Equiv.coe_trans, hφ]
+  rw [hφ]
   ext1 x
   simp
 
@@ -446,6 +458,33 @@ open Filter Topology in
 lemma equiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
     v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equiv₂ v₁ v₂) := by
   refine ⟨fun H ↦ ?_, fun H ↦ equiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
-  exact isHomeomorph_iff_exists_homeomorph.mpr
-    ⟨homeomorph_of_equiv H, by simp [homeomorph_of_equiv]⟩
+  exact isHomeomorph_iff_exists_homeomorph.mpr ⟨homeomorph_of_equiv H, rfl⟩
+
+/-- The induced ring homomorphism between two completions with respect to equivalent
+absolute values. -/
+noncomputable
+def ringHom_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    v₁.Completion →+* v₂.Completion :=
+  UniformSpace.Completion.mapRingHom (WithAbs.equiv₂ v₁ v₂) <|
+    ((equiv_iff_isHomeomorph v₁ v₂).mp h).continuous
+
+/-- The induced ring isomorphism between two completions with respect to equivalent
+absolute values. -/
+noncomputable
+def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    v₁.Completion ≃+* v₂.Completion := by
+  refine RingEquiv.ofRingHom (ringHom_completion_of_isEquiv h)
+    (ringHom_completion_of_isEquiv <| Setoid.symm h) ?_ ?_
+  ·
+    ext1 x
+    simp only [RingHom.coe_comp, Function.comp_apply, RingHom.id_apply]
+    simp only [ringHom_completion_of_isEquiv, RingEquiv.coe_ringHom_trans]
+
+    sorry
+  · sorry
+
+lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    IsHomeomorph (ringEquiv_completion_of_isEquiv h) := by
+  sorry
+
 end equiv
