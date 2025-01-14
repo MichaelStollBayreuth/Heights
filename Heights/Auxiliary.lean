@@ -224,37 +224,7 @@ namespace WithAbs
 lemma norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
     ‖x‖ = v (WithAbs.equiv v x) := rfl
 
-/- lemma equiv_apply_eq_ringEquiv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
-    equiv v x = ringEquiv v x := rfl
-
-lemma equiv_symm_apply_eq_ringEquiv_symm (v : AbsoluteValue R ℝ) (x : R) :
-    (equiv v).symm x = (ringEquiv v).symm x := rfl -/
-/-
-@[simp]
-theorem equiv_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v) 1 = 1 := rfl
-
-@[simp]
-theorem equiv_symm_one (v : AbsoluteValue R ℝ) : (WithAbs.equiv v).symm 1 = 1 := rfl
-
-@[simp]
-theorem equiv_pow {v : AbsoluteValue R ℝ} (x : WithAbs v) (n : ℕ) :
-    (WithAbs.equiv v) (x ^ n) = (WithAbs.equiv v) x ^ n := rfl
-
-@[simp]
-theorem equiv_symm_pow {v : AbsoluteValue R ℝ} (x : R) (n : ℕ) :
-    (WithAbs.equiv v).symm (x ^ n) = (WithAbs.equiv v).symm x ^ n := rfl
--/
-variable {F : Type*} [Field F]
-/-
-@[simp]
-theorem equiv_zpow {v : AbsoluteValue F ℝ} (x : WithAbs v) (n : ℤ) :
-    (WithAbs.equiv v) (x ^ n) = (WithAbs.equiv v) x ^ n := rfl
-
-@[simp]
-theorem equiv_symm_zpow {v : AbsoluteValue F ℝ} (x : F) (n : ℤ) :
-    (WithAbs.equiv v).symm (x ^ n) = (WithAbs.equiv v).symm x ^ n := rfl
- -/
-variable {S : Type*}
+variable {F S : Type*} [Field F]
 
 instance commRing {R : Type*} [CommRing R] (v : AbsoluteValue R ℝ) : CommRing (WithAbs v) :=
   inferInstanceAs <| CommRing R
@@ -274,6 +244,11 @@ instance algebra_right {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : Ab
     Algebra R (WithAbs v) :=
   inferInstanceAs <| Algebra R S
 
+/-- The canonical algebra isomorphism from an `R`-algebra `R'` with an absolute value `v`
+to `R'`. -/
+def algEquiv {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : AbsoluteValue S ℝ) :
+    (WithAbs v) ≃ₐ[R] S := AlgEquiv.refl (A₁ := S)
+
 -- these two require heavier imports (so are not part of #20642)
 
 instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : AbsoluteValue F ℝ} :
@@ -286,7 +261,7 @@ instance fd_right [Ring S] [Module F S] [FiniteDimensional F S] (v : AbsoluteVal
 
 --
 
-@[simp]
+/- @[simp]
 lemma equiv_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x : WithAbs v) :
     equiv v (c • x) = c • equiv v x := rfl
 
@@ -298,7 +273,7 @@ lemma equiv_symm_smul [Ring S] [Module R S] {v : AbsoluteValue S ℝ} (c : R) (x
 lemma equiv_apply_algebraMap {R S : Type*} [CommRing R] [Ring S] [Algebra R S]
     {v : AbsoluteValue R ℝ} (v' : AbsoluteValue S ℝ) (x : WithAbs v) :
     equiv v' (algebraMap (WithAbs v) (WithAbs v') x) = algebraMap R S (equiv v x) :=
-  rfl
+  rfl -/
 
 end WithAbs
 

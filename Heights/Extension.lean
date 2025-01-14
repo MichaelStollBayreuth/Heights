@@ -101,8 +101,8 @@ variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 @[simp]
 lemma equiv_symm_apply_algebraMap (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
     (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) =
-      algebraMap (WithAbs v) (WithAbs v') x := by
-  rw [← WithAbs.equiv_apply_algebraMap v', RingEquiv.symm_apply_apply]
+      algebraMap (WithAbs v) (WithAbs v') x :=
+  rfl
 
 variable [Nontrivial F']
 
@@ -111,7 +111,7 @@ open WithAbs
 @[simp]
 lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) (x : WithAbs v) :
     v' (WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x)) = v (WithAbs.equiv v x) := by
-  rw [WithAbs.equiv_apply_algebraMap, apply_algebraMap, h]
+  rw [← h, ← equiv_symm_apply_algebraMap, RingEquiv.apply_symm_apply, apply_algebraMap]
 
 @[fun_prop]
 lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) :
