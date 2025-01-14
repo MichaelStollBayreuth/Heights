@@ -215,7 +215,12 @@ abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ 
 lemma _root_.WithAbs.equiv₂_apply (v₁ v₂ : AbsoluteValue F ℝ) (x : WithAbs v₁) :
     WithAbs.equiv₂ v₁ v₂ x = (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm x := rfl
 
-private lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+lemma _root_.WithAbs.equiv₂_symm_eq (v₁ v₂ : AbsoluteValue F ℝ) :
+    (WithAbs.equiv₂ v₁ v₂).symm = WithAbs.equiv₂ v₂ v₁ := by
+  ext1
+  simp
+
+lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
   obtain ⟨c, hc₀, hc₁⟩ := h
   rw [Metric.continuous_iff]
@@ -352,18 +357,36 @@ absolute values. -/
 noncomputable
 def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion ≃+* v₂.Completion := by
-  refine RingEquiv.ofRingHom (ringHom_completion_of_isEquiv h)
-    (ringHom_completion_of_isEquiv <| Setoid.symm h) ?_ ?_
-  ·
-    ext1 x
-    simp only [RingHom.coe_comp, Function.comp_apply, RingHom.id_apply]
-    simp only [ringHom_completion_of_isEquiv, RingEquiv.coe_ringHom_trans]
+  refine UniformSpace.Completion.mapRingEquiv (WithAbs.equiv₂ v₁ v₂) ?_ ?_
+  · rw [← homeomorph_of_equiv_toFun_eq h]
+    exact Homeomorph.continuous (homeomorph_of_equiv h)
+  · rw [WithAbs.equiv₂_symm_eq, ← homeomorph_of_equiv_toFun_eq (Setoid.symm h)]
+    exact Homeomorph.continuous (homeomorph_of_equiv (Setoid.symm h))
 
-    sorry
-  · sorry
+lemma ringEquiv_completion_coe_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    (ringEquiv_completion_of_isEquiv h).toRingHom = ringHom_completion_of_isEquiv h :=
+  rfl
 
+lemma ringEquiv_completion_coeFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    ⇑(ringEquiv_completion_of_isEquiv h) = ringHom_completion_of_isEquiv h :=
+  rfl
+
+lemma ringEquiv_completion_symm_coeFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    ⇑(ringEquiv_completion_of_isEquiv h).symm = ringHom_completion_of_isEquiv (Setoid.symm h) :=
+  rfl
+
+open UniformSpace.Completion in
+/-- The induced ring isomorphism between two completions with respect to equivalent
+absolute values is a homeomorphism. -/
 lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     IsHomeomorph (ringEquiv_completion_of_isEquiv h) := by
-  sorry
+  refine isHomeomorph_iff_exists_inverse.mpr
+    ⟨?_, (ringEquiv_completion_of_isEquiv h).symm, ?_, ?_, ?_⟩
+  · rw [ringEquiv_completion_coeFun_eq, ringHom_completion_of_isEquiv]
+    exact continuous_mapRingHom (continuous_withAbs_equiv₂ h)
+  · simp [Function.LeftInverse]
+  · simp [Function.RightInverse, Function.LeftInverse]
+  · rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
+    exact continuous_mapRingHom (continuous_withAbs_equiv₂ (Setoid.symm h))
 
 end equiv

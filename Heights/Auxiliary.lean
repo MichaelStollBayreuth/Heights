@@ -432,3 +432,51 @@ def ringEquiv_completion_real : real.Completion ≃+* ℝ := by
 end Rat.AbsoluteValue
 
 end rat
+
+section UniformSpace.Completion.mapRingHom
+
+namespace UniformSpace.Completion
+
+variable {α : Type*} [Ring α] [UniformSpace α] [TopologicalRing α] [UniformAddGroup α]
+variable {β : Type*} [Ring β] [UniformSpace β] [TopologicalRing β] [UniformAddGroup β]
+variable {γ : Type*} [Ring γ] [UniformSpace γ] [TopologicalRing γ] [UniformAddGroup γ]
+
+lemma continuous_mapRingHom {f : α →+* β} (hf : Continuous f) : Continuous (mapRingHom f hf) := by
+  simpa only [mapRingHom, extensionHom, DFunLike.coe] using continuous_extension
+
+lemma mapRingHom_id : mapRingHom (RingHom.id α) continuous_id = RingHom.id _ := by
+  ext1 x
+  simp only [mapRingHom, extensionHom, RingHomCompTriple.comp_eq, RingHom.coe_mk, MonoidHom.coe_mk,
+    OneHom.coe_mk, RingHom.id_apply]
+  exact congrFun (extension_unique (uniformContinuous_coe α) uniformContinuous_id (fun _ ↦ rfl)) x
+
+lemma mapRingHom_comp {f : α →+* β} {g : β →+* γ} (hf : Continuous f) (hg : Continuous g) :
+    mapRingHom (g.comp f) (RingHom.coe_comp .. ▸ Continuous.comp hg hf) =
+      (mapRingHom g hg).comp (mapRingHom f hf) := by
+  ext1 x
+  simp only [mapRingHom, extensionHom, RingHom.coe_comp, RingHom.coe_mk, MonoidHom.coe_mk,
+    OneHom.coe_mk, Function.comp_apply]
+  convert congrFun (extension_unique (f := ⇑coeRingHom ∘ ⇑g ∘ ⇑f)
+    (g := (mapRingHom g hg).comp (mapRingHom f hf)) ?_ ?_ (fun a ↦ ?_)) x
+  · refine UniformContinuous.comp (uniformContinuous_coe _) <| UniformContinuous.comp ?_ ?_
+    · exact uniformContinuous_addMonoidHom_of_continuous hg
+    · exact uniformContinuous_addMonoidHom_of_continuous hf
+  · rw [RingHom.coe_comp]
+    refine UniformContinuous.comp ?_ ?_ <;>
+      simpa [mapRingHom, extensionHom] using uniformContinuous_extension
+  · simp [Function.comp_apply, RingHom.coe_comp, mapRingHom, extensionHom_coe, coeRingHom]
+
+/-- A ring isomorphism that is also a homeomorphism between two topological rings induces
+a ring isomorphism between their completions. -/
+noncomputable
+def mapRingEquiv (f : α ≃+* β) (hf : Continuous f) (hf' : Continuous f.symm):
+    Completion α ≃+* Completion β := by
+  refine RingEquiv.ofRingHom (mapRingHom f.toRingHom hf) (mapRingHom f.symm.toRingHom hf')
+    ?_ ?_ <;>
+  { rw [← mapRingHom_comp]
+    simpa [RingEquiv.toRingHom_eq_coe, RingEquiv.comp_symm] using mapRingHom_id
+  }
+
+end UniformSpace.Completion
+
+end UniformSpace.Completion.mapRingHom
