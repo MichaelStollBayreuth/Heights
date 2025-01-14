@@ -202,6 +202,7 @@ isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 variable {F : Type} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
 /-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
+noncomputable
 def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* WithAbs v := by
   have : CharZero F := charZero_of_archimedean h
   have : CharZero (WithAbs v) := charZero_of_archimedean h
@@ -210,10 +211,11 @@ def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* WithAbs v := 
   let v₀ := v.restrict ℚ
   have hv₀ : ¬ IsNonarchimedean v₀ := mt isNonarchmedean_restrict_iff.mp h
   replace hv₀ : v₀ ≈ Rat.AbsoluteValue.real := Rat.AbsoluteValue.real_of_archimedean hv₀
-  let e' : v₀.Completion →+* WithAbs v :=
+  let e₁ : v₀.Completion →+* WithAbs v :=
     Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
-
-  sorry
+  let e₂ := ringEquiv_completion_of_isEquiv hv₀
+  let e₃ := Rat.AbsoluteValue.ringEquiv_completion_real
+  exact e₁.comp (e₃.symm.trans e₂.symm).toRingHom
 
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     (∃ e : ℝ ≃+* F, letI : Algebra ℝ F := RingHom.toAlgebra e; v.restrict ℝ ≈ .abs)
