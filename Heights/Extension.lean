@@ -24,6 +24,11 @@ namespace AbsoluteValue
 
 variable {F R S : Type*} [Field F] [Semiring R] [Nontrivial R] [Algebra F R] [OrderedSemiring S]
 
+omit [Nontrivial R] in
+lemma comp_apply {R' : Type*} [Semiring R'] (v : AbsoluteValue R S) {f : R' →+* R}
+    (hf : Function.Injective f) (x : R') :
+  v.comp hf x = v (f x) := rfl
+
 variable (F) in
 /-- The restriction to a field `F` of an absolute value on an `F`-algebra `R`. -/
 def restrict (v : AbsoluteValue R S) : AbsoluteValue F S :=
@@ -190,6 +195,7 @@ private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.rest
     exact eq_of_not_isNontrivial hv₁ hv₂
 
 
+
 section GelfandMazur
 
 /-!
@@ -199,11 +205,72 @@ We show that a complete field with real-valued archimedean absolute value must b
 isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 -/
 
-variable {F : Type} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
+section
+
+variable {F : Type*} [Field F] {v₁ v₂ : AbsoluteValue F ℝ}
+
+/-- The absolute value extending `v` on the completion of `F` with respect to `v`. -/
+noncomputable
+def Completion.absoluteValue (v : AbsoluteValue F ℝ) : AbsoluteValue v.Completion ℝ :=
+  NormedField.toAbsoluteValue v.Completion
+
+lemma Completion.absoluteValue_eq_norm (v : AbsoluteValue F ℝ) (x : v.Completion) :
+    absoluteValue v x = ‖x‖ := rfl
+
+noncomputable
+instance Completion.instAlgebra (v : AbsoluteValue F ℝ) : Algebra (WithAbs v) v.Completion :=
+  UniformSpace.Completion.algebra' _
+
+noncomputable
+instance Completion.instAlgebra' (v : AbsoluteValue F ℝ) : Algebra F v.Completion :=
+  Completion.instAlgebra v
+
+lemma Completion.absoluteValue_restrict (v : AbsoluteValue F ℝ) :
+    (absoluteValue v).restrict F = v := by
+  ext1 x
+  rw [restrict, comp_apply, absoluteValue_eq_norm, show (algebraMap F v.Completion) x = x from rfl,
+    UniformSpace.Completion.norm_coe]
+  rfl
+
+/- open WithAbs in
+lemma ringEquiv_completion_of_isEquiv_eq_equiv₂ (h : v₁ ≈ v₂) :
+    ringEquiv_completion_of_isEquiv h = RingEquiv.refl _ := by
+  sorry -/
+
+end
+
+open Rat.AbsoluteValue WithAbs in
+lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} (h : v.restrict ℚ ≈ real) :
+    v ≈ .abs := by
+  obtain ⟨c, hc₀, hc₁, hc⟩ := eq_rpow_of_isEquiv_real h
+  let v₁ := (rpow .abs hc₀ hc₁ : AbsoluteValue ℝ ℝ)
+  have hv₁ : v₁.restrict ℚ = v.restrict ℚ := by
+    ext1 x
+    rw [hc]
+    simp [restrict, comp, v₁]
+  have h₁ := isHomeomorph_ringEquiv_completion h
+  let e := ringEquiv_completion_real
+  have he : IsHomeomorph e := isHomeomorph_ringEquiv_completion_real
+  let e' := (ringEquiv_completion_of_isEquiv h).trans e
+  -- have h₂ : ringEquiv_completion_of_isEquiv h = equiv₂ v .abs := by
+  --   sorry
+  refine (equiv_iff_isHomeomorph v AbsoluteValue.abs).mpr ?_
+
+  refine isHomeomorph_iff_exists_inverse.mpr ⟨?_, (equiv₂ v .abs).symm, congrFun rfl,
+    congrFun rfl, ?_⟩
+  ·
+    sorry
+  · sorry
+  -- have h' : (.abs : AbsoluteValue ℝ ℝ).restrict ℚ = real := rfl
+  -- have : v₁ = v := by
+  --   refine eq_of_equivalent_and_restrict_eq ?_ hv₁ ?_
+
+
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
 /-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
-noncomputable
-def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* WithAbs v := by
+lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
+    ∃ e : ℝ →+* F, letI : Algebra ℝ F := e.toAlgebra; v.restrict ℝ ≈ .abs := by
   have : CharZero F := charZero_of_archimedean h
   have : CharZero (WithAbs v) := charZero_of_archimedean h
   let e₀ := Rat.castHom (WithAbs v)
@@ -215,13 +282,30 @@ def algebra_of_archimedean (h : ¬ IsNonarchimedean v) : ℝ →+* WithAbs v := 
     Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
   let e₂ := ringEquiv_completion_of_isEquiv hv₀
   let e₃ := Rat.AbsoluteValue.ringEquiv_completion_real
-  exact e₁.comp (e₃.symm.trans e₂.symm).toRingHom
+  refine ⟨e₁.comp (e₃.symm.trans e₂.symm).toRingHom, ?_⟩
+
+  sorry
+
+
 
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     (∃ e : ℝ ≃+* F, letI : Algebra ℝ F := RingHom.toAlgebra e; v.restrict ℝ ≈ .abs)
       ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e; v.restrict ℂ ≈ Complex.abs := by
+  obtain ⟨e, he⟩ := algebra_of_archimedean h
+  let inst := e.toAlgebra
 
-  sorry
+  stop
+  by_cases H : Nonempty (ℂ →+* F)
+  · obtain ⟨f⟩ := H
+    let instA : Algebra ℂ F := f.toAlgebra
+    let inst : NormedAlgebra ℂ (WithAbs v) := by
+      refine NormedAlgebra.mk fun r x ↦ ?_
+
+    sorry
+  · sorry
+
+#check NormedRing.algEquivComplexOfComplete
+#check NormedAlgebra
 
 end GelfandMazur
 

@@ -394,15 +394,32 @@ lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v
   obtain ⟨p, _, hp⟩ := H.exists
   exact h <| isNonarchimedean_of_isEquiv (Setoid.symm hp) <| isNonarchimedean_padic p
 
+lemma norm_algebraMap_comp_eq_real (x : WithAbs real) :
+    ‖(algebraMap ℚ ℝ).comp (WithAbs.equiv real) x‖ = real x := rfl
+
+open Completion in
+noncomputable
+def ringHom_completion_real : real.Completion →+* ℝ :=
+  extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+
+open Completion Topology in
+lemma ringHom_completion_real_surjective : Function.Surjective ringHom_completion_real := by
+  have : IsClosedEmbedding ringHom_completion_real :=
+    isClosedEmbedding_extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+  exact RingHom.fieldRange_eq_top_iff.mp <| Real.subfield_eq_of_closed this.isClosed_range
+
 open Completion Topology in
 noncomputable
-def ringEquiv_completion_real : real.Completion ≃+* ℝ := by
-  let f : WithAbs real →+* ℝ := (algebraMap ℚ ℝ).comp (WithAbs.equiv real)
-  have hf (x : WithAbs real) : ‖f x‖ = real x := rfl
-  let e := extensionEmbedding_of_comp hf
-  refine RingEquiv.ofBijective e ⟨e.injective, ?_⟩
-  have : IsClosedEmbedding e := isClosedEmbedding_extensionEmbedding_of_comp hf
-  exact RingHom.fieldRange_eq_top_iff.mp <| Real.subfield_eq_of_closed this.isClosed_range
+def ringEquiv_completion_real : real.Completion ≃+* ℝ :=
+  RingEquiv.ofBijective ringHom_completion_real
+    ⟨ringHom_completion_real.injective, ringHom_completion_real_surjective⟩
+
+open Completion Topology in
+lemma isHomeomorph_ringEquiv_completion_real : IsHomeomorph ringEquiv_completion_real := by
+  simp only [ringEquiv_completion_real, RingEquiv.coe_ofBijective]
+  have := isClosedEmbedding_extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+  exact isHomeomorph_iff_isEmbedding_surjective.mpr
+    ⟨this.toIsEmbedding, ringEquiv_completion_real.surjective⟩
 
 end Rat.AbsoluteValue
 
