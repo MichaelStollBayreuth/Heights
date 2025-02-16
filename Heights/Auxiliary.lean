@@ -116,66 +116,12 @@ instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
 
 end aux
 
-section completion
-
-variable {F : Type*} [NormedField F]
-
--- This is needed to get `Field v.Completion`
-instance NormedField.instCompletableTopField : CompletableTopField F where
-  t0 := (inferInstanceAs <| T0Space _).t0
-  nice f hc hn := by
-    rw [Metric.cauchy_iff] at hc ⊢
-    obtain ⟨hf₁, hf₂⟩ := hc
-    refine ⟨Filter.map_neBot, ?_⟩
-    obtain ⟨U, hU, V, hV, hUV⟩ := Filter.inf_eq_bot_iff.mp hn
-    obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU
-    intro δ hδ₀
-    obtain ⟨t, ht₁, ht₂⟩ := hf₂ (δ * ε * ε) (by positivity)
-    let t' := t ∩ V
-    have h : ∀ x ∈ t', ∀ y ∈ t', dist x y < δ * ε * ε :=
-      fun x hx y hy ↦
-        ht₂ x (Set.mem_of_mem_inter_left hx) y (Set.mem_of_mem_inter_left hy)
-    simp_rw [Filter.mem_map]
-    refine ⟨(· ⁻¹) ⁻¹' t', by simpa only [Set.inv_preimage, inv_inv] using Filter.inter_mem ht₁ hV,
-      fun x hx y hy ↦ ?_⟩
-    simp only [Set.inv_preimage, Set.mem_inv] at hx hy
-    specialize h x⁻¹ hx y⁻¹ hy
-    rw [dist_eq_norm_sub] at h ⊢
-    have hinv {z : F} (hz : z⁻¹ ∈ t') : z⁻¹ ∉ Metric.ball 0 ε :=
-      fun H ↦ (Set.mem_empty_iff_false _).mp <|
-        hUV ▸ Set.mem_inter (hε H) (Set.mem_of_mem_inter_right hz)
-    have h₀ {z : F} (hz : z⁻¹ ∈ t') : z ≠ 0 := by
-      rintro rfl
-      exact inv_zero (G₀ := F) ▸ hinv hz <| Metric.mem_ball_self hε₀
-    have Hε {z : F} (hz : z⁻¹ ∈ t') : ‖z‖ ≤ ε⁻¹ := by
-      refine le_inv_of_le_inv₀ hε₀ ?_
-      simpa only [Metric.mem_ball, dist_zero_right, norm_inv, not_lt] using hinv hz
-    have hx₀ := h₀ hx
-    have hy₀ := h₀ hy
-    rw [inv_sub_inv hx₀ hy₀, norm_div, norm_mul, norm_sub_rev,
-      div_lt_iff₀ (by simp [hx₀, hy₀])] at h
-    refine h.trans_le ?_
-    rw [mul_assoc, mul_assoc, ← mul_assoc ε]
-    conv_rhs => rw [← mul_one δ]
-    gcongr
-    calc ε * ε * (‖x‖ * ‖y‖)
-    _ ≤ ε * ε * (ε⁻¹ * ε⁻¹) :=
-      mul_le_mul_of_nonneg_left
-        (mul_le_mul (Hε hx) (Hε hy) (norm_pos_iff.mpr hy₀).le (inv_pos_of_pos hε₀).le)
-        (mul_pos hε₀ hε₀).le
-    _ = 1 := by rw [mul_mul_mul_comm, mul_inv_cancel₀ hε₀.ne', one_mul]
-
-noncomputable
-example {F  : Type*} [Field F] {v : AbsoluteValue F ℝ} : Field v.Completion := inferInstance
-
-end completion
-
 section Mathlib.Topology.Algebra.Module.FiniteDimension
 
 variable  {𝕜 E E' : Type*} [NontriviallyNormedField 𝕜] [CompleteSpace 𝕜] [AddCommGroup E]
-  [Module 𝕜 E] [FiniteDimensional 𝕜 E] [TopologicalSpace E] [TopologicalAddGroup E]
+  [Module 𝕜 E] [FiniteDimensional 𝕜 E] [TopologicalSpace E] [IsTopologicalAddGroup E]
   [ContinuousSMul 𝕜 E] [T2Space E] [AddCommGroup E'] [Module 𝕜 E'] [TopologicalSpace E']
-  [TopologicalAddGroup E'] [ContinuousSMul 𝕜 E'] [T2Space E']
+  [IsTopologicalAddGroup E'] [ContinuousSMul 𝕜 E'] [T2Space E']
 
 /-- The homeomorphism induced by a linear isomorphism between two finite-dimensional vector spaces
 over a complete nontrivially normed field. -/
@@ -215,39 +161,9 @@ end
 
 section Mathlib.Analysis.Normed.Ring.WithAbs
 
--- #20642
-
-variable {R : Type*} [Ring R]
-
 namespace WithAbs
 
-lemma norm_eq_abv (v : AbsoluteValue R ℝ) (x : WithAbs v) :
-    ‖x‖ = v (WithAbs.equiv v x) := rfl
-
 variable {F S : Type*} [Field F]
-
-instance commRing {R : Type*} [CommRing R] (v : AbsoluteValue R ℝ) : CommRing (WithAbs v) :=
-  inferInstanceAs <| CommRing R
-
-instance module_left [AddCommGroup S] [Module R S] {v : AbsoluteValue R ℝ} :
-    Module (WithAbs v) S :=
-  inferInstanceAs <| Module R S
-
-instance module_right [Ring S] [Module R S] (v : AbsoluteValue S ℝ) : Module R (WithAbs v) :=
-  inferInstanceAs <| Module R S
-
-instance algebra_left {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : AbsoluteValue R ℝ) :
-    Algebra (WithAbs v) S :=
-  inferInstanceAs <| Algebra R S
-
-instance algebra_right {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : AbsoluteValue S ℝ) :
-    Algebra R (WithAbs v) :=
-  inferInstanceAs <| Algebra R S
-
-/-- The canonical algebra isomorphism from an `R`-algebra `R'` with an absolute value `v`
-to `R'`. -/
-def algEquiv {R S : Type*} [CommRing R] [Ring S] [Algebra R S] (v : AbsoluteValue S ℝ) :
-    (WithAbs v) ≃ₐ[R] S := AlgEquiv.refl (A₁ := S)
 
 -- these two require heavier imports (so are not part of #20642)
 
@@ -258,6 +174,8 @@ instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : Abso
 instance fd_right [Ring S] [Module F S] [FiniteDimensional F S] (v : AbsoluteValue S ℝ) :
     FiniteDimensional F (WithAbs v) :=
   inferInstanceAs <| FiniteDimensional F S
+
+-- #find_home fd_left -- [Mathlib.NumberTheory.NumberField.Completion]
 
 --
 
@@ -429,9 +347,9 @@ section UniformSpace.Completion.mapRingHom
 
 namespace UniformSpace.Completion
 
-variable {α : Type*} [Ring α] [UniformSpace α] [TopologicalRing α] [UniformAddGroup α]
-variable {β : Type*} [Ring β] [UniformSpace β] [TopologicalRing β] [UniformAddGroup β]
-variable {γ : Type*} [Ring γ] [UniformSpace γ] [TopologicalRing γ] [UniformAddGroup γ]
+variable {α : Type*} [Ring α] [UniformSpace α] [IsTopologicalRing α] [UniformAddGroup α]
+variable {β : Type*} [Ring β] [UniformSpace β] [IsTopologicalRing β] [UniformAddGroup β]
+variable {γ : Type*} [Ring γ] [UniformSpace γ] [IsTopologicalRing γ] [UniformAddGroup γ]
 
 lemma continuous_mapRingHom {f : α →+* β} (hf : Continuous f) : Continuous (mapRingHom f hf) := by
   simpa only [mapRingHom, extensionHom, DFunLike.coe] using continuous_extension
