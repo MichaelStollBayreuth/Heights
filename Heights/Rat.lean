@@ -133,19 +133,15 @@ open Ideal
 --   convert NumberField.norm_eq_one_iff_not_mem v x
 --   -- UniformSpace.Completion.instNorm ℚ = NormedField.toNorm
 --   sorry
-attribute [local instance 2000] NormedField.toNorm
-
--- example (a : 𝓞 ℚ) (v : FinitePlace ℚ) := WithVal.equiv (v.maximalIdeal.valuation (𝓞 ℚ)) a
+-- attribute [local instance 2000] NormedField.toNorm -- apparently no longer necessary
 
 /-- The term corresponding to a finite place in the definition of the multiplicative height
 of a tuple of rational numbers equals `1` if the tuple consists of coprime integers. -/
 lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι : Type*}
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
-  let v' : IsDedekindDomain.HeightOneSpectrum (RingOfIntegers ℚ) := v.maximalIdeal
-  -- have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (WithVal.equiv (v.'maximalIdeal'.valuation ℚ) (Rat.ringOfIntegersEquiv.symm (x i)))‖ = 1 := by
-  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (Rat.ringOfIntegersEquiv.symm (x i))‖ = 1 := by
-    stop -- to avoid an error in the next line
+  let v' : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) := v.maximalIdeal
+  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (Rat.ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
     simp_rw [FinitePlace.norm_eq_one_iff_not_mem]
     by_contra! H
     let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
