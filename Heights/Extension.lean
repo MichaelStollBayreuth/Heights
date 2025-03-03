@@ -286,11 +286,18 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
 
   sorry
 
-
+/-- The standard absolute value on `ℂ` as an `AbsoluteValue ℂ ℝ` -/
+noncomputable
+def Complex.abv : AbsoluteValue ℂ ℝ where
+  toFun := (‖·‖)
+  map_mul' := Complex.norm_mul
+  nonneg' := norm_nonneg
+  eq_zero' _ := norm_eq_zero
+  add_le' := norm_add_le
 
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     (∃ e : ℝ ≃+* F, letI : Algebra ℝ F := RingHom.toAlgebra e; v.restrict ℝ ≈ .abs)
-      ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e; v.restrict ℂ ≈ Complex.abs := by
+      ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e; v.restrict ℂ ≈ Complex.abv := by
   obtain ⟨e, he⟩ := algebra_of_archimedean h
   let inst := e.toAlgebra
 

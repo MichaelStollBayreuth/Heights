@@ -1,4 +1,4 @@
-import Heights.Basic-Alternative
+import Heights.«Basic-Alternative»
 
 /-!
 # Instances of AdmissibleAbsValues
@@ -71,7 +71,7 @@ lemma finprod_sum [CommMonoid M] {f : α → M} {g : β → M}
   rw [finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hfg).symm.subset,
     finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hf).symm.subset,
     finprod_eq_prod_of_mulSupport_subset _ (Set.Finite.coe_toFinset hg).symm.subset,
-    ← Finset.prod_sum_elim]
+    ← Finset.prod_sumElim]
   congr
   refine Finset.eq_disjSum_iff.mpr ⟨?_, ?_⟩ <;> exact Finset.ext_iff.mpr fun _ ↦ by simp
 
