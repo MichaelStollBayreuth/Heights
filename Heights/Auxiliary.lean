@@ -347,9 +347,9 @@ section UniformSpace.Completion.mapRingHom
 
 namespace UniformSpace.Completion
 
-variable {α : Type*} [Ring α] [UniformSpace α] [IsTopologicalRing α] [UniformAddGroup α]
-variable {β : Type*} [Ring β] [UniformSpace β] [IsTopologicalRing β] [UniformAddGroup β]
-variable {γ : Type*} [Ring γ] [UniformSpace γ] [IsTopologicalRing γ] [UniformAddGroup γ]
+variable {α : Type*} [Ring α] [UniformSpace α] [IsTopologicalRing α] [IsUniformAddGroup α]
+variable {β : Type*} [Ring β] [UniformSpace β] [IsTopologicalRing β] [IsUniformAddGroup β]
+variable {γ : Type*} [Ring γ] [UniformSpace γ] [IsTopologicalRing γ] [IsUniformAddGroup γ]
 
 lemma continuous_mapRingHom {f : α →+* β} (hf : Continuous f) : Continuous (mapRingHom f hf) := by
   simpa only [mapRingHom, extensionHom, DFunLike.coe] using continuous_extension
