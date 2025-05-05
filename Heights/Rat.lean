@@ -323,7 +323,7 @@ lemma toProjectivization_injective {K : Type*} [Field K] :
   have ha₀ := congrFun ha 0
   have ha₁ := congrFun ha 1
   simp only [Fin.isValue, Matrix.cons_val_zero] at ha₀
-  simp only [Fin.isValue, Matrix.cons_val_one, Matrix.head_cons] at ha₁
+  simp only [Fin.isValue, Matrix.cons_val_one, Matrix.cons_val_fin_one] at ha₁
   simpa [ha₁] using ha₀.symm
 
 /-- The height on `ℚ` satisfies the *Northcott Property*: there are only finitely many

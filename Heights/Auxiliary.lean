@@ -30,7 +30,7 @@ lemma Real.iSup_pow_of_nonneg [Fintype α] [Nonempty α] {f : α → ℝ} (hf : 
     (pow_left_mono n) (Finite.bddAbove_range _)
 
 @[to_additive]
-lemma finprod_mono [OrderedCommMonoid β] {f g : α → β} (hf : f.mulSupport.Finite)
+lemma finprod_mono [CommMonoid β] [PartialOrder β] [IsOrderedMonoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) (h : f ≤ g) :
     ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
   have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
@@ -205,7 +205,7 @@ namespace AbsoluteValue
 
 section API
 
-variable {R : Type*} [Semiring R] {S : Type*} [OrderedSemiring S]
+variable {R : Type*} [Semiring R] {S : Type*} [Semiring S] [PartialOrder S] [IsOrderedRing S]
 
 section nonarchimedean
 

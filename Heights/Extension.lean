@@ -22,9 +22,10 @@ section restrict
 
 namespace AbsoluteValue
 
-variable {F R S : Type*} [Field F] [Semiring R] [Nontrivial R] [Algebra F R] [OrderedSemiring S]
+variable {F R S : Type*} [Field F] [Semiring R] [Nontrivial R] [Algebra F R] [Semiring S]
+  [PartialOrder S] [IsOrderedRing S]
 
-omit [Nontrivial R] in
+omit [Nontrivial R] [IsOrderedRing S] in
 lemma comp_apply {R' : Type*} [Semiring R'] (v : AbsoluteValue R S) {f : R' →+* R}
     (hf : Function.Injective f) (x : R') :
   v.comp hf x = v (f x) := rfl
@@ -34,10 +35,12 @@ variable (F) in
 def restrict (v : AbsoluteValue R S) : AbsoluteValue F S :=
   v.comp (RingHom.injective (algebraMap F R))
 
+omit [IsOrderedRing S] in
 @[simp]
 lemma apply_algebraMap (v : AbsoluteValue R S) (x : F) :
     v (algebraMap F R x) = v.restrict F x := rfl
 
+omit [IsOrderedRing S] in
 lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNontrivial) :
     v.IsNontrivial := by
   obtain ⟨x, hx₀, hx₁⟩ := h
@@ -304,8 +307,8 @@ theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     sorry
   · sorry
 
-#check NormedRing.algEquivComplexOfComplete
-#check NormedAlgebra
+-- #check NormedRing.algEquivComplexOfComplete
+-- #check NormedAlgebra
 
 end GelfandMazur
 
