@@ -206,16 +206,6 @@ variable {F : Type*} [Field F]
 
 open WithAbs
 
-/-- The identity map of `F` as a map between normed field structures on `F` induced by two
-absolute values- -/
-abbrev _root_.WithAbs.equiv₂ (v₁ v₂ : AbsoluteValue F ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
-  (WithAbs.equiv v₁).trans (WithAbs.equiv v₂).symm
-
-lemma _root_.WithAbs.equiv₂_symm_eq (v₁ v₂ : AbsoluteValue F ℝ) :
-    (WithAbs.equiv₂ v₁ v₂).symm = WithAbs.equiv₂ v₂ v₁ := by
-  ext1
-  simp
-
 lemma continuous_withAbs_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
   obtain ⟨c, hc₀, hc₁⟩ := h
@@ -280,8 +270,8 @@ lemma abv_lt_one_iff_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
   refine isHomeomorph_iff_exists_homeomorph.mpr ⟨φ.symm, ?_⟩
   apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (WithAbs.equiv₂ v₂ v₁)) at hφ
   simp only [Homeomorph.symm_comp_self, CompTriple.comp_eq] at hφ
-  rw [hφ]
-  ext1 x
+  rw [hφ, Function.comp_assoc, ← WithAbs.equiv₂_symm_eq, ← RingEquiv.coe_trans,
+    RingEquiv.self_trans_symm]
   simp
 
 open Real in

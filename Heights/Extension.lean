@@ -176,8 +176,8 @@ private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.I
     map_add' x y := rfl
     map_smul' c x := rfl
     invFun := WithAbs.equiv₂ v₂ v₁
-    left_inv x := by simp
-    right_inv x := by simp
+    left_inv x := rfl
+    right_inv x := rfl
   }
   have : Fact v.IsNontrivial := ⟨h⟩
   have : Fact <| v₁.restrict F = v := ⟨h₁⟩
@@ -242,8 +242,39 @@ lemma ringEquiv_completion_of_isEquiv_eq_equiv₂ (h : v₁ ≈ v₂) :
 
 end
 
-open Rat.AbsoluteValue WithAbs in
-lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} (h : v.restrict ℚ ≈ real) :
+-- set_option maxHeartbeats 0
+
+open Completion Rat.AbsoluteValue WithAbs in
+lemma Real.eq_abs_of_restrict_eq_ratReal {v : AbsoluteValue ℝ ℝ} [CompleteSpace (WithAbs v)]
+    (h : v.restrict ℚ = real) :
+    v = .abs := by
+  let ℝv := WithAbs v
+  -- Get chain `ℝ ≃ real.Completion ≃ (v.restrict ℚ).Completion → ℝv`
+  -- of equivalences / maps of normed rings that are isometries.
+  -- Then the composition is a ring homomorphism `ℝ →+* ℝ` and therefore the identity.
+  let e₁ : ℝ ≃+* real.Completion := ringEquiv_completion_real.symm
+  have he₁ : Isometry e₁ := by
+    simp only [e₁]
+    exact Isometry.right_inv isometry_ringEquiv_completion_real <|
+      Function.rightInverse_iff_comp.mpr <| by ext1; simp
+  let e₂ : real.Completion ≃+* (v.restrict ℚ).Completion := ringEquiv_of_eq h.symm
+  have he₂ : Isometry e₂ := isometry_ringEquiv_of_eq h.symm
+  let e₃ : (v.restrict ℚ).Completion →+* ℝv :=
+    extensionEmbedding_of_comp (f := (Rat.castHom _).comp (equiv (v.restrict ℚ))) fun _ ↦ rfl
+  have he₃ : Isometry e₃ := isometry_extensionEmbedding_of_comp fun _ ↦ rfl
+  let e : ℝ →+* ℝv := e₃.comp <| e₂.toRingHom.comp <| e₁.toRingHom
+  have he : Isometry e := he₃.comp <| he₂.comp he₁
+  let e₀ : ℝ →+* ℝ := (equiv v).toRingHom.comp e
+  have he₀ : e₀ = RingHom.id ℝ := Subsingleton.elim ..
+  ext1 x
+  nth_rewrite 1 [show x = e₀ x by simp [he₀]]
+  simp only [e₀, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply]
+  rw [← norm_eq_abv, (AddMonoidHomClass.isometry_iff_norm _).mp he x, abs_apply, Real.norm_eq_abs]
+
+
+open Completion Rat.AbsoluteValue WithAbs in
+lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} [CompleteSpace (WithAbs v)]
+    (h : v.restrict ℚ ≈ real) :
     v ≈ .abs := by
   obtain ⟨c, hc₀, hc₁, hc⟩ := eq_rpow_of_isEquiv_real h
   let v₁ := (rpow .abs hc₀ hc₁ : AbsoluteValue ℝ ℝ)
@@ -251,22 +282,57 @@ lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} (h : v.restrict �
     ext1 x
     rw [hc]
     simp [restrict, comp, v₁]
-  have h₁ := isHomeomorph_ringEquiv_completion h
-  let e := ringEquiv_completion_real
-  have he : IsHomeomorph e := isHomeomorph_ringEquiv_completion_real
-  let e' := (ringEquiv_completion_of_isEquiv h).trans e
-  -- have h₂ : ringEquiv_completion_of_isEquiv h = equiv₂ v .abs := by
-  --   sorry
-  refine (equiv_iff_isHomeomorph v AbsoluteValue.abs).mpr ?_
-
-  refine isHomeomorph_iff_exists_inverse.mpr ⟨?_, (equiv₂ v .abs).symm, congrFun rfl,
-    congrFun rfl, ?_⟩
-  ·
-    sorry
-  · sorry
-  -- have h' : (.abs : AbsoluteValue ℝ ℝ).restrict ℚ = real := rfl
-  -- have : v₁ = v := by
-  --   refine eq_of_equivalent_and_restrict_eq ?_ hv₁ ?_
+  let e₁ : (restrict ℚ v).Completion ≃+* real.Completion := ringEquiv_completion_of_isEquiv h
+  have he₁ : IsHomeomorph e₁ := isHomeomorph_ringEquiv_completion h
+  let e₂ : real.Completion ≃+* ℝ := ringEquiv_completion_real
+  have he₂ : IsHomeomorph e₂ := isHomeomorph_ringEquiv_completion_real
+  let e₃ : (v.restrict ℚ).Completion →+* WithAbs v :=
+    extensionEmbedding_of_comp (f := (Rat.castHom _).comp (equiv (v.restrict ℚ))) fun _ ↦ rfl
+  have he₃ : Isometry e₃ := isometry_extensionEmbedding_of_comp fun _ ↦ rfl
+  let e : ℝ →+* WithAbs v := e₃.comp (e₂.symm.trans e₁.symm).toRingHom
+  let e₀ : ℝ →+* ℝ := (equiv v).toRingHom.comp e
+  have he₀ : e₀ = RingHom.id ℝ := Subsingleton.elim ..
+  have He : e = ↑(equiv v).symm := by
+    have H : e = (equiv v).symm.toRingHom.comp e₀ := by
+      ext1
+      simp only [e₀, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe,
+        Function.comp_apply]
+      rw [RingEquiv.symm_apply_apply]
+    rw [he₀] at H
+    simpa only [RingEquiv.toRingHom_eq_coe, RingHomCompTriple.comp_eq] using H
+  have he₃' : Function.Bijective e₃ := by
+    have He₃ : e₃ = e.comp (e₁.trans e₂) := by ext1; simp [e]
+    rw [He, ← RingEquiv.coe_ringHom_trans] at He₃
+    rw [He₃]
+    exact EquivLike.bijective _
+  -- Split the following out into a lemma!
+  obtain ⟨f, hf₁, hf₂⟩ := Function.bijective_iff_has_inverse.mp he₃'
+  have hf₃ : Isometry f := Isometry.right_inv he₃ hf₂
+  have He₃ : IsHomeomorph e₃ :=
+    IsHomeomorph.mk he₃.continuous (IsOpenMap.of_inverse hf₃.continuous hf₂ hf₁) he₃'
+  --
+  have he : IsHomeomorph e := by
+    simp only [e, RingEquiv.toRingHom_eq_coe, RingEquiv.coe_ringHom_trans, RingHom.coe_comp,
+      RingHom.coe_coe]
+    refine He₃.comp <| IsHomeomorph.comp ?_ ?_
+    · refine he₁.right_inv ?_
+      intro x
+      simp
+    · refine he₂.right_inv ?_
+      intro x
+      simp
+  let e₄ : WithAbs .abs ≃+* ℝ := equiv .abs
+  have he₄ : IsHomeomorph e₄ := by
+    have : Isometry e₄ := (AddMonoidHomClass.isometry_iff_norm e₄).mpr (congrFun rfl)
+    obtain ⟨g, hg₁, hg₂⟩ := Function.bijective_iff_has_inverse.mp e₄.bijective
+    have hg₃ : Isometry g := Isometry.right_inv this hg₂
+    exact IsHomeomorph.mk this.continuous (IsOpenMap.of_inverse hg₃.continuous hg₂ hg₁) e₄.bijective
+  have : ⇑(equiv₂ .abs v) = e.comp e₄.toRingHom := by
+    simp [equiv₂, He, e₄]
+  symm
+  refine (equiv_iff_isHomeomorph .abs v).mpr ?_
+  simp only [this, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe]
+  exact he -- ?
 
 
 variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
