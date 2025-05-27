@@ -143,6 +143,18 @@ lemma isNonarchmedean_restrict_iff {F' : Type*} [Field F'] [Algebra F F']
     exact algebraMap.coe_natCast n
   simp_rw [isNonarchimedean_iff_le_one_on_nat, H]
 
+lemma eq_of_isEquiv_of_eq_restrict {v₁ v₂ : AbsoluteValue F' ℝ} (h : v₁ ≈ v₂)
+    (h' : v₁.restrict F = v₂.restrict F) (h'' : (v₁.restrict F).IsNontrivial) :
+    v₁ = v₂ := by
+  obtain ⟨c, hc₁, hc₂⟩ := h
+  suffices c = 1 by simpa [this] using hc₂
+  obtain ⟨x, hx⟩ := h''.exists_abv_gt_one
+  have hx' : v₂ (algebraMap F F' x) = v₁.restrict F x := by rw [apply_algebraMap, h']
+  apply_fun (· (algebraMap F F' x)) at hc₂
+  simp only [apply_algebraMap, hx'] at hc₂
+  nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at hc₂
+  rwa [Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne'] at hc₂
+
 end AbsoluteValue
 
 end restrict
@@ -228,6 +240,7 @@ noncomputable
 instance Completion.instAlgebra' (v : AbsoluteValue F ℝ) : Algebra F v.Completion :=
   Completion.instAlgebra v
 
+@[simp]
 lemma Completion.absoluteValue_restrict (v : AbsoluteValue F ℝ) :
     (absoluteValue v).restrict F = v := by
   ext1 x
@@ -235,44 +248,13 @@ lemma Completion.absoluteValue_restrict (v : AbsoluteValue F ℝ) :
     UniformSpace.Completion.norm_coe]
   rfl
 
-/- open WithAbs in
-lemma ringEquiv_completion_of_isEquiv_eq_equiv₂ (h : v₁ ≈ v₂) :
-    ringEquiv_completion_of_isEquiv h = RingEquiv.refl _ := by
-  sorry -/
-
 end
 
--- set_option maxHeartbeats 0
 
 open Completion Rat.AbsoluteValue WithAbs in
-lemma Real.eq_abs_of_restrict_eq_ratReal {v : AbsoluteValue ℝ ℝ} [CompleteSpace (WithAbs v)]
-    (h : v.restrict ℚ = real) :
-    v = .abs := by
-  let ℝv := WithAbs v
-  -- Get chain `ℝ ≃ real.Completion ≃ (v.restrict ℚ).Completion → ℝv`
-  -- of equivalences / maps of normed rings that are isometries.
-  -- Then the composition is a ring homomorphism `ℝ →+* ℝ` and therefore the identity.
-  let e₁ : ℝ ≃+* real.Completion := ringEquiv_completion_real.symm
-  have he₁ : Isometry e₁ := by
-    simp only [e₁]
-    exact Isometry.right_inv isometry_ringEquiv_completion_real <|
-      Function.rightInverse_iff_comp.mpr <| by ext1; simp
-  let e₂ : real.Completion ≃+* (v.restrict ℚ).Completion := ringEquiv_of_eq h.symm
-  have he₂ : Isometry e₂ := isometry_ringEquiv_of_eq h.symm
-  let e₃ : (v.restrict ℚ).Completion →+* ℝv :=
-    extensionEmbedding_of_comp (f := (Rat.castHom _).comp (equiv (v.restrict ℚ))) fun _ ↦ rfl
-  have he₃ : Isometry e₃ := isometry_extensionEmbedding_of_comp fun _ ↦ rfl
-  let e : ℝ →+* ℝv := e₃.comp <| e₂.toRingHom.comp <| e₁.toRingHom
-  have he : Isometry e := he₃.comp <| he₂.comp he₁
-  let e₀ : ℝ →+* ℝ := (equiv v).toRingHom.comp e
-  have he₀ : e₀ = RingHom.id ℝ := Subsingleton.elim ..
-  ext1 x
-  nth_rewrite 1 [show x = e₀ x by simp [he₀]]
-  simp only [e₀, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply]
-  rw [← norm_eq_abv, (AddMonoidHomClass.isometry_iff_norm _).mp he x, abs_apply, Real.norm_eq_abs]
-
-
-open Completion Rat.AbsoluteValue WithAbs in
+/-- If `v` is an absolute value on `ℝ` such that `(ℝ, v)` is complete and the restriction of `v`
+to `ℚ` is equivalent to the standard archimedean absolute value, then `v` is equivalent to
+the standard absolute value of `ℝ`. -/
 lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} [CompleteSpace (WithAbs v)]
     (h : v.restrict ℚ ≈ real) :
     v ≈ .abs := by
@@ -313,6 +295,17 @@ lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} [CompleteSpace (W
   have H : ⇑(equiv₂ .abs v) = e.comp e₄.toRingHom := by simp [equiv₂, he, e₄]
   simpa only [H, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe] using He.comp He₄
 
+open Rat.AbsoluteValue in
+/-- If `v` is an absolute value on `ℝ` such that `(ℝ, v)` is complete and the restriction of `v`
+to `ℚ` is equal to the standard archimedean absolute value,
+then `v` is the standard absolute value of `ℝ`. -/
+lemma Real.eq_abs_of_restrict_eq_ratReal {v : AbsoluteValue ℝ ℝ} [CompleteSpace (WithAbs v)]
+    (h : v.restrict ℚ = real) :
+    v = .abs := by
+  have h' : v.restrict ℚ ≈ real := by rw [h]
+  refine eq_of_isEquiv_of_eq_restrict (isEquiv_abs_of_restrict h') h ?_
+  rw [h]
+  exact ⟨2, two_ne_zero, by simp⟩
 
 variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
