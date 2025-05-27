@@ -6,6 +6,22 @@ import Mathlib
 These fill API gaps in Mathlib and should eventually go there.
 -/
 
+namespace Isometry
+
+lemma isHomeomorph_ofBijective {α β F : Type*} [PseudoEMetricSpace α] [PseudoEMetricSpace β]
+    [FunLike F α β] {f : F} (hf : Isometry f) (hb : Function.Bijective f) :
+    IsHomeomorph f := by
+  obtain ⟨g, hg₁, hg₂⟩ := Function.bijective_iff_has_inverse.mp hb
+  exact IsHomeomorph.mk hf.continuous
+    (IsOpenMap.of_inverse (hf.right_inv hg₂).continuous hg₂ hg₁) hb
+
+lemma isHomeomorph_ofEquiv {α β E : Type*} [PseudoEMetricSpace α] [PseudoEMetricSpace β]
+    [EquivLike E α β] {f : E} (hf : Isometry f) :
+    IsHomeomorph f :=
+  hf.isHomeomorph_ofBijective <| EquivLike.bijective f
+
+end Isometry
+
 namespace IsHomeomorph
 
 lemma right_inv {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] {f : X → Y} {g : Y → X}
@@ -19,6 +35,18 @@ lemma right_inv {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] {f : X �
   simp [he]
 
 end IsHomeomorph
+
+namespace RingHom
+
+lemma bijective_of_bijective_comp {R₁ R₂ R₃ R₄ : Type*} [NonAssocSemiring R₁] [NonAssocSemiring R₂]
+    [NonAssocSemiring R₃] [NonAssocSemiring R₄] {e₁ : R₁ ≃+* R₂} {e₂ : R₂ →+* R₃} {e₃ : R₃ ≃+* R₄}
+    (h : Function.Bijective (e₃.toRingHom.comp <| e₂.comp e₁.toRingHom)) :
+    Function.Bijective e₂ := by
+  let e : R₁ →+* R₄ := e₃.toRingHom.comp <| e₂.comp e₁.toRingHom
+  have : e₂ = e₃.symm.toRingHom.comp (e.comp e₁.symm.toRingHom) := by ext1; simp [e]
+  simpa [this]
+
+end RingHom
 
 section Rat
 
