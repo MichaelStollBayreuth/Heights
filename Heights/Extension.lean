@@ -22,43 +22,81 @@ section restrict
 
 namespace AbsoluteValue
 
-variable {F R S : Type*} [Field F] [Semiring R] [Nontrivial R] [Algebra F R] [Semiring S]
-  [PartialOrder S] [IsOrderedRing S]
+variable {R S : Type*} [Semiring R] [Semiring S] [PartialOrder S]
 
-omit [Nontrivial R] [IsOrderedRing S] in
 lemma comp_apply {R' : Type*} [Semiring R'] (v : AbsoluteValue R S) {f : R' →+* R}
     (hf : Function.Injective f) (x : R') :
   v.comp hf x = v (f x) := rfl
 
-variable (F) in
-/-- The restriction to a field `F` of an absolute value on an `F`-algebra `R`. -/
-def restrict (v : AbsoluteValue R S) : AbsoluteValue F S :=
-  v.comp (RingHom.injective (algebraMap F R))
+variable {F : Type*} [Field F] [Nontrivial R]
 
-omit [IsOrderedRing S] in
+/-- The pull-back of an absolute value on a (semi)ring `R` to a field `F`
+via a ring homomorphism `F →+* R`. -/
+def comap (v : AbsoluteValue R S) (f : F →+* R) : AbsoluteValue F S :=
+  v.comp (RingHom.injective f)
+
+
+lemma comap_comp {F' : Type*} [Field F'] (v : AbsoluteValue R S) (f : F →+* F') (g : F' →+* R) :
+    v.comap (g.comp f) = (v.comap g).comap f := by
+  ext1
+  simp [comap, comp_apply]
+
 @[simp]
-lemma apply_algebraMap (v : AbsoluteValue R S) (x : F) :
-    v (algebraMap F R x) = v.restrict F x := rfl
+lemma comap_apply (v : AbsoluteValue R S) (f : F →+* R) (x : F) :
+    v.comap f x = v (f x) := rfl
 
-omit [IsOrderedRing S] in
-lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNontrivial) :
+@[simp]
+lemma comap_equiv_comp (v : AbsoluteValue R S) (f : F →+* R) :
+    v.comap ((WithAbs.equiv v).toRingHom.comp f) = v.comap f :=
+  rfl
+
+open WithAbs in
+lemma isometry_comap {F' : Type*} [Field F'] (v : AbsoluteValue F' ℝ) (f : F →+* F') :
+    Isometry ((equiv v).symm.toRingHom.comp (f.comp (equiv (v.comap f)).toRingHom)) := by
+  refine AddMonoidHomClass.isometry_of_norm _ fun x ↦ ?_
+  simp [WithAbs.norm_eq_abv]
+
+lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.comap f).IsNontrivial) :
     v.IsNontrivial := by
   obtain ⟨x, hx₀, hx₁⟩ := h
-  exact ⟨algebraMap F R x, (map_ne_zero _).mpr hx₀, hx₁⟩
+  exact ⟨f x, (map_ne_zero _).mpr hx₀, hx₁⟩
 
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_equivalent_and_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
-    (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
+lemma eq_of_equivalent_of_comap_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂) (f : F →+* R)
+    (h₂ : v₁.comap f = v₂.comap f) (h₃ : (v₁.comap f).IsNontrivial) :
     v₁ = v₂ := by
   obtain ⟨c, hc₀, hc₁⟩ := h₁
   obtain ⟨x, hx⟩ := h₃.exists_abv_gt_one
   suffices c = 1 by simpa [this] using hc₁
-  have H : v₁ (algebraMap F R x) = v₂ (algebraMap F R x) := by
-    simp only [apply_algebraMap, h₂]
-  rw [← congrFun hc₁, apply_algebraMap, eq_comm] at H
-  nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at H
+  have H : v₁ (f x) = v₂ (f x) := by
+    simp only [← comap_apply, h₂]
+  rw [← congrFun hc₁, ← comap_apply, eq_comm] at H
+  nth_rewrite 2 [← Real.rpow_one (v₁.comap f x)] at H
   exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
+
+
+variable [Algebra F R]
+
+variable (F) in
+/-- The restriction to a field `F` of an absolute value on an `F`-algebra `R`. -/
+def restrict (v : AbsoluteValue R S) : AbsoluteValue F S :=
+  v.comap (algebraMap F R)
+
+--@[simp] -- switch sides?
+lemma apply_algebraMap (v : AbsoluteValue R S) (x : F) :
+    v (algebraMap F R x) = v.restrict F x := rfl
+
+lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNontrivial) :
+    v.IsNontrivial :=
+  isNontrivial_of_comap v (algebraMap F R) h
+
+/-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
+must be equal. -/
+lemma eq_of_equivalent_of_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
+    (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
+    v₁ = v₂ :=
+  eq_of_equivalent_of_comap_eq h₁ (algebraMap F R) h₂ h₃
 
 /-- The extension of the trivial absolute value on a field `F` to a finite-dimensional `F`-algebra
 that is a division ring is trivial. -/
@@ -134,26 +172,16 @@ instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] 
     ContinuousSMul (WithAbs v) (WithAbs v') where
   continuous_smul := (continuous_algebraMap_iff_smul _ _).mp <| continuous_algebraMap Fact.out
 
-lemma isNonarchmedean_restrict_iff {F' : Type*} [Field F'] [Algebra F F']
-    {v : AbsoluteValue F' ℝ} :
-    IsNonarchimedean (v.restrict F) ↔ IsNonarchimedean v := by
-  have H (n : ℕ) : v.restrict F n = v n := by
-    rw [← apply_algebraMap]
-    congr
-    exact algebraMap.coe_natCast n
+lemma isNonarchmedean_comap_iff {F' : Type*} [Field F'] {v : AbsoluteValue F' ℝ} {f : F →+* F'} :
+    IsNonarchimedean (v.comap f) ↔ IsNonarchimedean v := by
+  have H (n : ℕ) : v.comap f n = v n := by
+    rw [comap_apply, map_natCast f n]
   simp_rw [isNonarchimedean_iff_le_one_on_nat, H]
 
-lemma eq_of_isEquiv_of_eq_restrict {v₁ v₂ : AbsoluteValue F' ℝ} (h : v₁ ≈ v₂)
-    (h' : v₁.restrict F = v₂.restrict F) (h'' : (v₁.restrict F).IsNontrivial) :
-    v₁ = v₂ := by
-  obtain ⟨c, hc₁, hc₂⟩ := h
-  suffices c = 1 by simpa [this] using hc₂
-  obtain ⟨x, hx⟩ := h''.exists_abv_gt_one
-  have hx' : v₂ (algebraMap F F' x) = v₁.restrict F x := by rw [apply_algebraMap, h']
-  apply_fun (· (algebraMap F F' x)) at hc₂
-  simp only [apply_algebraMap, hx'] at hc₂
-  nth_rewrite 2 [← Real.rpow_one (v₁.restrict F x)] at hc₂
-  rwa [Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne'] at hc₂
+lemma isNonarchmedean_restrict_iff {F' : Type*} [Field F'] [Algebra F F']
+    {v : AbsoluteValue F' ℝ} :
+    IsNonarchimedean (v.restrict F) ↔ IsNonarchimedean v :=
+  isNonarchmedean_comap_iff (f := algebraMap F F')
 
 end AbsoluteValue
 
@@ -169,6 +197,13 @@ If `F` is complete with respect to an absolute value `v` and `F'/F` is a finite 
 then there is a unique extension of `v` to an absolute value `v'` on `F'`, and `F'`
 is complete with respect to `v'`.
 -/
+
+lemma isometry_equiv_realAbs : Isometry (WithAbs.equiv (R := ℝ) .abs) :=
+  (AddMonoidHomClass.isometry_iff_norm _).mpr (congrFun rfl)
+
+lemma isHomeomorph_equiv_realAbs : IsHomeomorph (WithAbs.equiv (R := ℝ) .abs) :=
+  Isometry.isHomeomorph_ofEquiv isometry_equiv_realAbs
+
 
 variable {F F' : Type*} [Field F] [Field F'] [Algebra F F'] [FiniteDimensional F F']
 variable (v : AbsoluteValue F ℝ) [CompleteSpace (WithAbs v)]
@@ -202,7 +237,7 @@ private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.rest
   by_cases hv : v.IsNontrivial
   · have hr : v₁.val.restrict F = v₂.val.restrict F := by rw [v₁.prop, v₂.prop]
     ext1
-    refine eq_of_equivalent_and_restrict_eq ?_ hr (by rwa [v₁.prop])
+    refine eq_of_equivalent_of_restrict_eq ?_ hr (by rwa [v₁.prop])
     exact isEquiv_of_restrict_eq hv v₁.prop v₂.prop
   · have hv₁ := trivial_of_finiteDimensional_of_restrict v₁.prop hv
     have hv₂ := trivial_of_finiteDimensional_of_restrict v₂.prop hv
@@ -244,7 +279,7 @@ instance Completion.instAlgebra' (v : AbsoluteValue F ℝ) : Algebra F v.Complet
 lemma Completion.absoluteValue_restrict (v : AbsoluteValue F ℝ) :
     (absoluteValue v).restrict F = v := by
   ext1 x
-  rw [restrict, comp_apply, absoluteValue_eq_norm, show (algebraMap F v.Completion) x = x from rfl,
+  rw [← apply_algebraMap, absoluteValue_eq_norm, show (algebraMap F v.Completion) x = x from rfl,
     UniformSpace.Completion.norm_coe]
   rfl
 
@@ -303,33 +338,92 @@ lemma Real.eq_abs_of_restrict_eq_ratReal {v : AbsoluteValue ℝ ℝ} [CompleteSp
     (h : v.restrict ℚ = real) :
     v = .abs := by
   have h' : v.restrict ℚ ≈ real := by rw [h]
-  refine eq_of_isEquiv_of_eq_restrict (isEquiv_abs_of_restrict h') h ?_
+  refine eq_of_equivalent_of_restrict_eq (isEquiv_abs_of_restrict h') h ?_
   rw [h]
   exact ⟨2, two_ne_zero, by simp⟩
 
 variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [CompleteSpace (WithAbs v)]
 
+omit [CompleteSpace (WithAbs v)] in
+open WithAbs in
+lemma comap_eq_of_isometry {F' : Type*} [Field F'] {v' : AbsoluteValue F' ℝ}
+    {f : WithAbs v →+* WithAbs v'} (h : Isometry f) :
+    v'.comap ((equiv v').toRingHom.comp (f.comp (equiv v).symm.toRingHom)) = v := by
+  ext1 x
+  rw [comap_apply]
+  simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply]
+  rw [← norm_eq_abv, (AddMonoidHomClass.isometry_iff_norm _).mp h, norm_eq_abv]
+  simp
+
+omit [CompleteSpace (WithAbs v)] in
+open WithAbs in
+lemma isometry_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
+    Isometry ((equiv ((Completion.absoluteValue v).comap f)).trans f) := by
+  have H : Isometry (equiv (Completion.absoluteValue v)) :=
+    (AddMonoidHomClass.isometry_iff_norm _).mpr (congrFun rfl)
+  replace H := H.comp <| isometry_comap (Completion.absoluteValue v) f.toRingHom
+  simpa only [RingEquiv.coe_trans, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp,
+    RingHom.coe_coe] using H
+
+omit [CompleteSpace (WithAbs v)] in
+open WithAbs in
+lemma isHomeomorph_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
+    IsHomeomorph ((equiv ((Completion.absoluteValue v).comap f)).trans f) :=
+  (isometry_equiv_comap f).isHomeomorph_ofEquiv
+
+open WithAbs in
 /-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
 lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
-    ∃ e : ℝ →+* F, letI : Algebra ℝ F := e.toAlgebra; v.restrict ℝ ≈ .abs := by
+    ∃ e : ℝ →+* F, v.comap e ≈ .abs := by
   have : CharZero F := charZero_of_archimedean h
   have : CharZero (WithAbs v) := charZero_of_archimedean h
   let e₀ := Rat.castHom (WithAbs v)
-  let _ : Algebra ℚ (WithAbs v) := e₀.toAlgebra
-  let v₀ := v.restrict ℚ
-  have hv₀ : ¬ IsNonarchimedean v₀ := mt isNonarchmedean_restrict_iff.mp h
-  replace hv₀ : v₀ ≈ Rat.AbsoluteValue.real := Rat.AbsoluteValue.real_of_archimedean hv₀
+  let v₀ := v.comap e₀
+  have hv₀ : v₀ ≈ Rat.AbsoluteValue.real :=
+    Rat.AbsoluteValue.real_of_archimedean <| mt isNonarchmedean_comap_iff.mp h
   let e₁ : v₀.Completion →+* WithAbs v :=
     Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
   let e₂ := ringEquiv_completion_of_isEquiv hv₀
   let e₃ := Rat.AbsoluteValue.ringEquiv_completion_real
-  refine ⟨e₁.comp (e₃.symm.trans e₂.symm).toRingHom, ?_⟩
-
-  sorry
-
+  let e₄ := e₃.symm.trans e₂.symm
+  let e := e₁.comp e₄.toRingHom
+  refine ⟨e, ?_⟩
+  have he₁ : Isometry e₁ := Completion.isometry_extensionEmbedding_of_comp fun x ↦ rfl
+  let e₁' := e₁.comp (WithAbs.equiv (Completion.absoluteValue v₀)).toRingHom
+  have he₁' : Isometry e₁' := by
+    simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, e₁']
+    exact he₁.comp <| (AddMonoidHomClass.isometry_iff_norm _).mpr fun x ↦ by simp
+  have H₁ := comap_eq_of_isometry he₁'
+  have H₂ :
+      (equiv v).toRingHom.comp (e₁'.comp (equiv (Completion.absoluteValue v₀)).symm.toRingHom) =
+        e₁ := by
+    ext1 x
+    simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
+      RingEquiv.apply_symm_apply, e₁']
+    rfl
+  rw [H₂] at H₁; clear H₂
+  have He₃ : IsHomeomorph e₃ := Rat.AbsoluteValue.isHomeomorph_ringEquiv_completion_real
+  have He₂ : IsHomeomorph e₂ := isHomeomorph_ringEquiv_completion hv₀
+  have He₄ : IsHomeomorph e₄ := by
+    simp only [RingEquiv.coe_trans, e₄]
+    exact He₂.ringEquiv_symm.comp He₃.ringEquiv_symm
+  let v₁ := (Completion.absoluteValue v₀).comap e₄.toRingHom
+  have Hv₁ : v₁ ≈ .abs := by
+    refine (equiv_iff_isHomeomorph v₁ .abs).mpr ?_
+    simp only [equiv₂, RingEquiv.toRingHom_eq_coe, RingEquiv.coe_trans]
+    refine IsHomeomorph.comp ?_ ?_
+    · exact IsHomeomorph.ringEquiv_symm isHomeomorph_equiv_realAbs
+    · have := isHomeomorph_equiv_comap e₄
+      simp only [RingEquiv.coe_trans] at this
+      replace this := He₄.ringEquiv_symm.comp this
+      rw [← Function.comp_assoc, ← RingEquiv.coe_trans] at this
+      simpa using this
+  simp only [v₁] at Hv₁
+  simp only [e]
+  rwa [comap_comp, H₁]
 
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
-    (∃ e : ℝ ≃+* F, letI : Algebra ℝ F := RingHom.toAlgebra e; v.restrict ℝ ≈ .abs)
+    (∃ e : ℝ ≃+* F, v.comap e ≈ .abs)
       ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e;
         v.restrict ℂ ≈ NormedField.toAbsoluteValue ℂ := by
   obtain ⟨e, he⟩ := algebra_of_archimedean h

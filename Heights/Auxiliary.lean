@@ -34,6 +34,11 @@ lemma right_inv {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] {f : X �
   apply_fun e
   simp [he]
 
+lemma ringEquiv_symm {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] [Semiring X]
+    [Semiring Y] {e : X ≃+* Y} (h : IsHomeomorph e) :
+    IsHomeomorph e.symm :=
+  h.right_inv fun x ↦ e.apply_symm_apply x
+
 end IsHomeomorph
 
 namespace RingHom
