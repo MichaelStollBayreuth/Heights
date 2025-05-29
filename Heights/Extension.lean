@@ -357,6 +357,17 @@ lemma comap_eq_of_isometry {F' : Type*} [Field F'] {v' : AbsoluteValue F' ℝ}
 
 omit [CompleteSpace (WithAbs v)] in
 open WithAbs in
+lemma comap_completion_eq_of_isometry {F' : Type*} [Field F'] (v' : AbsoluteValue F' ℝ)
+    {f : v.Completion →+* F'} (h : Isometry ((equiv v').symm.toRingHom.comp f)) :
+    v'.comap f = Completion.absoluteValue v := by
+  ext1 x
+  rw [comap_apply]
+  have := (AddMonoidHomClass.isometry_iff_norm _).mp h x
+  simpa only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
+    norm_eq_abv, RingEquiv.apply_symm_apply, ← Completion.absoluteValue_eq_norm] using this
+
+omit [CompleteSpace (WithAbs v)] in
+open WithAbs in
 lemma isometry_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
     Isometry ((equiv ((Completion.absoluteValue v).comap f)).trans f) := by
   have H : Isometry (equiv (Completion.absoluteValue v)) :=
@@ -371,56 +382,48 @@ lemma isHomeomorph_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completio
     IsHomeomorph ((equiv ((Completion.absoluteValue v).comap f)).trans f) :=
   (isometry_equiv_comap f).isHomeomorph_ofEquiv
 
-open WithAbs in
-/-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra. -/
+open WithAbs RingEquiv Rat.AbsoluteValue in
+/-- A field `F` that is complete w.r.t. an archimedean absolute value is an `ℝ`-algebra
+such that the pull-back of its absolute value to `ℝ` is equivalent to the standard
+absolute value. -/
 lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
     ∃ e : ℝ →+* F, v.comap e ≈ .abs := by
-  have : CharZero F := charZero_of_archimedean h
+  -- We have the canonical ring homomorphism `e₀ : ℚ → F`.
   have : CharZero (WithAbs v) := charZero_of_archimedean h
   let e₀ := Rat.castHom (WithAbs v)
+  -- We pull back `v` from `F` to `ℚ` to obtain `v₀`.
   let v₀ := v.comap e₀
-  have hv₀ : v₀ ≈ Rat.AbsoluteValue.real :=
-    Rat.AbsoluteValue.real_of_archimedean <| mt isNonarchmedean_comap_iff.mp h
+  -- Then `v₀` is equivalent to the archimedean absolute value on `ℚ`.
+  have hv₀ : v₀ ≈ real := real_of_archimedean <| mt isNonarchmedean_comap_iff.mp h
+  -- By functoriality of the completion, we obtain a ring homomorphism and isometry
+  -- `e₁ : v₀.Completion → F`.
   let e₁ : v₀.Completion →+* WithAbs v :=
     Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
+  have he₁ : Isometry e₁ := Completion.isometry_extensionEmbedding_of_comp fun _ ↦ rfl
+  -- The pull-back ov `v` under `e₁` is the absolute value of the completion.
+  have H₁ : v.comap e₁ = Completion.absoluteValue v₀ :=
+    comap_completion_eq_of_isometry v he₁
+  -- We can identify `v₀.Completion` with `ℝ` via a ring isomorphism and
+  -- homeomorphism `e₄ : ℝ → v₀.Completion` (built in two steps).
   let e₂ := ringEquiv_completion_of_isEquiv hv₀
-  let e₃ := Rat.AbsoluteValue.ringEquiv_completion_real
+  let e₃ := ringEquiv_completion_real
   let e₄ := e₃.symm.trans e₂.symm
-  let e := e₁.comp e₄.toRingHom
-  refine ⟨e, ?_⟩
-  have he₁ : Isometry e₁ := Completion.isometry_extensionEmbedding_of_comp fun x ↦ rfl
-  let e₁' := e₁.comp (WithAbs.equiv (Completion.absoluteValue v₀)).toRingHom
-  have he₁' : Isometry e₁' := by
-    simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, e₁']
-    exact he₁.comp <| (AddMonoidHomClass.isometry_iff_norm _).mpr fun x ↦ by simp
-  have H₁ := comap_eq_of_isometry he₁'
-  have H₂ :
-      (equiv v).toRingHom.comp (e₁'.comp (equiv (Completion.absoluteValue v₀)).symm.toRingHom) =
-        e₁ := by
-    ext1 x
-    simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
-      RingEquiv.apply_symm_apply, e₁']
-    rfl
-  rw [H₂] at H₁; clear H₂
-  have He₃ : IsHomeomorph e₃ := Rat.AbsoluteValue.isHomeomorph_ringEquiv_completion_real
+  have He₃ : IsHomeomorph e₃ := isHomeomorph_ringEquiv_completion_real
   have He₂ : IsHomeomorph e₂ := isHomeomorph_ringEquiv_completion hv₀
   have He₄ : IsHomeomorph e₄ := by
-    simp only [RingEquiv.coe_trans, e₄]
+    simp only [coe_trans, e₄]
     exact He₂.ringEquiv_symm.comp He₃.ringEquiv_symm
-  let v₁ := (Completion.absoluteValue v₀).comap e₄.toRingHom
-  have Hv₁ : v₁ ≈ .abs := by
-    refine (equiv_iff_isHomeomorph v₁ .abs).mpr ?_
-    simp only [equiv₂, RingEquiv.toRingHom_eq_coe, RingEquiv.coe_trans]
-    refine IsHomeomorph.comp ?_ ?_
-    · exact IsHomeomorph.ringEquiv_symm isHomeomorph_equiv_realAbs
-    · have := isHomeomorph_equiv_comap e₄
-      simp only [RingEquiv.coe_trans] at this
-      replace this := He₄.ringEquiv_symm.comp this
-      rw [← Function.comp_assoc, ← RingEquiv.coe_trans] at this
-      simpa using this
-  simp only [v₁] at Hv₁
-  simp only [e]
-  rwa [comap_comp, H₁]
+  -- The pull-back of the absolute value of the completion to `ℝ` under `e₄`
+  -- is equivalent to the standard absolute value.
+  have H₂ : (Completion.absoluteValue v₀).comap e₄ ≈ .abs := by
+    refine (equiv_iff_isHomeomorph _ .abs).mpr ?_
+    simp only [equiv₂, toRingHom_eq_coe, coe_trans]
+    refine isHomeomorph_equiv_realAbs.ringEquiv_symm.comp ?_
+    convert He₄.ringEquiv_symm.comp <|isHomeomorph_equiv_comap e₄
+    rw [coe_trans, ← Function.comp_assoc, ← coe_trans, self_trans_symm, coe_refl,
+      Function.id_comp]
+  -- Finally, we take `e = e₁ ∘ e₄` and reduce to the statement `H₂` above.
+  exact ⟨e₁.comp e₄, by rwa [comap_comp, H₁]⟩
 
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     (∃ e : ℝ ≃+* F, v.comap e ≈ .abs)
