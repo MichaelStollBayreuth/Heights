@@ -61,9 +61,16 @@ lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.coma
   obtain ⟨x, hx₀, hx₁⟩ := h
   exact ⟨f x, (map_ne_zero _).mpr hx₀, hx₁⟩
 
+lemma isEquiv_comap {v v' : AbsoluteValue R ℝ} (f : F →+* R) (h : v ≈ v') :
+    v.comap f ≈ v'.comap f := by
+  obtain ⟨c, hc₀, hc⟩ := h
+  refine ⟨c, hc₀, ?_⟩
+  ext1 x
+  simp [comap, comp, congrFun hc (f x)]
+
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_equivalent_of_comap_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂) (f : F →+* R)
+lemma eq_of_isEquiv_of_comap_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂) (f : F →+* R)
     (h₂ : v₁.comap f = v₂.comap f) (h₃ : (v₁.comap f).IsNontrivial) :
     v₁ = v₂ := by
   obtain ⟨c, hc₀, hc₁⟩ := h₁
@@ -93,10 +100,10 @@ lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNon
 
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_equivalent_of_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
+lemma eq_of_isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
     (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
     v₁ = v₂ :=
-  eq_of_equivalent_of_comap_eq h₁ (algebraMap F R) h₂ h₃
+  eq_of_isEquiv_of_comap_eq h₁ (algebraMap F R) h₂ h₃
 
 /-- The extension of the trivial absolute value on a field `F` to a finite-dimensional `F`-algebra
 that is a division ring is trivial. -/
@@ -190,6 +197,7 @@ end restrict
 section complete
 
 namespace AbsoluteValue
+
 /-!
 ### The complete case
 
@@ -204,6 +212,14 @@ lemma isometry_equiv_realAbs : Isometry (WithAbs.equiv (R := ℝ) .abs) :=
 lemma isHomeomorph_equiv_realAbs : IsHomeomorph (WithAbs.equiv (R := ℝ) .abs) :=
   Isometry.isHomeomorph_ofEquiv isometry_equiv_realAbs
 
+instance : CompleteSpace (WithAbs (R := ℝ) .abs) := by
+  let f := (WithAbs.equiv (R := ℝ) .abs)
+  have H₁ : IsHomeomorph f := isHomeomorph_equiv_realAbs
+  have H₂ : IsHomeomorph f.symm := H₁ -- not sure why this works...
+  refine (UniformEquiv.completeSpace_iff ?_).mp (inferInstance : CompleteSpace ℝ)
+  refine UniformEquiv.mk f.symm ?_ ?_
+  · exact uniformContinuous_of_continuousAt_zero f.symm.toRingHom H₂.continuous.continuousAt
+  · exact uniformContinuous_of_continuousAt_zero f.toRingHom H₁.continuous.continuousAt
 
 variable {F F' : Type*} [Field F] [Field F'] [Algebra F F'] [FiniteDimensional F F']
 variable (v : AbsoluteValue F ℝ) [CompleteSpace (WithAbs v)]
@@ -217,7 +233,7 @@ variable {v} in
 private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.IsNontrivial)
     (h₁ : v₁.restrict F = v) (h₂ : v₂.restrict F = v) :
     v₁ ≈ v₂ := by
-  rw [equiv_iff_isHomeomorph]
+  rw [isEquiv_iff_isHomeomorph]
   let e : WithAbs v₁ ≃ₗ[WithAbs v] WithAbs v₂ := {
     toFun := WithAbs.equiv₂ v₁ v₂
     map_add' x y := rfl
@@ -237,14 +253,12 @@ private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.rest
   by_cases hv : v.IsNontrivial
   · have hr : v₁.val.restrict F = v₂.val.restrict F := by rw [v₁.prop, v₂.prop]
     ext1
-    refine eq_of_equivalent_of_restrict_eq ?_ hr (by rwa [v₁.prop])
+    refine eq_of_isEquiv_of_restrict_eq ?_ hr (by rwa [v₁.prop])
     exact isEquiv_of_restrict_eq hv v₁.prop v₂.prop
   · have hv₁ := trivial_of_finiteDimensional_of_restrict v₁.prop hv
     have hv₂ := trivial_of_finiteDimensional_of_restrict v₂.prop hv
     ext1
     exact eq_of_not_isNontrivial hv₁ hv₂
-
-
 
 section GelfandMazur
 
@@ -254,6 +268,60 @@ section GelfandMazur
 We show that a complete field with real-valued archimedean absolute value must be
 isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 -/
+
+section preliminaries
+
+namespace GelfandMazur
+
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [Algebra ℝ F] (h : ¬ IsNonarchimedean v)
+    (h' : v.restrict ℝ ≈ .abs)
+
+-- We follow
+--   Leonard Tornheim, *Normed fields over the real and complex fields*,
+--   Michigan Math. J. 1 (1952), 61–68
+
+
+/- Every element of `F` is algebraic (of degree at most `2`) over `ℝ`. -/
+open Polynomial in
+lemma isIntegral (x : F) : IsIntegral ℝ x := by
+  suffices ∃ a b : ℝ, x ^ 2 + a • x + b • 1 = 0 by
+    obtain ⟨a, b, H⟩ := this
+    let p : ℝ[X] := X ^ 2 + C a * X + C b
+    have hpm : p.Monic := by simp only [p]; monicity!
+    have hpd : p.natDegree = 2 := by simp only [p]; compute_degree!
+    have hx : IsIntegral ℝ (p.aeval x) := by
+      simp only [Algebra.smul_def, mul_one] at H
+      simpa [p, H] using isIntegral_zero
+    exact IsIntegral.of_aeval_monic hpm (by omega) hx
+
+  sorry
+
+-- #check NormedRing.algEquivComplexOfComplete
+
+-- See #25332 by Junyan Xu
+theorem nonempty_algEquiv_or_of_finrank_algClosure_eq_two
+    {F F' : Type*} (E : Type*) [Field F] [Field F'] [Field E] [Algebra F F'] [Algebra F E]
+    [Algebra.IsAlgebraic F E] [IsAlgClosed F'] (h : Module.finrank F F' = 2) :
+    Nonempty (E ≃ₐ[F] F) ∨ Nonempty (E ≃ₐ[F] F') := by
+  have emb : E →ₐ[F] F' := IsAlgClosed.lift
+  have e := AlgEquiv.ofInjectiveField emb
+  have := Subalgebra.isSimpleOrder_of_finrank h
+  obtain h | h := IsSimpleOrder.eq_bot_or_eq_top emb.range <;> rw [h] at e
+  exacts [.inl ⟨e.trans <| Algebra.botEquiv ..⟩, .inr ⟨e.trans Subalgebra.topEquiv⟩]
+
+lemma nonempty_algEquiv_real_or_of_algebra_real {F : Type*} [Field F] [Algebra ℝ F]
+    (h : (algebraMap ℝ F).IsIntegral) :
+    Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) :=
+  have : Algebra.IsIntegral ℝ F := ⟨h⟩
+  nonempty_algEquiv_or_of_finrank_algClosure_eq_two F Complex.finrank_real_complex
+--
+
+theorem main_thm : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) :=
+  nonempty_algEquiv_real_or_of_algebra_real isIntegral
+
+end GelfandMazur
+
+end preliminaries
 
 section
 
@@ -321,7 +389,7 @@ lemma Real.isEquiv_abs_of_restrict {v : AbsoluteValue ℝ ℝ} [CompleteSpace (W
   symm
   -- Use that two absoloute values are equivalent iff the identity map
   -- between the two topological spaces is a homeomorphism.
-  refine (equiv_iff_isHomeomorph .abs v).mpr ?_
+  refine (isEquiv_iff_isHomeomorph .abs v).mpr ?_
   have he : e = (equiv v).symm := by
     suffices e = (equiv v).symm.toRingHom.comp e₀ by
       simpa only [he₀, RingEquiv.toRingHom_eq_coe, RingHomCompTriple.comp_eq] using this
@@ -338,7 +406,7 @@ lemma Real.eq_abs_of_restrict_eq_ratReal {v : AbsoluteValue ℝ ℝ} [CompleteSp
     (h : v.restrict ℚ = real) :
     v = .abs := by
   have h' : v.restrict ℚ ≈ real := by rw [h]
-  refine eq_of_equivalent_of_restrict_eq (isEquiv_abs_of_restrict h') h ?_
+  refine eq_of_isEquiv_of_restrict_eq (isEquiv_abs_of_restrict h') h ?_
   rw [h]
   exact ⟨2, two_ne_zero, by simp⟩
 
@@ -416,7 +484,7 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
   -- The pull-back of the absolute value of the completion to `ℝ` under `e₄`
   -- is equivalent to the standard absolute value.
   have H₂ : (Completion.absoluteValue v₀).comap e₄ ≈ .abs := by
-    refine (equiv_iff_isHomeomorph _ .abs).mpr ?_
+    refine (isEquiv_iff_isHomeomorph _ .abs).mpr ?_
     simp only [equiv₂, toRingHom_eq_coe, coe_trans]
     refine isHomeomorph_equiv_realAbs.ringEquiv_symm.comp ?_
     convert He₄.ringEquiv_symm.comp <|isHomeomorph_equiv_comap e₄
@@ -425,25 +493,71 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
   -- Finally, we take `e = e₁ ∘ e₄` and reduce to the statement `H₂` above.
   exact ⟨e₁.comp e₄, by rwa [comap_comp, H₁]⟩
 
+/-- If an absolute value `v` on `ℝ` is equivalent to the standard absolute value `|·|`,
+then `v = |·| ^ e` for some `0 < e ≤ 1`. -/
+lemma _root_.Real.AbsoluteValue.eq_rpow_of_isEquiv_abs {v : AbsoluteValue ℝ ℝ} (hv : v ≈ .abs) :
+    ∃ (e : ℝ) (h₀ : 0 < e) (h₁ : e ≤ 1), v = AbsoluteValue.rpow .abs h₀ h₁ := by
+  have H₁ : v.restrict ℚ ≈ Rat.AbsoluteValue.real :=
+    Setoid.trans (isEquiv_comap (algebraMap ℚ ℝ) hv) <| Setoid.refl _
+  obtain ⟨e, he₀, he₁, he⟩ := Rat.AbsoluteValue.eq_rpow_of_isEquiv_real H₁
+  refine ⟨e, he₀, he₁, ?_⟩
+  refine eq_of_isEquiv_of_restrict_eq ?_ he ?_
+  · exact Setoid.trans hv <| Setoid.symm (isEquiv_rpow AbsoluteValue.abs he₀ he₁)
+  · rw [isNontrivial_iff_ne_trivial]
+    intro h
+    replace H₁ := Setoid.symm H₁
+    rw [h, eq_trivial_of_isEquiv_trivial] at H₁
+    revert H₁
+    change _ ≠ _
+    rw [← isNontrivial_iff_ne_trivial]
+    exact ⟨2, two_ne_zero, by simp⟩
+
+lemma _root_.Complex.AbsoluteValue.isEquiv_abv_of_restrict {v : AbsoluteValue ℂ ℝ}
+    [CompleteSpace (WithAbs <| v.restrict ℝ)] (h : v.restrict ℝ ≈ .abs) :
+    v ≈ NormedField.toAbsoluteValue ℂ := by
+  have H₁ := AbsoluteValue.lemma_6_1_a (F' := ℂ) (v.restrict ℝ)
+  obtain ⟨e, he₀, he₁, he⟩ := Real.AbsoluteValue.eq_rpow_of_isEquiv_abs h
+  let v' := (NormedField.toAbsoluteValue ℂ).rpow he₀ he₁
+  have hv' : v'.restrict ℝ = v.restrict ℝ := by
+    simp only [v', he]
+    ext1 x
+    simp only [restrict, comap_apply, Complex.coe_algebraMap, rpow_apply, Pi.pow_apply, abs_apply]
+    rw [show (NormedField.toAbsoluteValue ℂ) ↑x = ‖(x : ℂ)‖ from rfl, Complex.norm_real,
+      Real.norm_eq_abs]
+  rw [show v = v' from congrArg Subtype.val <| @Subsingleton.elim _ H₁ ⟨v, rfl⟩ ⟨v', hv'⟩]
+  simp only [v']
+  exact isEquiv_rpow (NormedField.toAbsoluteValue ℂ) he₀ he₁
+
+
 theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     (∃ e : ℝ ≃+* F, v.comap e ≈ .abs)
-      ∨ ∃ e : ℂ ≃+* F, letI : Algebra ℂ F := RingHom.toAlgebra e;
-        v.restrict ℂ ≈ NormedField.toAbsoluteValue ℂ := by
+      ∨ ∃ e : ℂ ≃+* F, v.comap e ≈ NormedField.toAbsoluteValue ℂ := by
   obtain ⟨e, he⟩ := algebra_of_archimedean h
   let inst := e.toAlgebra
-
-  stop
-  by_cases H : Nonempty (ℂ →+* F)
-  · obtain ⟨f⟩ := H
-    let instA : Algebra ℂ F := f.toAlgebra
-    let inst : NormedAlgebra ℂ (WithAbs v) := by
-      refine NormedAlgebra.mk fun r x ↦ ?_
-
-    sorry
-  · sorry
-
--- #check NormedRing.algEquivComplexOfComplete
--- #check NormedAlgebra
+  rcases GelfandMazur.main_thm (F := F) with H | H <;> let e' := Classical.choice H
+  · -- `F` is isomorphic to `ℝ`.
+    refine .inl ⟨e'.symm, ?_⟩
+    convert he
+    have : (e' : F →+* ℝ).comp e = RingHom.id ℝ := Subsingleton.elim ..
+    rw [show ((e'.symm : ℝ ≃+* F) : ℝ →+* F) = e'.symm from rfl,
+      ← RingHom.comp_id (e'.symm : ℝ →+* F), ← this]
+    ext1
+    simp
+  · -- `F` is isomorphic to `ℂ` as an `ℝ`-algebra.
+    refine .inr ⟨e'.symm, ?_⟩
+    have H : (e' : F →+* ℂ).comp e = algebraMap ℝ ℂ := by
+      suffices AlgHom.comp e' (Algebra.ofId ℝ F) = Algebra.ofId ℝ ℂ from
+        congrArg AlgHom.toRingHom this
+      exact Subsingleton.elim ..
+    suffices v.comap ((e'.symm : ℂ →+* F).comp (algebraMap ℝ ℂ)) ≈ .abs by
+      rw [comap_comp] at this
+      have inst : CompleteSpace (WithAbs (restrict ℝ (R := ℂ) (v.comap e'.symm))) :=
+        completeSpace_of_isEquiv <| Setoid.symm this
+      convert Complex.AbsoluteValue.isEquiv_abv_of_restrict this
+    convert he
+    rw [← H]
+    ext1
+    simp
 
 end GelfandMazur
 

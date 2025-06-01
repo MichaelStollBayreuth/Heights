@@ -224,6 +224,7 @@ by two absolute values- -/
 abbrev equiv₂ {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
   (equiv v₁).trans (equiv v₂).symm
 
+@[simp]
 lemma equiv₂_symm_eq {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) :
     (equiv₂ v₁ v₂).symm = equiv₂ v₂ v₁ := by
   ext1
