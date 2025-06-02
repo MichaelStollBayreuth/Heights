@@ -284,48 +284,32 @@ include h'
 
 lemma _root_.WithAbs.continuous_equiv_symm_comp_algebraMap :
     Continuous <| ⇑(equiv v).symm ∘ (algebraMap ℝ F) := by
-  have H₁ : Isometry (algebraMap (WithAbs (v.restrict ℝ)) (WithAbs v)) :=
+  have H : Isometry (algebraMap (WithAbs (v.restrict ℝ)) (WithAbs v)) :=
     isometry_of_comp (congrFun rfl)
-  have H₂ := H₁.continuous
-  have H₃ : Continuous (equiv₂ .abs (v.restrict ℝ)) := continuous_equiv₂ (Setoid.symm h')
-  have H₄ : Continuous (equiv (R := ℝ) .abs).symm :=
+  rw [show ⇑(equiv v).symm ∘ (algebraMap ℝ F) =
+        ⇑(algebraMap (WithAbs (restrict ℝ v)) (WithAbs v))
+          ∘ ⇑(equiv₂ AbsoluteValue.abs (restrict ℝ v)) ∘ ⇑(equiv AbsoluteValue.abs).symm from rfl]
+  exact H.continuous.comp <| (continuous_equiv₂ (Setoid.symm h')).comp <|
     continuous_of_continuousAt_zero _ fun ⦃_⦄ a ↦ a
-  have H₅ : ⇑(equiv v).symm ∘ (algebraMap ℝ F) =
-      ⇑(algebraMap (WithAbs (restrict ℝ v)) (WithAbs v))
-        ∘ ⇑(equiv₂ AbsoluteValue.abs (restrict ℝ v)) ∘ ⇑(equiv AbsoluteValue.abs).symm :=
-    rfl -- the underlying maps are the same
-  rw [H₅]
-  exact H₂.comp <| H₃.comp H₄
 
-lemma continuous_abv_sub_smul_one (x : F) : Continuous (fun a : ℝ ↦ v (x - a • 1)) := by
-  have H : (fun a : ℝ ↦ v (x - a • 1)) =
-      (fun x : WithAbs v ↦ v (equiv v x)) ∘ fun a ↦ (equiv v).symm (x - a • 1) := by
-    ext1
-    simp only [map_sub, Function.comp_apply, RingEquiv.apply_symm_apply]
-  rw [H]
+lemma continuous_abv_sub (x : F) : Continuous (fun a : ℝ ↦ v (x - a • 1)) := by
+  rw [show (fun a : ℝ ↦ v (x - a • 1)) =
+       (fun x : WithAbs v ↦ v (equiv v x)) ∘ fun a ↦ (equiv v).symm (x - a • 1) from rfl]
   refine continuous_norm.comp ?_
-  simp only [map_sub]
-  refine continuous_const.sub ?_
-  convert continuous_equiv_symm_comp_algebraMap h' with a
-  simpa using (Algebra.algebraMap_eq_smul_one a).symm
+  simp only [map_sub, ← Algebra.algebraMap_eq_smul_one]
+  exact continuous_const.sub <| continuous_equiv_symm_comp_algebraMap h'
 
 lemma continuous_abv_sq_add (x : F) :
     Continuous fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
-  have H : (fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1)) =
-      (fun x : WithAbs v ↦ v (equiv v x)) ∘
-        fun z ↦ (equiv v).symm ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
-    ext1
-    simp only [map_sub, Function.comp_apply, RingEquiv.apply_symm_apply]
-  rw [H]
+  rw [show (fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1)) =
+        (fun x : WithAbs v ↦ v (equiv v x)) ∘
+          fun z ↦ (equiv v).symm ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) from rfl]
   refine continuous_norm.comp ?_
   simp only [map_add, map_pow, map_sub]
+  simp only [← Algebra.algebraMap_eq_smul_one]
   refine ((continuous_const.sub ?_).pow  2).add  ?_
-  · simp only [← Algebra.algebraMap_eq_smul_one]
-    -- change Continuous <| (⇑(equiv v).symm ∘ algebraMap ℝ F) ∘ Complex.re
-    exact (continuous_equiv_symm_comp_algebraMap h').comp Complex.continuous_re
-  · simp only [← Algebra.algebraMap_eq_smul_one]
-    -- change Continuous <| (⇑(equiv v).symm ∘ algebraMap ℝ F) ∘ (fun x ↦ x ^ 2) ∘ Complex.im
-    exact (continuous_equiv_symm_comp_algebraMap h').comp <|
+  · exact (continuous_equiv_symm_comp_algebraMap h').comp Complex.continuous_re
+  · exact (continuous_equiv_symm_comp_algebraMap h').comp <|
       (continuous_pow 2).comp Complex.continuous_im
 
 end auxiliary
@@ -352,9 +336,8 @@ lemma isIntegral (x : F) : IsIntegral ℝ x := by
   have hfc : Continuous f := by
     simp only [map_div₀, AbsoluteValue.map_mul, f]
     refine (continuous_const.mul ?_).mul ?_
-    · exact (continuous_abv_sub_smul_one h' x).comp Complex.continuous_re
-    · refine Continuous.inv₀ (continuous_abv_sq_add h' x) fun z ↦ ?_
-      rw [AbsoluteValue.ne_zero_iff]
+    · exact (continuous_abv_sub h' x).comp Complex.continuous_re
+    · refine Continuous.inv₀ (continuous_abv_sq_add h' x) fun z ↦ v.ne_zero_iff.mpr ?_
       convert H (-2 * z.re) (z.re ^ 2 + z.im ^ 2) using 1
       simp only [Algebra.smul_def, mul_one, map_pow, neg_mul, map_neg, map_mul, map_ofNat, map_add]
       ring
