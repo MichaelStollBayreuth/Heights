@@ -352,16 +352,12 @@ lemma isIntegral (x : F) : IsIntegral ℝ x := by
   have hfc : Continuous f := by
     simp only [map_div₀, AbsoluteValue.map_mul, f]
     refine (continuous_const.mul ?_).mul ?_
-    · change Continuous ((fun a ↦ v (x - a • 1)) ∘ Complex.re)
-      exact (continuous_abv_sub_smul_one h' x).comp Complex.continuous_re
+    · exact (continuous_abv_sub_smul_one h' x).comp Complex.continuous_re
     · refine Continuous.inv₀ (continuous_abv_sq_add h' x) fun z ↦ ?_
       rw [AbsoluteValue.ne_zero_iff]
       convert H (-2 * z.re) (z.re ^ 2 + z.im ^ 2) using 1
-      rw [sub_sq, sq (z.re • 1), smul_mul_smul, one_mul, ← sq, add_smul, mul_smul_comm,
-        mul_one, ← mul_smul_comm, neg_mul, sub_eq_add_neg, neg_smul]
-      simp_rw [← add_assoc]
-      congr
-      rw [show (2 : F) = algebraMap ℝ F 2 by rw [map_ofNat], ← Algebra.smul_def, smul_smul]
+      simp only [Algebra.smul_def, mul_one, map_pow, neg_mul, map_neg, map_mul, map_ofNat, map_add]
+      ring
   sorry
 
 -- #check NormedRing.algEquivComplexOfComplete
