@@ -273,16 +273,70 @@ section preliminaries
 
 namespace GelfandMazur
 
-variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [Algebra ℝ F] (h : ¬ IsNonarchimedean v)
+variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [Algebra ℝ F] --(h : ¬ IsNonarchimedean v)
     (h' : v.restrict ℝ ≈ .abs)
+
+section auxiliary
+
+open WithAbs
+
+include h'
+
+lemma _root_.WithAbs.continuous_equiv_symm_comp_algebraMap :
+    Continuous <| ⇑(equiv v).symm ∘ (algebraMap ℝ F) := by
+  have H₁ : Isometry (algebraMap (WithAbs (v.restrict ℝ)) (WithAbs v)) :=
+    isometry_of_comp (congrFun rfl)
+  have H₂ := H₁.continuous
+  have H₃ : Continuous (equiv₂ .abs (v.restrict ℝ)) := continuous_equiv₂ (Setoid.symm h')
+  have H₄ : Continuous (equiv (R := ℝ) .abs).symm :=
+    continuous_of_continuousAt_zero _ fun ⦃_⦄ a ↦ a
+  have H₅ : ⇑(equiv v).symm ∘ (algebraMap ℝ F) =
+      ⇑(algebraMap (WithAbs (restrict ℝ v)) (WithAbs v))
+        ∘ ⇑(equiv₂ AbsoluteValue.abs (restrict ℝ v)) ∘ ⇑(equiv AbsoluteValue.abs).symm :=
+    rfl -- the underlying maps are the same
+  rw [H₅]
+  exact H₂.comp <| H₃.comp H₄
+
+lemma continuous_abv_sub_smul_one (x : F) : Continuous (fun a : ℝ ↦ v (x - a • 1)) := by
+  have H : (fun a : ℝ ↦ v (x - a • 1)) =
+      (fun x : WithAbs v ↦ v (equiv v x)) ∘ fun a ↦ (equiv v).symm (x - a • 1) := by
+    ext1
+    simp only [map_sub, Function.comp_apply, RingEquiv.apply_symm_apply]
+  rw [H]
+  refine continuous_norm.comp ?_
+  simp only [map_sub]
+  refine continuous_const.sub ?_
+  convert continuous_equiv_symm_comp_algebraMap h' with a
+  simpa using (Algebra.algebraMap_eq_smul_one a).symm
+
+lemma continuous_abv_sq_add (x : F) :
+    Continuous fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
+  have H : (fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1)) =
+      (fun x : WithAbs v ↦ v (equiv v x)) ∘
+        fun z ↦ (equiv v).symm ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
+    ext1
+    simp only [map_sub, Function.comp_apply, RingEquiv.apply_symm_apply]
+  rw [H]
+  refine continuous_norm.comp ?_
+  simp only [map_add, map_pow, map_sub]
+  refine ((continuous_const.sub ?_).pow  2).add  ?_
+  · simp only [← Algebra.algebraMap_eq_smul_one]
+    -- change Continuous <| (⇑(equiv v).symm ∘ algebraMap ℝ F) ∘ Complex.re
+    exact (continuous_equiv_symm_comp_algebraMap h').comp Complex.continuous_re
+  · simp only [← Algebra.algebraMap_eq_smul_one]
+    -- change Continuous <| (⇑(equiv v).symm ∘ algebraMap ℝ F) ∘ (fun x ↦ x ^ 2) ∘ Complex.im
+    exact (continuous_equiv_symm_comp_algebraMap h').comp <|
+      (continuous_pow 2).comp Complex.continuous_im
+
+end auxiliary
 
 -- We follow
 --   Leonard Tornheim, *Normed fields over the real and complex fields*,
 --   Michigan Math. J. 1 (1952), 61–68
 
-
 /- Every element of `F` is algebraic (of degree at most `2`) over `ℝ`. -/
 open Polynomial in
+include h' in
 lemma isIntegral (x : F) : IsIntegral ℝ x := by
   suffices ∃ a b : ℝ, x ^ 2 + a • x + b • 1 = 0 by
     obtain ⟨a, b, H⟩ := this
@@ -293,7 +347,21 @@ lemma isIntegral (x : F) : IsIntegral ℝ x := by
       simp only [Algebra.smul_def, mul_one] at H
       simpa [p, H] using isIntegral_zero
     exact IsIntegral.of_aeval_monic hpm (by omega) hx
-
+  by_contra! H
+  let f (z : ℂ) : ℝ := v (2 * (x - z.re • 1) / ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1))
+  have hfc : Continuous f := by
+    simp only [map_div₀, AbsoluteValue.map_mul, f]
+    refine (continuous_const.mul ?_).mul ?_
+    · change Continuous ((fun a ↦ v (x - a • 1)) ∘ Complex.re)
+      exact (continuous_abv_sub_smul_one h' x).comp Complex.continuous_re
+    · refine Continuous.inv₀ (continuous_abv_sq_add h' x) fun z ↦ ?_
+      rw [AbsoluteValue.ne_zero_iff]
+      convert H (-2 * z.re) (z.re ^ 2 + z.im ^ 2) using 1
+      rw [sub_sq, sq (z.re • 1), smul_mul_smul, one_mul, ← sq, add_smul, mul_smul_comm,
+        mul_one, ← mul_smul_comm, neg_mul, sub_eq_add_neg, neg_smul]
+      simp_rw [← add_assoc]
+      congr
+      rw [show (2 : F) = algebraMap ℝ F 2 by rw [map_ofNat], ← Algebra.smul_def, smul_smul]
   sorry
 
 -- #check NormedRing.algEquivComplexOfComplete
@@ -316,8 +384,9 @@ lemma nonempty_algEquiv_real_or_of_algebra_real {F : Type*} [Field F] [Algebra �
   nonempty_algEquiv_or_of_finrank_algClosure_eq_two F Complex.finrank_real_complex
 --
 
+include h' in
 theorem main_thm : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) :=
-  nonempty_algEquiv_real_or_of_algebra_real isIntegral
+  nonempty_algEquiv_real_or_of_algebra_real (isIntegral h')
 
 end GelfandMazur
 
@@ -534,7 +603,7 @@ theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
       ∨ ∃ e : ℂ ≃+* F, v.comap e ≈ NormedField.toAbsoluteValue ℂ := by
   obtain ⟨e, he⟩ := algebra_of_archimedean h
   let inst := e.toAlgebra
-  rcases GelfandMazur.main_thm (F := F) with H | H <;> let e' := Classical.choice H
+  rcases GelfandMazur.main_thm he with H | H <;> let e' := Classical.choice H
   · -- `F` is isomorphic to `ℝ`.
     refine .inl ⟨e'.symm, ?_⟩
     convert he
