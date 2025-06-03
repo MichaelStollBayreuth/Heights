@@ -142,7 +142,7 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     ⨆ i, v (x i) = 1 := by
   let v' : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) := v.maximalIdeal
   have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (Rat.ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
-    simp_rw [FinitePlace.norm_eq_one_iff_not_mem]
+    simp_rw [FinitePlace.norm_eq_one_iff_notMem]
     by_contra! H
     let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
     let p := Int.natPrimesEquivHeightOneSpectrum.symm pI

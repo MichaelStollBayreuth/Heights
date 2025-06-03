@@ -307,7 +307,7 @@ lemma continuous_abv_sq_add (x : F) :
   refine continuous_norm.comp ?_
   simp only [map_add, map_pow, map_sub]
   simp only [← Algebra.algebraMap_eq_smul_one]
-  refine ((continuous_const.sub ?_).pow  2).add  ?_
+  refine ((continuous_const.sub ?_).pow 2).add ?_
   · exact (continuous_equiv_symm_comp_algebraMap h').comp Complex.continuous_re
   · exact (continuous_equiv_symm_comp_algebraMap h').comp <|
       (continuous_pow 2).comp Complex.continuous_im
