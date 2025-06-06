@@ -316,7 +316,7 @@ variable {E : Type*} [SeminormedCommRing E] [Algebra ℝ E]
 end
 
 end auxiliary
-#exit
+
 -- We follow
 --   Leonard Tornheim, *Normed fields over the real and complex fields*,
 --   Michigan Math. J. 1 (1952), 61–68
