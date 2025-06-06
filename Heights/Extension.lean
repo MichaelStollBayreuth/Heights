@@ -292,36 +292,41 @@ lemma _root_.WithAbs.continuous_equiv_symm_comp_algebraMap :
   exact H.continuous.comp <| (continuous_equiv₂ (Setoid.symm h')).comp <|
     continuous_of_continuousAt_zero _ fun ⦃_⦄ a ↦ a
 
-lemma continuous_abv_sub (x : F) : Continuous (fun a : ℝ ↦ v (x - a • 1)) := by
-  rw [show (fun a : ℝ ↦ v (x - a • 1)) =
-       (fun x : WithAbs v ↦ v (equiv v x)) ∘ fun a ↦ (equiv v).symm (x - a • 1) from rfl]
-  refine continuous_norm.comp ?_
-  simp only [map_sub, ← Algebra.algebraMap_eq_smul_one]
-  exact continuous_const.sub <| continuous_equiv_symm_comp_algebraMap h'
+-- Help `fun_prop` below.
+-- Note that `fun_prop` on its own cannot fill in the argument `h'`,
+-- so we use `fun_prop (disch := assumption)` below.
+@[fun_prop]
+lemma continuous_smul : Continuous fun p : ℝ × WithAbs v ↦ p.1 • p.2 :=
+  (continuousSMul_of_algebraMap _ _ <| continuous_equiv_symm_comp_algebraMap h').continuous_smul
 
-lemma continuous_abv_sq_add (x : F) :
-    Continuous fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
-  rw [show (fun z : ℂ ↦ v ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1)) =
-        (fun x : WithAbs v ↦ v (equiv v x)) ∘
-          fun z ↦ (equiv v).symm ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) from rfl]
-  refine continuous_norm.comp ?_
-  simp only [map_add, map_pow, map_sub]
-  simp only [← Algebra.algebraMap_eq_smul_one]
-  refine ((continuous_const.sub ?_).pow 2).add ?_
-  · exact (continuous_equiv_symm_comp_algebraMap h').comp Complex.continuous_re
-  · exact (continuous_equiv_symm_comp_algebraMap h').comp <|
-      (continuous_pow 2).comp Complex.continuous_im
+lemma continuous_expr {x : WithAbs v} (H : ∀ a b : ℝ, x ^ 2 + a • x + b • 1 ≠ 0) :
+    Continuous fun z : ℂ ↦ 2 * (x - z.re • 1) / ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1) := by
+  refine Continuous.div₀ (by fun_prop (disch := assumption)) (by fun_prop (disch := assumption))
+    fun z ↦ ?_
+  convert H (-2 * z.re) (z.re ^ 2 + z.im ^ 2) using 1
+  simp only [Algebra.smul_def, mul_one, map_pow, neg_mul, map_neg, map_mul, map_ofNat, map_add]
+  ring
+
+section
+
+variable {E : Type*} [SeminormedCommRing E] [Algebra ℝ E]
+
+-- lemma integral_eq
+
+end
 
 end auxiliary
-
+#exit
 -- We follow
 --   Leonard Tornheim, *Normed fields over the real and complex fields*,
 --   Michigan Math. J. 1 (1952), 61–68
 
+
+
 /- Every element of `F` is algebraic (of degree at most `2`) over `ℝ`. -/
 open Polynomial in
 include h' in
-lemma isIntegral (x : F) : IsIntegral ℝ x := by
+lemma isIntegral (x : WithAbs v) : IsIntegral ℝ x := by
   suffices ∃ a b : ℝ, x ^ 2 + a • x + b • 1 = 0 by
     obtain ⟨a, b, H⟩ := this
     let p : ℝ[X] := X ^ 2 + C a * X + C b
@@ -332,15 +337,8 @@ lemma isIntegral (x : F) : IsIntegral ℝ x := by
       simpa [p, H] using isIntegral_zero
     exact IsIntegral.of_aeval_monic hpm (by omega) hx
   by_contra! H
-  let f (z : ℂ) : ℝ := v (2 * (x - z.re • 1) / ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1))
-  have hfc : Continuous f := by
-    simp only [map_div₀, AbsoluteValue.map_mul, f]
-    refine (continuous_const.mul ?_).mul ?_
-    · exact (continuous_abv_sub h' x).comp Complex.continuous_re
-    · refine Continuous.inv₀ (continuous_abv_sq_add h' x) fun z ↦ v.ne_zero_iff.mpr ?_
-      convert H (-2 * z.re) (z.re ^ 2 + z.im ^ 2) using 1
-      simp only [Algebra.smul_def, mul_one, map_pow, neg_mul, map_neg, map_mul, map_ofNat, map_add]
-      ring
+  let f (z : ℂ) : ℝ := ‖2 * (x - z.re • 1) / ((x - z.re • 1) ^ 2 + z.im ^ 2 • 1)‖
+  have hfc : Continuous f := continuous_norm.comp <| continuous_expr h' H
   sorry
 
 -- #check NormedRing.algEquivComplexOfComplete
