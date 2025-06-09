@@ -18,6 +18,80 @@ Sections 6 and 7.
 ### Auxiliary lemmas
 -/
 
+lemma Finset.sum_range_two_mul (n : ℕ) {M : Type*} [AddCommMonoid M] (f : ℕ → M) :
+    ∑ k ∈ range (2 * n), f k =
+      ∑ k ∈ range n, f (2 * k) + ∑ k ∈ range n, f (2 * k + 1) := by
+  rw [← sum_filter_add_sum_filter_not _ Even]
+  congr 1
+  · refine sum_bij' (fun k _ ↦ k / 2) (fun k _ ↦ 2 * k) (fun k hk ↦ ?_)
+      (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
+      simp only [mem_filter, mem_range] at hk ⊢
+    · omega
+    · simp only [Nat.ofNat_pos, mul_lt_mul_left, even_two, Even.mul_right, and_true] at hk ⊢
+      omega
+    · exact Nat.two_mul_div_two_of_even hk.2
+    · omega
+    · rw [Nat.two_mul_div_two_of_even hk.2]
+  · refine sum_bij' (fun k _ ↦ k / 2) (fun k _ ↦ 2 * k + 1) (fun k hk ↦ ?_)
+      (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
+      simp only [mem_filter, mem_range, Nat.not_even_iff_odd] at hk ⊢
+    · omega
+    · simp only [odd_two_mul_add_one, not_false_eq_true, and_true]
+      omega
+    · exact Nat.two_mul_div_two_add_one_of_odd hk.2
+    · omega
+    · rw [Nat.two_mul_div_two_add_one_of_odd hk.2]
+
+lemma Complex.cpow_inv_ofReal_mul_ofReal (z : ℂ) {x : ℝ} (hx : 1 ≤ x) :
+    (z ^ (x⁻¹ : ℂ)) ^ (x : ℂ) = z := by
+  rw [← cpow_mul, inv_mul_cancel₀ (by norm_cast; linarith), cpow_one]
+  -- side goals
+  · rw [← ofReal_inv, im_mul_ofReal, ← div_eq_mul_inv, lt_div_iff₀ (by linarith)]
+    calc
+    _ ≤ -Real.pi := mul_le_of_one_le_right (neg_nonpos.mpr Real.pi_nonneg) hx
+    _ < (log z).im := neg_pi_lt_log_im z
+  · rw [← ofReal_inv, im_mul_ofReal, ← div_eq_mul_inv, div_le_iff₀ (by linarith)]
+    calc
+    _ ≤ Real.pi := log_im_le_pi z
+    _ ≤ Real.pi * x := by refine le_mul_of_one_le_right Real.pi_nonneg hx
+
+lemma IsPrimitiveRoot.map_nthRootsFinset {K F : Type*} [Field K] [Field F] [Algebra K F]
+    {n : ℕ} [NeZero n] {ζ : K} (hζ : IsPrimitiveRoot ζ n)
+    {x : F} (hx : x ∈ Polynomial.nthRootsFinset n 1) :
+    ∃ y ∈ Polynomial.nthRootsFinset n (1 : K), algebraMap K F y = x := by
+  let ξ := algebraMap K F ζ
+  have hξ : IsPrimitiveRoot ξ n := hζ.map_of_injective <| FaithfulSMul.algebraMap_injective ..
+  rw [Polynomial.mem_nthRootsFinset (NeZero.pos n)] at hx
+  obtain ⟨k, _, hk⟩ := hξ.eq_pow_of_pow_eq_one hx
+  refine ⟨ζ ^ k, ?_, hk ▸ algebraMap.coe_pow ζ k⟩
+  rw [Polynomial.mem_nthRootsFinset (NeZero.pos n), pow_right_comm, hζ.pow_eq_one, one_pow]
+
+open Topology Filter in
+lemma Real.tendsto_mul_pow_div_one_sub_pow {x : ℝ} (hx₀ : 0 ≤ x) (hx₁ : x < 1) :
+    Tendsto (fun n : ℕ ↦ n * x ^ n / (1 - x ^ n)) atTop (𝓝 0) := by
+  conv => enter [1, n]; rw [div_eq_mul_inv]
+  conv => enter [3, 1]; rw [show (0 : ℝ) = 0 * (1 - 0)⁻¹ by simp]
+  exact (tendsto_self_mul_const_pow_of_lt_one hx₀ hx₁).mul <|
+    ((tendsto_pow_atTop_nhds_zero_of_lt_one hx₀ hx₁).const_sub 1).inv₀ (by simp)
+
+open Topology Filter in
+lemma Real.tendsto_two_pow_mul_pow_div_one_sub_pow {x : ℝ} (hx₀ : 0 ≤ x) (hx₁ : x < 1) :
+    Tendsto (fun n : ℕ ↦ 2 ^ n * x ^ 2 ^ n / (1 - x ^ 2 ^ n)) atTop (𝓝 0) := by
+  have : Tendsto (fun n : ℕ ↦ 2 ^ n) atTop atTop :=
+    Nat.tendsto_pow_atTop_atTop_of_one_lt one_lt_two
+  convert (tendsto_mul_pow_div_one_sub_pow hx₀ hx₁).comp this with n
+  simp
+
+/- lemma norm_natCast_le {E : Type*} [SeminormedRing E] [NormOneClass E] (n : ℕ) :
+    ‖(n : E)‖ ≤ n := by
+  induction n with
+  | zero => simp [norm_zero]
+  | succ n ih =>
+    push_cast
+    refine (norm_add_le ..).trans ?_
+    rw [norm_one]
+    exact add_le_add_right ih 1 -/
+
 section restrict
 
 namespace AbsoluteValue
@@ -271,8 +345,176 @@ isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 
 section preliminaries
 
+
+
 namespace GelfandMazur
 
+section
+
+variable {F : Type*} [Field F] [Algebra ℂ F]
+
+lemma inv_one_sub_add_inv_one_add {x : F} (h : ∀ z : ℂ, x ≠ z • 1) :
+    (1 - x)⁻¹ + (1 + x)⁻¹ = 2 * (1 - x ^ 2)⁻¹ := by
+  have H₁ : 1 - x ≠ 0 := by
+    specialize h 1
+    simp only [one_smul] at h
+    exact sub_ne_zero_of_ne h.symm
+  have H₂ : 1 + x ≠ 0 := by
+    specialize h (-1)
+    simp only [neg_smul, one_smul] at h
+    contrapose! h
+    exact (neg_eq_of_add_eq_zero_right h).symm
+  have H₃ : 1 - x ^ 2 ≠ 0 := by
+    rw [show 1 - x ^ 2 = (1 - x) * (1 + x) by ring]
+    exact (mul_ne_zero_iff_right H₂).mpr H₁
+  field_simp
+  ring
+
+lemma sum_rootsOfUnity_inv_one_sub {x : F} (h : ∀ z : ℂ, x ≠ z • 1) {n : ℕ} {ζ : ℂ}
+    (hζ : IsPrimitiveRoot ζ (2 ^ n)) :
+    ∑ k ∈ Finset.range (2 ^ n), (1 - ζ ^ k • x)⁻¹ = 2 ^ n * (1 - x ^ (2 ^ n))⁻¹ := by
+  induction n generalizing x ζ with
+  | zero => simp
+  | succ n ih =>
+    rw [pow_succ', Finset.sum_range_two_mul]
+    have hζ' : IsPrimitiveRoot (ζ ^ 2) (2 ^ n) :=
+      IsPrimitiveRoot.pow (Nat.two_pow_pos _) hζ Nat.pow_succ'
+    have H := ih h hζ'
+    conv at H => enter [1, 2, k]; rw [← pow_mul]
+    rw [H]; clear H
+    have h' (z : ℂ) : ζ • x ≠ z • 1 := by
+      apply_fun fun y ↦ ζ⁻¹ • y
+      simpa [smul_smul, inv_mul_cancel₀ (hζ.ne_zero (Nat.two_pow_pos _).ne')] using h _
+    have H := ih h' hζ'
+    conv at H =>  enter [1, 2, k]; rw [← pow_mul, smul_smul, ← pow_succ]
+    rw [H]; clear H
+    have hζ'' : ζ ^ 2 ^ n = -1 :=
+      IsPrimitiveRoot.eq_neg_one_of_two_right <|
+        IsPrimitiveRoot.pow (Nat.two_pow_pos _) hζ <| Nat.pow_succ ..
+    have h'' (z : ℂ) : x ^ 2 ^ n ≠ z • 1 := by
+      contrapose! h
+      let w := z ^ ((1 : ℂ) / 2 ^ n)
+      have hw : z = w ^ 2 ^ n := by
+        simp only [w]
+        rw [← Complex.cpow_natCast, one_div]
+        convert (Complex.cpow_inv_ofReal_mul_ofReal _ ?_).symm
+        · norm_cast
+        · exact_mod_cast Nat.one_le_two_pow
+      let ζF := algebraMap ℂ F (ζ ^ 2)
+      have hζF : IsPrimitiveRoot ζF (2 ^ n) :=
+        hζ'.map_of_injective <| FaithfulSMul.algebraMap_injective ..
+      rw [hw, ← one_pow (2 ^ n), ← smul_pow, ← sub_eq_zero,
+        hζF.pow_sub_pow_eq_prod_sub_mul x (w • 1) n.two_pow_pos, Finset.prod_eq_zero_iff] at h
+      obtain ⟨ξ, hξ, h⟩ := h
+      rw [sub_eq_zero] at h
+      obtain ⟨ξ', hξ'₁, hξ'₂⟩ := IsPrimitiveRoot.map_nthRootsFinset hζ' hξ
+      refine ⟨ξ' * w, ?_⟩
+      rw [h, ← hξ'₂, Algebra.mul_smul_comm, mul_one, Algebra.algebraMap_eq_smul_one, smul_smul,
+        mul_comm]
+    rw [smul_pow, hζ'', neg_smul, one_smul, sub_neg_eq_add, ← mul_add,
+      inv_one_sub_add_inv_one_add h'', ← pow_mul', ← mul_assoc, ← pow_succ]
+
+end
+
+section
+
+open Topology Filter in
+example (f g : ℕ → ℝ) (h : ∀ n, |f n| ≤ g n) (h' : Tendsto g atTop (𝓝 0)) :
+    Tendsto f atTop (𝓝 0) := by
+  exact squeeze_zero_norm h h'
+
+variable {F : Type*} [NormedField F]
+
+open Topology Filter in
+lemma tendsto_mul_norm_inv_one_sub_pow_sub_one {y : F} (hy : ‖y‖ < 1) :
+    Tendsto (fun n : ℕ ↦ 2 ^ n * (‖(1 - y ^ 2 ^ n)⁻¹‖ - 1)) atTop (𝓝 0) := by
+  have H₀ (n : ℕ) : 0 < 1 - ‖y‖ ^ 2 ^ n := by
+    rw [sub_pos]
+    exact pow_lt_one₀ (norm_nonneg y) hy n.two_pow_pos.ne'
+  have H (n : ℕ) : (1 - y ^ 2 ^ n)⁻¹ = 1 + y ^ 2 ^ n / (1 - y ^ 2 ^ n) := by
+    have : 1 - y ^ 2 ^ n ≠ 0 := by
+      intro h
+      rw [sub_eq_zero] at h
+      apply_fun (‖·‖) at h
+      rw [norm_one, norm_pow] at h
+      specialize H₀ n
+      rw [← h] at H₀
+      norm_num at H₀
+    field_simp
+  conv => enter [1, n]; rw [H, ← norm_one (α := F)]
+  have H' (n : ℕ) : ‖2 ^ n * (‖1 + y ^ 2 ^ n / (1 - y ^ 2 ^ n)‖ - ‖(1 : F)‖)‖ ≤
+      2 ^ n * ‖y‖ ^ 2 ^ n / (1 - ‖y‖ ^ 2 ^ n) := by
+    rw [norm_mul, mul_div_assoc]
+    gcongr (?_ * ?_)
+    · simp
+    · rw [Real.norm_eq_abs]
+      refine (abs_norm_sub_norm_le ..).trans ?_
+      rw [add_sub_cancel_left, norm_div, norm_pow]
+      gcongr (_ / ?_)
+      · exact H₀ _
+      · rw [← norm_pow, ← norm_one (α := F)]
+        exact norm_sub_norm_le ..
+  exact squeeze_zero_norm H' <|  Real.tendsto_two_pow_mul_pow_div_one_sub_pow (norm_nonneg _) hy
+
+variable [Algebra ℂ F]
+
+lemma locallyConstant_of_bounded {x : F} (h : ∀ z : ℂ, x ≠ z • 1)
+    (hb : ∀ z : ℂ, ‖(1 - z • x)⁻¹‖ ≤ 1) {w : ℂ} (hw : ‖w • x‖ < 1) :
+    ‖(1 - w • x)⁻¹‖ = 1 := by
+  rcases eq_or_ne w 0 with rfl | hw₀
+  · simp
+  refine le_antisymm (hb w) <| le_of_forall_lt fun c hc ↦ ?_
+  obtain ⟨n, hn⟩ : ∃ n, 2 ^ n * ‖w • x‖ ^ 2 ^ n / (1 - ‖w • x‖ ^ 2 ^ n) < 1 - c := by
+    have := Real.tendsto_two_pow_mul_pow_div_one_sub_pow (norm_nonneg _) hw
+    rw [NormedAddCommGroup.tendsto_atTop] at this
+    specialize this (1 - c) (by linarith)
+    obtain ⟨n, hn⟩ := this
+    specialize hn n le_rfl
+    rw [Real.norm_eq_abs, sub_zero] at hn
+    exact ⟨n, (le_abs_self _).trans_lt hn⟩
+  rw [lt_sub_comm, mul_div_assoc] at hn
+  have h' (z : ℂ) : w • x ≠ z • 1 := by sorry
+  obtain ⟨ζ, hζ⟩ : ∃ ζ : ℂ, IsPrimitiveRoot ζ (2 ^ n) :=
+    ⟨_, Complex.isPrimitiveRoot_exp (2 ^ n) n.two_pow_pos.ne'⟩
+  have H₁ := sum_rootsOfUnity_inv_one_sub h' hζ
+  rw [Finset.range_eq_Ico, Finset.sum_eq_sum_Ico_succ_bot n.two_pow_pos, pow_zero, one_smul,
+    zero_add, eq_comm] at H₁
+  apply_fun (‖·‖) at H₁
+
+  have H₂ : 1 + 2 ^ n * (‖1 - (w • x) ^ 2 ^ n‖⁻¹ - 1) ≤ ‖(1 - (w • x))⁻¹‖ := by
+
+    sorry
+
+  stop
+  rw [H₁]
+  refine LT.lt.trans_le ?_ H₂
+  rw [show 2 ^ n * ‖1 - (w • x) ^ 2 ^ n‖⁻¹ - (2 ^ n - 1) =
+             1 - 2 ^ n * (1 - ‖1 - (w • x) ^ 2 ^ n‖⁻¹) by ring]
+  refine hn.trans_le ?_
+  gcongr 1 - 2 ^ n * ?_
+  have H₃ : 1 - ‖w • x‖ ^ 2 ^ n ≠ 0 := sorry
+  rw [tsub_le_iff_tsub_le, one_sub_div H₃, ← norm_pow]
+  -- a wrong turn somewhere
+  stop
+  have H : 1 - 2 ^ n * ‖w • x‖ ^ 2 ^ n / (1 - ‖w • x‖ ^ 2 ^ n) ≤
+      1 - ‖w • x‖ ^ 2 ^ n * ‖2 ^ n * (1 - (w • x) ^ 2 ^ n)⁻¹‖ := by
+    sorry
+  refine hn.trans_le <| H.trans ?_
+  rw [← sum_rootsOfUnity_inv_one_sub h' hζ, Finset.range_eq_Ico, Finset.sum_eq_sum_Ico_succ_bot,
+    pow_zero, one_smul]
+  stop
+  calc
+  c < _ := hn
+  _ ≤ 1 - 2 ^ n * ‖w • x‖ ^ 2 ^ n / ‖1 - (w • x) ^ 2 ^ n‖ := sorry
+  _ = 1 - ‖w • x‖ ^ 2 ^ n * ‖2 ^ n * (1 - (w • x) ^ 2 ^ n)⁻¹‖ := sorry
+  _ = ‖(1 - w • x)⁻¹‖ := sorry
+
+
+
+example (x y z : ℝ) (h : x - y ≤ z) : x - z ≤ y := tsub_le_iff_tsub_le.mp h
+
+end
+#exit
 variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [Algebra ℝ F] --(h : ¬ IsNonarchimedean v)
     (h' : v.restrict ℝ ≈ .abs)
 
