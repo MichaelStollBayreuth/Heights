@@ -26,6 +26,18 @@ namespace AbsoluteValue
 
 variable {R : Type*} [Semiring R]
 
+/-- The exponent `c` in the definition of equivalence of absolute values. -/
+noncomputable
+def IsEquiv.exponent {v v' : AbsoluteValue R ℝ} (h : v ≈ v') : ℝ :=
+  Classical.choose h
+
+lemma IsEquiv.exponent_pos {v v' : AbsoluteValue R ℝ} (h : v ≈ v') : 0 < exponent h :=
+  (Classical.choose_spec h).1
+
+lemma IsEquiv.exponent_def {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (x : R) :
+    v x ^ exponent h = v' x :=
+  congrFun (Classical.choose_spec h).2 x
+
 lemma rpow_add_le (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) (x y : R) :
     v (x + y) ^ e ≤ v x ^ e + v y ^ e := by
   calc

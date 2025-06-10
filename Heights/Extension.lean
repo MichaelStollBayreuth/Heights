@@ -156,6 +156,66 @@ lemma eq_of_isEquiv_of_comap_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ �
   nth_rewrite 2 [← Real.rpow_one (v₁.comap f x)] at H
   exact (Real.rpow_right_inj (zero_lt_one.trans hx) hx.ne').mp H
 
+section
+
+variable {R : Type*} [Field R] {v : AbsoluteValue F ℝ} {v' : AbsoluteValue R ℝ}
+  (f : F →+* R) (h : v'.comap f ≈ v)
+
+private
+lemma ofIsEquivComap_map_mul' (x y : R) :
+    letI c := IsEquiv.exponent h
+    v' (x * y) ^ c = v' x ^ c * v' y ^ c := by
+  rw [v'.map_mul, Real.mul_rpow (v'.nonneg x) (v'.nonneg y)]
+
+private
+lemma ofIsEquivComap_nonneg' (x : R) :
+    letI c := IsEquiv.exponent h
+    0 ≤ v' x ^ c :=
+  Real.rpow_nonneg (v'.nonneg x) _
+
+private
+lemma ofIsEquivComap_eq_zero' (x : R) :
+    letI c := IsEquiv.exponent h
+    v' x ^ c = 0 ↔ x = 0 := by
+  simp [Real.rpow_eq_zero_iff_of_nonneg (v'.nonneg x), v'.eq_zero, (IsEquiv.exponent_pos <| h).ne']
+
+/-- If an absolute value `v` on `F` is equivalent to the pull-back
+of an absolute value `v'` on `R`, then we can construct an absolute value on `R`
+whose pull-back to `F` is `v`. -/
+noncomputable
+def ofIsEquivComap : AbsoluteValue R ℝ where
+      toFun x := v' x ^ IsEquiv.exponent h
+      map_mul' := ofIsEquivComap_map_mul' f h
+      nonneg' := ofIsEquivComap_nonneg' f h
+      eq_zero' := ofIsEquivComap_eq_zero' f h
+      add_le' x y := by
+        set c := IsEquiv.exponent h with hc
+        have hc₁ : 0 < c := IsEquiv.exponent_pos h
+        by_cases hna : IsNonarchimedean v'
+        · let v'' := rpow_of_isNonarchimedean hna hc₁
+          have H (x : R) : v' x ^ c = v'' x := by simp [v'', c]
+          simp only [H, v''.add_le]
+        · refine add_le_add_of_add_le_two_mul_max (ofIsEquivComap_map_mul' f h)
+            (ofIsEquivComap_nonneg' f h) (ofIsEquivComap_eq_zero' f h) (fun x y ↦ ?_) x y
+          have H₁ : v' 2 ^ c ≤ 2 := by
+            have := IsEquiv.exponent_def h 2
+            simp only [comap_apply, map_ofNat] at this
+            rw [this]
+            exact v.apply_nat_le_self 2
+          have H₂ := Real.rpow_le_rpow (v'.nonneg _) (abv_add_le_abv_two_mul_max hna x y) hc₁.le
+          rw [← hc] at *
+          rw [Real.mul_rpow (v'.nonneg 2) (le_max_iff.mpr <| .inl (v'.nonneg x))] at H₂
+          refine H₂.trans ?_
+          gcongr
+          exact ((Real.monotoneOn_rpow_Ici_of_exponent_nonneg hc₁.le).map_max
+            (v'.nonneg x) (v'.nonneg y)).le
+
+lemma ofIsEquivComap_def : (ofIsEquivComap f h).comap f = v := by
+  ext1 x
+  simpa [ofIsEquivComap] using IsEquiv.exponent_def h x
+
+end
+
 
 variable [Algebra F R]
 

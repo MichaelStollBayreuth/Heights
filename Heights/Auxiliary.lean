@@ -778,7 +778,7 @@ lemma abv_pow (x : R) (n : ℕ) : v (x ^ n) = v x ^ n := by
   | succ n ih => rw [pow_succ, hm, ih, ← pow_succ]
 
 open Filter Topology in
-lemma add_le_add_of_add_le_two_mul_max  (x y : R) : v (x + y) ≤ v x + v y := by
+lemma add_le_add_of_add_le_two_mul_max (x y : R) : v (x + y) ≤ v x + v y := by
   have hx : 0 ≤ v x := hn x
   have hy : 0 ≤ v y := hn y
   have key (N : ℕ) : v (x + y) ^ N ≤ 2 * (N + 1) * (2 * (v x + v y) ^ N) := by
