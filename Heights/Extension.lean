@@ -394,6 +394,8 @@ private lemma lemma_6_1_a : Subsingleton ({ v' : AbsoluteValue F' ℝ // v'.rest
     ext1
     exact eq_of_not_isNontrivial hv₁ hv₂
 
+end AbsoluteValue
+
 section GelfandMazur
 
 /-!
@@ -403,11 +405,87 @@ We show that a complete field with real-valued archimedean absolute value must b
 isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 -/
 
-section preliminaries
+namespace Complex
 
+section
 
+variable {F : Type*} [Field F] [Algebra ℂ F] {v : AbsoluteValue F ℝ}
+    (hv : v.restrict ℂ = NormedField.toAbsoluteValue ℂ)
+
+noncomputable
+def normedAlgebraOfAbsoluteValue : NormedAlgebra ℂ (WithAbs v) where
+  __ := ‹Algebra ℂ (WithAbs v)›
+  norm_smul_le r x := by
+    rw [Algebra.smul_def, norm_mul]
+    refine le_of_eq ?_
+    congr
+    have : ‖r‖ = NormedField.toAbsoluteValue ℂ r := rfl
+    rw [WithAbs.norm_eq_abv, show ‖r‖ = NormedField.toAbsoluteValue ℂ r from rfl, ← hv]
+    rfl
+
+noncomputable
+def algEquivComplex [CompleteSpace (WithAbs v)] : ℂ ≃ₐ[ℂ] WithAbs v :=
+  letI inst := normedAlgebraOfAbsoluteValue hv
+  NormedRing.algEquivComplexOfComplete fun {_} ↦ isUnit_iff_ne_zero
+
+lemma comap_algEquivComplex [CompleteSpace (WithAbs v)] :
+    v.comap ((algEquivComplex hv).toRingEquiv.trans (WithAbs.equiv v)).toRingHom =
+      NormedField.toAbsoluteValue ℂ :=
+  hv ▸ rfl
+
+end
+
+section
+
+variable {F : Type*} [Field F] [Algebra ℝ F]
+
+noncomputable
+def algebraOfAlgebraReal {i : F} (hi : i ^ 2 = -1) : Algebra ℂ F := RingHom.toAlgebra {
+  toFun z := z.re • 1 + z.im • i
+  map_one' := by simp
+  map_mul' w z := by
+    simp only [Complex.mul_re, Complex.mul_im, mul_add, Algebra.mul_smul_comm, mul_one, smul_add,
+      add_mul, Algebra.smul_mul_assoc, one_mul, smul_smul]
+    rw [← sq, hi]
+    module
+  map_zero' := by simp
+  map_add' w z := by
+    simp only [Complex.add_re, Complex.add_im]
+    module
+}
+
+noncomputable
+def algebraAdjoinRootOfAlgebraReal (h : ∀ x : F, x ^ 2 ≠ -1) :
+    Algebra ℂ (AdjoinRoot (.X ^ 2 + 1 : Polynomial F)) := by
+  letI p : Polynomial F := .X ^ 2 + 1
+  letI instA : Algebra ℝ (AdjoinRoot p) := inferInstance
+  letI instF : Field (AdjoinRoot p) :=
+    haveI : Fact (Irreducible p) := ⟨by
+      refine Polynomial.irreducible_of_degree_le_three_of_not_isRoot ?_ fun x ↦ ?_
+      · have : p.natDegree = 2 := by simp only [p]; compute_degree!
+        simp [this]
+      · specialize h x
+        contrapose! h
+        simp only [p, Polynomial.IsRoot.def, Polynomial.eval_add, Polynomial.eval_pow,
+          Polynomial.eval_X, Polynomial.eval_one] at h
+        exact (neg_eq_of_add_eq_zero_left h).symm
+      ⟩
+    AdjoinRoot.instField
+  let i := AdjoinRoot.root p
+  have hr : i ^ 2 = -1 := by
+    refine (neg_eq_of_add_eq_zero_left ?_).symm
+    simpa [p] using AdjoinRoot.isRoot_root p
+  exact algebraOfAlgebraReal hr
+
+end
+
+end Complex
+
+namespace AbsoluteValue
 
 namespace GelfandMazur
+
+section preliminaries
 
 section
 
@@ -574,7 +652,7 @@ lemma locallyConstant_of_bounded {x : F} (h : ∀ z : ℂ, x ≠ z • 1)
 example (x y z : ℝ) (h : x - y ≤ z) : x - z ≤ y := tsub_le_iff_tsub_le.mp h
 
 end
-#exit
+
 variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ} [Algebra ℝ F] --(h : ¬ IsNonarchimedean v)
     (h' : v.restrict ℝ ≈ .abs)
 
@@ -667,9 +745,10 @@ include h' in
 theorem main_thm : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) :=
   nonempty_algEquiv_real_or_of_algebra_real (isIntegral h')
 
+end preliminaries
+
 end GelfandMazur
 
-end preliminaries
 
 section
 
@@ -907,8 +986,8 @@ theorem equiv_R_or_C_of_complete_archimedean (h : ¬ IsNonarchimedean v) :
     ext1
     simp
 
-end GelfandMazur
-
 end AbsoluteValue
+
+end GelfandMazur
 
 end complete
