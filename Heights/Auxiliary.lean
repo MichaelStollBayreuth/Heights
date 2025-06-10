@@ -777,7 +777,6 @@ lemma abv_pow (x : R) (n : ℕ) : v (x ^ n) = v x ^ n := by
   | zero => simp [abv_one hm h₀]
   | succ n ih => rw [pow_succ, hm, ih, ← pow_succ]
 
-
 open Filter Topology in
 lemma add_le_add_of_add_le_two_mul_max  (x y : R) : v (x + y) ≤ v x + v y := by
   have hx : 0 ≤ v x := hn x
@@ -821,13 +820,33 @@ end weak
 lemma abv_natCast_strictMono_of_not_isNonarchimedean {R : Type*} [Field R] {v : AbsoluteValue R ℝ}
     (hv : ¬ IsNonarchimedean v) :
     StrictMono (v ∘ NatCast.natCast) := by
+  have : CharZero R := charZero_of_archimedean hv
+  -- Use `v.comap` or `v.restrict` after moving to Extension.lean ?
+  let vℚ : AbsoluteValue ℚ ℝ := {
+    toFun x := v x
+    map_mul' _ _ := by simp
+    nonneg' _ := by simp
+    eq_zero' _ := by simp
+    add_le' _ _ := by simp [v.add_le]
+  }
+  have H (n : ℕ) : vℚ n = v n := by simp [vℚ]
+  have hvℚ : ¬ IsNonarchimedean vℚ := by
+    rw [isNonarchimedean_iff_le_one_on_nat] at hv ⊢
+    push_neg at hv ⊢
+    obtain ⟨n, hn⟩ := hv
+    exact ⟨n, H n ▸ hn⟩
+  have := Setoid.symm <| Rat.AbsoluteValue.real_of_archimedean hvℚ
+  rw [isEquiv_def] at this
+  obtain ⟨c, hc₀, hc⟩ := this
+  have H' : ⇑v ∘ NatCast.natCast = ⇑vℚ ∘ NatCast.natCast := by
+    ext1
+    simp [H]
+  rw [H', ← hc]
+  simp only [Rat.AbsoluteValue.real_eq_abs, Rat.cast_abs]
   intro m n h
   simp only [Function.comp_apply]
-  have := v.isNonarchimedean_iff_le_one_on_nat.not.mp hv
-  push_neg at this
-  obtain ⟨k, hk⟩ := this
-
-  sorry
+  norm_cast
+  exact Real.rpow_lt_rpow m.cast_nonneg' (mod_cast h) hc₀
 
 lemma abv_add_le_abv_two_mul_max {R : Type*} [Field R]
     {v : AbsoluteValue R ℝ} (hv : ¬ IsNonarchimedean v) (x y : R) :
