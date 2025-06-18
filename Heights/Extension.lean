@@ -214,6 +214,9 @@ lemma ofIsEquivComap_def : (ofIsEquivComap f h).comap f = v := by
   ext1 x
   simpa [ofIsEquivComap] using IsEquiv.exponent_def h x
 
+lemma ofIsEquivComap_isEquiv : ofIsEquivComap f h ≈ v' :=
+  Setoid.symm <| isEquiv_def.mpr ⟨IsEquiv.exponent h, IsEquiv.exponent_pos h, rfl⟩
+
 end
 
 
@@ -410,7 +413,10 @@ namespace Complex
 section
 
 variable {F : Type*} [Field F] [Algebra ℂ F] {v : AbsoluteValue F ℝ}
-    (hv : v.restrict ℂ = NormedField.toAbsoluteValue ℂ)
+
+section restrict_equal
+
+variable (hv : v.restrict ℂ = NormedField.toAbsoluteValue ℂ)
 
 noncomputable
 def normedAlgebraOfAbsoluteValue : NormedAlgebra ℂ (WithAbs v) where
@@ -419,7 +425,6 @@ def normedAlgebraOfAbsoluteValue : NormedAlgebra ℂ (WithAbs v) where
     rw [Algebra.smul_def, norm_mul]
     refine le_of_eq ?_
     congr
-    have : ‖r‖ = NormedField.toAbsoluteValue ℂ r := rfl
     rw [WithAbs.norm_eq_abv, show ‖r‖ = NormedField.toAbsoluteValue ℂ r from rfl, ← hv]
     rfl
 
@@ -433,11 +438,44 @@ lemma comap_algEquivComplex [CompleteSpace (WithAbs v)] :
       NormedField.toAbsoluteValue ℂ :=
   hv ▸ rfl
 
-end
+end restrict_equal
 
 section
 
-variable {F : Type*} [Field F] [Algebra ℝ F]
+open AbsoluteValue in
+theorem GelfandMazur (hv : v.restrict ℂ ≈ NormedField.toAbsoluteValue ℂ) [CompleteSpace (WithAbs v)] :
+    ∃ e : ℂ ≃ₐ[ℂ] WithAbs v, v.comap (e.toRingEquiv.trans (WithAbs.equiv v)).toRingHom ≈
+      NormedField.toAbsoluteValue ℂ := by
+  let v' := ofIsEquivComap (algebraMap ℂ F) hv
+  have hv' : restrict ℂ v' = NormedField.toAbsoluteValue ℂ := ofIsEquivComap_def ..
+  have : CompleteSpace (WithAbs v') :=
+    completeSpace_of_isEquiv <| Setoid.symm (ofIsEquivComap_isEquiv (algebraMap ℂ F) hv)
+  let e := (algEquivComplex hv').trans <| (WithAbs.algEquiv v').trans (WithAbs.algEquiv v).symm
+  refine ⟨e, ?_⟩
+  have H : (e.toRingEquiv.trans (WithAbs.equiv v)).toRingHom = algebraMap ℂ F := rfl
+  rw [H]
+  exact hv
+
+end
+
+
+section
+
+variable {F : Type*} [Field F]
+
+open Polynomial in
+lemma irreducible_sq_add_one (h : ∀ x : F, x ^ 2 ≠ -1) :
+    Irreducible (X ^ 2 + 1 : Polynomial F) := by
+  set p : Polynomial F := X ^ 2 + 1
+  refine irreducible_of_degree_le_three_of_not_isRoot ?_ fun x ↦ ?_
+  · have : p.natDegree = 2 := by simp only [p]; compute_degree!
+    simp [this]
+  · specialize h x
+    contrapose! h
+    simp only [p, IsRoot.def, eval_add, eval_pow, eval_X, eval_one] at h
+    exact (neg_eq_of_add_eq_zero_left h).symm
+
+variable [Algebra ℝ F]
 
 noncomputable
 def algebraOfAlgebraReal {i : F} (hi : i ^ 2 = -1) : Algebra ℂ F := RingHom.toAlgebra {
@@ -454,32 +492,122 @@ def algebraOfAlgebraReal {i : F} (hi : i ^ 2 = -1) : Algebra ℂ F := RingHom.to
     module
 }
 
+open Polynomial in
 noncomputable
 def algebraAdjoinRootOfAlgebraReal (h : ∀ x : F, x ^ 2 ≠ -1) :
-    Algebra ℂ (AdjoinRoot (.X ^ 2 + 1 : Polynomial F)) := by
-  letI p : Polynomial F := .X ^ 2 + 1
-  letI instA : Algebra ℝ (AdjoinRoot p) := inferInstance
-  letI instF : Field (AdjoinRoot p) :=
-    haveI : Fact (Irreducible p) := ⟨by
-      refine Polynomial.irreducible_of_degree_le_three_of_not_isRoot ?_ fun x ↦ ?_
-      · have : p.natDegree = 2 := by simp only [p]; compute_degree!
-        simp [this]
-      · specialize h x
-        contrapose! h
-        simp only [p, Polynomial.IsRoot.def, Polynomial.eval_add, Polynomial.eval_pow,
-          Polynomial.eval_X, Polynomial.eval_one] at h
-        exact (neg_eq_of_add_eq_zero_left h).symm
-      ⟩
-    AdjoinRoot.instField
+    Algebra ℂ (AdjoinRoot (X ^ 2 + 1 : Polynomial F)) := by
+  letI p : Polynomial F := X ^ 2 + 1
+  letI instF : Fact (Irreducible p) := ⟨irreducible_sq_add_one h⟩
   let i := AdjoinRoot.root p
   have hr : i ^ 2 = -1 := by
     refine (neg_eq_of_add_eq_zero_left ?_).symm
     simpa [p] using AdjoinRoot.isRoot_root p
   exact algebraOfAlgebraReal hr
 
+noncomputable
+def fieldAdjoinRootOfAlgebraReal (h : ∀ x : F, x ^ 2 ≠ -1) :
+    Field (AdjoinRoot (Polynomial.X ^ 2 + 1 : Polynomial F)) :=
+  haveI : Fact (Irreducible (Polynomial.X ^ 2 + 1 : Polynomial F)) := ⟨irreducible_sq_add_one h⟩
+  AdjoinRoot.instField
+
+end
+
+#exit
+
+section
+
+variable {F : Type*} [NormedField F] [NormedAlgebra ℝ F]
+
+#check TensorProduct ℝ ℂ F
+
+#synth Algebra ℂ (TensorProduct ℝ ℂ F)
+
+#synth NormedAlgebra ℂ (TensorProduct ℝ ℂ F)
+
+#synth Module F <| AdjoinRoot (Polynomial.X ^ 2 + 1 : Polynomial F)
+
+noncomputable
+def xyz : AdjoinRoot (Polynomial.X ^ 2 + 1 : Polynomial F) ≃ₗ[F] Fin 2 → F := by
+  letI p : Polynomial F := Polynomial.X ^ 2 + 1
+  have hp₀ : p ≠ 0 := Polynomial.Monic.ne_zero <| by simp only [p]; monicity!
+  letI pb := AdjoinRoot.powerBasis hp₀
+  have hpb : pb.dim = 2 := by
+    simp [pb, p]
+    compute_degree!
+  exact (hpb ▸ (AdjoinRoot.powerBasis hp₀).basis.repr).trans
+    (Finsupp.linearEquivFunOnFinite F F (Fin 2))
+
+lemma xyz_mul (x y : AdjoinRoot (Polynomial.X ^ 2 + 1 : Polynomial F)) :
+    xyz (x * y) = ![xyz x 0 * xyz y 0 - xyz x 1 * xyz y 1, xyz x 0 * xyz y 1 + xyz x 1 * xyz y 0] := by
+  ext1 i
+  fin_cases i
+  · simp
+    sorry
+  · sorry
+
+
+open Polynomial in
+noncomputable
+def normFunAdjoinRootOfAlgebraReal --(h : ∀ x : F, x ^ 2 ≠ -1)
+    (x : AdjoinRoot (X ^ 2 + 1 : Polynomial F)) : ℝ := by
+  letI p : Polynomial F := Polynomial.X ^ 2 + 1
+  have hp₀ : p ≠ 0 := Polynomial.Monic.ne_zero <| by simp only [p]; monicity!
+  letI pb := AdjoinRoot.powerBasis hp₀
+  have hpb : pb.dim = 2 := by
+    simp [pb, p]
+    compute_degree!
+  letI r := pb.basis.repr x
+  exact Real.sqrt (‖r ⟨0, by omega⟩‖ ^ 2 + ‖r ⟨1, by omega⟩‖ ^ 2)
+
+noncomputable
+instance normAdjoinRootOfAlgebraReal : --(h : ∀ x : F, x ^ 2 ≠ -1) :
+    Norm (AdjoinRoot (Polynomial.X ^ 2 + 1 : Polynomial F)) where
+      norm := normFunAdjoinRootOfAlgebraReal --h
+
+open Polynomial in
+lemma normFunAdjoinRootOfAlgebraReal_mul (x y : AdjoinRoot (X ^ 2 + 1 : Polynomial F)) :
+    ‖x * y‖ = ‖x‖ * ‖y‖ := by
+  simp only [normAdjoinRootOfAlgebraReal, normFunAdjoinRootOfAlgebraReal, AdjoinRoot.powerBasis_dim]
+
+  sorry
+
+def normedFieldAdjoinRootOfAlgebraReal  {F : Type*} [NormedField F] [Algebra ℝ F]
+    (h : ∀ x : F, x ^ 2 ≠ -1) :
+    NormedField <| AdjoinRoot (.X ^ 2 + 1 : Polynomial F) where
+      __ := fieldAdjoinRootOfAlgebraReal h
+      __ := normAdjoinRootOfAlgebraReal h
+      -- 'dist', 'dist_self', 'dist_comm', 'dist_triangle', 'eq_of_dist_eq_zero', 'dist_eq', 'norm_mul'
+
+def normedAlgebraAdjoinRootOfNormedAlgebraReal {F : Type*} [NormedField F] [NormedAlgebra ℝ F] (h : ∀ x : F, x ^ 2 ≠ -1) :
+    NormedAlgebra ℂ (AdjoinRoot (.X ^ 2 + 1 : Polynomial F)) := _
+
+
 end
 
 end Complex
+
+namespace Real
+
+variable {F : Type*} [Field F] [Algebra ℝ F]
+  {v : AbsoluteValue F ℝ} (hv : AbsoluteValue.restrict ℝ v = .abs)
+
+noncomputable
+def normedAlgebraOfAbsoluteValue : NormedAlgebra ℝ (WithAbs v) where
+  __ := ‹Algebra ℝ (WithAbs v)›
+  norm_smul_le r x := by
+    rw [Algebra.smul_def, norm_mul]
+    refine le_of_eq ?_
+    congr
+    rw [WithAbs.norm_eq_abv, show ‖r‖ = AbsoluteValue.abs r from rfl, ← hv]
+    rfl
+
+noncomputable
+def algEquivReal (hF : ∀ x : F, x ^ 2 ≠ -1) [CompleteSpace (WithAbs v)] : ℝ ≃ₐ[ℝ] WithAbs v := by
+  letI algℂ := Complex.algebraAdjoinRootOfAlgebraReal hF
+
+  sorry
+
+end Real
 
 namespace AbsoluteValue
 
