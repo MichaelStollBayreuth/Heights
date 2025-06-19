@@ -163,7 +163,7 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
       obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hε₀ hy
       rw [← v.map_pow] at hn
       exact hy₀ <| pow_eq_zero <| hε₁ _ hn
-    rcases h.lt_or_lt with h | h
+    rcases h.lt_or_gt with h | h
     · exact H hx₀ h
     · replace h := inv_lt_one_of_one_lt₀ h
       rw [← map_inv₀] at h

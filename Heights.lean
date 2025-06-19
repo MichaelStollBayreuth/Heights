@@ -2,3 +2,4 @@
 -- Import modules here that should be built as part of the library.
 import Heights.Rat
 import Heights.Extension
+import Heights.GelfandMazur

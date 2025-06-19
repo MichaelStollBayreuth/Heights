@@ -334,7 +334,7 @@ lemma logHeight₁_pow (x : K) (n : ℕ) : logHeight₁ (x ^ n) = n * logHeight�
 /-- The multiplicative height of the `n`th power of a field element `x` (with `n : ℤ`)
 is the `|n|`th power of the multiplicative height of `x`. -/
 lemma mulHeight₁_zpow (x : K) (n : ℤ) : mulHeight₁ (x ^ n) = mulHeight₁ x ^ n.natAbs := by
-  rcases le_or_lt 0 n with h | h
+  rcases le_or_gt 0 n with h | h
   · lift n to ℕ using h
     rw [zpow_natCast, mulHeight₁_pow, Int.natAbs_natCast]
   · nth_rewrite 1 [show n = -n.natAbs by rw [Int.ofNat_natAbs_of_nonpos h.le, neg_neg]]

@@ -146,7 +146,7 @@ lemma isMonicOfDegree_X_pow (R : Type*) [Semiring R] [Nontrivial R] (n : ℕ) :
     IsMonicOfDegree ((X : R[X]) ^ n) n :=
   (isMonicOfDegree_iff ..).mpr ⟨natDegree_X_pow_le n, coeff_X_pow_self n⟩
 
-lemma monic_of_isMonicOfDegree {R : Type*} [Semiring R] {p : R[X]} {n : ℕ}
+lemma IsMonicOfDegree.monic {R : Type*} [Semiring R] {p : R[X]} {n : ℕ}
     (h : IsMonicOfDegree p n) :
     p.Monic :=
   h.2
@@ -248,15 +248,13 @@ lemma z_isMonicOfDegree [Nontrivial R] [NoZeroDivisors R] (s t c : R) (n : ℕ) 
     simp only [z, Algebra.smul_mul_assoc, zero_add, pow_one, Algebra.mul_smul_comm, mul_one,
       smul_add, smul_C, smul_eq_mul, map_mul, map_pow, mul_zero, sub_zero]
     rw [sub_eq_add_neg, add_assoc, add_assoc, add_assoc]
-    refine (isMonicOfDegree_X_pow R 2).add_left <| Nat.lt_add_one_of_le ?_
-    compute_degree
+    exact (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
   | more n ih₂ ih₁ =>
     rw [z, sub_eq_add_neg, add_assoc, add_assoc]
     have : IsMonicOfDegree (X ^ 2 - s • 2 * X + C t) 2 := by
       rw [sub_eq_add_neg, add_assoc]
-      refine (isMonicOfDegree_X_pow R 2).add_left <| Nat.lt_add_one_of_le ?_
-      compute_degree
-    refine (this.pow (n + 1 + 1)).add_left <| Nat.lt_add_one_of_le ?_
+      exact (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
+    refine (this.pow (n + 1 + 1)).add_left ?_ --<| Nat.lt_add_one_of_le ?_
     compute_degree!
     rw [ih₁.natDegree_eq, ih₂.natDegree_eq]
     omega
@@ -354,9 +352,8 @@ abbrev p (s t : ℝ) : ℝ[X] := (X - C s) ^ 2 + C t
 
 lemma isMonicOfDegree_p_two (s t : ℝ) : IsMonicOfDegree (p s t) 2 := by
   rw [p]
-  have : IsMonicOfDegree (X - C s) 1 :=
-    (isMonicOfDegree_X ℝ).sub <| Nat.lt_add_one_of_le <| by compute_degree
-  exact (this.pow  2).add_left <| Nat.lt_add_one_of_le <| by compute_degree!
+  have : IsMonicOfDegree (X - C s) 1 := (isMonicOfDegree_X ℝ).sub <| by compute_degree!
+  exact (this.pow  2).add_left <| by compute_degree!
 
 lemma isMonicOfDegree_two_iff {f : ℝ[X]} : IsMonicOfDegree f 2 ↔ ∃ s t : ℝ, f = p s t := by
   refine ⟨fun H ↦ ?_, fun ⟨s, t, h⟩ ↦ h ▸ isMonicOfDegree_p_two s t⟩
@@ -647,5 +644,28 @@ lemma satisfies_quadratic_rel (x : F) : ∃ f : ℝ[X], f.IsMonicOfDegree 2 ∧ 
   contrapose! hh
   gcongr
   positivity
+
+/-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:
+
+If `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
+either to `ℝ` or to `ℂ`. -/
+theorem nonempty_algEquiv_or : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) := by
+  have : Algebra.IsAlgebraic ℝ F := by
+    refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
+    obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
+    exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <|
+      hf.natDegree_eq.trans_ne two_ne_zero
+  exact Real.nonempty_algEquiv_or F
+
+-- without going via `IsIntegral`:
+/-
+  have : Algebra.IsAlgebraic ℝ F := by
+    refine ⟨fun x ↦ ?_⟩
+    obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
+    refine (hfx ▸ isAlgebraic_zero).of_aeval f ?_ ?_
+    · exact hf.natDegree_eq.trans_ne two_ne_zero
+    · rw [hf.monic.leadingCoeff]
+      exact Submonoid.one_mem (nonZeroDivisors ℝ)
+-/
 
 end GelfandMazur
