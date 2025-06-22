@@ -360,6 +360,10 @@ end auxiliary
 
 namespace GelfandMazur
 
+/-!
+### The sequences y and z and their properties
+-/
+
 section sequences
 
 variable {R : Type*} [CommRing R]
@@ -427,7 +431,7 @@ lemma y_z_rel (t c : R) (n : ℕ) :
 variable {F : Type*} [NormedField F] [Algebra R F]
 
 /-- If `F` is a normed field that is an `R`-algebra, then for a given `x : F`, the norm
-of gthe value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C ≥ 0`. -/
+of gthe value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C > 0`. -/
 lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n := by
   suffices ∃ C ≥ 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n by
     obtain ⟨C, hC₀, hC⟩ := this
@@ -466,6 +470,9 @@ lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * 
 
 end sequences
 
+/-!
+### The key step of the proof
+-/
 
 variable {F : Type*} [NormedField F] [NormedAlgebra ℝ F]
 
@@ -498,15 +505,14 @@ lemma tendsto_M {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (
     Tendsto (fun n : ℕ ↦ M * (1 + (|c| / M) ^ n * f n + (|c| ^ 2 / M) ^ n)) atTop (nhds M) := by
   rcases eq_or_lt_of_le H₀ with rfl | H₀
   · simp
-  conv => enter [3, 1]; rw [← mul_one M, ← add_zero 1, ← add_zero (1 + 0), add_assoc]
-  conv => enter [1, n, 2]; rw [add_assoc]
-  refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <| Filter.Tendsto.add ?_ ?_
+  conv => enter [3, 1]; rw [show M = M * (1 + 0 + 0) by ring] -- preparation
+  refine tendsto_const_nhds.mul <| (tendsto_const_nhds.add ?_).add  ?_
   · replace hC (n : ℕ) : (|c| / M) ^ n * f n ≤ 2 * (|c| / (M / C)) ^ n := by
       calc (|c| / M) ^ n * f n
       _ ≤ (|c| / M) ^ n * (2 * C ^ n) := by have := hC n; gcongr
       _ = _ := by rw [mul_left_comm, ← mul_pow]; congr 2; field_simp
     refine squeeze_zero (fun n ↦ by have := hf n; positivity) hC ?_
-    conv => enter [3, 1]; rw [← mul_zero 2]
+    conv => enter [3, 1]; rw [← mul_zero 2] -- preparation
     refine tendsto_const_nhds.mul <| tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
     rw [abs_of_nonneg (by positivity), div_lt_one (by positivity)]
     exact (lt_min_iff.mp hc).2
@@ -523,42 +529,41 @@ lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s �
     (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') :
     ∃ ε > 0, ∀ c : ℝ, |c| < ε → f x t (s + c) = f x t s := by
   obtain ⟨C, hC₀, hC⟩ := y_bound t (x - s •1)
-  set M : ℝ := f x t s with hM
+  set M : ℝ := f x t s
   refine ⟨min M.sqrt (M / C), by positivity, fun c hc ↦ ?_⟩
   suffices ∀ n > 0, f x t (s + c) ≤
       M * (1 + (|c| / M) ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2 / M) ^ n) by
-    rw [eq_comm]
-    refine le_antisymm (h ..) <|
-      ge_of_tendsto (tendsto_M hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_
-    have H : {n : ℕ | n > 0} ∈ Filter.atTop := by
-      refine Filter.mem_atTop_sets.mpr ⟨1, fun m hm ↦ ?_⟩
-      simp only [Set.mem_setOf_eq]
-      omega
-    filter_upwards [H]
-    exact this
+    -- (this is still true for `n = 0`, but would need a separate proof)
+    refine (le_antisymm (h ..) <|
+      ge_of_tendsto (tendsto_M hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_).symm
+    exact Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
   intro n hn
+  -- use the relation between `y t n` and `z t c n`
   have hrel := y_z_rel t c n
-  apply_fun (‖aeval (x - s • 1) ·‖) at hrel
+  apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
   simp only [map_pow, map_add, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, map_smul,
     map_mul, norm_mul] at hrel
   replace hrel := (hrel.symm.trans_le (norm_add_le ..)).trans (add_le_add_right (norm_sub_le ..) _)
   rw [norm_pow, sub_sub, ← add_smul] at hrel
   have hz : M ^ (n - 1) ≤ ‖aeval (x - s • 1) (z t c n)‖ := by
     refine le_aeval_of_isMonicOfDegree x h ?_ s
-    convert z_isMonicOfDegree t c (n - 1)
-    omega
+    nth_rewrite 1 [show n = n - 1 + 1 by omega]
+    exact z_isMonicOfDegree ..
   have HH : f x t (s + c) * M ^ (n - 1) ≤
       M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
     calc f x t (s + c) * M ^ (n - 1)
     _ ≤ f x t (s + c) * ‖aeval (x - s • 1) (z t c n)‖ := by gcongr
     _ ≤ f x t s ^ n + ‖c ^ n • aeval (x - s • 1) (y t n)‖ + ‖(c • 1) ^ (2 * n)‖ := hrel
     _ = M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
-      rw [norm_pow, hM, norm_smul, norm_pow, ← Algebra.algebraMap_eq_smul_one c, norm_algebraMap,
-        c.norm_eq_abs, norm_one, mul_one, pow_mul]
+      simp [M, norm_smul, pow_mul]
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
   field_simp
   -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
   rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+
+/-!
+### Existence of a minimizing monic polynomial of degree 2
+-/
 
 lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
   have hf : Continuous fun r : ℝ ↦ ‖x - r • 1‖ := by fun_prop
@@ -621,58 +626,63 @@ lemma exists_minimum_of_f (x : F) : ∃ s t : ℝ, ∀ s' t' : ℝ, f x t s ≤ 
   { simp only [sub_sq, Algebra.mul_smul_comm, mul_one, _root_.smul_pow, one_pow, two_mul]
     module }
 
-lemma sub_sq_sub_sq {α : Type*} [CommRing α] (u v : α) :
-    (u - v) ^ 2 - u ^ 2 = (v - 2 * u) * v := by
-  ring
+/-!
+### The main result
+-/
+
+lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f x t' s')
+    (H : ∀ (s t : ℝ), f x t s ≠ 0) (c : ℝ) :
+    f x t c = f x t s := by
+  suffices {c | f x t c = f x t s} = Set.univ by simpa only [← this] using Set.mem_univ c
+  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <|
+    Set.nonempty_of_mem rfl
+  refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
+  simp only [Set.mem_setOf_eq] at hc
+  obtain ⟨ε, hε₀, hε⟩ :=
+    constant_on_open_interval_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
+  refine ⟨Set.Ioo (c - ε) (c + ε), fun u hu ↦ ?_, isOpen_Ioo, ?_⟩
+  · simp only [Set.mem_setOf, ← hc]
+    convert hε (u - c) ?_
+    · abel
+    · simp only [Set.mem_Ioo] at hu
+      exact abs_sub_lt_iff.mpr ⟨sub_left_lt_of_lt_add hu.2, sub_lt_comm.mp hu.1⟩
+  · exact Set.mem_Ioo.mpr ⟨sub_lt_self c hε₀, lt_add_of_pos_right c hε₀⟩
 
 /-- Every `x : F` is the root of a monic quadratic polynomial with real coefficients. -/
-lemma satisfies_quadratic_rel (x : F) : ∃ f : ℝ[X], f.IsMonicOfDegree 2 ∧ aeval x f = 0 := by
+lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
   suffices ∃ s t : ℝ, f x t s = 0 by
     obtain ⟨s, t, hst⟩ := this
     refine ⟨_, isMonicOfDegree_sub_sq_add_two s t, ?_⟩
     simpa [Algebra.algebraMap_eq_smul_one] using hst
   obtain ⟨s, t, hst⟩ := exists_minimum_of_f x
   rcases eq_or_ne (f x t s) 0 with h₀ | h₀
-  · exact ⟨s, t, h₀⟩
+  · exact ⟨s, t, h₀⟩ -- minimum is zero --> OK!
+  -- now we assume the minimum is nonzero and derive a contradiction
   by_contra! H
-  let S : Set ℝ := {c | f x t c = f x t s}
-  have hS₁ : IsClosed S := isClosed_eq (by fun_prop) (by fun_prop)
-  have hS₂ : IsOpen S := by
-    refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
-    change f x t c = f x t s at hc
-    have h₀' : f x t c ≠ 0 := H c t
-    obtain ⟨ε, hε₀, hε⟩ := constant_on_open_interval_of_ne_zero x h₀' (fun s' t' ↦ hc ▸ hst s' t')
-    refine ⟨Set.Ioo (c - ε) (c + ε), fun u hu ↦ ?_, isOpen_Ioo, ?_⟩
-    · simp only [Set.mem_setOf, S, ← hc]
-      convert hε (u - c) ?_
-      · abel
-      · simp only [Set.mem_Ioo] at hu
-        exact abs_sub_lt_iff.mpr ⟨sub_left_lt_of_lt_add hu.2, sub_lt_comm.mp hu.1⟩
-    · refine Set.mem_Ioo.mpr ⟨?_, ?_⟩ <;> linarith
-  have hS₃ : S.Nonempty := Set.nonempty_of_mem rfl
-  have key : S = Set.univ := IsClopen.eq_univ ⟨hS₁, hS₂⟩ hS₃
-  replace key (c : ℝ) : f x t c = f x t s := by
-    simp only [S] at key
-    simpa only [← key] using Set.mem_univ c
-  set a := f x t s
+  -- use that `f x t` is constant to produce an inequality that is false for `c` large enough
+  set a := f x t s     -- convenient abbreviations
   set b := ‖x - s • 1‖
   have hh (c : ℝ) (hc : 0 ≤ c) : (c - b) ^ 2 - b ^ 2 ≤ 2 * a := by
-    rw [two_mul a]
-    nth_rewrite 1 [← key s]
-    rw [← key (s + c)]
-    refine LE.le.trans ?_ (norm_sub_le ..)
-    rw [add_sub_add_right_eq_sub, add_smul, ← sub_sub, sub_sq_comm, norm_sub_rev (_ ^ 2),
-      sub_sq_sub_sq, sub_sq_sub_sq, norm_mul, Algebra.norm_smul_one_eq_abs, abs_of_nonneg hc]
-    gcongr
-    convert norm_sub_norm_le ..
-    · simp [abs_of_nonneg hc]
-    · simp [b]
+    calc (c - b) ^ 2 - b ^ 2
+    _ = (c - 2 * b) * c := by ring
+    _ ≤ ‖c • 1 - 2 * (x - s • 1)‖ * c := by
+        gcongr
+        convert norm_sub_norm_le ..
+        · simp [abs_of_nonneg hc]
+        · simp [b]
+    _ = ‖(c • 1 - 2 * (x - s • 1)) * (c • 1)‖ := by
+        rw [norm_mul, Algebra.norm_smul_one_eq_abs, abs_of_nonneg hc]
+    _ = ‖(x - s • 1) ^ 2 + t • 1 - ((x - (s + c) • 1) ^ 2 + t • 1)‖ := by
+        rw [norm_sub_rev, add_smul]
+        congr 1
+        ring
+    _ ≤ ‖(x - s • 1) ^ 2 + t • 1‖ + ‖((x - (s + c) • 1) ^ 2 + t • 1)‖ := norm_sub_le ..
+    _ = 2 * a := by rw [two_mul a]; exact congrArg (a + ·) <| f_is_constant hst H (s + c)
+  -- now get the contradiction by specializing to a suitable value of `c`
   specialize hh ((2 * a + b ^ 2).sqrt + b + 1) (by positivity)
-  rw [tsub_le_iff_right] at hh
-  ring_nf at hh
-  rw [Real.sq_sqrt (by positivity), add_le_iff_nonpos_left, ← le_neg_iff_add_nonpos_left] at hh
-  contrapose! hh
-  exact neg_one_lt_zero.trans_le (by positivity)
+  rw [tsub_le_iff_right, show _ + b + 1 - b = _ + 1 by abel, add_sq, Real.sq_sqrt (by positivity)]
+    at hh
+  linarith [show 0 ≤ √(2 * a + b ^ 2) by positivity]
 
 /-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:
 
@@ -682,8 +692,7 @@ theorem nonempty_algEquiv_or : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃�
   have : Algebra.IsAlgebraic ℝ F := by
     refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
     obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
-    exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <|
-      hf.natDegree_eq.trans_ne two_ne_zero
+    exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <| hf.natDegree_eq.trans_ne two_ne_zero
   exact Real.nonempty_algEquiv_or F
 
 -- without going via `IsIntegral`:
