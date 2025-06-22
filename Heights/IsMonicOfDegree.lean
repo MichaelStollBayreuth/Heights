@@ -11,12 +11,6 @@ We also provide some basic API.
 
 namespace Polynomial
 
--- A lemma that is missing in Mathlib
-lemma coeff_pow_mul_natDegree' {R : Type*} [Semiring R] {p : R[X]} {m : ℕ}
-    (h : p.natDegree = m) (n : ℕ) :
-    (p ^ n).coeff (n * m) = p.coeff m ^ n := by
-  rw [← h, coeff_pow_mul_natDegree, coeff_natDegree]
-
 /-- This says that `p` has `natDegree` `n` and is monic. -/
 abbrev IsMonicOfDegree {R : Type*} [Semiring R] (p : R[X]) (n : ℕ) : Prop :=
   p.natDegree = n ∧ p.Monic
