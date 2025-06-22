@@ -20,69 +20,110 @@ over `ℝ`; this implies that `F` is an algebraic field extension of `ℝ`, and 
 either `F` is already isomorphic to `ℝ` via the algebra map, or else `F` is isomorphic
 to `ℂ` as a normed `ℝ`-algebra.
 
+### The complex case
+
+The proof we use here is a variant of a proof for the complex case (any normed `ℂ`-algebra
+is isomorphic to `ℂ`) that is originally due to Ostrowski
+[(Section 7 in *Über einige Lösungen der Funktionalgleichung φ(x)⋅φ(y)=φ(xy)*,
+Acta Math. 41, 271-284 (1917))}(https://doi.org/10.1007/BF02422947).
+See also the concise version provided by Peter Scholze on
+[Math Overflow](https://mathoverflow.net/questions/10535/ways-to-prove-the-fundamental-theorem-of-algebra/420803#420803).
+
+This proof goes as follows. Let `x : F` be arbitrary; we need to show that `x = z•1`
+for some `z : ℂ`. We consider the function `z ↦ ‖x - z•1‖`. It has a minimum `M`,
+which it attains at some point `z`, which (upon replacing `x` by `x + z•1`) we can
+assume to be zero. If `M = 0`, we are done, so assume not. For `n : ℕ`,
+a primitive `n`th root of unity `ζ : ℂ`, and `z : ℂ` with `|z| < M = ‖x‖` we then have that
+`M ≤ ‖x - z•1‖ = ‖x^n - z^n•1‖ / ∏ k ∈ Ioo 0 n, ‖x - (ζ^k*z)•1‖`,
+which is bounded by `(M^n + |z|^n)/M^(n-1) = M*(1 + (|z|/M)^n)`.
+Letting `n` tend to infinity then shows that `‖x - z•1‖ = M`.
+This implies that the set of `z` such that `‖x - z•1‖ = M` is closed and open
+(and nonempty), so it is all of `ℂ`, which contradicts `‖x - z•1‖ ≥ |z| - M`
+when `|z|` is sufficiently large.
+
+A version of the result exists as `NormedRing.algEquivComplexOfComplete` (which gives
+the isomorphism) in Mathlib (with weaker assumptions and a different proof).
+
+### The real case
+
+THe usual proof for the real case is "either `F` contains a square root of `-1`;
+then `F` is in fact a normed `ℂ`-agebra and we can use the result above, or else
+we adjoin a square root of `-1` to `F` to obtain a normed `ℂ`-agebra `F'` and
+apply the result to `F'`". The difficulty with formalizing this is that
+Mathlib does not provide a normed `ℂ`-algebra instance for `F'` (neither for
+`F' := AdjoinRoot (X^2 + 1 : F[X])` nor for `F' := TensorProduct ℝ ℂ F`),
+and it is not so straight-forward to set this up. So we take inspiration from the
+proof sketched above for the complex case to obtain a direct proof.
+
 Since irreducible polynomials over `ℝ` have degree at most `2`, it is actually the case
 that each element is annihilated by a monic polynomial of degree `2`. We can state this as
-`∃ p : ℝ[X], p.natDegree = 2 ∧ p.Monic ∧ p.aeval x = 0`.
+`∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ p.aeval x = 0`, where `Polynomial.IsMonicOfDegree`
+has the obvious meaning (we define this predicate and provide API for it).
 
 Because the space `ℝ²` of monic polynomials of degree `2` is complete and locally compact
 and `‖p.aeval x‖` gets large when `p` has large coefficients (*), there will be some `p₀`
-such that `‖p₀.aeval x‖` attains a minimum. We assume that this is positive and derive
-a contradiction. Let `M := ‖p₀.aeval x‖ > 0` be the minimal value.
+such that `‖p₀.aeval x‖` attains a minimum (see `GelfandMazur.exists_minimum_of_f`).
+We assume that this is positive and derive a contradiction. Let `M := ‖p₀.aeval x‖ > 0`
+be the minimal value.
 Since every monic polynomial `f : ℝ[X]` of even degree can be written as a product
-of monic polynomials of degree `2`, it follows that `‖f.aeval x‖ ≥ M^(f.natDegree / 2)`.
+of monic polynomials of degree `2`
+(see `Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree`),
+it follows that `‖f.aeval x‖ ≥ M^(f.natDegree / 2)`.
 
 (*) This is actually somewhat more subtle. It is certainly true for `‖x - r‖` with `r : ℝ`.
 If the minimum of this is zero, then the minimum for monic polynomials of degree `2`
 will also be zero (and is attained on a one-dimensional subset). Otherwise, one can
 indeed show that a bound on `‖x^2 - a•x + b•1‖` implies bounds on `|a|` and `|b|`.
 
-Write `p₀ = X^2 - 2*s*X + t` with `s t : ℝ`. We define two sequences of polynomials,
-the second of which depends on a parameter `c : ℝ`:
-* `y 0 := 2`, `y 1 := 2*(X-s)`, `y (n+2) := 2*(X-s)*(y (n+1)) - p₀*(y n)`
-* `z c 0 := 0`, `z c 1 := 1`, `z c (n+2) := p₀^(n+1) + 2*c*(X-s)*(z c (n+1)) - c^2*p₀*(z c n) + c^(2*n+2)`
+Note that any monic polynomial of degree `2` over `ℝ` can be written in the form
+`(X - C s)^2 + C t` with (unique) `s t : ℝ` (see `Polynomial.isMonicOfDegree_two_iff`).
+The goal is to show that when `s` and `t` achieve the minimum `M` of `‖(x - s•1)^2 + t•1‖`,
+and `M > 0`, then we can find some `ε > 0` (depending on `x`, `s`, `t`, and `M`)
+such that `‖(x - (s+c)•1)^2 + t•1‖ = M` for all `c : ℝ` such that `|c| < ε`
+(see `GelfandMazur.constant_on_open_interval_of_ne_zero`).
+Then the set `S = {s' | ‖(x - s'•1)^2 + t•1‖ = M}` must be all of `ℝ` (as it is
+closed, open, and nonempty). This will lead to a contradiction with the growth
+of `‖(x - s'•1)^2 + t•1‖` as `|s'|` gets large.
 
-They have the following properties.
-* `∀ c, ∀ n ≠ 0, (z c n).Monic ∧ (z c n).natDegree = 2*(n-1)`
-* `∀ c n, p₀^n - c^n*(y n) + c^(2*n) = p₀.aeval (X-c) * (z c n)`
-* `∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n`
+To get there, the idea is to find a relation among polynomials of the following form,
+where `n : ℕ` and `c : ℝ` is arbitrary.
+```math
+  (X^2+t)^n - c^n y_n(X) + c^{2n} = ((X-c)^2+t) z_n(c,X) \,,
+```
+where $y_n(X)$ has degree at most `n` and the norm of its value at a given `x : F`
+can be bounded by a constant (`= 2`) times the `n`th power of another constant `C`;
+then $z_n(c,X)$ must be monic of degree `2*(n-1)`. We define suitable sequences
+of polynomials `y x t n` and `z x c t n` below.
 
-This implies that
-`‖(p₀.aeval (X-c)).aeval x‖ = ‖(p₀^n - c^n*(y n) + c^(2*n)).aeval x‖ / ‖(z c n).aeval x‖`,
+This (and the definition of `y` and `z`) is inspired by "taking norms from `ℂ` to `ℝ`"
+in the proof above. Consider, for `c : ℝ`, `P t c := ((X-t*I•1)^n - c^n•1)*((X+t*I•1)^n - c^n•1)`;
+this is in fact a polynomial with real coefficients. On the one hand, we can write
+`P t c = (X^2+t^2•1)^n - c^n•((X-t*I•1)^n + (X+t*I•1)^n)) + |c|^(2*n)•1`,
+where the middle term is a polynomial with real coefficients again that depends on `c`
+only via the factor `c^n`. On the other hand,
+`P t c = (X - (c+t*I)•1)*(X - (c-t*I)•1) * F t c = ((X-c•1)^2 + t^2•1) * F t c`,
+where `F t c` is monic of degree `2*(n-1)`. Our definition of `y` and `z` is such that
+`y x (t^2) n = (x-t*I•1)^n + (x+t*I•1)^n)` and `z x (t^2) c n = aeval x (F t c)`.
+
+Evaluating at `x - s•1` and taking norms, this implies that
+`‖(x-(s+c)•1)^2 + t‖ = ‖((X^2+t)^n - c^n*(y n) + c^(2*n)).aeval (x-s•1)‖ / ‖(z c n).aeval (x-s•1)‖`,
 which is bounded by
-`(M^n + |c|^n * ‖(y n).aeval x‖ + |c|^(2*n)) / M^(n-1) = M * (1 + (|c|/M)^n * ‖(y n).aeval x‖ + (|c|^2/M)^n)`.
+`(M^n + |c|^n * (2*C^n) + |c|^(2*n)) / M^(n-1) = M * (1 + 2 * (|c|*C/M)^n + (|c|^2/M)^n)`.
 If we take `c : ℝ` such that `|c| < min √M (M/C)`, then as `n` tends to infinity, we obtain that
-`M ≤ ‖(p₀.aeval (X-c)).aeval x‖ ≤ M`.
+`M ≤ ‖(x-(s+c)•1)^2 + t‖ ≤ M`, as desired.
 
-### Simplified
-
-Fix `t  : ℝ` (and think of `p₀ = X^2 + t`). We define two sequences of polynomials,
-the second of which depends on a parameter `c : ℝ`:
-* `y 0 := 2`, `y 1 := 2*X`, `y (n+2) := 2*X*(y (n+1)) - (X^2+t)*(y n)`
-* `z c 0 := 0`, `z c 1 := 1`,
-  `z c (n+2) := (X^2+t)^(n+1) + 2*c*X*(z c (n+1)) - c^2*(X^2+t)*(z c n) + c^(2*n+2)`
-
-They have the following properties.
-* `∀ c, ∀ n ≠ 0, (z c n).Monic ∧ (z c n).natDegree = 2*(n-1)`
-* `∀ c n, (X^2+t)^n - c^n*(y n) + c^(2*n) = ((X-c)^2+t) * (z c n)`
-* `∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n` (for any fixed `x : F`)
-
-This implies that
-`‖(x-c•1)^2 + t‖ = ‖((X^2+t)^n - c^n*(y n) + c^(2*n)).aeval x‖ / ‖(z c n).aeval x‖`,
-which is bounded by
-`(M^n + |c|^n * ‖(y n).aeval x‖ + |c|^(2*n)) / M^(n-1) = M * (1 + (|c|/M)^n * ‖(y n).aeval x‖ + (|c|^2/M)^n)`.
-If we take `c : ℝ` such that `|c| < min √M (M/C)`, then as `n` tends to infinity, we obtain that
-`M ≤ ‖(p₀.aeval (X-c)).aeval x‖ ≤ M`.
-
-###
-
-Restricting to the one-dimensional subset of polynomials of the form `p₀.aeval (X-c)`,
-we see that the subset `S := {c : ℝ | ‖p₀.aeval (X-c)‖ = M}` of `ℝ` is closed
-(because `c ↦ ‖p₀.aeval (X-c)‖` is continuous), but also open (because for a minimizing `c`,
-it contains an open interval around `c` by the same argument, applied to the shifted polynomial).
-Since `0 ∈ S`, it follows that `S = ℝ`, but this contradicts the fact that for large `c`,
-the value of `‖p₀.aeval (X-c)‖` tends to infinity.
+It remains to define suitable sequences `y` and `z` of polynomials. We set, for `x : F`
+and `t c : ℝ`,
+* `y x t 0 := 2`, `y x t 1 := 2*X`, `y x t (n+2) := 2*X*(y x t (n+1)) - (X^2+t)*(y x t n)`
+* `z x t c 0 := 0`, `z x t c 1 := 1`,
+  `z x t c (n+2) := (X^2+t)^(n+1) + 2*c*X*(z x t c (n+1)) - c^2*(X^2+t)*(z x t c n) + c^(2*n+2)`
+and we prove that
+* `∀ x t c, ∀ n ≠ 0, IsMonicOfDegree (z x t c n) 2*(n-1)` (`GelfandMazur.z_isMonicOfDegree`)
+* `∀ x t c n, (X^2+t)^n - c^n*(y x t n) + c^(2*n) = ((X-c)^2+t) * (z x t c n)`
+  (`GelfandMazur.y_z_rel`)
+* `∀ x t, ∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n` (`GelfandMazur.y_bound`)
+which provides the necessary input.
 -/
-
 
 section auxiliary
 
@@ -325,14 +366,15 @@ variable {R : Type*} [CommRing R]
 
 open Polynomial
 
-/-- The sequence `y t n` for the polynomial `X ^ 2 + t`. -/
+/-- The sequence `y t n` such that (formally) `y (t^2) n = (X-t*I•1)^n + (X+t*I•1)^n)`. -/
 noncomputable
 def y (t : R) : ℕ → R[X]
 | 0 => 2
 | 1 => 2 • X
 | n + 2 => 2 * X * y t (n + 1) - (X ^ 2 + C t) * y t n
 
-/-- The sequence `z t c n` for the polynomial `X ^ 2 + t` and a constant `c`. -/
+/-- The sequence `z t c n` such that (formally)
+`z (t^2) c n = ((X-t*I•1)^n - c^n•1)*((X+t*I•1)^n - c^n•1)/((X-c•1)^2 + t^2•1)`. -/
 noncomputable
 def z (t c : R) : ℕ → R[X]
 | 0 => 0
@@ -344,7 +386,7 @@ def z (t c : R) : ℕ → R[X]
 lemma z_isMonicOfDegree [Nontrivial R] [NoZeroDivisors R] (t c : R) (n : ℕ) :
     IsMonicOfDegree (z t c (n + 1)) (2 * n) := by
   induction n using Nat.twoStepInduction with
-  | zero => simp [z, IsMonicOfDegree]
+  | zero => simp [z]
   | one =>
     simp only [z, zero_add, pow_one, Algebra.mul_smul_comm, mul_one, add_assoc, smul_add, smul_C,
       smul_eq_mul, map_mul, map_pow, mul_zero, sub_zero]
@@ -386,8 +428,8 @@ variable {F : Type*} [NormedField F] [Algebra R F]
 
 /-- If `F` is a normed field that is an `R`-algebra, then for a given `x : F`, the norm
 of gthe value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C ≥ 0`. -/
-lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖(y t n).aeval x‖ ≤ 2 * C ^ n := by
-  suffices ∃ C ≥ 0, ∀ n, ‖(y t n).aeval x‖ ≤ 2 * C ^ n by
+lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n := by
+  suffices ∃ C ≥ 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n by
     obtain ⟨C, hC₀, hC⟩ := this
     refine ⟨C + 1, by positivity, fun n ↦ ?_⟩
     have H : 2 * C ^ n ≤ 2 * (C + 1) ^ n := by gcongr; linarith
@@ -396,33 +438,31 @@ lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖(y t n).aeval x‖ ≤ 2 * 
   set b := ‖x ^ 2 + (algebraMap R F) t‖
   let C : ℝ := max (max ‖x‖ (2 * a)) (Real.sqrt (2 * b))
   have h₂ : ‖(2 : F)‖ ≤ 2 := by simpa using Nat.norm_cast_le (α := F) 2
-  have hC₁ : ‖x‖ ≤ C := le_sup_of_le_left <| le_sup_of_le_left le_rfl
-  have hC (n : ℕ) : a * (2 * C ^ (n + 1)) + b * (2 * C ^ n) ≤ 2 * C ^ (n + 2) := by
-    have hCab₁ : a * C ≤ C ^ 2 / 2 := by
-      rw [show C ^ 2 / 2 = (C / 2) * C by ring]
-      gcongr
-      rw [le_div_iff₀' zero_lt_two]
-      exact le_sup_of_le_left (le_max_right ..)
-    have hCab₂ : b ≤ C ^ 2 / 2 := by
-      rw [le_div_iff₀' zero_lt_two, ← Real.sq_sqrt (by positivity : 0 ≤ 2 * b)]
-      gcongr
-      exact le_max_right ..
-    rw [show a * (2 * C ^ (n + 1)) + b * (2 * C ^ n) = (a * C + b) * (2 * C ^ n) by ring,
-      show 2 * C ^ (n + 2) = C ^ 2 * (2 * C ^ n) by ring, ← add_halves (C ^ 2)]
-    gcongr
   refine ⟨C, by positivity, fun n ↦ ?_⟩
   induction n using Nat.twoStepInduction with
   | zero => simpa [y] using h₂
   | one =>
     simp only [y, nsmul_eq_mul, Nat.cast_ofNat, map_mul, aeval_ofNat, aeval_X, norm_mul, pow_one]
+    have : ‖x‖ ≤ C := le_sup_of_le_left <| le_max_left ..
     gcongr
   | more n ih₂ ih₁ =>
     simp only [y, map_sub, map_mul, aeval_ofNat, Nat.cast_ofNat, aeval_X, map_add, map_pow, aeval_C]
-    refine (norm_sub_le _ _).trans ?_
-    rw [norm_mul]
-    nth_rewrite 2 [norm_mul]
-    refine LE.le.trans ?_ (hC n)
-    gcongr
+    calc ‖2 * x * aeval x (y t (n + 1)) - (x ^ 2 + algebraMap R F t) * aeval x (y t n)‖
+    _ ≤ ‖2 * x * aeval x (y t (n + 1))‖ + ‖(x ^ 2 + algebraMap R F t) * aeval x (y t n)‖ :=
+        norm_sub_le ..
+    _ = ‖2 * x‖ * ‖aeval x (y t (n + 1))‖ + ‖x ^ 2 + algebraMap R F t‖ * ‖aeval x (y t n)‖ := by
+        simp only [norm_mul]
+    _ ≤ a * (2 * C ^ (n + 1)) + b * (2 * C ^ n) := by gcongr
+    _ = (a * C + b) * (2 * C ^ n) := by ring
+    _ ≤ (C ^ 2 / 2 + C ^ 2 / 2) * (2 * C ^ n) := by
+        gcongr -- `a * C ≤ C ^ 2 / 2` and `b ≤ C ^ 2 / 2`
+        · have : 2 * a ≤ C := le_sup_of_le_left <| le_max_right ..
+          rw [le_div_iff₀' zero_lt_two, ← mul_assoc, sq]
+          gcongr
+        · have : √(2 * b) ≤ C := le_max_right ..
+          rw [le_div_iff₀' zero_lt_two, ← Real.sq_sqrt (by positivity : 0 ≤ 2 * b)]
+          gcongr
+    _ = 2 * C ^ (n + 2) := by ring
 
 end sequences
 
@@ -431,14 +471,13 @@ variable {F : Type*} [NormedField F] [NormedAlgebra ℝ F]
 
 open Polynomial
 
+/-- We abbreviate the function we are minimizing as `f x : ℝ → ℝ → ℝ`.
+In the crucial part of the proof, we will in fact consider `f x t` for some fixed `t : ℝ`
+and show that it is constant (unless `f x` takes the value zero somewhere). -/
 abbrev f (x : F) (t s : ℝ) : ℝ := ‖(x - s • 1) ^ 2 + t • 1‖
 
-lemma aeval_sub_sq_add (x : F) (s t : ℝ) :
-    aeval x ((X - C s) ^ 2 + C t) = (x - s • 1) ^ 2 + t • 1 := by
-  simp [Algebra.algebraMap_eq_smul_one]
-
-lemma aux₁ (x : F) {s t : ℝ} (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') {p : ℝ[X]} {n : ℕ}
-    (hp : IsMonicOfDegree p (2 * n)) (c : ℝ) :
+lemma le_aeval_of_isMonicOfDegree (x : F) {s t : ℝ} (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s')
+    {p : ℝ[X]} {n : ℕ} (hp : IsMonicOfDegree p (2 * n)) (c : ℝ) :
     f x t s ^ n ≤ ‖aeval (x - c • 1) p‖ := by
   induction n generalizing p with
   | zero =>
@@ -447,26 +486,25 @@ lemma aux₁ (x : F) {s t : ℝ} (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') {p
   | succ n ih =>
     rw [mul_add, mul_one] at hp
     obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_two_isMonicOfDegree
-    specialize ih hf₂
     obtain ⟨s', t', hst⟩ := isMonicOfDegree_two_iff.mp hf₁
-    rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hst, aeval_sub_sq_add, sub_sub, ← add_smul]
-    specialize h (c + s') t'
-    gcongr
+    have H' (y : F) : aeval y ((X - C s') ^ 2 + C t') = (y - s' • 1) ^ 2 + t' • 1 := by
+      simp [Algebra.algebraMap_eq_smul_one]
+    rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hst, H', sub_sub, ← add_smul]
+    exact mul_le_mul (ih hf₂) (h (c + s') t') (norm_nonneg _) (norm_nonneg _)
 
-lemma aux₃ {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (√M) (M / C))
+open Filter in
+lemma tendsto_M {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (√M) (M / C))
     {f : ℕ → ℝ} (hf : ∀ n, 0 ≤ f n) (hC : ∀ n, f n ≤ 2 * C ^ n) :
-    Filter.Tendsto (fun n : ℕ ↦ M * (1 + (|c| / M) ^ n * f n + (|c| ^ 2 / M) ^ n))
-      Filter.atTop (nhds M) := by
+    Tendsto (fun n : ℕ ↦ M * (1 + (|c| / M) ^ n * f n + (|c| ^ 2 / M) ^ n)) atTop (nhds M) := by
   rcases eq_or_lt_of_le H₀ with rfl | H₀
   · simp
   conv => enter [3, 1]; rw [← mul_one M, ← add_zero 1, ← add_zero (1 + 0), add_assoc]
   conv => enter [1, n, 2]; rw [add_assoc]
   refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <| Filter.Tendsto.add ?_ ?_
   · replace hC (n : ℕ) : (|c| / M) ^ n * f n ≤ 2 * (|c| / (M / C)) ^ n := by
-      have := hC n
-      rw [show 2 * (|c| / (M / C)) ^ n = (|c| / M) ^ n * (2 * C ^ n) by
-        rw [mul_left_comm, ← mul_pow]; congr; field_simp]
-      gcongr
+      calc (|c| / M) ^ n * f n
+      _ ≤ (|c| / M) ^ n * (2 * C ^ n) := by have := hC n; gcongr
+      _ = _ := by rw [mul_left_comm, ← mul_pow]; congr 2; field_simp
     refine squeeze_zero (fun n ↦ by have := hf n; positivity) hC ?_
     conv => enter [3, 1]; rw [← mul_zero 2]
     refine tendsto_const_nhds.mul <| tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
@@ -474,14 +512,15 @@ lemma aux₃ {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (√
     exact (lt_min_iff.mp hc).2
   · refine tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
     rw [abs_of_nonneg (by positivity), div_lt_one H₀, ← M.sq_sqrt H₀.le]
+    have := (lt_min_iff.mp hc).1
     gcongr
-    exact (lt_min_iff.mp hc).1
 
 
 /-- The key step in the proof: if `s` and `t` are real numbers minimizing `‖(x-s•1)^2 + t•1‖`,
 and the minimal value is strictly positive, then for `s'` in some open interval around `s`,
 `‖(x-s'•1)^2 + t•1‖` is constant. -/
-lemma aux (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0) (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') :
+lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
+    (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') :
     ∃ ε > 0, ∀ c : ℝ, |c| < ε → f x t (s + c) = f x t s := by
   obtain ⟨C, hC₀, hC⟩ := y_bound t (x - s •1)
   set M : ℝ := f x t s with hM
@@ -490,7 +529,7 @@ lemma aux (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0) (h : ∀ s' t' : ℝ, f x t
       M * (1 + (|c| / M) ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2 / M) ^ n) by
     rw [eq_comm]
     refine le_antisymm (h ..) <|
-      ge_of_tendsto (aux₃ hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_
+      ge_of_tendsto (tendsto_M hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_
     have H : {n : ℕ | n > 0} ∈ Filter.atTop := by
       refine Filter.mem_atTop_sets.mpr ⟨1, fun m hm ↦ ?_⟩
       simp only [Set.mem_setOf_eq]
@@ -505,7 +544,7 @@ lemma aux (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0) (h : ∀ s' t' : ℝ, f x t
   replace hrel := (hrel.symm.trans_le (norm_add_le ..)).trans (add_le_add_right (norm_sub_le ..) _)
   rw [norm_pow, sub_sub, ← add_smul] at hrel
   have hz : M ^ (n - 1) ≤ ‖aeval (x - s • 1) (z t c n)‖ := by
-    refine aux₁ x h ?_ s
+    refine le_aeval_of_isMonicOfDegree x h ?_ s
     convert z_isMonicOfDegree t c (n - 1)
     omega
   have HH : f x t (s + c) * M ^ (n - 1) ≤
@@ -571,13 +610,11 @@ lemma min_ex_deg_two (x : F) :
       gcongr
   _ = ‖b • (1 : F)‖ - ‖a • x‖ - ‖x ^ 2‖ := by rw [sub_right_comm, norm_smul a]; simp
   _ ≤ ‖b • 1 - a • x‖ - ‖x ^ 2‖ := by gcongr; exact norm_sub_norm_le ..
-  _ ≤ ‖b • 1 - a • x + x ^ 2‖ := norm_sub_le_norm_add ..
-  _ = ‖x ^ 2 - a • x + b • 1‖ := by rw [sub_add_comm]
+  _ ≤ ‖x ^ 2 - a • x + b • 1‖ := by rw [sub_add_comm]; exact norm_sub_le_norm_add ..
   _ ≤ ‖x‖ ^ 2 := hab
 
-
 /-- There are real numbers `s` and `t` such that `‖(x - s • 1) ^ 2 + t • 1‖` is minimal. -/
-lemma minimum_exists (x : F) : ∃ s t : ℝ, ∀ s' t' : ℝ, f x t s ≤ f x t' s' := by
+lemma exists_minimum_of_f (x : F) : ∃ s t : ℝ, ∀ s' t' : ℝ, f x t s ≤ f x t' s' := by
   obtain ⟨a, b, hab⟩ := min_ex_deg_two x
   refine ⟨a / 2, b - (a / 2) ^ 2, fun s' t' ↦ ?_⟩
   convert hab (2 * s') (s' ^ 2 + t') using 2 <;>
@@ -594,7 +631,7 @@ lemma satisfies_quadratic_rel (x : F) : ∃ f : ℝ[X], f.IsMonicOfDegree 2 ∧ 
     obtain ⟨s, t, hst⟩ := this
     refine ⟨_, isMonicOfDegree_sub_sq_add_two s t, ?_⟩
     simpa [Algebra.algebraMap_eq_smul_one] using hst
-  obtain ⟨s, t, hst⟩ := minimum_exists x
+  obtain ⟨s, t, hst⟩ := exists_minimum_of_f x
   rcases eq_or_ne (f x t s) 0 with h₀ | h₀
   · exact ⟨s, t, h₀⟩
   by_contra! H
@@ -604,7 +641,7 @@ lemma satisfies_quadratic_rel (x : F) : ∃ f : ℝ[X], f.IsMonicOfDegree 2 ∧ 
     refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
     change f x t c = f x t s at hc
     have h₀' : f x t c ≠ 0 := H c t
-    obtain ⟨ε, hε₀, hε⟩ := aux x h₀' (fun s' t' ↦ hc ▸ hst s' t')
+    obtain ⟨ε, hε₀, hε⟩ := constant_on_open_interval_of_ne_zero x h₀' (fun s' t' ↦ hc ▸ hst s' t')
     refine ⟨Set.Ioo (c - ε) (c + ε), fun u hu ↦ ?_, isOpen_Ioo, ?_⟩
     · simp only [Set.mem_setOf, S, ← hc]
       convert hε (u - c) ?_
