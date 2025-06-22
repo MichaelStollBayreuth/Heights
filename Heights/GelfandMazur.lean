@@ -183,6 +183,14 @@ end auxiliary
 namespace GelfandMazur
 
 /-!
+### The complex case
+
+As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
+-/
+
+-- TODO
+
+/-!
 ### The sequences y and z and their properties
 -/
 
