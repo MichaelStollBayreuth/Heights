@@ -334,7 +334,7 @@ open Polynomial
 noncomputable
 def y (t : R) : ℕ → R[X]
 | 0 => 2
-| 1 => 2 • X
+| 1 => 2 * X
 | n + 2 => 2 * X * y t (n + 1) - (X ^ 2 + C t) * y t n
 
 lemma y_degree (t : R) (n : ℕ) : (y t n).natDegree ≤ n := by
@@ -349,12 +349,9 @@ lemma y_degree (t : R) (n : ℕ) : (y t n).natDegree ≤ n := by
 lemma y_prop (t c : R) (n : ℕ) :
     (X - C c) ^ 2 + C t ∣ (X ^ 2 + C t) ^ n - c ^ n • y t n + C (c ^ (2 * n)) := by
   induction n using Nat.twoStepInduction with
-  | zero =>
-    simp only [pow_zero, y, one_smul, mul_zero, map_one]
-    norm_num
+  | zero => norm_num [y] -- `simp` alone leaves `_ ∣ 1 - 2 + 1`
   | one =>
-    simp only [pow_one, y, nsmul_eq_mul, Nat.cast_ofNat, mul_one, map_pow, sub_sq, two_mul,
-      smul_eq_C_mul]
+    simp only [sub_sq, pow_one, y, smul_eq_C_mul, mul_one, map_pow]
     convert dvd_rfl using 1
     ring
   | more n ih₂ ih₁ =>
@@ -363,29 +360,29 @@ lemma y_prop (t c : R) (n : ℕ) :
     replace ih₁ := ih₁.mul_left (C c * 2 * X)
     have ih₃ := dvd_mul_left ((X - C c) ^ 2 + C t) ((X ^ 2 + C t) ^ (n + 1) + C c ^ (2 * n + 2))
     convert ih₂.add ih₁ |>.add ih₃ using 1; clear ih₁ ih₂ ih₃
-    rw [pow_add, pow_succ (X ^ 2 + C t) n]
-    simp only [smul_eq_C_mul, map_mul, map_pow]
+    rw [pow_add (X ^ 2 + C t), pow_succ (X ^ 2 + C t) n]
+    simp only [smul_eq_C_mul, map_pow]
     ring
 
 variable {F : Type*} [NormedField F] [Algebra R F]
 
 /-- If `F` is a normed field that is an `R`-algebra, then for a given `x : F`, the norm
-of gthe value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C > 0`. -/
+of the value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C > 0`. -/
 lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n := by
   suffices ∃ C ≥ 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n by
     obtain ⟨C, hC₀, hC⟩ := this
     refine ⟨C + 1, by positivity, fun n ↦ ?_⟩
     have H : 2 * C ^ n ≤ 2 * (C + 1) ^ n := by gcongr; linarith
     exact (hC n).trans H
-  set a := ‖2 * x‖
+  have h₂ : ‖(2 : F)‖ ≤ 2 := by simpa using Nat.norm_cast_le (α := F) 2
+  set a := ‖2 * x‖                      -- convenient abbreviations
   set b := ‖x ^ 2 + (algebraMap R F) t‖
   let C : ℝ := max (max ‖x‖ (2 * a)) (Real.sqrt (2 * b))
-  have h₂ : ‖(2 : F)‖ ≤ 2 := by simpa using Nat.norm_cast_le (α := F) 2
   refine ⟨C, by positivity, fun n ↦ ?_⟩
   induction n using Nat.twoStepInduction with
   | zero => simpa [y] using h₂
   | one =>
-    simp only [y, nsmul_eq_mul, Nat.cast_ofNat, map_mul, aeval_ofNat, aeval_X, norm_mul, pow_one]
+    simp only [y, map_mul, aeval_ofNat, Nat.cast_ofNat, aeval_X, norm_mul, pow_one]
     have : ‖x‖ ≤ C := le_sup_of_le_left <| le_max_left ..
     gcongr
   | more n ih₂ ih₁ =>
@@ -461,7 +458,6 @@ lemma tendsto_M {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (
     have := (lt_min_iff.mp hc).1
     gcongr
 
-
 /-- The key step in the proof: if `s` and `t` are real numbers minimizing `‖(x-s•1)^2 + t•1‖`,
 and the minimal value is strictly positive, then for `s'` in some open interval around `s`,
 `‖(x-s'•1)^2 + t•1‖` is constant. -/
@@ -483,25 +479,24 @@ lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s �
   have hp : IsMonicOfDegree p (2 * (n - 1)) := by
     refine IsMonicOfDegree.of_mul_left (isMonicOfDegree_sub_sq_add_two c t) ?_
     rw [← hrel, sub_add, show 2 + 2 * (n - 1) = 2 * n by omega]
-    refine IsMonicOfDegree.sub ?_ ?_
-    · exact ((isMonicOfDegree_X_pow ℝ 2).add_left <| by compute_degree!).pow _
-    · have := y_degree t n
-      compute_degree
-      -- `(y t n).natDegree < 2 * n`
-      omega
+    refine (((isMonicOfDegree_X_pow ℝ 2).add_left <| by compute_degree!).pow _).sub ?_
+    have := y_degree t n
+    compute_degree
+    -- `(y t n).natDegree < 2 * n`
+    omega
   apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
   simp only [map_pow, map_add, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, map_smul,
     map_mul, norm_mul] at hrel
   replace hrel := (hrel.symm.trans_le (norm_add_le ..)).trans (add_le_add_right (norm_sub_le ..) _)
   rw [norm_pow, sub_sub, ← add_smul] at hrel
-  have hz : M ^ (n - 1) ≤ ‖aeval (x - s • 1) p‖ := le_aeval_of_isMonicOfDegree x h hp s
   have HH : f x t (s + c) * M ^ (n - 1) ≤
       M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
     calc f x t (s + c) * M ^ (n - 1)
-    _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by gcongr
+    _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by
+        gcongr; exact le_aeval_of_isMonicOfDegree x h hp s
     _ ≤ f x t s ^ n + ‖c ^ n • aeval (x - s • 1) (y t n)‖ + ‖(c • 1) ^ (2 * n)‖ := hrel
     _ = M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
-      simp [M, norm_smul, pow_mul]
+        simp [M, norm_smul, pow_mul]
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
   field_simp
   -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
@@ -588,8 +583,7 @@ lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f 
     constant_on_open_interval_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
   refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, Metric.mem_ball_self hε₀⟩
   specialize hε _ hu
-  rw [show c + (u - c) = u by abel, hc] at hε
-  simpa only [Set.mem_setOf_eq]
+  rwa [show c + (u - c) = u by abel, hc] at hε
 
 /-- Every `x : F` is the root of a monic quadratic polynomial with real coefficients. -/
 lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
