@@ -270,10 +270,10 @@ lemma min_ex_deg_one (x : F) : ∃ u : ℂ, ∀ r : ℂ, ‖x - u • 1‖ ≤ �
   refine hf.exists_forall_le_of_isBounded 0 ?_
   rw [zero_smul, sub_zero, Metric.isBounded_iff_subset_closedBall 0]
   refine ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
-  rw [Set.mem_setOf_eq, norm_sub_rev] at hz
+  rw [Set.mem_setOf, norm_sub_rev] at hz
   simp only [Metric.mem_closedBall, dist_zero_right]
-  have := (norm_sub_norm_le ..).trans hz
-  rwa [tsub_le_iff_right, ← Algebra.algebraMap_eq_smul_one, norm_algebraMap', ← two_mul] at this
+  replace hz := (norm_sub_norm_le ..).trans hz
+  rwa [tsub_le_iff_right, ← Algebra.algebraMap_eq_smul_one, norm_algebraMap', ← two_mul] at hz
 
 lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
     (H : ∀ (z : ℂ), ‖x - z • 1‖ ≠ 0) (c : ℂ) :
@@ -286,9 +286,8 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 
   simp only [Set.mem_setOf_eq] at hc
   obtain ⟨ε, hε₀, hε⟩ := constant_on_open_ball_of_ne_zero x (H c) (fun z' ↦ hc ▸ hz z')
   refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, ?_⟩
-  · simp only [Set.mem_setOf, ← hc]
-    convert hε (u - c) hu
-    abel
+  · rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
+    exact hε (u - c) hu
   · exact Metric.mem_ball_self hε₀
 
 /-- A version of the **Gelfand-Mazur Theorem** for fields that are normed `ℂ`-algebras. -/
@@ -306,9 +305,9 @@ theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
   set M := ‖x - z • 1‖ with hM
   rcases eq_or_ne M 0 with hM₀ | hM₀
   · exact ⟨z, hM₀⟩
-  have H (z' : ℂ) : ‖x - z' • 1‖ ≠ 0 := by
-    replace hM₀ : 0 < M := by positivity
-    exact (hM₀.trans_le <| hz z').ne'
+  exfalso
+  replace hM₀ : 0 < M := by positivity
+  have H (z' : ℂ) : ‖x - z' • 1‖ ≠ 0 := (hM₀.trans_le <| hz z').ne'
   have key := norm_sub_is_constant hz H (‖x‖ + M + 1)
   rw [← hM, norm_sub_rev] at key
   replace key := (norm_sub_norm_le ..).trans_eq key
