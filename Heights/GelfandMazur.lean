@@ -155,6 +155,8 @@ end Continuous
 
 namespace Algebra
 
+section Real
+
 variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
 
 @[simp]
@@ -164,6 +166,18 @@ lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
 @[simp]
 lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
   rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat]
+
+end Real
+
+section Complex
+
+variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℂ A] [NormOneClass A]
+
+@[simp]
+lemma norm_smul_one_eq_norm (z : ℂ) : ‖z • (1 : A)‖ = ‖z‖ := by
+  rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap']
+
+end Complex
 
 end Algebra
 
@@ -241,17 +255,16 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
   have hrel := geom_sum₂_mul X (C c) n
   set p := ∑ i ∈ Finset.range n, X ^ i * C c ^ (n - 1 - i)
   have hp : IsMonicOfDegree p (n - 1) := by
-    have : IsMonicOfDegree (X ^ n  - C c ^ n) n :=
+    have : IsMonicOfDegree (X ^ n - C c ^ n) n :=
       (isMonicOfDegree_X_pow ℂ n).sub <| by compute_degree!
     rw [← hrel, show n = n - 1 + 1 by omega] at this
-    exact IsMonicOfDegree.of_mul_right (isMonicOfDegree_X_sub_one c) this
+    exact (isMonicOfDegree_X_sub_one c).of_mul_right this
   apply_fun (‖aeval (x - z • 1) ·‖) at hrel -- evaluate at `x - z•1` and take norms
   simp only [map_mul, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, norm_mul,
     map_pow] at hrel
   rw [mul_comm, sub_sub, ← add_smul] at hrel
-  replace hrel := (hrel.trans_le (norm_sub_le ..))
-  rw [norm_pow, norm_pow, ← Algebra.algebraMap_eq_smul_one c, norm_algebraMap, norm_one, mul_one,
-    ← hM] at hrel
+  replace hrel := hrel.trans_le (norm_sub_le ..)
+  rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm, ← hM] at hrel
   have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := by
     refine le_aeval_of_isMonicOfDegree x h ?_ _
     nth_rewrite 1 [show n = n - 1 + 1 by omega]
@@ -273,7 +286,7 @@ lemma min_ex_deg_one (x : F) : ∃ u : ℂ, ∀ r : ℂ, ‖x - u • 1‖ ≤ �
   rw [Set.mem_setOf, norm_sub_rev] at hz
   simp only [Metric.mem_closedBall, dist_zero_right]
   replace hz := (norm_sub_norm_le ..).trans hz
-  rwa [tsub_le_iff_right, ← Algebra.algebraMap_eq_smul_one, norm_algebraMap', ← two_mul] at hz
+  rwa [tsub_le_iff_right, Algebra.norm_smul_one_eq_norm, ← two_mul] at hz
 
 lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
     (H : ∀ (z : ℂ), ‖x - z • 1‖ ≠ 0) (c : ℂ) :
@@ -305,13 +318,12 @@ theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
   set M := ‖x - z • 1‖ with hM
   rcases eq_or_ne M 0 with hM₀ | hM₀
   · exact ⟨z, hM₀⟩
-  exfalso
   replace hM₀ : 0 < M := by positivity
-  have H (z' : ℂ) : ‖x - z' • 1‖ ≠ 0 := (hM₀.trans_le <| hz z').ne'
+  by_contra! H
   have key := norm_sub_is_constant hz H (‖x‖ + M + 1)
   rw [← hM, norm_sub_rev] at key
   replace key := (norm_sub_norm_le ..).trans_eq key
-  rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap, norm_one, mul_one] at key
+  rw [Algebra.norm_smul_one_eq_norm] at key
   norm_cast at key
   rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at key
   linarith
