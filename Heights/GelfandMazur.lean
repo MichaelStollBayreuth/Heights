@@ -586,13 +586,10 @@ lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f 
   simp only [Set.mem_setOf_eq] at hc
   obtain ⟨ε, hε₀, hε⟩ :=
     constant_on_open_interval_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
-  refine ⟨Set.Ioo (c - ε) (c + ε), fun u hu ↦ ?_, isOpen_Ioo, ?_⟩
-  · simp only [Set.mem_setOf, ← hc]
-    convert hε (u - c) ?_
-    · abel
-    · simp only [Set.mem_Ioo] at hu
-      exact abs_sub_lt_iff.mpr ⟨sub_left_lt_of_lt_add hu.2, sub_lt_comm.mp hu.1⟩
-  · exact Set.mem_Ioo.mpr ⟨sub_lt_self c hε₀, lt_add_of_pos_right c hε₀⟩
+  refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, Metric.mem_ball_self hε₀⟩
+  specialize hε _ hu
+  rw [show c + (u - c) = u by abel, hc] at hε
+  simpa only [Set.mem_setOf_eq]
 
 /-- Every `x : F` is the root of a monic quadratic polynomial with real coefficients. -/
 lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
