@@ -245,9 +245,8 @@ lemma IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n
     rw [hf₂, add_comm] at hf
     exact ⟨g, f₂, hg, hg.of_mul_left hf, hf₂⟩
 
-/-- If `f : ℝ[X]` is monic of degree `≥ 2`, then `f = f₁ * f₂` with `f₁` monic of degree `2`
-and `f₂` monic of degree `f.natDegree - 2`.
-This relies on the fact that irreducible polynomials over `ℝ` have degree at most `2`. -/
+/-- If `f : F[X]` is monic of degree `≥ 1` and `F` is an algebraically closed field,
+then `f = f₁ * f₂` with `f₁` monic of degree `1` and `f₂` monic of degree `f.natDegree - 1`. -/
 lemma IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Field F]
     [IsAlgClosed F] {f : F[X]} {n : ℕ}
     (hf : IsMonicOfDegree f (n + 1)) :
