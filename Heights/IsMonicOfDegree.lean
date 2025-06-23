@@ -172,9 +172,26 @@ lemma IsMonicOfDegree.aeval_sub {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
   rw [sub_eq_add_neg, ← map_neg]
   exact aeval_add hp (-r)
 
+lemma isMonicOfDegree_X_add_one {R : Type*} [Semiring R] [Nontrivial R] (r : R) :
+    IsMonicOfDegree (X + C r) 1 :=
+  (isMonicOfDegree_X R).add_left (by compute_degree!)
+
+lemma isMonicOfDegree_X_sub_one {R : Type*} [Ring R] [Nontrivial R] (r : R) :
+    IsMonicOfDegree (X - C r) 1 :=
+  (isMonicOfDegree_X R).sub (by compute_degree!)
+
+lemma isMonicOfDegree_one_iff {R : Type*} [Semiring R] [Nontrivial R] {f : R[X]} :
+    IsMonicOfDegree f 1 ↔ ∃ r : R, f = X + C r := by
+  refine ⟨fun H ↦ ?_, fun ⟨r, H⟩ ↦ H ▸ isMonicOfDegree_X_add_one r⟩
+  refine ⟨f.coeff 0, ?_⟩
+  ext1 n
+  rcases n.eq_zero_or_pos with rfl | hn
+  · simp
+  · exact H.coeff_eq (isMonicOfDegree_X_add_one _) (by omega)
+
 lemma isMonicOfDegree_sub_sq_add_two {R : Type*} [CommRing R] [Nontrivial R] (s t : R) :
     IsMonicOfDegree ((X - C s) ^ 2 + C t) 2 := by
-  have : IsMonicOfDegree (X - C s) 1 := (isMonicOfDegree_X R).sub (by compute_degree!)
+  have : IsMonicOfDegree (X - C s) 1 := isMonicOfDegree_X_sub_one s
   exact (this.pow 2).add_left <| by compute_degree!
 
 lemma isMonicOfDegree_two_iff {R : Type*} [CommRing R] [Nontrivial R] [Algebra ℚ R] {f : R[X]} :

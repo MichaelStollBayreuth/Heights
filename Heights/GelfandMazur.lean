@@ -182,13 +182,142 @@ end auxiliary
 
 namespace GelfandMazur
 
+namespace Complex
+
 /-!
 ### The complex case
 
 As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
+
+Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
+Then for `c : ℂ` and `n : ℕ`, we have
+`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) (F c n)‖`
+with a monic polynomial `F c n` of degree `n-1`.
+
+Since every monic polynomial of degree `m` over `ℂ` is a product of `m` monic polynomials
+of degree `1`, it follows that `‖aeval (x-z•1) (F c n)‖ ≥ M^(n-1)`. We obtain
+`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n)/M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
+so if `|c| < M`, then as `n → ∞` we see that `‖x - (z+c)•1‖ = M`.
+
+This implies that the function `c ↦ ‖x - c•1‖` is constant, which contradicts that
+`‖x - c•1‖ ≥ |c| - ‖x‖ > M` for `|c| > M + ‖x‖`.
+
+So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the algebra map
+`ℂ → F` is an isomorphism.
 -/
 
--- TODO
+variable {F : Type*} [NormedField F] [NormedAlgebra ℂ F]
+
+open Polynomial
+
+lemma le_aeval_of_isMonicOfDegree (x : F) {z : ℂ} (h : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+    {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
+    ‖x - z • 1‖ ^ n ≤ ‖aeval (x - c • 1) p‖ := by
+  induction n generalizing p with
+  | zero =>
+    simp only [mul_zero, isMonicOfDegree_zero] at hp
+    simp [hp]
+  | succ n ih =>
+    obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_one_isMonicOfDegree
+    obtain ⟨r, hr⟩ := isMonicOfDegree_one_iff.mp hf₁
+    have H' (y : F) : aeval y (X + C r) = y + r • 1 := by
+      simp [Algebra.algebraMap_eq_smul_one]
+    rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hr, H', sub_add, ← sub_smul]
+    exact mul_le_mul (ih hf₂) (h (c - r)) (norm_nonneg _) (norm_nonneg _)
+
+lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1‖ ≠ 0)
+    (h : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖) :
+    ∃ ε > 0, ∀ c : ℂ, ‖c‖ < ε → ‖x - (z + c) • 1‖ = ‖x - z • 1‖ := by
+  set M : ℝ := ‖x - z • 1‖ with hM
+  refine ⟨M, by positivity, fun c hc ↦ ?_⟩
+  suffices ∀ n > 0, ‖x - (z + c) • 1‖ ≤ M * (1 + (‖c‖ / M) ^ n) by
+    refine (le_antisymm (h ..) <|
+      ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this).symm
+    conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
+    exact tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
+      tendsto_pow_atTop_nhds_zero_of_lt_one (by positivity) <|
+      (div_lt_one <| by positivity).mpr hc
+  intro n hn
+  have hrel := geom_sum₂_mul X (C c) n
+  set p := ∑ i ∈ Finset.range n, X ^ i * C c ^ (n - 1 - i)
+  have hp : IsMonicOfDegree p (n - 1) := by
+    have : IsMonicOfDegree (X ^ n  - C c ^ n) n :=
+      (isMonicOfDegree_X_pow ℂ n).sub <| by compute_degree!
+    rw [← hrel, show n = n - 1 + 1 by omega] at this
+    exact IsMonicOfDegree.of_mul_right (isMonicOfDegree_X_sub_one c) this
+  apply_fun (‖aeval (x - z • 1) ·‖) at hrel -- evaluate at `x - z•1` and take norms
+  simp only [map_mul, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, norm_mul,
+    map_pow] at hrel
+  rw [mul_comm, sub_sub, ← add_smul] at hrel
+  replace hrel := (hrel.trans_le (norm_sub_le ..))
+  rw [norm_pow, norm_pow, ← Algebra.algebraMap_eq_smul_one c, norm_algebraMap, norm_one, mul_one,
+    ← hM] at hrel
+  have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := by
+    refine le_aeval_of_isMonicOfDegree x h ?_ _
+    nth_rewrite 1 [show n = n - 1 + 1 by omega]
+    exact hp
+  have HH : ‖x - (z + c) • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖c‖ ^ n := by
+    calc _
+    _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
+    _ ≤ M ^ n + ‖c‖ ^ n := hrel
+  convert (le_div_iff₀ (by positivity)).mpr HH using 1
+  field_simp
+  -- `M * (?e * M ^ (n - 1)) = ?e * M ^ n`, not solved by `ring`
+  rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+
+lemma min_ex_deg_one (x : F) : ∃ u : ℂ, ∀ r : ℂ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
+  have hf : Continuous fun r : ℂ ↦ ‖x - r • 1‖ := by fun_prop
+  refine hf.exists_forall_le_of_isBounded 0 ?_
+  rw [zero_smul, sub_zero, Metric.isBounded_iff_subset_closedBall 0]
+  refine ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
+  rw [Set.mem_setOf_eq, norm_sub_rev] at hz
+  simp only [Metric.mem_closedBall, dist_zero_right]
+  have := (norm_sub_norm_le ..).trans hz
+  rwa [tsub_le_iff_right, ← Algebra.algebraMap_eq_smul_one, norm_algebraMap', ← two_mul] at this
+
+lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+    (H : ∀ (z : ℂ), ‖x - z • 1‖ ≠ 0) (c : ℂ) :
+    ‖x - c • 1‖ = ‖x - z • 1‖ := by
+  suffices {c : ℂ | ‖x - c • 1‖ = ‖x - z • 1‖} = Set.univ by
+    simpa only [← this] using Set.mem_univ c
+  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <|
+    Set.nonempty_of_mem rfl
+  refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
+  simp only [Set.mem_setOf_eq] at hc
+  obtain ⟨ε, hε₀, hε⟩ := constant_on_open_ball_of_ne_zero x (H c) (fun z' ↦ hc ▸ hz z')
+  refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, ?_⟩
+  · simp only [Set.mem_setOf, ← hc]
+    convert hε (u - c) hu
+    abel
+  · exact Metric.mem_ball_self hε₀
+
+/-- A version of the **Gelfand-Mazur Theorem** for fields that are normed `ℂ`-algebras. -/
+theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
+  suffices ∀ x : F, ∃ z : ℂ, ‖x - z • 1‖ = 0 by
+    let e : ℂ →ₐ[ℂ] F := AlgHom.mk' (algebraMap ℂ F) (algebraMap.coe_smul ℂ ℂ F)
+    refine ⟨AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩⟩
+    obtain ⟨z, hz⟩ := this x
+    refine ⟨z, ?_⟩
+    simp only [AlgHom.coe_mk', e, Algebra.algebraMap_eq_smul_one]
+    rw [eq_comm, ← sub_eq_zero]
+    exact norm_eq_zero.mp hz
+  intro x
+  obtain ⟨z, hz⟩ := min_ex_deg_one x
+  set M := ‖x - z • 1‖ with hM
+  rcases eq_or_ne M 0 with hM₀ | hM₀
+  · exact ⟨z, hM₀⟩
+  have H (z' : ℂ) : ‖x - z' • 1‖ ≠ 0 := by
+    replace hM₀ : 0 < M := by positivity
+    exact (hM₀.trans_le <| hz z').ne'
+  have key := norm_sub_is_constant hz H (‖x‖ + M + 1)
+  rw [← hM, norm_sub_rev] at key
+  replace key := (norm_sub_norm_le ..).trans_eq key
+  rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap, norm_one, mul_one] at key
+  norm_cast at key
+  rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at key
+  linarith
+
+end Complex
 
 /-!
 ### The sequences y and z and their properties
