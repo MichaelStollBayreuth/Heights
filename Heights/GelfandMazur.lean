@@ -89,40 +89,38 @@ of `‖(x - s'•1)^2 + t•1‖` as `|s'|` gets large.
 To get there, the idea is to find a relation among polynomials of the following form,
 where `n : ℕ` and `c : ℝ` is arbitrary.
 ```math
-  (X^2+t)^n - c^n y_n(X) + c^{2n} = ((X-c)^2+t) z_n(c,X) \,,
+  (X^2+t)^n - c^n y_n(X) + c^{2n} = ((X-c)^2+t) z(X) \,,
 ```
 where $y_n(X)$ has degree at most `n` and the norm of its value at a given `x : F`
 can be bounded by a constant (`= 2`) times the `n`th power of another constant `C`;
-then $z_n(c,X)$ must be monic of degree `2*(n-1)`. We define suitable sequences
-of polynomials `y x t n` and `z x c t n` below.
+then $z_n(c,X)$ must be monic of degree `2*(n-1)`. We define a suitable sequence
+of polynomials `y x t n` below; the `z` polynomials (which depend on `t`, `c` and `n`)
+will be implicit: we show that the polynomial on the left in the equation above
+is divisible by $(X-c)^2+t$.
 
-This (and the definition of `y` and `z`) is inspired by "taking norms from `ℂ` to `ℝ`"
+This (and the definition of `y`) is inspired by "taking norms from `ℂ` to `ℝ`"
 in the proof above. Consider, for `c : ℝ`, `P t c := ((X-t*I•1)^n - c^n•1)*((X+t*I•1)^n - c^n•1)`;
 this is in fact a polynomial with real coefficients. On the one hand, we can write
 `P t c = (X^2+t^2•1)^n - c^n•((X-t*I•1)^n + (X+t*I•1)^n)) + |c|^(2*n)•1`,
 where the middle term is a polynomial with real coefficients again that depends on `c`
 only via the factor `c^n`. On the other hand,
-`P t c = (X - (c+t*I)•1)*(X - (c-t*I)•1) * F t c = ((X-c•1)^2 + t^2•1) * F t c`,
-where `F t c` is monic of degree `2*(n-1)`. Our definition of `y` and `z` is such that
-`y x (t^2) n = (x-t*I•1)^n + (x+t*I•1)^n)` and `z x (t^2) c n = aeval x (F t c)`.
+`P t c = (X - (c+t*I)•1)*(X - (c-t*I)•1) * z = ((X-c•1)^2 + t^2•1) * z`,
+where `z` is monic of degree `2*(n-1)`. Our definition of `y` is such that
+`y x (t^2) n = (x-t*I•1)^n + (x+t*I•1)^n)`.
 
 Evaluating at `x - s•1` and taking norms, this implies that
-`‖(x-(s+c)•1)^2 + t‖ = ‖((X^2+t)^n - c^n*(y n) + c^(2*n)).aeval (x-s•1)‖ / ‖(z c n).aeval (x-s•1)‖`,
+`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - c^n*(y n) + c^(2*n))‖ / ‖aeval (x-s•1) z‖`,
 which is bounded by
 `(M^n + |c|^n * (2*C^n) + |c|^(2*n)) / M^(n-1) = M * (1 + 2 * (|c|*C/M)^n + (|c|^2/M)^n)`.
 If we take `c : ℝ` such that `|c| < min √M (M/C)`, then as `n` tends to infinity, we obtain that
 `M ≤ ‖(x-(s+c)•1)^2 + t‖ ≤ M`, as desired.
 
-It remains to define suitable sequences `y` and `z` of polynomials. We set, for `x : F`
-and `t c : ℝ`,
-* `y x t 0 := 2`, `y x t 1 := 2*X`, `y x t (n+2) := 2*X*(y x t (n+1)) - (X^2+t)*(y x t n)`
-* `z x t c 0 := 0`, `z x t c 1 := 1`,
-  `z x t c (n+2) := (X^2+t)^(n+1) + 2*c*X*(z x t c (n+1)) - c^2*(X^2+t)*(z x t c n) + c^(2*n+2)`
+It remains to define a suitable sequence `y` of polynomials. We set, for `t : ℝ`,
+* `y t 0 := 2`, `y t 1 := 2*X`, `y t (n+2) := 2*X*(y t (n+1)) - (X^2+t)*(y t n)`
 and we prove that
-* `∀ x t c, ∀ n ≠ 0, IsMonicOfDegree (z x t c n) 2*(n-1)` (`GelfandMazur.z_isMonicOfDegree`)
-* `∀ x t c n, (X^2+t)^n - c^n*(y x t n) + c^(2*n) = ((X-c)^2+t) * (z x t c n)`
-  (`GelfandMazur.y_z_rel`)
-* `∀ x t, ∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n` (`GelfandMazur.y_bound`)
+* `∀ t, ∀ n, (y t n).natDegree ≤ n` (`GelfandMazur.y_degree`)
+* `∀ t c n, (X-c)^2+t ∣ (X^2+t)^n - c^n*(y x t n) + c^(2*n)` (`GelfandMazur.y_prop`)
+* `∀ (x : F) t, ∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n` (`GelfandMazur.y_bound`)
 which provides the necessary input.
 -/
 
@@ -323,10 +321,10 @@ theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
 end Complex
 
 /-!
-### The sequences y and z and their properties
+### The sequence y and its properties
 -/
 
-section sequences
+section sequence_y
 
 variable {R : Type*} [CommRing R]
 
@@ -339,55 +337,34 @@ def y (t : R) : ℕ → R[X]
 | 1 => 2 • X
 | n + 2 => 2 * X * y t (n + 1) - (X ^ 2 + C t) * y t n
 
-/-- The sequence `z t c n` such that (formally)
-`z (t^2) c n = ((X-t*I•1)^n - c^n•1)*((X+t*I•1)^n - c^n•1)/((X-c•1)^2 + t^2•1)`. -/
-noncomputable
-def z (t c : R) : ℕ → R[X]
-| 0 => 0
-| 1 => 1
-| n + 2 => (X ^ 2 + C t) ^ (n + 1) + 2 * c • X * z t c (n + 1)
-             - c ^ 2 • (X ^ 2 + C t) * z t c n + C (c ^ (2 * n + 2))
-
-/-- `z t c (n + 1)` is monic of degree `2*n`. -/
-lemma z_isMonicOfDegree [Nontrivial R] [NoZeroDivisors R] (t c : R) (n : ℕ) :
-    IsMonicOfDegree (z t c (n + 1)) (2 * n) := by
+lemma y_degree (t : R) (n : ℕ) : (y t n).natDegree ≤ n := by
   induction n using Nat.twoStepInduction with
-  | zero => simp [z]
-  | one =>
-    simp only [z, zero_add, pow_one, Algebra.mul_smul_comm, mul_one, add_assoc, smul_add, smul_C,
-      smul_eq_mul, map_mul, map_pow, mul_zero, sub_zero]
-    exact (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
+  | zero => simp [y]
+  | one => simp only [y]; compute_degree
   | more n ih₂ ih₁ =>
-    rw [z, sub_eq_add_neg, add_assoc, add_assoc]
-    have : IsMonicOfDegree (X ^ 2 + C t) 2 :=
-      (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
-    refine (this.pow (n + 1 + 1)).add_left ?_
+    simp only [y]
     compute_degree!
-    rw [ih₁.natDegree_eq, ih₂.natDegree_eq]
-    omega
+    constructor <;> linarith
 
-/-- The relation that `y t n` and `z t c n` satisfy. -/
-lemma y_z_rel (t c : R) (n : ℕ) :
-    (X ^ 2 + C t) ^ n - c ^ n • y t n + C (c ^ (2 * n)) = ((X - C c) ^ 2 + C t) * z t c n := by
+lemma y_prop (t c : R) (n : ℕ) :
+    (X - C c) ^ 2 + C t ∣ (X ^ 2 + C t) ^ n - c ^ n • y t n + C (c ^ (2 * n)) := by
   induction n using Nat.twoStepInduction with
   | zero =>
-    simp only [pow_zero, y, one_smul, mul_zero, map_one, z]
+    simp only [pow_zero, y, one_smul, mul_zero, map_one]
     norm_num
   | one =>
-    simp only [pow_one, y, nsmul_eq_mul, Nat.cast_ofNat, show (2 : R[X]) = C (2 : R) from rfl,
-      smul_eq_C_mul, mul_one, map_pow, sub_sq, z]
+    simp only [pow_one, y, nsmul_eq_mul, Nat.cast_ofNat, mul_one, map_pow, sub_sq, two_mul,
+      smul_eq_C_mul]
+    convert dvd_rfl using 1
     ring
   | more n ih₂ ih₁ =>
-    rw [y, z]
-    simp only [smul_eq_C_mul, show (2 : R[X]) = C (2 : R) from rfl] at *
-    -- ideally the following would work:
-    -- linear_combination (C c) * (C 2 * X) * ih₁ - (C c) ^ 2 * (X ^ 2 + C t) * ih₂
-    rw [sub_add_eq_add_sub, sub_eq_iff_eq_add', eq_comm, ← eq_sub_iff_add_eq] at ih₂ ih₁
-    rw [show C (c ^ (n + 2)) * (C 2 * X * y t (n + 1) - (X ^ 2 + C t) * y t n) =
-              C 2 * C c * X * (C (c ^ (n + 1)) * y t (n + 1)) -
-                C (c ^ 2) * (X ^ 2 + C t) * (C (c ^ n) * y t n) by simp only [map_pow]; ring,
-      ih₁, ih₂]
-    simp only [map_pow, sub_sq, show (2 : R[X]) = C (2 : R) from rfl]
+    simp only [y]
+    replace ih₂ := ih₂.mul_left (- C c ^ 2 * (X ^ 2 + C t))
+    replace ih₁ := ih₁.mul_left (C c * 2 * X)
+    have ih₃ := dvd_mul_left ((X - C c) ^ 2 + C t) ((X ^ 2 + C t) ^ (n + 1) + C c ^ (2 * n + 2))
+    convert ih₂.add ih₁ |>.add ih₃ using 1; clear ih₁ ih₂ ih₃
+    rw [pow_add, pow_succ (X ^ 2 + C t) n]
+    simp only [smul_eq_C_mul, map_mul, map_pow]
     ring
 
 variable {F : Type*} [NormedField F] [Algebra R F]
@@ -430,7 +407,7 @@ lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * 
           gcongr
     _ = 2 * C ^ (n + 2) := by ring
 
-end sequences
+end sequence_y
 
 /-!
 ### The key step of the proof
@@ -501,21 +478,27 @@ lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s �
       ge_of_tendsto (tendsto_M hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_).symm
     exact Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
   intro n hn
-  -- use the relation between `y t n` and `z t c n`
-  have hrel := y_z_rel t c n
+  -- use the divisibility relation satisfied by `y t n`
+  obtain ⟨p, hrel⟩ := y_prop t c n
+  have hp : IsMonicOfDegree p (2 * (n - 1)) := by
+    refine IsMonicOfDegree.of_mul_left (isMonicOfDegree_sub_sq_add_two c t) ?_
+    rw [← hrel, sub_add, show 2 + 2 * (n - 1) = 2 * n by omega]
+    refine IsMonicOfDegree.sub ?_ ?_
+    · exact ((isMonicOfDegree_X_pow ℝ 2).add_left <| by compute_degree!).pow _
+    · have := y_degree t n
+      compute_degree
+      -- `(y t n).natDegree < 2 * n`
+      omega
   apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
   simp only [map_pow, map_add, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, map_smul,
     map_mul, norm_mul] at hrel
   replace hrel := (hrel.symm.trans_le (norm_add_le ..)).trans (add_le_add_right (norm_sub_le ..) _)
   rw [norm_pow, sub_sub, ← add_smul] at hrel
-  have hz : M ^ (n - 1) ≤ ‖aeval (x - s • 1) (z t c n)‖ := by
-    refine le_aeval_of_isMonicOfDegree x h ?_ s
-    nth_rewrite 1 [show n = n - 1 + 1 by omega]
-    exact z_isMonicOfDegree ..
+  have hz : M ^ (n - 1) ≤ ‖aeval (x - s • 1) p‖ := le_aeval_of_isMonicOfDegree x h hp s
   have HH : f x t (s + c) * M ^ (n - 1) ≤
       M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
     calc f x t (s + c) * M ^ (n - 1)
-    _ ≤ f x t (s + c) * ‖aeval (x - s • 1) (z t c n)‖ := by gcongr
+    _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by gcongr
     _ ≤ f x t s ^ n + ‖c ^ n • aeval (x - s • 1) (y t n)‖ + ‖(c • 1) ^ (2 * n)‖ := hrel
     _ = M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
       simp [M, norm_smul, pow_mul]
