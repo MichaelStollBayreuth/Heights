@@ -31,7 +31,7 @@ lemma IsMonicOfDegree.ne_zero {R : Type*} [Semiring R] [Nontrivial R] {p : R[X]}
   h.2.ne_zero
 
 @[simp]
-lemma isMonicOfDegree_zero {R : Type*} [Semiring R] (p : R[X]) :
+lemma isMonicOfDegree_zero {R : Type*} [Semiring R] {p : R[X]} :
     IsMonicOfDegree p 0 ↔ p = 1 := by
   unfold IsMonicOfDegree
   refine ⟨fun ⟨H₁, H₂⟩ ↦ eq_one_of_monic_natDegree_zero H₂ H₁, fun H ↦ ?_⟩

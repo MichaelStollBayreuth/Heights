@@ -205,12 +205,12 @@ As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
 
 Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
 Then for `c : ℂ` and `n : ℕ`, we have
-`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) (F c n)‖`
-with a monic polynomial `F c n` of degree `n-1`.
+`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) p‖`
+with a monic polynomial `p` of degree `n-1`.
 
 Since every monic polynomial of degree `m` over `ℂ` is a product of `m` monic polynomials
-of degree `1`, it follows that `‖aeval (x-z•1) (F c n)‖ ≥ M^(n-1)`. We obtain
-`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n)/M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
+of degree `1`, it follows that `‖aeval (x-z•1) p‖ ≥ M^(n-1)`. We obtain
+`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n) / M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
 so if `|c| < M`, then as `n → ∞` we see that `‖x - (z+c)•1‖ = M`.
 
 This implies that the function `c ↦ ‖x - c•1‖` is constant, which contradicts that
@@ -224,28 +224,27 @@ variable {F : Type*} [NormedField F] [NormedAlgebra ℂ F]
 
 open Polynomial
 
-lemma le_aeval_of_isMonicOfDegree (x : F) {z : ℂ} (h : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' : ℂ, M ≤ ‖x - z' • 1‖)
     {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
-    ‖x - z • 1‖ ^ n ≤ ‖aeval (x - c • 1) p‖ := by
+    M ^ n ≤ ‖aeval (x - c • 1) p‖ := by
   induction n generalizing p with
-  | zero =>
-    simp only [mul_zero, isMonicOfDegree_zero] at hp
-    simp [hp]
+  | zero => simp [isMonicOfDegree_zero.mp hp]
   | succ n ih =>
     obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_one_isMonicOfDegree
     obtain ⟨r, hr⟩ := isMonicOfDegree_one_iff.mp hf₁
     have H' (y : F) : aeval y (X + C r) = y + r • 1 := by
       simp [Algebra.algebraMap_eq_smul_one]
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hr, H', sub_add, ← sub_smul]
-    exact mul_le_mul (ih hf₂) (h (c - r)) (norm_nonneg _) (norm_nonneg _)
+    exact mul_le_mul (ih hf₂) (h (c - r)) hM (norm_nonneg _)
 
 lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1‖ ≠ 0)
     (h : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖) :
     ∃ ε > 0, ∀ c : ℂ, ‖c‖ < ε → ‖x - (z + c) • 1‖ = ‖x - z • 1‖ := by
   set M : ℝ := ‖x - z • 1‖ with hM
+  have hM₀ : 0 ≤ M := norm_nonneg _
   refine ⟨M, by positivity, fun c hc ↦ ?_⟩
   suffices ∀ n > 0, ‖x - (z + c) • 1‖ ≤ M * (1 + (‖c‖ / M) ^ n) by
-    refine (le_antisymm (h ..) <|
+    refine (le_antisymm (h _) <|
       ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this).symm
     conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
     exact tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
@@ -265,10 +264,7 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
   rw [mul_comm, sub_sub, ← add_smul] at hrel
   replace hrel := hrel.trans_le (norm_sub_le ..)
   rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm, ← hM] at hrel
-  have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := by
-    refine le_aeval_of_isMonicOfDegree x h ?_ _
-    nth_rewrite 1 [show n = n - 1 + 1 by omega]
-    exact hp
+  have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := le_aeval_of_isMonicOfDegree x hM₀ h hp _
   have HH : ‖x - (z + c) • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖c‖ ^ n := by
     calc _
     _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
@@ -278,18 +274,17 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
   -- `M * (?e * M ^ (n - 1)) = ?e * M ^ n`, not solved by `ring`
   rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
 
-lemma min_ex_deg_one (x : F) : ∃ u : ℂ, ∀ r : ℂ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
-  have hf : Continuous fun r : ℂ ↦ ‖x - r • 1‖ := by fun_prop
-  refine hf.exists_forall_le_of_isBounded 0 ?_
-  rw [zero_smul, sub_zero, Metric.isBounded_iff_subset_closedBall 0]
-  refine ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
-  rw [Set.mem_setOf, norm_sub_rev] at hz
-  simp only [Metric.mem_closedBall, dist_zero_right]
+lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
+  have hf : Continuous fun z : ℂ ↦ ‖x - z • 1‖ := by fun_prop
+  refine hf.exists_forall_le_of_isBounded 0 <|
+     (Metric.isBounded_iff_subset_closedBall 0).mpr ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
+  rw [zero_smul, sub_zero, Set.mem_setOf, norm_sub_rev] at hz
   replace hz := (norm_sub_norm_le ..).trans hz
+  simp only [Metric.mem_closedBall, dist_zero_right]
   rwa [tsub_le_iff_right, Algebra.norm_smul_one_eq_norm, ← two_mul] at hz
 
-lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
-    (H : ∀ (z : ℂ), ‖x - z • 1‖ ≠ 0) (c : ℂ) :
+lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+    (H : ∀ z' : ℂ, ‖x - z' • 1‖ ≠ 0) (c : ℂ) :
     ‖x - c • 1‖ = ‖x - z • 1‖ := by
   suffices {c : ℂ | ‖x - c • 1‖ = ‖x - z • 1‖} = Set.univ by
     simpa only [← this] using Set.mem_univ c
@@ -298,10 +293,9 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ (z' : ℂ), ‖x - z • 
   refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
   simp only [Set.mem_setOf_eq] at hc
   obtain ⟨ε, hε₀, hε⟩ := constant_on_open_ball_of_ne_zero x (H c) (fun z' ↦ hc ▸ hz z')
-  refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, ?_⟩
-  · rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
-    exact hε (u - c) hu
-  · exact Metric.mem_ball_self hε₀
+  refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, Metric.mem_ball_self hε₀⟩
+  rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
+  exact hε (u - c) hu
 
 /-- A version of the **Gelfand-Mazur Theorem** for fields that are normed `ℂ`-algebras. -/
 theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
@@ -310,15 +304,13 @@ theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
     refine ⟨AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩⟩
     obtain ⟨z, hz⟩ := this x
     refine ⟨z, ?_⟩
-    simp only [AlgHom.coe_mk', e, Algebra.algebraMap_eq_smul_one]
-    rw [eq_comm, ← sub_eq_zero]
+    rw [AlgHom.coe_mk', Algebra.algebraMap_eq_smul_one, eq_comm, ← sub_eq_zero]
     exact norm_eq_zero.mp hz
   intro x
   obtain ⟨z, hz⟩ := min_ex_deg_one x
   set M := ‖x - z • 1‖ with hM
-  rcases eq_or_ne M 0 with hM₀ | hM₀
-  · exact ⟨z, hM₀⟩
-  replace hM₀ : 0 < M := by positivity
+  rcases eq_or_lt_of_le (show 0 ≤ M from norm_nonneg _) with hM₀ | hM₀
+  · exact ⟨z, hM₀.symm⟩
   by_contra! H
   have key := norm_sub_is_constant hz H (‖x‖ + M + 1)
   rw [← hM, norm_sub_rev] at key
