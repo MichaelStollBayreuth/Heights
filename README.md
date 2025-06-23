@@ -106,3 +106,8 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 * We show that two absolute values on a field are equivalent if and only if they induce
   the same topology (see `AbsoluteValue.equiv_iff_isHomeomorph`in
   [__Equivalence.lean__](Heights/Equivalence.lean)).
+* We formalize a proof of a version of the Gelfand-Mazur theorem over `ℝ`:
+  a field that is a normed `ℝ`-algebra is isomorphic to either `ℝ` or `ℂ` as an `ℝ`-algebra.
+  See [__GelfandMazur.lean__](Heights/GelfandMazur.lean).
+  To help with this, we introduce `Polynomial.IsMonicOfDegree` and provide API for it
+  in [__IsMonicOfDegree.lean__](Heights/IsMonicOfDegree.lean).
