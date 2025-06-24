@@ -153,6 +153,11 @@ end Continuous
 
 namespace Algebra
 
+lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
+    (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
+    -- `sub_sq` assumes a `CommRing`
+    simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add]
+
 section Real
 
 variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
@@ -218,7 +223,7 @@ So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the alg
 `ℂ → F` is an isomorphism.
 -/
 
-variable {F : Type*} [NormedField F] [NormedAlgebra ℂ F]
+variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
 
 open Polynomial
 
@@ -272,6 +277,7 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
   -- `M * (?e * M ^ (n - 1)) = ?e * M ^ n`, not solved by `ring`
   rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
 
+omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
   have hf : Continuous fun z : ℂ ↦ ‖x - z • 1‖ := by fun_prop
   refine hf.exists_forall_le_of_isBounded 0 <|
@@ -295,8 +301,9 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1�
   rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
   exact hε (u - c) hu
 
-/-- A version of the **Gelfand-Mazur Theorem** for fields that are normed `ℂ`-algebras. -/
-theorem mainThm : Nonempty (ℂ ≃ₐ[ℂ] F) := by
+/-- A version of the **Gelfand-Mazur Theorem** for fields/division rings
+that are normed `ℂ`-algebras. -/
+theorem mainThm [FaithfulSMul ℂ F] : Nonempty (ℂ ≃ₐ[ℂ] F) := by
   suffices ∀ x : F, ∃ z : ℂ, ‖x - z • 1‖ = 0 by
     let e : ℂ →ₐ[ℂ] F := AlgHom.mk' (algebraMap ℂ F) (algebraMap.coe_smul ℂ ℂ F)
     refine ⟨AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩⟩
@@ -364,7 +371,7 @@ lemma y_prop (t c : R) (n : ℕ) :
     simp only [smul_eq_C_mul, map_pow]
     ring
 
-variable {F : Type*} [NormedField F] [Algebra R F]
+variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [Algebra R F]
 
 /-- If `F` is a normed field that is an `R`-algebra, then for a given `x : F`, the norm
 of the value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C > 0`. -/
@@ -410,7 +417,7 @@ end sequence_y
 ### The key step of the proof
 -/
 
-variable {F : Type*} [NormedField F] [NormedAlgebra ℝ F]
+variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℝ F]
 
 open Polynomial
 
@@ -506,6 +513,7 @@ lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s �
 ### Existence of a minimizing monic polynomial of degree 2
 -/
 
+omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
   have hf : Continuous fun r : ℝ ↦ ‖x - r • 1‖ := by fun_prop
   refine hf.exists_forall_le_of_isBounded 0 <| (2 * ‖x‖).isBounded_of_abs_le.subset fun r hr ↦ ?_
@@ -564,7 +572,8 @@ lemma exists_minimum_of_f (x : F) : ∃ s t : ℝ, ∀ s' t' : ℝ, f x t s ≤ 
   obtain ⟨a, b, hab⟩ := min_ex_deg_two x
   refine ⟨a / 2, b - (a / 2) ^ 2, fun s' t' ↦ ?_⟩
   convert hab (2 * s') (s' ^ 2 + t') using 2 <;>
-  { simp only [sub_sq, Algebra.mul_smul_comm, mul_one, _root_.smul_pow, one_pow, two_mul]
+  { simp only [Algebra.sub_smul_one_sq, Algebra.mul_smul_comm, mul_one, _root_.smul_pow, one_pow,
+      two_mul]
     module }
 
 /-!
@@ -585,7 +594,9 @@ lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f 
   specialize hε _ hu
   rwa [show c + (u - c) = u by abel, hc] at hε
 
-/-- Every `x : F` is the root of a monic quadratic polynomial with real coefficients. -/
+/-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
+e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
+with real coefficients. -/
 lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
   suffices ∃ s t : ℝ, f x t s = 0 by
     obtain ⟨s, t, hst⟩ := this
@@ -612,7 +623,10 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
     _ = ‖(x - s • 1) ^ 2 + t • 1 - ((x - (s + c) • 1) ^ 2 + t • 1)‖ := by
         rw [norm_sub_rev, add_smul]
         congr 1
-        ring
+        simp only [← one_add_one_eq_two, mul_sub, Algebra.mul_smul_comm, mul_one, smul_add,
+          ← add_smul, smul_sub, smul_smul, Nat.reduceAdd, Algebra.sub_smul_one_sq,
+          _root_.smul_pow, one_pow, add_sub_add_right_eq_sub]
+        module
     _ ≤ ‖(x - s • 1) ^ 2 + t • 1‖ + ‖((x - (s + c) • 1) ^ 2 + t • 1)‖ := norm_sub_le ..
     _ = 2 * a := by rw [two_mul a]; exact congrArg (a + ·) <| f_is_constant hst H (s + c)
   -- now get the contradiction by specializing to a suitable value of `c`
@@ -623,9 +637,10 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
 
 /-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:
 
-If `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
+If a field `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
 either to `ℝ` or to `ℂ`. -/
-theorem nonempty_algEquiv_or : Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) := by
+theorem nonempty_algEquiv_or {F : Type*} [NormedField F] [NormedAlgebra ℝ F]:
+    Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) := by
   have : Algebra.IsAlgebraic ℝ F := by
     refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
     obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
