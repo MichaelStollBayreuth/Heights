@@ -12,7 +12,7 @@ We also provide some basic API.
 namespace Polynomial
 
 /-- This says that `p` has `natDegree` `n` and is monic. -/
-abbrev IsMonicOfDegree {R : Type*} [Semiring R] (p : R[X]) (n : ℕ) : Prop :=
+def IsMonicOfDegree {R : Type*} [Semiring R] (p : R[X]) (n : ℕ) : Prop :=
   p.natDegree = n ∧ p.Monic
 
 lemma IsMonicOfDegree.monic {R : Type*} [Semiring R] {p : R[X]} {n : ℕ}
@@ -151,25 +151,16 @@ lemma IsMonicOfDegree.add_right {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
   rw [add_comm]
   exact hq.add_left hp
 
-lemma IsMonicOfDegree.aeval_add {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
-    (hp : IsMonicOfDegree p n) (r : R) :
-    IsMonicOfDegree (aeval (X + C r) p) n := by
-  rcases subsingleton_or_nontrivial R with H | H
-  · simpa using hp
-  have : (X + C r).natDegree = 1 := by compute_degree!
-  constructor
-  · have h : p.leadingCoeff * (X + C r).leadingCoeff ^ p.natDegree ≠ 0 := by
-      have : (X + C r).leadingCoeff = 1 := by monicity
-      rw [hp.leadingCoeff_eq, this, one_mul, one_pow]
-      exact one_ne_zero
-    rw [← comp_eq_aeval, natDegree_comp_eq_of_mul_ne_zero h, this, hp.natDegree_eq, mul_one]
-  · exact hp.monic.comp (by monicity) <| by rw [this]; exact one_ne_zero
-
-lemma IsMonicOfDegree.aeval_sub {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
-    (hp : IsMonicOfDegree p n) (r : R) :
-    IsMonicOfDegree (aeval (X - C r) p) n := by
-  rw [sub_eq_add_neg, ← map_neg]
-  exact aeval_add hp (-r)
+lemma IsMonicOfDegree.comp {R : Type*} [Semiring R] {p q : R[X]} {m n : ℕ} (hn : n ≠ 0)
+    (hp : IsMonicOfDegree p m) (hq : IsMonicOfDegree q n) :
+    IsMonicOfDegree (p.comp q) (m * n) := by
+  rcases subsingleton_or_nontrivial R with h | h
+  · simp only [isMonicOfDegree_iff_of_subsingleton, mul_eq_zero] at hp ⊢
+    exact .inl hp
+  rw [← hp.natDegree_eq, ← hq.natDegree_eq]
+  refine (isMonicOfDegree_iff ..).mpr ⟨natDegree_comp_le, ?_⟩
+  rw [coeff_comp_degree_mul_degree (hq.natDegree_eq ▸ hn), hp.leadingCoeff_eq, hq.leadingCoeff_eq,
+    one_pow, one_mul]
 
 lemma isMonicOfDegree_X_add_one {R : Type*} [Semiring R] [Nontrivial R] (r : R) :
     IsMonicOfDegree (X + C r) 1 :=
@@ -188,6 +179,20 @@ lemma isMonicOfDegree_one_iff {R : Type*} [Semiring R] [Nontrivial R] {f : R[X]}
   · simp
   · exact H.coeff_eq (isMonicOfDegree_X_add_one _) (by omega)
 
+lemma IsMonicOfDegree.aeval_add {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
+    (hp : IsMonicOfDegree p n) (r : R) :
+    IsMonicOfDegree (aeval (X + C r) p) n := by
+  rcases subsingleton_or_nontrivial R with H | H
+  · simpa using hp
+  rw [← mul_one n]
+  exact hp.comp one_ne_zero (isMonicOfDegree_X_add_one r)
+
+lemma IsMonicOfDegree.aeval_sub {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
+    (hp : IsMonicOfDegree p n) (r : R) :
+    IsMonicOfDegree (aeval (X - C r) p) n := by
+  rw [sub_eq_add_neg, ← map_neg]
+  exact aeval_add hp (-r)
+
 lemma isMonicOfDegree_sub_sq_add_two {R : Type*} [CommRing R] [Nontrivial R] (s t : R) :
     IsMonicOfDegree ((X - C s) ^ 2 + C t) 2 := by
   have : IsMonicOfDegree (X - C s) 1 := isMonicOfDegree_X_sub_one s
@@ -204,13 +209,17 @@ lemma isMonicOfDegree_two_iff {R : Type*} [CommRing R] [Nontrivial R] [Algebra �
   · simp [-one_div, sub_sq, ← map_pow, add_sq, two_mul, add_mul, ← add_smul]
   exact H.coeff_eq (isMonicOfDegree_sub_sq_add_two ..) (by omega)
 
+/-!
+### Lemmas for more specific base fields
+-/
+
 /-- If `f : ℝ[X]` is monic of degree `≥ 2`, then `f = f₁ * f₂` with `f₁` monic of degree `2`
 and `f₂` monic of degree `f.natDegree - 2`.
 This relies on the fact that irreducible polynomials over `ℝ` have degree at most `2`. -/
 lemma IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n : ℕ}
     (hf : IsMonicOfDegree f (n + 2)) :
     ∃ f₁ f₂ : ℝ[X], IsMonicOfDegree f₁ 2 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by omega
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
   obtain ⟨g, hgm, hgi, hgd⟩ := exists_monic_irreducible_factor f hu
   have hdeg := hgi.natDegree_le_two
   set m := g.natDegree with hm
@@ -222,7 +231,7 @@ lemma IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n
     obtain ⟨f₁, hf₁⟩ := hgd
     rw [hf₁, show n + 2 = 1 + (1 + n) by omega] at hf
     have hf₁' : IsMonicOfDegree f₁ (1 + n) := hg.of_mul_left hf
-    have hu₁ : ¬ IsUnit f₁ := not_isUnit_of_natDegree_pos f₁ <| by omega
+    have hu₁ : ¬ IsUnit f₁ := not_isUnit_of_natDegree_pos f₁ <| by have := hf₁'.natDegree_eq; omega
     obtain ⟨g₁, hgm₁, hgi₁, hgd₁⟩ := exists_monic_irreducible_factor f₁ hu₁
     obtain ⟨f₂, hf₂⟩ := hgd₁
     have hdeg₁ := hgi₁.natDegree_le_two
@@ -250,7 +259,7 @@ lemma IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Fi
     [IsAlgClosed F] {f : F[X]} {n : ℕ}
     (hf : IsMonicOfDegree f (n + 1)) :
     ∃ f₁ f₂ : F[X], IsMonicOfDegree f₁ 1 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by omega
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
   obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ := exists_monic_irreducible_factor f hu
   have hf₁ : IsMonicOfDegree f₁ 1 := by
     refine ⟨?_, hf₁m⟩
