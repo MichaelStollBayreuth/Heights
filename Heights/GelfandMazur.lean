@@ -254,13 +254,11 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
       tendsto_pow_atTop_nhds_zero_of_lt_one (by positivity) <|
       (div_lt_one <| by positivity).mpr hc
   intro n hn
-  have hrel := geom_sum₂_mul X (C c) n
-  set p := ∑ i ∈ Finset.range n, X ^ i * C c ^ (n - 1 - i)
-  have hp : IsMonicOfDegree p (n - 1) := by
-    have : IsMonicOfDegree (X ^ n - C c ^ n) n :=
-      (isMonicOfDegree_X_pow ℂ n).sub <| by compute_degree!
-    rw [← hrel, show n = n - 1 + 1 by omega] at this
-    exact (isMonicOfDegree_X_sub_one c).of_mul_right this
+  have := sub_dvd_pow_sub_pow X (C c) n
+  obtain ⟨p, hp, hrel⟩ := by
+    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega) (isMonicOfDegree_X_sub_one c) ?_ this
+    compute_degree!
+  rw [eq_comm, ← eq_sub_iff_add_eq] at hrel
   apply_fun (‖aeval (x - z • 1) ·‖) at hrel -- evaluate at `x - z•1` and take norms
   simp only [map_mul, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, norm_mul,
     map_pow] at hrel
