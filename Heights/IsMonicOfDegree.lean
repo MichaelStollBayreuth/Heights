@@ -151,6 +151,21 @@ lemma IsMonicOfDegree.add_right {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
   rw [add_comm]
   exact hq.add_left hp
 
+lemma IsMonicOfDegree.of_dvd_add {R : Type*} [CommRing R] {a b r : R[X]} {m n : ℕ} (hmn : n ≤ m)
+    (ha : IsMonicOfDegree a m) (hb : IsMonicOfDegree b n) (hr : r.natDegree < m) (h : b ∣ a + r) :
+    ∃ q : R[X], IsMonicOfDegree q (m - n) ∧ a = q * b - r := by
+  obtain ⟨q, hq⟩ :=exists_eq_mul_left_of_dvd  h
+  refine ⟨q, hb.of_mul_right ?_, eq_sub_iff_add_eq.mpr hq⟩
+  rw [← hq, show m - n + n = m by omega]
+  exact ha.add_left hr
+
+lemma IsMonicOfDegree.of_dvd_sub {R : Type*} [CommRing R] {a b r : R[X]} {m n : ℕ} (hmn : n ≤ m)
+    (ha : IsMonicOfDegree a m) (hb : IsMonicOfDegree b n) (hr : r.natDegree < m) (h : b ∣ a - r) :
+    ∃ q : R[X], IsMonicOfDegree q (m - n) ∧ a = q * b + r := by
+  convert ha.of_dvd_add hmn hb ?_ h using 4 with q
+  · rw [sub_neg_eq_add]
+  · rwa [natDegree_neg]
+
 lemma IsMonicOfDegree.comp {R : Type*} [Semiring R] {p q : R[X]} {m n : ℕ} (hn : n ≠ 0)
     (hp : IsMonicOfDegree p m) (hq : IsMonicOfDegree q n) :
     IsMonicOfDegree (p.comp q) (m * n) := by

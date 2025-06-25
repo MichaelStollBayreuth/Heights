@@ -1,4 +1,5 @@
 import Heights.Equivalence
+import Heights.GelfandMazur
 
 /-!
 # Extensions of absolute values
