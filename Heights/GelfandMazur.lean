@@ -81,47 +81,27 @@ Note that any monic polynomial of degree `2` over `ℝ` can be written in the fo
 The goal is to show that when `s` and `t` achieve the minimum `M` of `‖(x - s•1)^2 + t•1‖`,
 and `M > 0`, then we can find some `ε > 0` (depending on `x`, `s`, `t`, and `M`)
 such that `‖(x - (s+c)•1)^2 + t•1‖ = M` for all `c : ℝ` such that `|c| < ε`
-(see `GelfandMazur.constant_on_open_interval_of_ne_zero`).
+(see `GelfandMazur.constant_on_nhd_of_ne_zero`).
 Then the set `S = {s' | ‖(x - s'•1)^2 + t•1‖ = M}` must be all of `ℝ` (as it is
 closed, open, and nonempty). This will lead to a contradiction with the growth
 of `‖(x - s'•1)^2 + t•1‖` as `|s'|` gets large.
 
-To get there, the idea is to find a relation among polynomials of the following form,
+To get there, the idea is, similarly to the complex case, to use the following relation,
 where `n : ℕ` and `c : ℝ` is arbitrary.
 ```math
-  (X^2+t)^n - c^n y_n(X) + c^{2n} = ((X-c)^2+t) z(X) \,,
+  (X^2+t)^n - (c(2X-c))^n = ((X-c)^2+t) p(t,c,n; \, X) \,,
 ```
-where $y_n(X)$ has degree at most `n` and the norm of its value at a given `x : F`
-can be bounded by a constant (`= 2`) times the `n`th power of another constant `C`;
-then $z_n(c,X)$ must be monic of degree `2*(n-1)`. We define a suitable sequence
-of polynomials `y x t n` below; the `z` polynomials (which depend on `t`, `c` and `n`)
-will be implicit: we show that the polynomial on the left in the equation above
+where $p(t,c,n;\,X)$ is a monic polynomial of degree `2*(n-1)`, which will be left
+implicit: we show that the polynomial on the left in the equation above
 is divisible by $(X-c)^2+t$.
 
-This (and the definition of `y`) is inspired by "taking norms from `ℂ` to `ℝ`"
-in the proof above. Consider, for `c : ℝ`, `P t c := ((X-t*I•1)^n - c^n•1)*((X+t*I•1)^n - c^n•1)`;
-this is in fact a polynomial with real coefficients. On the one hand, we can write
-`P t c = (X^2+t^2•1)^n - c^n•((X-t*I•1)^n + (X+t*I•1)^n)) + |c|^(2*n)•1`,
-where the middle term is a polynomial with real coefficients again that depends on `c`
-only via the factor `c^n`. On the other hand,
-`P t c = (X - (c+t*I)•1)*(X - (c-t*I)•1) * z = ((X-c•1)^2 + t^2•1) * z`,
-where `z` is monic of degree `2*(n-1)`. Our definition of `y` is such that
-`y x (t^2) n = (x-t*I•1)^n + (x+t*I•1)^n)`.
-
-Evaluating at `x - s•1` and taking norms, this implies that
-`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - c^n*(y n) + c^(2*n))‖ / ‖aeval (x-s•1) z‖`,
+For given `x : F`, we then have that `‖c•(2*x-c•1)‖ < M` for small
+enough `c : ℝ`. Evaluating the relation above at `x - s•1` and taking norms, this implies that
+`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - (c(2X-c))^n)‖ / ‖aeval (x-s•1) z‖`,
 which is bounded by
-`(M^n + |c|^n * (2*C^n) + |c|^(2*n)) / M^(n-1) = M * (1 + 2 * (|c|*C/M)^n + (|c|^2/M)^n)`.
-If we take `c : ℝ` such that `|c| < min √M (M/C)`, then as `n` tends to infinity, we obtain that
+`(M^n + ‖c•(2*x-c•1)‖^n) / M^(n-1) = M * (1 + (‖c•(2*x-c•1)‖/M)^n)`.
+So, letting `n` tend to infinity, we obtain that
 `M ≤ ‖(x-(s+c)•1)^2 + t‖ ≤ M`, as desired.
-
-It remains to define a suitable sequence `y` of polynomials. We set, for `t : ℝ`,
-* `y t 0 := 2`, `y t 1 := 2*X`, `y t (n+2) := 2*X*(y t (n+1)) - (X^2+t)*(y t n)`
-and we prove that
-* `∀ t, ∀ n, (y t n).natDegree ≤ n` (`GelfandMazur.y_degree`)
-* `∀ t c n, (X-c)^2+t ∣ (X^2+t)^n - c^n*(y x t n) + c^(2*n)` (`GelfandMazur.y_prop`)
-* `∀ (x : F) t, ∃ C ≥ 0, ∀ n, ‖(y n).aeval x‖ ≤ 2*C^n` (`GelfandMazur.y_bound`)
-which provides the necessary input.
 -/
 
 section auxiliary
