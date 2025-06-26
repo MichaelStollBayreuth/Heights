@@ -62,16 +62,16 @@ has the obvious meaning (we define this predicate and provide API for it
 in a separate file).
 
 Because the space `ℝ²` of monic polynomials of degree `2` is complete and locally compact
-and `‖p.aeval x‖` gets large when `p` has large coefficients (*), there will be some `p₀`
-such that `‖p₀.aeval x‖` attains a minimum (see `GelfandMazur.exists_minimum_of_f`).
-We assume that this is positive and derive a contradiction. Let `M := ‖p₀.aeval x‖ > 0`
+and `‖aeval x p‖` gets large when `p` has large coefficients (*), there will be some `p₀`
+such that `‖aeval x p₀‖` attains a minimum (see `GelfandMazur.exists_minimum_of_f`).
+We assume that this is positive and derive a contradiction. Let `M := ‖aeval x p₀‖ > 0`
 be the minimal value.
 Since every monic polynomial `f : ℝ[X]` of even degree can be written as a product
 of monic polynomials of degree `2`
 (see `Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree`),
-it follows that `‖f.aeval x‖ ≥ M^(f.natDegree / 2)`.
+it follows that `‖aeval x f‖ ≥ M^(f.natDegree / 2)`.
 
-(*) This is actually somewhat more subtle. It is certainly true for `‖x - r‖` with `r : ℝ`.
+(*) This is actually somewhat more subtle. It is certainly true for `‖x - r•1‖` with `r : ℝ`.
 If the minimum of this is zero, then the minimum for monic polynomials of degree `2`
 will also be zero (and is attained on a one-dimensional subset). Otherwise, one can
 indeed show that a bound on `‖x^2 - a•x + b•1‖` implies bounds on `|a|` and `|b|`.
@@ -97,9 +97,9 @@ is divisible by $(X-c)^2+t$.
 
 For given `x : F`, we then have that `‖c•(2*x-c•1)‖ < M` for small
 enough `c : ℝ`. Evaluating the relation above at `x - s•1` and taking norms, this implies that
-`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - (c(2X-c))^n)‖ / ‖aeval (x-s•1) z‖`,
+`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - (c•(2*X-c•1))^n)‖ / ‖aeval (x-s•1) p‖`,
 which is bounded by
-`(M^n + ‖c•(2*x-c•1)‖^n) / M^(n-1) = M * (1 + (‖c•(2*x-c•1)‖/M)^n)`.
+`(M^n + ‖c•(2*(x-s•1)-c•1)‖^n) / M^(n-1) = M * (1 + (‖c•(2*(x-s•1)-c•1)‖/M)^n)`.
 So, letting `n` tend to infinity, we obtain that
 `M ≤ ‖(x-(s+c)•1)^2 + t‖ ≤ M`, as desired.
 -/
@@ -120,7 +120,7 @@ namespace Continuous
 lemma exists_forall_le_of_isBounded {α β : Type*} [LinearOrder α]
     [TopologicalSpace α] [OrderClosedTopology α] [PseudoMetricSpace β] [ProperSpace β]
     {f : β → α} (hf : Continuous f) (x₀ : β) (h : Bornology.IsBounded {x : β | f x ≤ f x₀}) :
-    ∃ x, ∀ (y : β), f x ≤ f y := by
+    ∃ x, ∀ y, f x ≤ f y := by
   refine hf.exists_forall_le' (x₀ := x₀) ?_
   have hU : {x : β | f x₀ < f x} ∈ Filter.cocompact β := by
     refine Filter.mem_cocompact'.mpr ⟨_, ?_, fun ⦃_⦄ a ↦ a⟩
@@ -135,7 +135,7 @@ namespace Algebra
 
 lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
     (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
-    -- `sub_sq` assumes a `CommRing`
+    -- `sub_sq` assumes `CommRing A`
     simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add]
 
 section Real
@@ -342,54 +342,45 @@ lemma constant_on_nhd_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
     (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') :
     ∃ U ∈ nhds 0, ∀ c ∈ U, f x t (s + c) = f x t s := by
   set M : ℝ := f x t s
-  have hM₀ : 0 < M := lt_of_le_of_ne (norm_nonneg _) h₀.symm
-  let F (c : ℝ) : ℝ := ‖aeval (x - s • 1) (C c * (2 * X - C c))‖
-  have hF_def (c : ℝ) : F c = ‖aeval (x - s • 1) (C c * (2 * X - C c))‖ := rfl
-  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds (0 : ℝ), ∀ c ∈ U, F c < M := by
-    have hF : Continuous F := by simp [F]; fun_prop
-    replace hF := (show F 0 = 0 by simp [F]) ▸ hF.tendsto 0
-    have H : {r : ℝ | r < M} ∈ nhds 0 := by
-      refine (isOpen_lt ?_ ?_).mem_nhds (by simpa) <;> fun_prop
-    exact ⟨F ⁻¹' {r : ℝ | r < M}, hF H, fun c hc ↦ by simpa using hc⟩
+  have hM₀ : 0 < M := by positivity
+  let φ (c : ℝ) : ℝ := ‖aeval (x - s • 1) (C c * (2 * X - C c))‖
+  have hφ_def (c : ℝ) : φ c = ‖aeval (x - s • 1) (C c * (2 * X - C c))‖ := rfl
+  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds 0, ∀ c ∈ U, φ c < M := by
+    have hφ : Continuous φ := by simp [φ]; fun_prop
+    replace hφ := (show φ 0 = 0 by simp [φ]) ▸ hφ.tendsto 0
+    refine ⟨φ ⁻¹' {r : ℝ | r < M}, hφ ?_, fun c hc ↦ by simpa using hc⟩
+    exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
   refine ⟨U, hU₀, fun c hc ↦ ?_⟩
-  suffices ∀ n > 0, f x t (s + c) ≤ M * (1 + (F c / M) ^ n) by
-    specialize hU c hc
+  suffices ∀ n > 0, f x t (s + c) ≤ M * (1 + (φ c / M) ^ n) by
     refine (le_antisymm (h ..) ?_).symm
     refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
     conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
     refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
       tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
     rw [abs_of_nonneg (by positivity)]
-    exact (div_lt_one hM₀).mpr hU
+    exact (div_lt_one hM₀).mpr <| hU c hc
   intro n hn
   have hdvd : (X - C c) ^ 2 + C t ∣ (X ^ 2 + C t) ^ n - (C c * (2 * X - C c)) ^ n := by
     convert sub_dvd_pow_sub_pow (X ^ 2 + C t) (C c * (2 * X - C c)) n using 1
     ring
   have H₁ : IsMonicOfDegree ((X ^ 2 + C t) ^ n) (2 * n) :=
     ((isMonicOfDegree_X_pow ℝ 2).add_left (by compute_degree!)).pow n
-  have H₂ : IsMonicOfDegree ((X - C c) ^ 2 + C t) 2 := isMonicOfDegree_sub_sq_add_two c t
-  have H₃ : ((C c * (2 * X - C c)) ^ n).natDegree < 2 * n := by
-    compute_degree -- n < 2 * n
-    omega
-  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) H₂ H₃ hdvd
+  have H₂ : ((C c * (2 * X - C c)) ^ n).natDegree < 2 * n := by compute_degree; omega
+  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) (isMonicOfDegree_sub_sq_add_two c t) H₂ hdvd
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
-  rw [← sub_eq_iff_eq_add, eq_comm] at hrel
+  rw [← sub_eq_iff_eq_add, eq_comm, mul_comm] at hrel
   apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
-  -- Use less simplification here
-  simp only [map_mul, map_add, map_pow, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one,
-    norm_mul, aeval_ofNat, Nat.cast_ofNat, Algebra.smul_mul_assoc, one_mul] at hrel
+  rw [map_mul, norm_mul, map_sub] at hrel
   replace hrel := hrel.trans_le (norm_sub_le ..)
-  rw [norm_pow, sub_sub, ← add_smul, mul_comm, norm_pow] at hrel
-  suffices f x t (s + c) * M ^ (n - 1) ≤ M ^ n + (F c) ^ n by
+  simp only [map_pow, norm_pow, ← hφ_def, map_add, map_sub, aeval_C, aeval_X,
+    Algebra.algebraMap_eq_smul_one, sub_sub, ← add_smul] at hrel
+  have hp' : M ^ (n - 1) ≤ ‖(aeval (x - s • 1)) p‖ := le_aeval_of_isMonicOfDegree x h hp s
+  suffices f x t (s + c) * M ^ (n - 1) ≤ M ^ n + (φ c) ^ n by
     convert (le_div_iff₀ (by positivity)).mpr this using 1
     field_simp
     -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
     rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
-  calc
-  _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by
-      gcongr; exact le_aeval_of_isMonicOfDegree x h hp s
-  _ ≤ M ^ n + ‖c • (2 * (x - s • 1) - c • 1)‖ ^ n := hrel
-  _ = M ^ n + F c ^ n := by simp [F, norm_smul, Algebra.algebraMap_eq_smul_one]
+  exact mul_le_mul_of_nonneg_left hp' (norm_nonneg _) |>.trans hrel
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
@@ -409,13 +400,10 @@ lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ �
 lemma min_ex_deg_two (x : F) :
     ∃ a b : ℝ, ∀ a' b' : ℝ, ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x ^ 2 - a' • x + b' • 1‖ := by
   obtain ⟨u, hu⟩ := min_ex_deg_one x
+  rcases eq_or_lt_of_le (norm_nonneg (x - u • 1)) with hc₀ | hc₀
+  · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
+    exact ⟨u, 0, fun s' t' ↦ by simp [hc₀, _root_.smul_pow, sq]⟩
   set c := ‖x - u • 1‖ with hc
-  rcases eq_or_ne c 0 with hc₀ | hc₀
-  · refine ⟨u, 0, fun s' t' ↦ ?_⟩
-    rw [zero_smul, add_zero, sq, show u • x = (u • 1) * x by simp, ← sub_mul, norm_mul, ← hc, hc₀,
-      zero_mul]
-    exact norm_nonneg _
-  replace hc₀ : 0 < c := by positivity
   suffices ∃ z : ℝ × ℝ, ∀ z' : ℝ × ℝ, ‖x ^ 2 - z.1 • x + z.2 • 1‖ ≤ ‖x ^ 2 - z'.1 • x + z'.2 • 1‖ by
     obtain ⟨z, h⟩ := this
     exact ⟨z.1, z.2, fun a' b' ↦ h (a', b')⟩
@@ -424,7 +412,7 @@ lemma min_ex_deg_two (x : F) :
   simp only [zero_smul, sub_zero, add_zero, norm_pow]
   refine ((2 * ‖x‖ ^ 2 / c).isBounded_of_abs_le.prod
             (2 * ‖x‖ ^ 2 + 2 * ‖x‖ ^ 3 / c).isBounded_of_abs_le).subset fun (a, b) hab ↦ ?_
-  simp only [Set.mem_prod, Set.mem_setOf_eq] at hab ⊢
+  simp only [Set.mem_prod, Set.mem_setOf] at hab ⊢
   have ha : |a| ≤ 2 * ‖x‖ ^ 2 / c := by
     rcases eq_or_ne a 0 with rfl | ha
     · simp only [abs_zero]
@@ -466,8 +454,7 @@ lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f 
     (H : ∀ (s t : ℝ), f x t s ≠ 0) (c : ℝ) :
     f x t c = f x t s := by
   suffices {c | f x t c = f x t s} = Set.univ by simpa only [← this] using Set.mem_univ c
-  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <|
-    Set.nonempty_of_mem rfl
+  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
   refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
   simp only [Set.mem_setOf] at hc
   obtain ⟨U, hU₀, hU⟩ := constant_on_nhd_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
