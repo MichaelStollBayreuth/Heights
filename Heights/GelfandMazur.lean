@@ -326,92 +326,6 @@ theorem mainThm [FaithfulSMul ℂ F] : Nonempty (ℂ ≃ₐ[ℂ] F) := by
 end Complex
 
 /-!
-### The sequence y and its properties
--/
-
-section sequence_y
-
-variable {R : Type*} [CommRing R]
-
-open Polynomial
-
-/-- The sequence `y t n` such that (formally) `y (t^2) n = (X-t*I•1)^n + (X+t*I•1)^n)`. -/
-noncomputable
-def y (t : R) : ℕ → R[X]
-| 0 => 2
-| 1 => 2 * X
-| n + 2 => 2 * X * y t (n + 1) - (X ^ 2 + C t) * y t n
-
-lemma y_degree (t : R) (n : ℕ) : (y t n).natDegree ≤ n := by
-  induction n using Nat.twoStepInduction with
-  | zero => simp [y]
-  | one => simp only [y]; compute_degree
-  | more n ih₂ ih₁ =>
-    simp only [y]
-    compute_degree!
-    constructor <;> linarith
-
-lemma y_prop (t c : R) (n : ℕ) :
-    (X - C c) ^ 2 + C t ∣ (X ^ 2 + C t) ^ n - c ^ n • y t n + C (c ^ (2 * n)) := by
-  induction n using Nat.twoStepInduction with
-  | zero => norm_num [y] -- `simp` alone leaves `_ ∣ 1 - 2 + 1`
-  | one =>
-    simp only [sub_sq, pow_one, y, smul_eq_C_mul, mul_one, map_pow]
-    convert dvd_rfl using 1
-    ring
-  | more n ih₂ ih₁ =>
-    simp only [y]
-    replace ih₂ := ih₂.mul_left (- C c ^ 2 * (X ^ 2 + C t))
-    replace ih₁ := ih₁.mul_left (C c * 2 * X)
-    have ih₃ := dvd_mul_left ((X - C c) ^ 2 + C t) ((X ^ 2 + C t) ^ (n + 1) + C c ^ (2 * n + 2))
-    convert ih₂.add ih₁ |>.add ih₃ using 1; clear ih₁ ih₂ ih₃
-    rw [pow_add (X ^ 2 + C t), pow_succ (X ^ 2 + C t) n]
-    simp only [smul_eq_C_mul, map_pow]
-    ring
-
-variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [Algebra R F]
-
-/-- If `F` is a normed field that is an `R`-algebra, then for a given `x : F`, the norm
-of the value of `y t n` at `x` is bounded by `2 * C ^ n` for some `C > 0`. -/
-lemma y_bound (t : R) (x : F) : ∃ C > 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n := by
-  suffices ∃ C ≥ 0, ∀ n, ‖aeval x (y t n)‖ ≤ 2 * C ^ n by
-    obtain ⟨C, hC₀, hC⟩ := this
-    refine ⟨C + 1, by positivity, fun n ↦ ?_⟩
-    have H : 2 * C ^ n ≤ 2 * (C + 1) ^ n := by gcongr; linarith
-    exact (hC n).trans H
-  have h₂ : ‖(2 : F)‖ ≤ 2 := by simpa using Nat.norm_cast_le (α := F) 2
-  set a := ‖2 * x‖                      -- convenient abbreviations
-  set b := ‖x ^ 2 + (algebraMap R F) t‖
-  let C : ℝ := max (max ‖x‖ (2 * a)) (Real.sqrt (2 * b))
-  refine ⟨C, by positivity, fun n ↦ ?_⟩
-  induction n using Nat.twoStepInduction with
-  | zero => simpa [y] using h₂
-  | one =>
-    simp only [y, map_mul, aeval_ofNat, Nat.cast_ofNat, aeval_X, norm_mul, pow_one]
-    have : ‖x‖ ≤ C := le_sup_of_le_left <| le_max_left ..
-    gcongr
-  | more n ih₂ ih₁ =>
-    simp only [y, map_sub, map_mul, aeval_ofNat, Nat.cast_ofNat, aeval_X, map_add, map_pow, aeval_C]
-    calc ‖2 * x * aeval x (y t (n + 1)) - (x ^ 2 + algebraMap R F t) * aeval x (y t n)‖
-    _ ≤ ‖2 * x * aeval x (y t (n + 1))‖ + ‖(x ^ 2 + algebraMap R F t) * aeval x (y t n)‖ :=
-        norm_sub_le ..
-    _ = ‖2 * x‖ * ‖aeval x (y t (n + 1))‖ + ‖x ^ 2 + algebraMap R F t‖ * ‖aeval x (y t n)‖ := by
-        simp only [norm_mul]
-    _ ≤ a * (2 * C ^ (n + 1)) + b * (2 * C ^ n) := by gcongr
-    _ = (a * C + b) * (2 * C ^ n) := by ring
-    _ ≤ (C ^ 2 / 2 + C ^ 2 / 2) * (2 * C ^ n) := by
-        gcongr -- `a * C ≤ C ^ 2 / 2` and `b ≤ C ^ 2 / 2`
-        · have : 2 * a ≤ C := le_sup_of_le_left <| le_max_right ..
-          rw [le_div_iff₀' zero_lt_two, ← mul_assoc, sq]
-          gcongr
-        · have : √(2 * b) ≤ C := le_max_right ..
-          rw [le_div_iff₀' zero_lt_two, ← Real.sq_sqrt (by positivity : 0 ≤ 2 * b)]
-          gcongr
-    _ = 2 * C ^ (n + 2) := by ring
-
-end sequence_y
-
-/-!
 ### The key step of the proof
 -/
 
@@ -441,71 +355,70 @@ lemma le_aeval_of_isMonicOfDegree (x : F) {s t : ℝ} (h : ∀ s' t' : ℝ, f x 
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hst, H', sub_sub, ← add_smul]
     exact mul_le_mul (ih hf₂) (h (c + s') t') (norm_nonneg _) (norm_nonneg _)
 
-open Filter in
-lemma tendsto_M {c C M : ℝ} (hC₀ : C > 0) (H₀ : 0 ≤ M) (hc : |c| < min (√M) (M / C))
-    {f : ℕ → ℝ} (hf : ∀ n, 0 ≤ f n) (hC : ∀ n, f n ≤ 2 * C ^ n) :
-    Tendsto (fun n : ℕ ↦ M * (1 + (|c| / M) ^ n * f n + (|c| ^ 2 / M) ^ n)) atTop (nhds M) := by
-  rcases eq_or_lt_of_le H₀ with rfl | H₀
-  · simp
-  conv => enter [3, 1]; rw [show M = M * (1 + 0 + 0) by ring] -- preparation
-  refine tendsto_const_nhds.mul <| (tendsto_const_nhds.add ?_).add  ?_
-  · replace hC (n : ℕ) : (|c| / M) ^ n * f n ≤ 2 * (|c| / (M / C)) ^ n := by
-      calc (|c| / M) ^ n * f n
-      _ ≤ (|c| / M) ^ n * (2 * C ^ n) := by have := hC n; gcongr
-      _ = _ := by rw [mul_left_comm, ← mul_pow]; congr 2; field_simp
-    refine squeeze_zero (fun n ↦ by have := hf n; positivity) hC ?_
-    conv => enter [3, 1]; rw [← mul_zero 2] -- preparation
-    refine tendsto_const_nhds.mul <| tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
-    rw [abs_of_nonneg (by positivity), div_lt_one (by positivity)]
-    exact (lt_min_iff.mp hc).2
-  · refine tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
-    rw [abs_of_nonneg (by positivity), div_lt_one H₀, ← M.sq_sqrt H₀.le]
-    have := (lt_min_iff.mp hc).1
-    gcongr
-
 /-- The key step in the proof: if `s` and `t` are real numbers minimizing `‖(x-s•1)^2 + t•1‖`,
 and the minimal value is strictly positive, then for `s'` in some open interval around `s`,
 `‖(x-s'•1)^2 + t•1‖` is constant. -/
-lemma constant_on_open_interval_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
+lemma constant_on_nhd_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
     (h : ∀ s' t' : ℝ, f x t s ≤ f x t' s') :
-    ∃ ε > 0, ∀ c : ℝ, |c| < ε → f x t (s + c) = f x t s := by
-  obtain ⟨C, hC₀, hC⟩ := y_bound t (x - s •1)
+    ∃ U ∈ nhds 0, ∀ c ∈ U, f x t (s + c) = f x t s := by
   set M : ℝ := f x t s
-  refine ⟨min M.sqrt (M / C), by positivity, fun c hc ↦ ?_⟩
-  suffices ∀ n > 0, f x t (s + c) ≤
-      M * (1 + (|c| / M) ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2 / M) ^ n) by
+  have hM₀ : 0 < M := lt_of_le_of_ne (norm_nonneg _) h₀.symm
+  obtain ⟨U, hU₀, hU⟩ :
+      ∃ U ∈ nhds (0 : ℝ), ∀ c ∈ U, ‖aeval (x - s • 1) (C c * (2 * X - C c))‖ < M := by
+    let F (c : ℝ) : ℝ := ‖aeval (x - s • 1) (C c * (2 * X - C c))‖
+    have hcont : Continuous F := by
+      simp only [F, map_mul, aeval_C, map_sub, aeval_ofNat, Nat.cast_ofNat, aeval_X, norm_mul,
+        norm_algebraMap', Real.norm_eq_abs]
+      fun_prop
+    have hF₀ : F 0 = 0 := by simp [F]
+    have := hF₀ ▸ hcont.tendsto 0
+    have H : {r : ℝ | r < M} ∈ nhds 0 := by
+      refine IsOpen.mem_nhds ?_ <| by simpa
+      refine isOpen_lt ?_ ?_ <;> fun_prop
+    refine ⟨F ⁻¹' {r : ℝ | r < M}, this H, fun c hc ↦ ?_⟩
+    simpa only [Set.preimage_setOf_eq, Set.setOf_subset_setOf, Set.mem_setOf, F] using hc
+  refine ⟨U, hU₀, fun c hc ↦ ?_⟩
+  suffices
+      ∀ n > 0, f x t (s + c) ≤ M * (1 + (‖aeval (x - s • 1) (C c * (2 * X - C c))‖ / M) ^ n) by
     -- (this is still true for `n = 0`, but would need a separate proof)
-    refine (le_antisymm (h ..) <|
-      ge_of_tendsto (tendsto_M hC₀ (norm_nonneg _) hc (fun _ ↦ norm_nonneg _) hC) ?_).symm
-    exact Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
+    specialize hU c hc
+    refine (le_antisymm (h ..) ?_).symm
+    refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
+    conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
+    refine tendsto_const_nhds.mul <| ?_
+    refine tendsto_const_nhds.add <| tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
+    rw [abs_of_nonneg (by positivity)]
+    exact (div_lt_one hM₀).mpr hU
   intro n hn
-  -- use the divisibility relation satisfied by `y t n`
-  obtain ⟨p, hrel⟩ := y_prop t c n
-  have hp : IsMonicOfDegree p (2 * (n - 1)) := by
-    refine IsMonicOfDegree.of_mul_left (isMonicOfDegree_sub_sq_add_two c t) ?_
-    rw [← hrel, sub_add, show 2 + 2 * (n - 1) = 2 * n by omega]
-    refine (((isMonicOfDegree_X_pow ℝ 2).add_left <| by compute_degree!).pow _).sub ?_
-    have := y_degree t n
-    compute_degree
-    -- `(y t n).natDegree < 2 * n`
+  have hdvd : (X - C c) ^ 2 + C t ∣ (X ^ 2 + C t) ^ n - (C c * (2 * X - C c)) ^ n := by
+    convert sub_dvd_pow_sub_pow (X ^ 2 + C t) (C c * (2 * X - C c)) n using 1
+    ring
+  have H₁ : IsMonicOfDegree ((X ^ 2 + C t) ^ n) (2 * n) :=
+    ((isMonicOfDegree_X_pow ℝ 2).add_left (by compute_degree!)).pow n
+  have H₂ : IsMonicOfDegree ((X - C c) ^ 2 + C t) 2 := isMonicOfDegree_sub_sq_add_two c t
+  have H₃ : ((C c * (2 * X - C c)) ^ n).natDegree < 2 * n := by
+    compute_degree -- n < 2 * n
     omega
+  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) H₂ H₃ hdvd
+  rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
+  rw [← sub_eq_iff_eq_add, eq_comm] at hrel
   apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
-  simp only [map_pow, map_add, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, map_smul,
-    map_mul, norm_mul] at hrel
-  replace hrel := (hrel.symm.trans_le (norm_add_le ..)).trans (add_le_add_right (norm_sub_le ..) _)
-  rw [norm_pow, sub_sub, ← add_smul] at hrel
-  have HH : f x t (s + c) * M ^ (n - 1) ≤
-      M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
-    calc f x t (s + c) * M ^ (n - 1)
-    _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by
-        gcongr; exact le_aeval_of_isMonicOfDegree x h hp s
-    _ ≤ f x t s ^ n + ‖c ^ n • aeval (x - s • 1) (y t n)‖ + ‖(c • 1) ^ (2 * n)‖ := hrel
-    _ = M ^ n + |c| ^ n * ‖aeval (x - s • 1) (y t n)‖ + (|c| ^ 2) ^ n := by
-        simp [M, norm_smul, pow_mul]
-  convert (le_div_iff₀ (by positivity)).mpr HH using 1
-  field_simp
-  -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
-  rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+  simp only [map_mul, map_add, map_pow, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one,
+    norm_mul] at hrel
+  replace hrel := hrel.trans_le (norm_sub_le ..)
+  rw [norm_pow, sub_sub, ← add_smul, mul_comm] at hrel
+  suffices f x t (s + c) * M ^ (n - 1) ≤
+      M ^ n + ‖(aeval (x - s • 1)) (C c * (2 * X - C c))‖ ^ n by
+    convert (le_div_iff₀ (by positivity)).mpr this using 1
+    field_simp
+    -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
+    rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+  calc
+  _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by
+      gcongr; exact le_aeval_of_isMonicOfDegree x h hp s
+  _ ≤ M ^ n + ‖(c • 1 * ((aeval (x - s • 1)) 2 * (x - s • 1) - c • 1)) ^ n‖ := hrel
+  _ = M ^ n + ‖(aeval (x - s • 1)) (C c * (2 * X - C c))‖ ^ n := by
+      simp [norm_smul, Algebra.algebraMap_eq_smul_one]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
@@ -585,12 +498,13 @@ lemma f_is_constant {x : F} {s t : ℝ} (hst : ∀ (s' t' : ℝ), f x t s ≤ f 
   refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <|
     Set.nonempty_of_mem rfl
   refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
-  simp only [Set.mem_setOf_eq] at hc
-  obtain ⟨ε, hε₀, hε⟩ :=
-    constant_on_open_interval_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
+  simp only [Set.mem_setOf] at hc
+  obtain ⟨U, hU₀, hU⟩ := constant_on_nhd_of_ne_zero x (H c t) (fun s' t' ↦ hc ▸ hst s' t')
+  obtain ⟨ε, hε₀, hε⟩ := Metric.mem_nhds_iff.mp hU₀
   refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, Metric.mem_ball_self hε₀⟩
-  specialize hε _ hu
-  rwa [show c + (u - c) = u by abel, hc] at hε
+  rw [show u = c + (u - c) by abel] at hu ⊢
+  rw [add_mem_ball_iff_norm, ← mem_ball_zero_iff] at hu
+  simpa only [Set.mem_setOf] using hc ▸ hU _ (hε hu)
 
 /-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
