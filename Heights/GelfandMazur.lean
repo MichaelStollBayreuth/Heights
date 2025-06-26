@@ -343,30 +343,22 @@ lemma constant_on_nhd_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
     ∃ U ∈ nhds 0, ∀ c ∈ U, f x t (s + c) = f x t s := by
   set M : ℝ := f x t s
   have hM₀ : 0 < M := lt_of_le_of_ne (norm_nonneg _) h₀.symm
-  obtain ⟨U, hU₀, hU⟩ :
-      ∃ U ∈ nhds (0 : ℝ), ∀ c ∈ U, ‖aeval (x - s • 1) (C c * (2 * X - C c))‖ < M := by
-    let F (c : ℝ) : ℝ := ‖aeval (x - s • 1) (C c * (2 * X - C c))‖
-    have hcont : Continuous F := by
-      simp only [F, map_mul, aeval_C, map_sub, aeval_ofNat, Nat.cast_ofNat, aeval_X, norm_mul,
-        norm_algebraMap', Real.norm_eq_abs]
-      fun_prop
-    have hF₀ : F 0 = 0 := by simp [F]
-    have := hF₀ ▸ hcont.tendsto 0
+  let F (c : ℝ) : ℝ := ‖aeval (x - s • 1) (C c * (2 * X - C c))‖
+  have hF_def (c : ℝ) : F c = ‖aeval (x - s • 1) (C c * (2 * X - C c))‖ := rfl
+  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds (0 : ℝ), ∀ c ∈ U, F c < M := by
+    have hF : Continuous F := by simp [F]; fun_prop
+    replace hF := (show F 0 = 0 by simp [F]) ▸ hF.tendsto 0
     have H : {r : ℝ | r < M} ∈ nhds 0 := by
-      refine IsOpen.mem_nhds ?_ <| by simpa
-      refine isOpen_lt ?_ ?_ <;> fun_prop
-    refine ⟨F ⁻¹' {r : ℝ | r < M}, this H, fun c hc ↦ ?_⟩
-    simpa only [Set.preimage_setOf_eq, Set.setOf_subset_setOf, Set.mem_setOf, F] using hc
+      refine (isOpen_lt ?_ ?_).mem_nhds (by simpa) <;> fun_prop
+    exact ⟨F ⁻¹' {r : ℝ | r < M}, hF H, fun c hc ↦ by simpa using hc⟩
   refine ⟨U, hU₀, fun c hc ↦ ?_⟩
-  suffices
-      ∀ n > 0, f x t (s + c) ≤ M * (1 + (‖aeval (x - s • 1) (C c * (2 * X - C c))‖ / M) ^ n) by
-    -- (this is still true for `n = 0`, but would need a separate proof)
+  suffices ∀ n > 0, f x t (s + c) ≤ M * (1 + (F c / M) ^ n) by
     specialize hU c hc
     refine (le_antisymm (h ..) ?_).symm
     refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
     conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
-    refine tendsto_const_nhds.mul <| ?_
-    refine tendsto_const_nhds.add <| tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
+    refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
+      tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
     rw [abs_of_nonneg (by positivity)]
     exact (div_lt_one hM₀).mpr hU
   intro n hn
@@ -383,12 +375,12 @@ lemma constant_on_nhd_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
   rw [← sub_eq_iff_eq_add, eq_comm] at hrel
   apply_fun (‖aeval (x - s • 1) ·‖) at hrel -- evaluate at `x - s•1` and take norms
+  -- Use less simplification here
   simp only [map_mul, map_add, map_pow, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one,
-    norm_mul] at hrel
+    norm_mul, aeval_ofNat, Nat.cast_ofNat, Algebra.smul_mul_assoc, one_mul] at hrel
   replace hrel := hrel.trans_le (norm_sub_le ..)
-  rw [norm_pow, sub_sub, ← add_smul, mul_comm] at hrel
-  suffices f x t (s + c) * M ^ (n - 1) ≤
-      M ^ n + ‖(aeval (x - s • 1)) (C c * (2 * X - C c))‖ ^ n by
+  rw [norm_pow, sub_sub, ← add_smul, mul_comm, norm_pow] at hrel
+  suffices f x t (s + c) * M ^ (n - 1) ≤ M ^ n + (F c) ^ n by
     convert (le_div_iff₀ (by positivity)).mpr this using 1
     field_simp
     -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
@@ -396,9 +388,8 @@ lemma constant_on_nhd_of_ne_zero (x : F) {s t : ℝ} (h₀ : f x t s ≠ 0)
   calc
   _ ≤ f x t (s + c) * ‖aeval (x - s • 1) p‖ := by
       gcongr; exact le_aeval_of_isMonicOfDegree x h hp s
-  _ ≤ M ^ n + ‖(c • 1 * ((aeval (x - s • 1)) 2 * (x - s • 1) - c • 1)) ^ n‖ := hrel
-  _ = M ^ n + ‖(aeval (x - s • 1)) (C c * (2 * X - C c))‖ ^ n := by
-      simp [norm_smul, Algebra.algebraMap_eq_smul_one]
+  _ ≤ M ^ n + ‖c • (2 * (x - s • 1) - c • 1)‖ ^ n := hrel
+  _ = M ^ n + F c ^ n := by simp [F, norm_smul, Algebra.algebraMap_eq_smul_one]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
