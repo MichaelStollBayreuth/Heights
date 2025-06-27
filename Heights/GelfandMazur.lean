@@ -397,6 +397,21 @@ lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ �
     exact (Algebra.norm_smul_one_eq_abs r).symm
   linarith
 
+lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x - r • 1‖) {a b : ℝ}
+    (h : ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x‖ ^ 2) :
+    |a| ≤ 2 * ‖x‖ ^ 2 / c := by
+  rcases eq_or_ne a 0 with rfl | ha
+  · simp only [abs_zero]
+    positivity
+  rw [le_div_iff₀ hc₀]
+  calc |a| * c
+  _ ≤ |a| * ‖x - (b / a) • 1‖ := by gcongr; exact hbd _
+  _ = ‖a • x - b • 1‖ := by
+      rw [← Real.norm_eq_abs, ← norm_smul, smul_sub, smul_smul, mul_div_cancel₀ _ ha]
+  _ ≤ ‖x‖ ^ 2 + ‖x ^ 2 - a • x + b • 1‖ := by
+      simpa only [← norm_pow, sub_add, norm_sub_rev (x ^ 2)] using norm_le_norm_add_norm_sub' ..
+  _ ≤ _ := by rw [two_mul]; exact add_le_add_left h _
+
 lemma min_ex_deg_two (x : F) :
     ∃ a b : ℝ, ∀ a' b' : ℝ, ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x ^ 2 - a' • x + b' • 1‖ := by
   obtain ⟨u, hu⟩ := min_ex_deg_one x
@@ -413,19 +428,7 @@ lemma min_ex_deg_two (x : F) :
   refine ((2 * ‖x‖ ^ 2 / c).isBounded_of_abs_le.prod
             (2 * ‖x‖ ^ 2 + 2 * ‖x‖ ^ 3 / c).isBounded_of_abs_le).subset fun (a, b) hab ↦ ?_
   simp only [Set.mem_prod, Set.mem_setOf] at hab ⊢
-  have ha : |a| ≤ 2 * ‖x‖ ^ 2 / c := by
-    rcases eq_or_ne a 0 with rfl | ha
-    · simp only [abs_zero]
-      positivity
-    rw [le_div_iff₀ hc₀]
-    calc |a| * c
-    _ ≤ |a| * ‖x - (b / a) • 1‖ := by gcongr; exact hu _
-    _ = ‖a • x - b • 1‖ := by
-        rw [← Real.norm_eq_abs, ← norm_smul, smul_sub, smul_smul, mul_div_cancel₀ _ ha]
-    _ ≤ ‖x‖ ^ 2 + ‖x ^ 2 - a • x + b • 1‖ := by
-        rw [sub_add, ← norm_pow, norm_sub_rev (x ^ 2)]
-        exact norm_le_norm_add_norm_sub' ..
-    _ ≤ _ := by rw [two_mul]; gcongr
+  have ha : |a| ≤ 2 * ‖x‖ ^ 2 / c := a_bound hc₀ hu hab
   refine ⟨ha, ?_⟩
   rw [two_mul, add_assoc, ← sub_le_iff_le_add, ← sub_sub]
   calc |b| - ‖x‖ ^ 2 - 2 * ‖x‖ ^ 3 / c
@@ -478,32 +481,20 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
   -- now we assume the minimum is nonzero and derive a contradiction
   by_contra! H
   -- use that `f x t` is constant to produce an inequality that is false for `c` large enough
-  set a := f x t s     -- convenient abbreviations
-  set b := ‖x - s • 1‖
-  have hh (c : ℝ) (hc : 0 ≤ c) : (c - b) ^ 2 - b ^ 2 ≤ 2 * a := by
-    calc (c - b) ^ 2 - b ^ 2
-    _ = (c - 2 * b) * c := by ring
-    _ ≤ ‖c • 1 - 2 * (x - s • 1)‖ * c := by
-        gcongr
-        convert norm_sub_norm_le ..
-        · simp [abs_of_nonneg hc]
-        · simp [b]
-    _ = ‖(c • 1 - 2 * (x - s • 1)) * (c • 1)‖ := by
-        rw [norm_mul, Algebra.norm_smul_one_eq_abs, abs_of_nonneg hc]
-    _ = ‖(x - s • 1) ^ 2 + t • 1 - ((x - (s + c) • 1) ^ 2 + t • 1)‖ := by
-        rw [norm_sub_rev, add_smul]
-        congr 1
-        simp only [← one_add_one_eq_two, mul_sub, Algebra.mul_smul_comm, mul_one, smul_add,
-          ← add_smul, smul_sub, smul_smul, Nat.reduceAdd, Algebra.sub_smul_one_sq,
-          _root_.smul_pow, one_pow, add_sub_add_right_eq_sub]
-        module
-    _ ≤ ‖(x - s • 1) ^ 2 + t • 1‖ + ‖((x - (s + c) • 1) ^ 2 + t • 1)‖ := norm_sub_le ..
-    _ = 2 * a := by rw [two_mul a]; exact congrArg (a + ·) <| f_is_constant hst H (s + c)
-  -- now get the contradiction by specializing to a suitable value of `c`
-  specialize hh ((2 * a + b ^ 2).sqrt + b + 1) (by positivity)
-  rw [tsub_le_iff_right, show _ + b + 1 - b = _ + 1 by abel, add_sq, Real.sq_sqrt (by positivity)]
-    at hh
-  linarith [show 0 ≤ √(2 * a + b ^ 2) by positivity]
+  suffices |2 * (‖x‖ ^ 2 / (f x t s).sqrt + 1)| ≤ 2 * ‖x‖ ^ 2 / (f x t s).sqrt by
+    rw [abs_of_pos <| by positivity, mul_div_assoc] at this
+    linarith
+  have H₁ (u v : ℝ) : ‖x ^ 2 - (2 * u) • x + (u ^ 2 + v) • 1‖ = f x v u := by
+    congr 1
+    simp only [Algebra.sub_smul_one_sq, _root_.smul_pow, one_pow, Algebra.mul_smul_comm, two_mul,
+      mul_one]
+    module
+  have H₂ (c : ℝ) : ‖x ^ 2 - (2 * c) • x + (c ^ 2 + t) • 1‖ ≤ ‖x‖ ^ 2 := by
+    simpa [H₁, show ‖x‖ ^ 2 = f x 0 0 by simp [f], f_is_constant hst H] using hst 0 0
+  refine a_bound (c := (f x t s).sqrt) (by positivity) (fun r ↦ ?_) (H₂ _)
+  rw [← sq_le_sq₀ (by positivity) (norm_nonneg _), Real.sq_sqrt (norm_nonneg _), ← norm_pow]
+  convert hst r 0
+  simp
 
 /-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:
 
