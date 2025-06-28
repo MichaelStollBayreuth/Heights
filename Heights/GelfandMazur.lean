@@ -59,7 +59,7 @@ Since irreducible polynomials over `ℝ` have degree at most `2`, it is actually
 that each element is annihilated by a monic polynomial of degree `2`. We can state this as
 `∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ p.aeval x = 0`, where `Polynomial.IsMonicOfDegree`
 has the obvious meaning (we define this predicate and provide API for it
-in a separate file).
+in a separate file). We fix `x : F` in the following.
 
 Because the space `ℝ²` of monic polynomials of degree `2` is complete and locally compact
 and `‖aeval x p‖` gets large when `p` has large coefficients (*), there will be some `p₀`
@@ -76,32 +76,26 @@ If the minimum of this is zero, then the minimum for monic polynomials of degree
 will also be zero (and is attained on a one-dimensional subset). Otherwise, one can
 indeed show that a bound on `‖x^2 - a•x + b•1‖` implies bounds on `|a|` and `|b|`.
 
-Note that any monic polynomial of degree `2` over `ℝ` can be written in the form
-`(X - C s)^2 + C t` with (unique) `s t : ℝ` (see `Polynomial.isMonicOfDegree_two_iff`).
-The goal is to show that when `s` and `t` achieve the minimum `M` of `‖(x - s•1)^2 + t•1‖`,
-and `M > 0`, then we can find some `ε > 0` (depending on `x`, `s`, `t`, and `M`)
-such that `‖(x - (s+c)•1)^2 + t•1‖ = M` for all `c : ℝ` such that `|c| < ε`
+The goal is now to show that when `a` and `b` achieve the minimum `M` of `‖x^2 - a•x + b•1‖`,
+and `M > 0`, then we can find some neighborhood `U` of `(a,b)` in `ℝ × ℝ`
+such that `‖x^2 - a'•x + b'•1‖ = M` for all `(a',b') ∈ U`
 (see `GelfandMazur.constant_on_nhd_of_ne_zero`).
-Then the set `S = {s' | ‖(x - s'•1)^2 + t•1‖ = M}` must be all of `ℝ` (as it is
+Then the set `S = {(a',b') | ‖x^2 - a'•x + b'•1‖ = M}` must be all of `ℝ × ℝ` (as it is
 closed, open, and nonempty). This will lead to a contradiction with the growth
-of `‖(x - s'•1)^2 + t•1‖` as `|s'|` gets large.
+of `‖x^2 - a•x‖` as `|a|` gets large.
 
-To get there, the idea is, similarly to the complex case, to use the following relation,
-where `n : ℕ` and `c : ℝ` is arbitrary.
-```math
-  (X^2+t)^n - (c(2X-c))^n = ((X-c)^2+t) p(t,c,n; \, X) \,,
-```
-where $p(t,c,n;\,X)$ is a monic polynomial of degree `2*(n-1)`, which will be left
-implicit: we show that the polynomial on the left in the equation above
-is divisible by $(X-c)^2+t$.
+To get there, the idea is, similarly to the complex case, to use the fact that
+`X^2 - a'*X + b'` divides the difference `(X^2 - a*X + b)^n - ((a'-a)*X - (b'-b))^n`;
+this dives us a monic polynomial `p` of degree `2*(n-1)` such that `(X^2 - a'*X + b')*p`
+equals this difference. By the above, `‖aeval x p‖ ≥ M^(n-1)`.
 
-For given `x : F`, we then have that `‖c•(2*x-c•1)‖ < M` for small
-enough `c : ℝ`. Evaluating the relation above at `x - s•1` and taking norms, this implies that
-`‖(x-(s+c)•1)^2 + t‖ = ‖aeval (x-s•1) ((X^2+t)^n - (c•(2*X-c•1))^n)‖ / ‖aeval (x-s•1) p‖`,
-which is bounded by
-`(M^n + ‖c•(2*(x-s•1)-c•1)‖^n) / M^(n-1) = M * (1 + (‖c•(2*(x-s•1)-c•1)‖/M)^n)`.
-So, letting `n` tend to infinity, we obtain that
-`M ≤ ‖(x-(s+c)•1)^2 + t‖ ≤ M`, as desired.
+Since `(a',b') ↦ x^2 - a'•x + b'•1` is continuous, there will be a neighborhood `U`
+of `(a,b)` such that `‖(a'-a)•x - (b'-b)•1‖ = ‖(x^2-a•x+b•1) - (x^2-a'•x+b'•1)‖`
+is less than `M` for `(a',b') ∈ U`. For such `(a',b')`, it follows that
+`‖x^2 - a'•x + b'•1‖ ≤ ‖(x^2-a•x+b•1)^n - ((a'-a)•x-(b'-b)•1)^n‖ / ‖aeval x p‖`,
+which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
+`c = ‖(a'-a)•x-(b'-b)•1‖ < M`. So, letting `n` tend to infinity, we obtain that
+`M ≤ ‖x^2 - a'•x + b'•1‖ ≤ M`, as desired.
 -/
 
 section auxiliary
