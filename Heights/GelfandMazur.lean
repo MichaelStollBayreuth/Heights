@@ -319,20 +319,12 @@ variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlg
 
 open Polynomial
 
-/-- We abbreviate the function we are minimizing as `f x : ℝ → ℝ → ℝ`.
-
-In the crucial part of the proof, we will in fact consider `f x t` for some fixed `t : ℝ`
-and show that it is constant (unless `f x` takes the value zero somewhere). -/
-abbrev f (x : F) (t s : ℝ) : ℝ := ‖(x - s • 1) ^ 2 + t • 1‖
-
 lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M)
     (h : ∀ z : ℝ × ℝ, M ≤ ‖x ^ 2 - z.1 • x + z.2 • 1‖) {p : ℝ[X]} {n : ℕ}
     (hp : IsMonicOfDegree p (2 * n)) :
     M ^ n ≤ ‖aeval x p‖ := by
   induction n generalizing p with
-  | zero =>
-    simp only [mul_zero, isMonicOfDegree_zero] at hp
-    simp [hp]
+  | zero => simp_all
   | succ n ih =>
     rw [mul_add, mul_one] at hp
     obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_two_isMonicOfDegree
@@ -344,53 +336,59 @@ lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M)
 
 /-- The key step in the proof: if `a` and `b` are real numbers minimizing `‖x^2 - a•x + b•1‖`,
 and the minimal value is strictly positive, then the function `(s,t) ↦ ‖x^2 - s•x + t•1‖`
-is constant on a neighborhood of ` (a,b)`. -/
-lemma constant_on_nhd_of_ne_zero (x : F) {a b : ℝ} (h₀ : ‖x ^ 2 - a • x + b • 1‖ ≠ 0)
-    (h : ∀ z : ℝ × ℝ, ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x ^ 2 - z.1 • x + z.2 • 1‖) :
-    ∃ U ∈ nhds (a, b), ∀ z ∈ U, ‖x ^ 2 - z.1 • x + z.2 • 1‖ = ‖x ^ 2 - a • x + b • 1‖ := by
-  set M : ℝ := ‖x ^ 2 - a • x + b • 1‖
+is constant. -/
+lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ}
+    (h : ∀ w : ℝ × ℝ, ‖x ^ 2 - z.1 • x + z.2 • 1‖ ≤ ‖x ^ 2 - w.1 • x + w.2 • 1‖)
+    (H : ‖x ^ 2 - z.1 • x + z.2 • 1‖ ≠ 0) (w : ℝ × ℝ) :
+    ‖x ^ 2 - w.1 • x + w.2 • 1‖ = ‖x ^ 2 - z.1 • x + z.2 • 1‖ := by
+  let φ (u : ℝ × ℝ) : F := x ^ 2 - u.1 • x + u.2 • 1
+  suffices {w : ℝ × ℝ | ‖φ w‖ = ‖φ z‖} = Set.univ by simpa only [← this] using Set.mem_univ w
+  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
+  refine isOpen_iff_mem_nhds.mpr fun w hw ↦ ?_
+  simp only [Set.mem_setOf] at hw
+  replace H := ((lt_of_le_of_ne (norm_nonneg _) H.symm).trans_le (h w)).ne'
+  replace h := hw ▸ h
+  set M : ℝ := ‖φ w‖
   have hM₀ : 0 < M := by positivity
-  let φ (z : ℝ × ℝ) : F := x ^ 2 - z.1 • x + z.2 • 1
-  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds (a, b), ∀ z ∈ U, ‖φ z - φ (a, b)‖ < M := by
-    have hφ : Continuous φ := by simp [φ]; fun_prop
-    refine ⟨φ ⁻¹' {y : F | ‖y - φ (a, b)‖ < M}, hφ.tendsto (a, b) ?_, fun _ H ↦ by simpa using H⟩
+  suffices ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ u‖ = M by
+    obtain ⟨U, hU₁, hU₂⟩ := this
+    exact Filter.mem_of_superset hU₁ fun _ hu ↦ Set.mem_setOf.mpr <| hw ▸ hU₂ _ hu
+  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ u - φ w‖ < M := by
+    have hφ : Continuous φ := by fun_prop
+    refine ⟨φ ⁻¹' {y : F | ‖y - φ w‖ < M}, hφ.tendsto w ?_, fun _ H ↦ by simpa using H⟩
     exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
-  refine ⟨U, hU₀, fun z hz ↦ ?_⟩
-  suffices ∀ n > 0, ‖φ z‖ ≤ M * (1 + (‖φ z - φ (a, b)‖ / M) ^ n) by
-    refine (le_antisymm (h ..) ?_).symm
+  refine ⟨U, hU₀, fun u hu ↦ ?_⟩; clear hU₀ hw
+  suffices ∀ n > 0, ‖φ u‖ ≤ M * (1 + (‖φ u - φ w‖ / M) ^ n) by
+    refine (le_antisymm (show M ≤ ‖φ u‖ from h ..) ?_).symm
     refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
     conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
     refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
       tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
     rw [abs_of_nonneg (by positivity)]
-    exact (div_lt_one hM₀).mpr <| hU z hz
-  intro n hn
-  suffices ‖φ z‖ * M ^ (n - 1) ≤ M ^ n + ‖φ z - φ (a, b)‖ ^ n by
-    convert (le_div_iff₀ (by positivity)).mpr this using 1
-    field_simp
-    -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
-    rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
-  set qab := X ^ 2 - C a * X + C b
-  set qz := X ^ 2 - C z.1 * X + C z.2
-  have hqz : IsMonicOfDegree qz 2 := isMonicOfDegree_sub_add_two ..
-  have hxab : aeval x qab = φ (a, b) := by simp [φ, qab, Algebra.algebraMap_eq_smul_one]
-  have hxz : aeval x qz = φ z := by simp [φ, qz, Algebra.algebraMap_eq_smul_one]
-  have hsub : qab - qz = (C z.1 - C a) * X + C b - C z.2 := by simp only [qab, qz]; ring
-  have hdvd : qz ∣ qab ^ n - (qab - qz) ^ n := by
-    nth_rewrite 1 [← sub_sub_self qab qz]
+    exact (div_lt_one hM₀).mpr <| hU u hu
+  intro n hn; clear hU hu
+  have HH : M * (1 + (‖φ u - φ w‖ / M) ^ n) = (M ^ n + ‖φ u - φ w‖ ^ n) / M ^ (n - 1) := by
+    rw [mul_comm, eq_div_iff (by positivity), mul_assoc, ← pow_succ', Nat.sub_one_add_one hn.ne',
+      add_mul, one_mul, ← mul_pow, div_mul_cancel₀ _ H]
+  rw [HH, le_div_iff₀ (by positivity)]; clear HH
+  let q (y : ℝ × ℝ) : ℝ[X] := X ^ 2 - C y.1 * X + C y.2
+  have hq (y : ℝ × ℝ) : IsMonicOfDegree (q y) 2 := isMonicOfDegree_sub_add_two ..
+  have hx (y : ℝ × ℝ) : aeval x (q y) = φ y := by simp [φ, q, Algebra.algebraMap_eq_smul_one]
+  have hsub : q w - q u = (C u.1 - C w.1) * X + C w.2 - C u.2 := by simp only [q]; ring
+  have hdvd : q u ∣ q w ^ n - (q w - q u) ^ n := by
+    nth_rewrite 1 [← sub_sub_self (q w) (q u)]
     exact sub_dvd_pow_sub_pow ..
-  have H₁ : IsMonicOfDegree (qab ^ n) (2 * n) := (isMonicOfDegree_sub_add_two a b).pow n
-  have H₂ : ((qab - qz) ^ n).natDegree < 2 * n := by rw [hsub]; compute_degree; omega
-  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) hqz H₂ hdvd; clear H₂ H₁ hdvd hsub hqz
+  have H' : ((q w - q u) ^ n).natDegree < 2 * n := by rw [hsub]; compute_degree; omega
+  obtain ⟨p, hp, hrel⟩ := ((hq w).pow n).of_dvd_sub (by omega) (hq u) H' hdvd; clear H' hdvd hsub
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
   rw [← sub_eq_iff_eq_add, eq_comm, mul_comm] at hrel
   apply_fun (‖aeval x ·‖) at hrel
-  rw [map_mul, norm_mul, map_sub] at hrel
+  rw [map_mul, norm_mul, map_sub, hx u] at hrel
   calc
-  _ ≤ ‖φ z‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
-  _ = ‖aeval x (qab ^ n) - aeval x ((qab - qz) ^ n)‖ := by rw [← hxz, hrel]
-  _ ≤ ‖aeval x (qab ^ n)‖ + ‖aeval x ((qab - qz) ^ n)‖ := norm_sub_le ..
-  _ ≤ _ := by rw [map_pow, norm_pow, map_pow, norm_pow, map_sub, hxab, hxz, norm_sub_rev]
+  _ ≤ ‖φ u‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
+  _ = ‖aeval x (q w ^ n) - aeval x ((q w - q u) ^ n)‖ := hrel
+  _ ≤ ‖aeval x (q w ^ n)‖ + ‖aeval x ((q w - q u) ^ n)‖ := norm_sub_le ..
+  _ = _ := by simp only [map_pow, norm_pow, map_sub, hx]; rw [norm_sub_rev]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
@@ -450,20 +448,6 @@ lemma min_ex_deg_two (x : F) :
 ### The main result
 -/
 
-lemma norm_sq_sub_add_constant {x : F} {z : ℝ × ℝ}
-    (hst : ∀ z' : ℝ × ℝ, ‖x ^ 2 - z.1 • x + z.2 • 1‖ ≤ ‖x ^ 2 - z'.1 • x + z'.2 • 1‖)
-    (H : ‖x ^ 2 - z.1 • x + z.2 • 1‖ ≠ 0) (z' : ℝ × ℝ) :
-    ‖x ^ 2 - z'.1 • x + z'.2 • 1‖ = ‖x ^ 2 - z.1 • x + z.2 • 1‖ := by
-  suffices {z' : ℝ × ℝ | ‖x ^ 2 - z'.1 • x + z'.2 • 1‖ = ‖x ^ 2 - z.1 • x + z.2 • 1‖} = Set.univ by
-    simpa only [← this] using Set.mem_univ z'
-  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
-  refine isOpen_iff_mem_nhds.mpr fun z' hz' ↦ ?_
-  simp only [Set.mem_setOf] at hz'
-  have H' : ‖x ^ 2 - z'.1 • x + z'.2 • 1‖ ≠ 0 :=
-    ((lt_of_le_of_ne (norm_nonneg _) H.symm).trans_le (hst z')).ne'
-  obtain ⟨U, hU₁, hU₂⟩:= constant_on_nhd_of_ne_zero x H' (hz' ▸ hst)
-  exact Filter.mem_of_superset hU₁ fun w hw ↦ Set.mem_setOf.mpr <| hz' ▸ hU₂ _ hw
-
 /-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
 with real coefficients. -/
@@ -484,7 +468,7 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
       Algebra.sub_smul_one_sq]
     convert h (2 * r, r ^ 2) using 4 <;> simp [two_mul, add_smul, _root_.smul_pow]
   · nth_rewrite 2 [show ‖x‖ ^ 2 = ‖x ^ 2 - (0 : ℝ) • x + (0 : ℝ) • 1‖ by simp]
-    rw [norm_sq_sub_add_constant h (norm_ne_zero_iff.mpr H) ((2 * (‖x‖ ^ 2 / √M + 1)), 0)]
+    rw [is_const_norm_sq_sub_add h (norm_ne_zero_iff.mpr H) ((2 * (‖x‖ ^ 2 / √M + 1)), 0)]
     exact h (0, 0)
 
 /-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:

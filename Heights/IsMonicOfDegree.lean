@@ -53,6 +53,37 @@ lemma isMonicOfDegree_iff_of_subsingleton {R : Type*} [Semiring R] [Subsingleton
   · rwa [natDegree_one, eq_comm] at H
   · rw [H, isMonicOfDegree_zero]
 
+lemma isMonicOfDegree_iff {R : Type*} [Semiring R] [Nontrivial R] (p : R[X]) (n : ℕ) :
+    IsMonicOfDegree p n ↔ p.natDegree ≤ n ∧ p.coeff n = 1 := by
+  simp only [IsMonicOfDegree]
+  refine ⟨fun ⟨H₁, H₂⟩ ↦ ⟨H₁.le, H₁ ▸ Monic.coeff_natDegree H₂⟩, fun ⟨H₁, H₂⟩ ↦ ⟨?_, ?_⟩⟩
+  · exact natDegree_eq_of_le_of_coeff_ne_zero H₁ <| H₂ ▸ one_ne_zero
+  · exact monic_of_natDegree_le_of_coeff_eq_one n H₁ H₂
+
+lemma IsMonicOfDegree.exists_natDegree_lt {R : Type*} [Semiring R] {p : R[X]} {n : ℕ}
+    (hn : n ≠ 0)  (hp : IsMonicOfDegree p n) :
+    ∃ q : R[X], p = X ^ n + q ∧ q.natDegree < n := by
+  refine ⟨_, hp.natDegree_eq ▸ hp.monic.as_sum, LE.le.trans_lt ?_ (Nat.sub_one_lt hn)⟩
+  refine natDegree_sum_le_of_forall_le _ _ fun i hi ↦ ?_
+  have : i ≤ n - 1 := by rw [Finset.mem_range] at hi; omega
+  compute_degree!
+
+lemma IsMonicOfDegree.natDegree_sub_X_pow {R : Type*} [Ring R] {p : R[X]} {n : ℕ} (hn : n ≠ 0)
+    (hp : IsMonicOfDegree p n) :
+    (p - X ^ n).natDegree < n := by
+  obtain ⟨q, hq₁, hq₂⟩ := hp.exists_natDegree_lt hn
+  simpa [hq₁]
+
+lemma IsMonicOfDegree.natDegree_sub_lt {R : Type*} [Ring R] {p q : R[X]} {n : ℕ} (hn : n ≠ 0)
+    (hp : IsMonicOfDegree p n) (hq : IsMonicOfDegree q n) :
+    (p - q).natDegree < n := by
+  rw [← sub_sub_sub_cancel_right p q (X ^ n)]
+  replace hp := hp.natDegree_sub_X_pow hn
+  replace hq := hq.natDegree_sub_X_pow hn
+  set p' := p - X ^ n -- do not confuse `compute_degree!`
+  set q' := q - X ^ n
+  compute_degree!
+
 lemma IsMonicOfDegree.mul {R : Type*} [Semiring R] {p q : R[X]} {m n : ℕ}
     (hp : IsMonicOfDegree p m) (hq : IsMonicOfDegree q n) :
     IsMonicOfDegree (p * q) (m + n) := by
@@ -73,13 +104,6 @@ lemma IsMonicOfDegree.pow {R : Type*} [Semiring R] {p : R[X]} {m : ℕ} (hp : Is
   | succ n ih =>
     rw [pow_succ, mul_add, mul_one]
     exact ih.mul hp
-
-lemma isMonicOfDegree_iff {R : Type*} [Semiring R] [Nontrivial R] (p : R[X]) (n : ℕ) :
-    IsMonicOfDegree p n ↔ p.natDegree ≤ n ∧ p.coeff n = 1 := by
-  simp only [IsMonicOfDegree]
-  refine ⟨fun ⟨H₁, H₂⟩ ↦ ⟨H₁.le, H₁ ▸ Monic.coeff_natDegree H₂⟩, fun ⟨H₁, H₂⟩ ↦ ⟨?_, ?_⟩⟩
-  · exact natDegree_eq_of_le_of_coeff_ne_zero H₁ <| H₂ ▸ one_ne_zero
-  · exact monic_of_natDegree_le_of_coeff_eq_one n H₁ H₂
 
 lemma isMonicOfDegree_X (R : Type*) [Semiring R] [Nontrivial R] : IsMonicOfDegree (X : R[X]) 1 :=
   (isMonicOfDegree_iff ..).mpr ⟨natDegree_X_le, coeff_X_one⟩
