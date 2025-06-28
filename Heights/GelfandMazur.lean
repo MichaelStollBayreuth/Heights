@@ -107,6 +107,8 @@ lemma isBounded_of_abs_le (C : ℝ) : Bornology.IsBounded {x : ℝ | |x| ≤ C} 
   ext1
   simp [abs_le]
 
+-- [Mathlib.Topology.MetricSpace.Bounded]
+
 end Real
 
 namespace Continuous
@@ -123,6 +125,8 @@ lemma exists_forall_le_of_isBounded {α β : Type*} [LinearOrder α]
   filter_upwards [hU] with x hx
   exact hx.le
 
+-- [Mathlib.Topology.MetricSpace.Bounded]
+
 end Continuous
 
 namespace Algebra
@@ -131,6 +135,8 @@ lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) 
     (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
     -- `sub_sq` assumes `CommRing A`
     simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add]
+
+-- [Mathlib.Algebra.Algebra.Defs] (after removing Algebra.Lie.* from imports)
 
 section Real
 
@@ -144,6 +150,8 @@ lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
 lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
   rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat]
 
+-- [Mathlib.Analysis.Normed.Module.Basic] for the two lemmas above
+
 end Real
 
 section Complex
@@ -153,6 +161,8 @@ variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℂ A] [NormOneClass A]
 @[simp]
 lemma norm_smul_one_eq_norm (z : ℂ) : ‖z • (1 : A)‖ = ‖z‖ := by
   rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap']
+
+-- [Mathlib.Analysis.Complex.Basic]
 
 end Complex
 
@@ -165,6 +175,8 @@ lemma aeval_ofNat {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x :
     [n.AtLeastTwo] :
     (Polynomial.aeval (R := R) x) (ofNat(n) : R[X]) = n :=
   aeval_natCast x _
+
+-- [Mathlib.Algebra.Polynomial.AlgebraMap]
 
 end Polynomial
 
