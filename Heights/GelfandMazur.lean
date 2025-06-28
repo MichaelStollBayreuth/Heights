@@ -365,6 +365,11 @@ lemma constant_on_nhd_of_ne_zero (x : F) {a b : ℝ} (h₀ : ‖x ^ 2 - a • x 
     rw [abs_of_nonneg (by positivity)]
     exact (div_lt_one hM₀).mpr <| hU z hz
   intro n hn
+  suffices ‖φ z‖ * M ^ (n - 1) ≤ M ^ n + ‖φ z - φ (a, b)‖ ^ n by
+    convert (le_div_iff₀ (by positivity)).mpr this using 1
+    field_simp
+    -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
+    rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
   set qab := X ^ 2 - C a * X + C b
   set qz := X ^ 2 - C z.1 * X + C z.2
   have hqz : IsMonicOfDegree qz 2 := isMonicOfDegree_sub_add_two ..
@@ -376,21 +381,16 @@ lemma constant_on_nhd_of_ne_zero (x : F) {a b : ℝ} (h₀ : ‖x ^ 2 - a • x 
     exact sub_dvd_pow_sub_pow ..
   have H₁ : IsMonicOfDegree (qab ^ n) (2 * n) := (isMonicOfDegree_sub_add_two a b).pow n
   have H₂ : ((qab - qz) ^ n).natDegree < 2 * n := by rw [hsub]; compute_degree; omega
-  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) hqz H₂ hdvd
+  obtain ⟨p, hp, hrel⟩ := H₁.of_dvd_sub (by omega) hqz H₂ hdvd; clear H₂ H₁ hdvd hsub hqz
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
   rw [← sub_eq_iff_eq_add, eq_comm, mul_comm] at hrel
   apply_fun (‖aeval x ·‖) at hrel
-  rw [map_mul, norm_mul, map_sub, norm_sub_rev] at hrel
-  replace hrel := hrel.trans_le (norm_sub_le ..)
-  rw [map_pow, norm_pow, map_pow, norm_pow, map_sub, add_comm, norm_sub_rev, hxab, hxz] at hrel
-  suffices ‖φ z‖ * M ^ (n - 1) ≤ M ^ n + ‖φ z - φ (a, b)‖ ^ n by
-    convert (le_div_iff₀ (by positivity)).mpr this using 1
-    field_simp
-    -- M * (?e * M ^ (n - 1)) = ?e * M ^ n
-    rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+  rw [map_mul, norm_mul, map_sub] at hrel
   calc
   _ ≤ ‖φ z‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
-  _ ≤ _ := hrel
+  _ = ‖aeval x (qab ^ n) - aeval x ((qab - qz) ^ n)‖ := by rw [← hxz, hrel]
+  _ ≤ ‖aeval x (qab ^ n)‖ + ‖aeval x ((qab - qz) ^ n)‖ := norm_sub_le ..
+  _ ≤ _ := by rw [map_pow, norm_pow, map_pow, norm_pow, map_sub, hxab, hxz, norm_sub_rev]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
