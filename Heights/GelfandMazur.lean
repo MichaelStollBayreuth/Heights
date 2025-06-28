@@ -321,7 +321,7 @@ open Polynomial
 
 abbrev φ (x : F) (u : ℝ × ℝ) : F := x ^ 2 - u.1 • x + u.2 • 1
 
-lemma φ_continuous (x : F) : Continuous (φ x) := by fun_prop
+lemma continuous_φ (x : F) : Continuous (φ x) := by fun_prop
 
 lemma aeval_eq_φ (x : F) (u : ℝ × ℝ) : aeval x (X ^ 2 - C u.1 * X + C u.2) = φ x u := by
   simp [Algebra.algebraMap_eq_smul_one]
@@ -358,7 +358,7 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
     obtain ⟨U, hU₁, hU₂⟩ := this
     exact Filter.mem_of_superset hU₁ fun _ hu ↦ Set.mem_setOf.mpr <| hw ▸ hU₂ _ hu
   obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ x u - φ x w‖ < M := by
-    refine ⟨φ x ⁻¹' {y : F | ‖y - φ x w‖ < M}, (φ_continuous x).tendsto w ?_,
+    refine ⟨φ x ⁻¹' {y : F | ‖y - φ x w‖ < M}, (continuous_φ x).tendsto w ?_,
       fun _ H ↦ by simpa using H⟩
     exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
   refine ⟨U, hU₀, fun u hu ↦ ?_⟩; clear hU₀ hw
@@ -429,8 +429,7 @@ lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z
   · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
     exact ⟨(u, 0), fun z' ↦ by simp [φ, hc₀, _root_.smul_pow, sq]⟩
   set c := ‖x - u • 1‖
-  have hf : Continuous (‖φ x ·‖) := by fun_prop
-  refine hf.exists_forall_le_of_isBounded (0, 0) ?_
+  refine (continuous_φ x).norm.exists_forall_le_of_isBounded (0, 0) ?_
   simp only [φ, zero_smul, sub_zero, add_zero, norm_pow]
   refine ((2 * ‖x‖ ^ 2 / c).isBounded_of_abs_le.prod
             (2 * ‖x‖ ^ 2 + 2 * ‖x‖ ^ 3 / c).isBounded_of_abs_le).subset fun (a, b) hab ↦ ?_
