@@ -208,21 +208,21 @@ lemma IsMonicOfDegree.aeval_sub {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
   rw [sub_eq_add_neg, ← map_neg]
   exact aeval_add hp (-r)
 
-lemma isMonicOfDegree_sub_sq_add_two {R : Type*} [CommRing R] [Nontrivial R] (s t : R) :
-    IsMonicOfDegree ((X - C s) ^ 2 + C t) 2 := by
-  have : IsMonicOfDegree (X - C s) 1 := isMonicOfDegree_X_sub_one s
-  exact (this.pow 2).add_left <| by compute_degree!
+lemma isMonicOfDegree_sub_add_two {R : Type*} [CommRing R] [Nontrivial R] (a b : R) :
+    IsMonicOfDegree (X ^ 2 - C a * X + C b) 2 := by
+  rw [sub_add]
+  exact (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
 
-lemma isMonicOfDegree_two_iff {R : Type*} [CommRing R] [Nontrivial R] [Algebra ℚ R] {f : R[X]} :
-    IsMonicOfDegree f 2 ↔ ∃ s t : R, f = (X - C s) ^ 2 + C t := by
-  refine ⟨fun H ↦ ?_, fun ⟨s, t, h⟩ ↦ h ▸ isMonicOfDegree_sub_sq_add_two s t⟩
-  refine ⟨-(1 / 2 : ℚ) • f.coeff 1, f.coeff 0 - ((1 / 2 : ℚ) • f.coeff 1) ^ 2, ?_⟩
+lemma isMonicOfDegree_two_iff {R : Type*} [CommRing R] [Nontrivial R] {f : R[X]} :
+    IsMonicOfDegree f 2 ↔ ∃ a b : R, f = X ^ 2 - C a * X + C b := by
+  refine ⟨fun H ↦ ?_, fun ⟨a, b, h⟩ ↦ h ▸ isMonicOfDegree_sub_add_two a b⟩
+  refine ⟨-f.coeff 1, f.coeff 0, ?_⟩
   ext1 n
   rcases lt_trichotomy n 1 with hn | rfl | hn
   · obtain rfl : n = 0 := by omega
     simp [sub_sq, ← map_pow, add_sq]
   · simp [-one_div, sub_sq, ← map_pow, add_sq, two_mul, add_mul, ← add_smul]
-  exact H.coeff_eq (isMonicOfDegree_sub_sq_add_two ..) (by omega)
+  · exact H.coeff_eq (isMonicOfDegree_sub_add_two ..) (by omega)
 
 /-!
 ### Lemmas for more specific base fields
