@@ -481,10 +481,6 @@ theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) 
       have heq := isEquiv_of_restrict_eq ((Setoid.symm hv).isNontrivial ⟨2, two_ne_zero, by norm_num⟩) this H
 
       sorry
-
-
-
-
     sorry
 
 end Real
