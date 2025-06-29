@@ -100,16 +100,19 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 
 section auxiliary
 
-namespace Real
+namespace Bornology
 
-lemma isBounded_of_abs_le (C : ℝ) : Bornology.IsBounded {x : ℝ | |x| ≤ C} := by
+variable {R : Type*} [AddCommGroup R] [LinearOrder R] [IsOrderedAddMonoid R] [PseudoMetricSpace R]
+  [CompactIccSpace R]
+
+lemma isBounded_of_abs_le (C : R) : Bornology.IsBounded {x : R | |x| ≤ C} := by
   convert Metric.isBounded_Icc (-C) C
-  ext1
+  ext1 x
   simp [abs_le]
 
 -- [Mathlib.Topology.MetricSpace.Bounded]
 
-end Real
+end Bornology
 
 namespace Continuous
 
@@ -400,7 +403,8 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
   have hf : Continuous fun r : ℝ ↦ ‖x - r • 1‖ := by fun_prop
-  refine hf.exists_forall_le_of_isBounded 0 <| (2 * ‖x‖).isBounded_of_abs_le.subset fun r hr ↦ ?_
+  refine hf.exists_forall_le_of_isBounded 0 <|
+    (Bornology.isBounded_of_abs_le (2 * ‖x‖)).subset fun r hr ↦ ?_
   simp only [zero_smul, sub_zero, Set.mem_setOf_eq] at hr ⊢
   have : |r| - ‖x‖ ≤ ‖x - r • 1‖ := by
     rw [norm_sub_rev]
@@ -431,8 +435,8 @@ lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z
   set c := ‖x - u • 1‖
   refine (continuous_φ x).norm.exists_forall_le_of_isBounded (0, 0) ?_
   simp only [φ, zero_smul, sub_zero, add_zero, norm_pow]
-  refine ((2 * ‖x‖ ^ 2 / c).isBounded_of_abs_le.prod
-            (2 * ‖x‖ ^ 2 + 2 * ‖x‖ ^ 3 / c).isBounded_of_abs_le).subset fun (a, b) hab ↦ ?_
+  refine ((Bornology.isBounded_of_abs_le (2 * ‖x‖ ^ 2 / c)).prod
+    (Bornology.isBounded_of_abs_le (2 * ‖x‖ ^ 2 + 2 * ‖x‖ ^ 3 / c))).subset fun (a, b) hab ↦ ?_
   simp only [Set.mem_prod, Set.mem_setOf] at hab ⊢
   have ha : |a| ≤ 2 * ‖x‖ ^ 2 / c := a_bound hc₀ hu hab
   refine ⟨ha, ?_⟩
