@@ -154,17 +154,17 @@ lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : �
 
 end Real
 
-section Complex
+section General
 
-variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℂ A] [NormOneClass A]
+variable {R A : Type*} [NormedField R] [SeminormedRing A] [NormedAlgebra R A] [NormOneClass A]
 
 @[simp]
-lemma norm_smul_one_eq_norm (z : ℂ) : ‖z • (1 : A)‖ = ‖z‖ := by
+lemma norm_smul_one_eq_norm (z : R) : ‖z • (1 : A)‖ = ‖z‖ := by
   rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap']
 
--- [Mathlib.Analysis.Complex.Basic]
+-- [Mathlib.Analysis.Normed.Module.Basic]
 
-end Complex
+end General
 
 end Algebra
 
@@ -173,7 +173,7 @@ namespace Polynomial
 @[simp]
 lemma aeval_ofNat {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (n : ℕ)
     [n.AtLeastTwo] :
-    (Polynomial.aeval (R := R) x) (ofNat(n) : R[X]) = n :=
+    (Polynomial.aeval (R := R) x) (ofNat(n) : R[X]) = (ofNat(n) : A) :=
   aeval_natCast x _
 
 -- [Mathlib.Algebra.Polynomial.AlgebraMap]
@@ -336,7 +336,7 @@ lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M) (h : ∀ z : 
   | succ n ih =>
     rw [mul_add, mul_one] at hp
     obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_two_isMonicOfDegree
-    obtain ⟨a, b, hab⟩ := isMonicOfDegree_two_iff.mp hf₁
+    obtain ⟨a, b, hab⟩ := isMonicOfDegree_two_iff'.mp hf₁
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hab, aeval_eq_φ x (a, b)]
     exact mul_le_mul (ih hf₂) (h (a, b)) hM (norm_nonneg _)
 

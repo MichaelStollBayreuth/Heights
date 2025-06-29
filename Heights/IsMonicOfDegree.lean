@@ -153,7 +153,7 @@ lemma IsMonicOfDegree.of_mul_right {R : Type*} [Semiring R]  {p q : R[X]} {m n :
   rw [natDegree_mul' h, hq.1] at this
   exact (Nat.add_right_cancel this.symm).symm
 
-lemma IsMonicOfDegree.add_left {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
+lemma IsMonicOfDegree.add_right {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
     (hp : IsMonicOfDegree p n) (hq : q.natDegree < n) :
     IsMonicOfDegree (p + q) n := by
   rcases subsingleton_or_nontrivial R with H | H
@@ -167,13 +167,13 @@ lemma IsMonicOfDegree.sub {R : Type*} [Ring R] {p q : R[X]} {n : ℕ}
     (hp : IsMonicOfDegree p n) (hq : q.natDegree < n) :
     IsMonicOfDegree (p - q) n := by
   rw [sub_eq_add_neg]
-  exact hp.add_left <| (natDegree_neg q) ▸ hq
+  exact hp.add_right <| (natDegree_neg q) ▸ hq
 
-lemma IsMonicOfDegree.add_right {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
+lemma IsMonicOfDegree.add_left {R : Type*} [Semiring R] {p q : R[X]} {n : ℕ}
     (hp : p.natDegree < n) (hq : IsMonicOfDegree q n) :
     IsMonicOfDegree (p + q) n := by
   rw [add_comm]
-  exact hq.add_left hp
+  exact hq.add_right hp
 
 lemma IsMonicOfDegree.of_dvd_add {R : Type*} [CommRing R] {a b r : R[X]} {m n : ℕ} (hmn : n ≤ m)
     (ha : IsMonicOfDegree a m) (hb : IsMonicOfDegree b n) (hr : r.natDegree < m) (h : b ∣ a + r) :
@@ -181,7 +181,7 @@ lemma IsMonicOfDegree.of_dvd_add {R : Type*} [CommRing R] {a b r : R[X]} {m n : 
   obtain ⟨q, hq⟩ :=exists_eq_mul_left_of_dvd  h
   refine ⟨q, hb.of_mul_right ?_, eq_sub_iff_add_eq.mpr hq⟩
   rw [← hq, show m - n + n = m by omega]
-  exact ha.add_left hr
+  exact ha.add_right hr
 
 lemma IsMonicOfDegree.of_dvd_sub {R : Type*} [CommRing R] {a b r : R[X]} {m n : ℕ} (hmn : n ≤ m)
     (ha : IsMonicOfDegree a m) (hb : IsMonicOfDegree b n) (hr : r.natDegree < m) (h : b ∣ a - r) :
@@ -203,7 +203,7 @@ lemma IsMonicOfDegree.comp {R : Type*} [Semiring R] {p q : R[X]} {m n : ℕ} (hn
 
 lemma isMonicOfDegree_X_add_one {R : Type*} [Semiring R] [Nontrivial R] (r : R) :
     IsMonicOfDegree (X + C r) 1 :=
-  (isMonicOfDegree_X R).add_left (by compute_degree!)
+  (isMonicOfDegree_X R).add_right (by compute_degree!)
 
 lemma isMonicOfDegree_X_sub_one {R : Type*} [Ring R] [Nontrivial R] (r : R) :
     IsMonicOfDegree (X - C r) 1 :=
@@ -235,17 +235,17 @@ lemma IsMonicOfDegree.aeval_sub {R : Type*} [CommRing R] {p : R[X]} {n : ℕ}
 lemma isMonicOfDegree_sub_add_two {R : Type*} [CommRing R] [Nontrivial R] (a b : R) :
     IsMonicOfDegree (X ^ 2 - C a * X + C b) 2 := by
   rw [sub_add]
-  exact (isMonicOfDegree_X_pow R 2).add_left <| by compute_degree!
+  exact (isMonicOfDegree_X_pow R 2).add_right <| by compute_degree!
 
-lemma isMonicOfDegree_two_iff {R : Type*} [CommRing R] [Nontrivial R] {f : R[X]} :
+lemma isMonicOfDegree_two_iff' {R : Type*} [CommRing R] [Nontrivial R] {f : R[X]} :
     IsMonicOfDegree f 2 ↔ ∃ a b : R, f = X ^ 2 - C a * X + C b := by
   refine ⟨fun H ↦ ?_, fun ⟨a, b, h⟩ ↦ h ▸ isMonicOfDegree_sub_add_two a b⟩
   refine ⟨-f.coeff 1, f.coeff 0, ?_⟩
   ext1 n
   rcases lt_trichotomy n 1 with hn | rfl | hn
   · obtain rfl : n = 0 := by omega
-    simp [sub_sq, ← map_pow, add_sq]
-  · simp [-one_div, sub_sq, ← map_pow, add_sq, two_mul, add_mul, ← add_smul]
+    simp
+  · simp
   · exact H.coeff_eq (isMonicOfDegree_sub_add_two ..) (by omega)
 
 /-!
