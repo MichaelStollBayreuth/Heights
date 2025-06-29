@@ -141,22 +141,6 @@ lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) 
 
 -- [Mathlib.Algebra.Algebra.Defs] (after removing Algebra.Lie.* from imports)
 
-section Real
-
-variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
-
-@[simp]
-lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
-  rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap', Real.norm_eq_abs]
-
-@[simp]
-lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
-  rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat]
-
--- [Mathlib.Analysis.Normed.Module.Basic] for the two lemmas above
-
-end Real
-
 section General
 
 variable {R A : Type*} [NormedField R] [SeminormedRing A] [NormedAlgebra R A] [NormOneClass A]
@@ -168,6 +152,22 @@ lemma norm_smul_one_eq_norm (z : R) : ‖z • (1 : A)‖ = ‖z‖ := by
 -- [Mathlib.Analysis.Normed.Module.Basic]
 
 end General
+
+section Real
+
+variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
+
+@[simp]
+lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
+  rw [norm_smul_one_eq_norm, x.norm_eq_abs]
+
+@[simp]
+lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
+  rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat]
+
+-- [Mathlib.Analysis.Normed.Module.Basic] for the two lemmas above
+
+end Real
 
 end Algebra
 
