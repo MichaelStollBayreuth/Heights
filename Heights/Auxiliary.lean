@@ -260,7 +260,7 @@ section Mathlib.Analysis.Normed.Ring.WithAbs
 
 namespace WithAbs
 
-/-- The identity map of `F` as a ring isomorphism between normed field structures on `F` induce
+/-- The identity map of `R` as a ring isomorphism between normed ring structures on `R` induced
 by two absolute values- -/
 abbrev equiv₂ {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
   (equiv v₁).trans (equiv v₂).symm
@@ -274,6 +274,31 @@ lemma equiv₂_symm_eq {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ
 @[simp]
 lemma apply_equiv {R α : Type*} [Semiring R] (f : R → α) (v : AbsoluteValue R ℝ) (x : R) :
     f (equiv v x) = f x := rfl
+
+@[simp]
+lemma abv_algebraMap {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F R]
+    (v : AbsoluteValue R ℝ) (x : F) :
+    v (algebraMap F (WithAbs v) x) = v (algebraMap F R x) :=
+  rfl
+
+/-- The identity map of `R` as an algebra isomorphism between normed ring structures on `R` induced
+by two absolute values- -/
+abbrev algEquiv₂ {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F R]
+    (v₁ v₂ : AbsoluteValue R ℝ) :
+    WithAbs v₁ ≃ₐ[F] WithAbs v₂ :=
+  (algEquiv v₁).trans (algEquiv v₂).symm
+
+@[simp]
+lemma algEquiv₂_symm_eq {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F R]
+    (v₁ v₂ : AbsoluteValue R ℝ) :
+    (algEquiv₂ v₁ v₂).symm = algEquiv₂ (F := F) v₂ v₁ := by
+  ext1
+  simp
+
+@[simp]
+lemma apply_algEquiv {F R α : Type*} [CommRing F] [Semiring R] [Algebra F R] (f : R → α)
+    (v : AbsoluteValue R ℝ) (x : R) :
+    f (algEquiv (R := F) v x) = f x := rfl
 
 section equal
 

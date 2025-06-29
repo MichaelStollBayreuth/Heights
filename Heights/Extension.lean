@@ -409,6 +409,86 @@ We show that a complete field with real-valued archimedean absolute value must b
 isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
 -/
 
+namespace Real
+
+variable {F : Type*} [Field F] [Algebra ℝ F] {v : AbsoluteValue F ℝ}
+
+section restrict_equal
+
+variable (hv : v.restrict ℝ = .abs)
+
+noncomputable
+def normedAlgebraOfAbsoluteValue : NormedAlgebra ℝ (WithAbs v) where
+  __ := WithAbs.instAlgebra_right v --‹Algebra ℝ (WithAbs v)›
+  norm_smul_le r x := by
+    rw [Algebra.smul_def, norm_mul]
+    refine le_of_eq ?_
+    congr
+    rw [WithAbs.norm_eq_abv, show ‖r‖ = AbsoluteValue.abs r from rfl, ← hv]
+    rfl
+
+lemma normedAlgebraOfAbsoluteValue_toAlgebra_eq :
+    (normedAlgebraOfAbsoluteValue hv).toAlgebra = WithAbs.instAlgebra_right v :=
+  rfl
+
+end restrict_equal
+
+-- variable (hv : v.restrict ℝ ≈ .abs)
+
+open AbsoluteValue WithAbs in
+theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) :
+    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom ≈ .abs) ∨
+      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom ≈
+        NormedField.toAbsoluteValue ℂ := by
+  let v' := ofIsEquivComap (algebraMap ℝ F) hv
+  have hv' : restrict ℝ v' = .abs := ofIsEquivComap_def ..
+  let inst := normedAlgebraOfAbsoluteValue hv'
+  rcases GelfandMazur.nonempty_algEquiv_or (F := WithAbs v') with hℝ | hℂ
+  · left
+    let e := Classical.choice hℝ
+    have he (r : ℝ) : e.symm r = algebraMap ℝ (WithAbs v') r := by
+      apply_fun ⇑e
+      simp
+    refine ⟨e.symm.trans (algEquiv₂ (F := ℝ) v' v), ?_⟩
+    have : v.comap ((e.symm.trans (algEquiv₂ v' v)).toRingEquiv.trans (equiv v)).toRingHom =
+        v.restrict ℝ := by
+      ext1 x
+      simp [he, restrict]
+    rwa [this]
+  · right
+    let e := Classical.choice hℂ
+    have he (r : ℝ) : e.symm r = algebraMap ℝ (WithAbs v') r := by
+      apply_fun ⇑e
+      simp
+    refine ⟨e.symm.trans (algEquiv₂ (F := ℝ) v' v), ?_⟩
+    have H : (v.comap ((e.symm.trans (algEquiv₂ v' v)).toRingEquiv.trans (equiv v)).toRingHom).comap
+             (algebraMap ℝ ℂ) = v.restrict ℝ := by
+      ext1 x
+      simp [he, restrict]
+    let inst' : Algebra ℂ F := RingHom.toAlgebra e.symm.toRingHom
+    have h (x : ℝ) : algebraMap ℂ F (algebraMap ℝ ℂ x) = algebraMap ℝ F x := by
+      have hh (z : ℂ) :e.symm.toRingEquiv.toRingHom z = e.symm z := rfl
+      erw [show algebraMap ℂ F = e.symm.toRingHom from rfl, hh, he] -- defeq abuse?
+      simp only [Algebra.id.map_eq_id, RingHom.id_apply]
+      rfl
+    -- let inst'' : IsScalarTower ℝ ℂ F := sorry
+    have H' : v.comap ((e.symm.trans (algEquiv₂ v' v)).toRingEquiv.trans (equiv v)).toRingHom =
+        v.restrict ℂ := by
+      have : (v.restrict ℂ).restrict ℝ = v.restrict ℝ  := by
+        ext1
+        simp only [restrict, comap_apply, h]
+      have inst₉ : CompleteSpace (WithAbs (restrict ℝ v)) := sorry
+      have heq := isEquiv_of_restrict_eq ((Setoid.symm hv).isNontrivial ⟨2, two_ne_zero, by norm_num⟩) this H
+
+      sorry
+
+
+
+
+    sorry
+
+end Real
+
 namespace Complex
 
 section

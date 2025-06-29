@@ -38,6 +38,15 @@ lemma IsEquiv.exponent_def {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (x : R) :
     v x ^ exponent h = v' x :=
   congrFun (Classical.choose_spec h).2 x
 
+lemma IsEquiv.isNontrivial {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (h' : v.IsNontrivial) :
+    v'.IsNontrivial := by
+  obtain ⟨x, hx₀, hx₁⟩ := h'
+  refine ⟨x, hx₀, ?_⟩
+  rw [← exponent_def h]
+  contrapose! hx₁
+  apply_fun (· ^ (exponent h)⁻¹) at hx₁
+  rwa [Real.one_rpow, Real.rpow_rpow_inv (AbsoluteValue.nonneg ..) h.exponent_pos.ne'] at hx₁
+
 lemma rpow_add_le (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) (x y : R) :
     v (x + y) ^ e ≤ v x ^ e + v y ^ e := by
   calc
