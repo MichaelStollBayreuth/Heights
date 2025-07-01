@@ -287,6 +287,16 @@ lemma trivial_of_finiteDimensional_of_restrict {R : Type*} [DivisionRing R] [Non
     simp only [Finset.mem_range] at hi
     exact zpow_le_one_of_nonpos₀ (one_le_pow₀ hx.le) <| by omega
 
+section complex_real
+
+lemma Complex.abv_restrict_real : (NormedField.toAbsoluteValue ℂ).restrict ℝ = .abs := by
+  ext1 x
+  simp only [restrict, comap_apply, Complex.coe_algebraMap, abs_apply]
+  change ‖(x : ℂ)‖ = |x|
+  rw [Complex.norm_real, Real.norm_eq_abs]
+
+end complex_real
+
 variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 
 @[simp]
@@ -427,54 +437,55 @@ def normedAlgebraOfAbsoluteValue : NormedAlgebra ℝ (WithAbs v) where
     rw [WithAbs.norm_eq_abv, show ‖r‖ = AbsoluteValue.abs r from rfl, ← hv]
     rfl
 
-lemma normedAlgebraOfAbsoluteValue_toAlgebra_eq :
+/- lemma normedAlgebraOfAbsoluteValue_toAlgebra_eq :
     (normedAlgebraOfAbsoluteValue hv).toAlgebra = WithAbs.instAlgebra_right v :=
-  rfl
+  rfl -/
+
+lemma algebraEquiv_eq_algebraMap (e : ℝ ≃ₐ[ℝ] F) : e = algebraMap ℝ F := by
+  have : (e.symm : F →+* ℝ).comp (algebraMap ℝ F) = RingHom.id ℝ := Subsingleton.elim ..
+  ext1 x
+  apply_fun (· x) at this
+  simp only [RingHom.coe_comp, Function.comp_apply, RingHom.id_apply] at this
+  nth_rewrite 1 [← this]
+  set y := algebraMap ℝ F x -- without that, `simp` does not close the goal
+  simp
 
 -- set_option pp.all true in
 open AbsoluteValue WithAbs in
 include hv in
 theorem GelfandMazur_aux [CompleteSpace (WithAbs v)] :
-    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom = .abs) ∨
-      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom =
+    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) = .abs) ∨
+      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) =
         NormedField.toAbsoluteValue ℂ := by
   let inst := normedAlgebraOfAbsoluteValue hv
-  rcases GelfandMazur.nonempty_algEquiv_or (F := WithAbs v) with hℝ | hℂ
+  rcases GelfandMazur.nonempty_algEquiv_or (WithAbs v) with hℝ | hℂ
   · left
     let e := Classical.choice hℝ
     refine ⟨e.symm, ?_⟩
-    have he : e.symm.toRingEquiv = algebraMap ℝ (WithAbs v) := by
-      ext1
-      apply_fun ⇑e
-      simp only [AlgEquiv.commutes, Algebra.id.map_eq_id, ← AlgEquiv.eq_symm_apply]
-      rfl
-    simp only [RingEquiv.toRingHom_eq_coe, RingEquiv.coe_ringHom_trans, he, ← hv]
+    have he : (e.symm : ℝ →+* WithAbs v) = algebraMap ℝ (WithAbs v) :=
+      algebraEquiv_eq_algebraMap e.symm
+    rw [RingEquiv.toRingHom_eq_coe, he, ← hv]
     rfl
   · right
     let e := Classical.choice hℂ
     refine ⟨e.symm, ?_⟩
-    let inst' : Algebra ℂ (WithAbs v) := RingHom.toAlgebra e.symm.toRingHom
-    have he : e.symm.toRingEquiv.toRingHom = algebraMap ℂ (WithAbs v) := rfl
+    let inst' : Algebra ℂ (WithAbs v) := RingHom.toAlgebra e.symm
+    have he : e.symm = algebraMap ℂ (WithAbs v) := rfl
     have instST : IsScalarTower ℝ ℂ (WithAbs v) := by
       refine IsScalarTower.of_algebraMap_eq' ?_
       rw [← he]
       ext1 x
-      change (algebraMap ℝ (WithAbs v)) x = e.symm ((algebraMap ℝ ℂ) x)
+      change algebraMap ℝ (WithAbs v) x = e.symm (algebraMap ℝ ℂ x)
       simp only [Algebra.algebraMap_eq_smul_one, map_smul, map_one]
-    let vℂ : AbsoluteValue ℂ ℝ := v.comap (e.symm.toRingEquiv.trans (equiv v)).toRingHom
+    let vℂ : AbsoluteValue ℂ ℝ := v.comap ((equiv v).toRingHom.comp e.symm)
     have hvℂ : vℂ.restrict ℝ = .abs := by
       simp only [vℂ, ← hv, restrict, ← comap_comp]
       congr
       let instF : Algebra ℂ F := ((equiv v).toRingHom.comp (algebraMap ℂ (WithAbs v))).toAlgebra
       have : IsScalarTower ℝ ℂ F := inferInstanceAs <| IsScalarTower ℝ ℂ (WithAbs v)
-      rw [RingEquiv.toRingHom_trans, he]
       exact (IsScalarTower.algebraMap_eq ℝ ℂ F).symm
-    have hℂ₁ : (NormedField.toAbsoluteValue ℂ).restrict ℝ = .abs := by
-      ext1 x
-      simp only [restrict, comap_apply, Complex.coe_algebraMap, abs_apply]
-      change ‖(x : ℂ)‖ = |x|
-      rw [Complex.norm_real, Real.norm_eq_abs]
-    have H₁ : (⟨_, hvℂ⟩ : { v' // restrict ℝ v' = AbsoluteValue.abs }) = ⟨_, hℂ₁⟩ :=
+    have H₁ : (⟨_, hvℂ⟩ : { v' // restrict ℝ v' = AbsoluteValue.abs }) =
+        ⟨_, Complex.abv_restrict_real⟩ :=
       (lemma_6_1_a (F := ℝ) (F' := ℂ) .abs).elim ..
     exact congrArg Subtype.val H₁
 
@@ -482,11 +493,10 @@ end restrict_equal
 
 -- variable (hv : v.restrict ℝ ≈ .abs)
 
-
 open AbsoluteValue WithAbs in
 theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) :
-    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom ≈ .abs) ∨
-      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom ≈
+    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈ .abs) ∨
+      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈
         NormedField.toAbsoluteValue ℂ := by
   let v' := ofIsEquivComap (algebraMap ℝ F) hv
   have hv' : restrict ℝ v' = .abs := ofIsEquivComap_def ..
