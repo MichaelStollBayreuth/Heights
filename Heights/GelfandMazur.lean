@@ -288,17 +288,8 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1�
   rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
   exact hε (u - c) hu
 
-/-- A version of the **Gelfand-Mazur Theorem** for fields/division rings
-that are normed `ℂ`-algebras. -/
-theorem mainThm [FaithfulSMul ℂ F] : Nonempty (ℂ ≃ₐ[ℂ] F) := by
-  suffices ∀ x : F, ∃ z : ℂ, ‖x - z • 1‖ = 0 by
-    let e : ℂ →ₐ[ℂ] F := AlgHom.mk' (algebraMap ℂ F) (algebraMap.coe_smul ℂ ℂ F)
-    refine ⟨AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩⟩
-    obtain ⟨z, hz⟩ := this x
-    refine ⟨z, ?_⟩
-    rw [AlgHom.coe_mk', Algebra.algebraMap_eq_smul_one, eq_comm, ← sub_eq_zero]
-    exact norm_eq_zero.mp hz
-  intro x
+lemma exists_norm_sub_smul_one_eq_zero [Nontrivial F] (x : F) :
+    ∃ z : ℂ, ‖x - z • 1‖ = 0 := by
   obtain ⟨z, hz⟩ := min_ex_deg_one x
   set M := ‖x - z • 1‖ with hM
   rcases eq_or_lt_of_le (show 0 ≤ M from norm_nonneg _) with hM₀ | hM₀
@@ -312,6 +303,22 @@ theorem mainThm [FaithfulSMul ℂ F] : Nonempty (ℂ ≃ₐ[ℂ] F) := by
   rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at key
   linarith
 
+variable (F) in
+/-- If `F` is a nontrivial normed `ℂ`-algebra with multiplicative norm, then we obtain a
+`ℂ`-algebra equivalence with `ℂ`. -/
+noncomputable
+def algEquivOfNormMul [Nontrivial F] : ℂ ≃ₐ[ℂ] F := by
+  let e : ℂ →ₐ[ℂ] F := AlgHom.mk' (algebraMap ℂ F) (algebraMap.coe_smul ℂ ℂ F)
+  refine AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩
+  obtain ⟨z, hz⟩ := exists_norm_sub_smul_one_eq_zero x
+  refine ⟨z, ?_⟩
+  rw [AlgHom.coe_mk', Algebra.algebraMap_eq_smul_one, eq_comm, ← sub_eq_zero]
+  exact norm_eq_zero.mp hz
+
+variable (F) in
+/-- A version of the **Gelfand-Mazur Theorem** for fields/division rings
+that are normed `ℂ`-algebras. -/
+theorem mainThm [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
 end Complex
 
 /-!
