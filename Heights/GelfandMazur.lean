@@ -41,8 +41,15 @@ This implies that the set of `z` such that `‖x - z•1‖ = M` is closed and o
 (and nonempty), so it is all of `ℂ`, which contradicts `‖x - z•1‖ ≥ |z| - M`
 when `|z|` is sufficiently large.
 
+This shows that when `F` is a nontrivial normed `ℂ`-algebra *with multiplicative norm*,
+then `F` is isomorphic to `ℂ` as a `ℂ`-algebra (see `GelfandMazur.Complex.algEquivOfNormMul`
+for the isomorphism).
+
 A version of the result exists as `NormedRing.algEquivComplexOfComplete` (which gives
-the isomorphism) in Mathlib (with weaker assumptions and a different proof).
+the isomorphism) in Mathlib, with different assumptions (and a different proof):
+* `F` is assumed to be complete,
+* `F` is assumed to be a (nontrivial) division ring,
+* but the norm is only required to be submultiplicative.
 
 ### The real case
 
@@ -316,8 +323,8 @@ def algEquivOfNormMul [Nontrivial F] : ℂ ≃ₐ[ℂ] F := by
   exact norm_eq_zero.mp hz
 
 variable (F) in
-/-- A version of the **Gelfand-Mazur Theorem** for fields/division rings
-that are normed `ℂ`-algebras. -/
+/-- A version of the **Gelfand-Mazur Theorem** for nontrivial normed `ℂ`-algebras `F`
+with multiplicative norm. -/
 theorem mainThm [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
 end Complex
 
