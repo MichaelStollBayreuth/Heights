@@ -533,7 +533,7 @@ lemma isNontrivial_of_archimedean (h : ¬ IsNonarchimedean v) : v.IsNontrivial :
   rcases eq_or_ne y 0 with rfl | hy
   · simp
   rcases eq_or_ne (x + y) 0 with hxy | hxy
-  · simp [hx, hy, hxy]
+  · simp [hxy]
   simp [hx, hy, hxy, h]
 
 lemma le_one_on_nat_of_isNonarchimedean [Nontrivial R] (h : IsNonarchimedean v) (n : ℕ) : v n ≤ 1 := by

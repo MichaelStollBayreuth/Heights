@@ -231,8 +231,7 @@ lemma continuous_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) 
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
   obtain ⟨c, hc₀, hc₁⟩ := h
   rw [Metric.continuous_iff]
-  simp only [dist_eq_norm_sub, norm_eq_abv, WithAbs.equiv₂, Equiv.trans_apply,
-    Equiv.apply_symm_apply]
+  simp only [dist_eq_norm_sub, norm_eq_abv, equiv₂]
   intro x ε hε₀
   conv =>
     enter [1, δ, 2, y, 2, 1]
@@ -244,7 +243,7 @@ lemma continuous_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) 
   have hy : y = (WithAbs.equiv v₁).symm y' := rfl
   rw [hx, hy, ← map_sub, RingEquiv.apply_symm_apply] at h
   rw [map_sub, hx, hy]
-  simp only [Equiv.apply_symm_apply, ← hc₁]
+  simp only [← hc₁]
   calc v₁ (y' - x') ^ c
   _ < (ε ^ (1 / c)) ^ c := by gcongr
   _ = ε := by rw [← Real.rpow_mul hε₀.le, one_div_mul_cancel hc₀.ne', Real.rpow_one]

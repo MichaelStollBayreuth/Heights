@@ -431,7 +431,7 @@ lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z
   obtain ⟨u, hu⟩ := min_ex_deg_one x
   rcases eq_or_lt_of_le (norm_nonneg (x - u • 1)) with hc₀ | hc₀
   · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
-    exact ⟨(u, 0), fun z' ↦ by simp [φ, hc₀, _root_.smul_pow, sq]⟩
+    exact ⟨(u, 0), fun z' ↦ by simp [φ, hc₀, sq]⟩
   set c := ‖x - u • 1‖
   refine (continuous_φ x).norm.exists_forall_le_of_isBounded (0, 0) ?_
   simp only [φ, zero_smul, sub_zero, add_zero, norm_pow]

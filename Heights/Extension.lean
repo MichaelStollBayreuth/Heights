@@ -37,7 +37,7 @@ lemma Finset.sum_range_two_mul (n : ℕ) {M : Type*} [AddCommMonoid M] (f : ℕ 
       (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
       simp only [mem_filter, mem_range, Nat.not_even_iff_odd] at hk ⊢
     · omega
-    · simp only [odd_two_mul_add_one, not_false_eq_true, and_true]
+    · simp only [odd_two_mul_add_one, and_true]
       omega
     · exact Nat.two_mul_div_two_add_one_of_odd hk.2
     · omega
@@ -431,9 +431,57 @@ lemma normedAlgebraOfAbsoluteValue_toAlgebra_eq :
     (normedAlgebraOfAbsoluteValue hv).toAlgebra = WithAbs.instAlgebra_right v :=
   rfl
 
+-- set_option pp.all true in
+open AbsoluteValue WithAbs in
+include hv in
+theorem GelfandMazur_aux [CompleteSpace (WithAbs v)] :
+    (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom = .abs) ∨
+      ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap (e.toRingEquiv.trans (equiv v)).toRingHom =
+        NormedField.toAbsoluteValue ℂ := by
+  let inst := normedAlgebraOfAbsoluteValue hv
+  rcases GelfandMazur.nonempty_algEquiv_or (F := WithAbs v) with hℝ | hℂ
+  · left
+    let e := Classical.choice hℝ
+    refine ⟨e.symm, ?_⟩
+    have he : e.symm.toRingEquiv = algebraMap ℝ (WithAbs v) := by
+      ext1
+      apply_fun ⇑e
+      simp only [AlgEquiv.commutes, Algebra.id.map_eq_id, ← AlgEquiv.eq_symm_apply]
+      rfl
+    simp only [RingEquiv.toRingHom_eq_coe, RingEquiv.coe_ringHom_trans, he, ← hv]
+    rfl
+  · right
+    let e := Classical.choice hℂ
+    refine ⟨e.symm, ?_⟩
+    let inst' : Algebra ℂ (WithAbs v) := RingHom.toAlgebra e.symm.toRingHom
+    have he : e.symm.toRingEquiv.toRingHom = algebraMap ℂ (WithAbs v) := rfl
+    have instST : IsScalarTower ℝ ℂ (WithAbs v) := by
+      refine IsScalarTower.of_algebraMap_eq' ?_
+      rw [← he]
+      ext1 x
+      change (algebraMap ℝ (WithAbs v)) x = e.symm ((algebraMap ℝ ℂ) x)
+      simp only [Algebra.algebraMap_eq_smul_one, map_smul, map_one]
+    let vℂ : AbsoluteValue ℂ ℝ := v.comap (e.symm.toRingEquiv.trans (equiv v)).toRingHom
+    have hvℂ : vℂ.restrict ℝ = .abs := by
+      simp only [vℂ, ← hv, restrict, ← comap_comp]
+      congr
+      let instF : Algebra ℂ F := ((equiv v).toRingHom.comp (algebraMap ℂ (WithAbs v))).toAlgebra
+      have : IsScalarTower ℝ ℂ F := inferInstanceAs <| IsScalarTower ℝ ℂ (WithAbs v)
+      rw [RingEquiv.toRingHom_trans, he]
+      exact (IsScalarTower.algebraMap_eq ℝ ℂ F).symm
+    have hℂ₁ : (NormedField.toAbsoluteValue ℂ).restrict ℝ = .abs := by
+      ext1 x
+      simp only [restrict, comap_apply, Complex.coe_algebraMap, abs_apply]
+      change ‖(x : ℂ)‖ = |x|
+      rw [Complex.norm_real, Real.norm_eq_abs]
+    have H₁ : (⟨_, hvℂ⟩ : { v' // restrict ℝ v' = AbsoluteValue.abs }) = ⟨_, hℂ₁⟩ :=
+      (lemma_6_1_a (F := ℝ) (F' := ℂ) .abs).elim ..
+    exact congrArg Subtype.val H₁
+
 end restrict_equal
 
 -- variable (hv : v.restrict ℝ ≈ .abs)
+
 
 open AbsoluteValue WithAbs in
 theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) :
@@ -443,8 +491,11 @@ theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) 
   let v' := ofIsEquivComap (algebraMap ℝ F) hv
   have hv' : restrict ℝ v' = .abs := ofIsEquivComap_def ..
   let inst := normedAlgebraOfAbsoluteValue hv'
-  rcases GelfandMazur.nonempty_algEquiv_or (F := WithAbs v') with hℝ | hℂ
+  have : CompleteSpace (WithAbs v') := sorry
+  rcases GelfandMazur_aux hv' with ⟨e, he⟩ | ⟨e, he⟩
   · left
+    refine ⟨e, ?_⟩
+    stop
     let e := Classical.choice hℝ
     have he (r : ℝ) : e.symm r = algebraMap ℝ (WithAbs v') r := by
       apply_fun ⇑e
@@ -456,7 +507,8 @@ theorem GelfandMazur [CompleteSpace (WithAbs v)] (hv : v.restrict ℝ ≈ .abs) 
       simp [he, restrict]
     rwa [this]
   · right
-    let e := Classical.choice hℂ
+    refine ⟨e, ?_⟩
+    stop
     have he (r : ℝ) : e.symm r = algebraMap ℝ (WithAbs v') r := by
       apply_fun ⇑e
       simp
@@ -507,7 +559,7 @@ def normedAlgebraOfAbsoluteValue : NormedAlgebra ℂ (WithAbs v) where
 
 noncomputable
 def algEquivComplex [CompleteSpace (WithAbs v)] : ℂ ≃ₐ[ℂ] WithAbs v :=
-  letI inst := normedAlgebraOfAbsoluteValue hv
+  letI _inst := normedAlgebraOfAbsoluteValue hv
   NormedRing.algEquivComplexOfComplete fun {_} ↦ isUnit_iff_ne_zero
 
 lemma comap_algEquivComplex [CompleteSpace (WithAbs v)] :
