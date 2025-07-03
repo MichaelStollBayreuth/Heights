@@ -1,4 +1,5 @@
-import Mathlib
+import Mathlib.Algebra.Polynomial.Degree.IsMonicOfDegree
+import Mathlib.Analysis.Complex.Polynomial.Basic
 
 /-!
 # A (new?) proof of the Gelfand-Mazur Theorem
