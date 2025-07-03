@@ -227,7 +227,7 @@ lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' :
     {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
     M ^ n ≤ ‖aeval (x - c • 1) p‖ := by
   induction n generalizing p with
-  | zero => simp [isMonicOfDegree_zero.mp hp]
+  | zero => simp [isMonicOfDegree_zero_iff.mp hp]
   | succ n ih =>
     obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_one_isMonicOfDegree
     obtain ⟨r, hr⟩ := isMonicOfDegree_one_iff.mp hf₁

@@ -769,7 +769,7 @@ lemma abv_natCast_le (n : ℕ) : v n ≤ 2 * n := by
   rcases n.eq_zero_or_pos with rfl | hn₀
   · simp [(h₀ 0).mpr rfl]
   have : (n : R) = ∑ i ∈ Finset.range n, 1 := by
-    refine (Finset.sum_range_induction (fun k ↦ 1) Nat.cast Nat.cast_zero (fun n ↦ ?_) n).symm
+    refine (Finset.sum_range_induction (fun k ↦ 1) Nat.cast Nat.cast_zero n (fun n ↦ ?_)).symm
     simp
   rw [this]
   have : v 1 ≤ 1 := by
