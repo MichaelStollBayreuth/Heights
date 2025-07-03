@@ -1,4 +1,4 @@
-import Heights.IsMonicOfDegree
+import Mathlib
 
 /-!
 # A (new?) proof of the Gelfand-Mazur Theorem
@@ -192,10 +192,7 @@ end Polynomial
 
 end auxiliary
 
-
-namespace GelfandMazur
-
-namespace Complex
+section Complex
 
 /-!
 ### The complex case
@@ -219,9 +216,25 @@ So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the alg
 `ℂ → F` is an isomorphism.
 -/
 
-variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
-
 open Polynomial
+
+/-- If `f : F[X]` is monic of degree `≥ 1` and `F` is an algebraically closed field,
+then `f = f₁ * f₂` with `f₁` monic of degree `1` and `f₂` monic of degree `f.natDegree - 1`. -/
+lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Field F]
+    [IsAlgClosed F] {f : F[X]} {n : ℕ}
+    (hf : IsMonicOfDegree f (n + 1)) :
+    ∃ f₁ f₂ : F[X], IsMonicOfDegree f₁ 1 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
+  obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ := exists_monic_irreducible_factor f hu
+  have hf₁ : IsMonicOfDegree f₁ 1 := by
+    refine ⟨?_, hf₁m⟩
+    exact natDegree_eq_of_degree_eq_some <| IsAlgClosed.degree_eq_one_of_irreducible F hf₁i
+  rw [hf₂, add_comm] at hf
+  exact ⟨f₁, f₂, hf₁, hf₁.of_mul_left hf, hf₂⟩
+
+namespace GelfandMazur.Complex
+
+variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
 
 lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' : ℂ, M ≤ ‖x - z' • 1‖)
     {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
@@ -326,15 +339,67 @@ variable (F) in
 /-- A version of the **Gelfand-Mazur Theorem** for nontrivial normed `ℂ`-algebras `F`
 with multiplicative norm. -/
 theorem mainThm [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
+
+end GelfandMazur.Complex
+
 end Complex
+
+section Real
+
+/-!
+### The real case
+-/
+
+open Polynomial
+
+/-- If `f : ℝ[X]` is monic of degree `≥ 2`, then `f = f₁ * f₂` with `f₁` monic of degree `2`
+and `f₂` monic of degree `f.natDegree - 2`.
+
+This relies on the fact that irreducible polynomials over `ℝ` have degree at most `2`. -/
+lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n : ℕ}
+    (hf : IsMonicOfDegree f (n + 2)) :
+    ∃ f₁ f₂ : ℝ[X], IsMonicOfDegree f₁ 2 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
+  obtain ⟨g, hgm, hgi, hgd⟩ := exists_monic_irreducible_factor f hu
+  have hdeg := hgi.natDegree_le_two
+  set m := g.natDegree with hm
+  have hg : IsMonicOfDegree g m := ⟨hm.symm, hgm⟩
+  interval_cases m
+  · -- m = 0
+    exact (hm ▸ Irreducible.natDegree_pos hgi).false.elim
+  · -- m = 1
+    obtain ⟨f₁, hf₁⟩ := hgd
+    rw [hf₁, show n + 2 = 1 + (1 + n) by omega] at hf
+    have hf₁' : IsMonicOfDegree f₁ (1 + n) := hg.of_mul_left hf
+    have hu₁ : ¬ IsUnit f₁ := not_isUnit_of_natDegree_pos f₁ <| by have := hf₁'.natDegree_eq; omega
+    obtain ⟨g₁, hgm₁, hgi₁, hgd₁⟩ := exists_monic_irreducible_factor f₁ hu₁
+    obtain ⟨f₂, hf₂⟩ := hgd₁
+    have hdeg₁ := hgi₁.natDegree_le_two
+    set m₁ := g₁.natDegree with hm₁
+    have hg₁ : IsMonicOfDegree g₁ m₁ := ⟨hm₁.symm, hgm₁⟩
+    interval_cases m₁
+    · -- m₁ = 0
+      exact (hm₁ ▸ hgi₁.natDegree_pos).false.elim
+    · -- m₁ = 1
+      rw [hf₂, ← mul_assoc] at hf₁ hf
+      rw [show 1 + (1 + n) = 2 + n by omega] at hf
+      exact ⟨g * g₁, f₂, hg.mul hg₁, (hg.mul hg₁).of_mul_left hf, hf₁⟩
+    · -- m₁ = 2
+      rw [hf₂, mul_left_comm] at hf₁ hf
+      rw [show 1 + (1 + n) = 2 + n by omega] at hf
+      exact ⟨g₁, g * f₂, hg₁, hg₁.of_mul_left hf, hf₁⟩
+  · -- m = 2
+    obtain ⟨f₂, hf₂⟩ := hgd
+    rw [hf₂, add_comm] at hf
+    exact ⟨g, f₂, hg, hg.of_mul_left hf, hf₂⟩
 
 /-!
 ### The key step of the proof
 -/
 
-variable {F : Type*} [NormedRing F] [NormedAlgebra ℝ F]
+namespace GelfandMazur.Real
 
-open Polynomial
+variable {F : Type*} [NormedRing F] [NormedAlgebra ℝ F]
 
 abbrev φ (x : F) (u : ℝ × ℝ) : F := x ^ 2 - u.1 • x + u.2 • 1
 
@@ -498,7 +563,7 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
     refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
     obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
     exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <| hf.natDegree_eq.trans_ne two_ne_zero
-  exact Real.nonempty_algEquiv_or F
+  exact _root_.Real.nonempty_algEquiv_or F
 
 -- without going via `IsIntegral`:
 /-
@@ -511,4 +576,6 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
       exact Submonoid.one_mem (nonZeroDivisors ℝ)
 -/
 
-end GelfandMazur
+end GelfandMazur.Real
+
+end Real
