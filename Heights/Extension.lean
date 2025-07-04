@@ -458,7 +458,7 @@ theorem GelfandMazur_aux [CompleteSpace (WithAbs v)] :
       ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) =
         NormedField.toAbsoluteValue ℂ := by
   let inst := normedAlgebraOfAbsoluteValue hv
-  rcases GelfandMazur.nonempty_algEquiv_or (WithAbs v) with hℝ | hℂ
+  rcases GelfandMazur.Real.nonempty_algEquiv_or (WithAbs v) with hℝ | hℂ
   · left
     let e := Classical.choice hℝ
     refine ⟨e.symm, ?_⟩
