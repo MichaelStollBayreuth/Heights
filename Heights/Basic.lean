@@ -97,9 +97,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   /-- The nonarchimedean absolute values. -/
   nonarchAbsVal : NonarchAbsVal → AbsoluteValue K ℝ
   /-- The nonarchiemdean absolute values are indeed nonarchimedean. -/
-  strong_triangle_ineq :
-      ∀ (v : NonarchAbsVal) (x y : K), nonarchAbsVal v (x + y) ≤
-        max (nonarchAbsVal v x) (nonarchAbsVal v y)
+  strong_triangle_ineq (v : NonarchAbsVal) : IsNonarchimedean (nonarchAbsVal v)
   /-- Only finitely many absolute values are `≠ 1` for any nonzero `x : K`. -/
   mulSupport_nonarchAbsVal_finite {x : K} (_ : x ≠ 0) : (nonarchAbsVal · x).mulSupport.Finite
   /-- The product formula -/
@@ -112,8 +110,8 @@ attribute [instance] archAbsVal_fintype
 
 variable (K : Type*) [Field K] [aav : AdmissibleAbsValues K]
 
-/-- The `totalWeiht` of a field with `AdmissibleAbsValues` is the sum of the weights of
-the archimedean palces. -/
+/-- The `totalWeight` of a field with `AdmissibleAbsValues` is the sum of the weights of
+the archimedean places. -/
 def totalWeight : ℕ := ∑ v : ArchAbsVal K, weight v
 
 variable {K}
