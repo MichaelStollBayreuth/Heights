@@ -3,3 +3,4 @@
 import Heights.Rat
 import Heights.Extension
 import Heights.GelfandMazur
+--import Heights.«Instances-Alternative»

@@ -60,7 +60,7 @@ lemma Function.mulSupport_sumElim_finite [One M] {f : α → M} {g : β → M}
 lemma Function.mulSupport_sumElim_finite' [Finite β] [One M] (f : β → M) :
     (Function.mulSupport (Sum.elim (fun _ : α ↦ 1) f)).Finite := by
   refine mulSupport_sumElim_finite ?_ <| Set.toFinite _
-  rw [mulSupport_one]
+  rw [← Pi.one_def, mulSupport_one]
   exact Set.finite_empty
 
 @[to_additive]
