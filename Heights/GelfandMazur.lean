@@ -110,7 +110,7 @@ section auxiliary
 
 namespace Algebra
 
-lemma add_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
+lemma add_smul_one_sq {A R : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (r : R) :
     (x + r • 1) ^ 2 = x ^ 2 + 2 * x * (r • 1) + (r • 1) ^ 2 := by
     -- `add_sq` assumes `CommSemiring A`
     simp [sq, add_mul, mul_add, smul_add, smul_smul, two_mul, add_assoc]
