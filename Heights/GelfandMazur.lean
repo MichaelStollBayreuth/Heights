@@ -108,38 +108,6 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 
 section auxiliary
 
-namespace Metric
-
-variable {R : Type*} [AddCommGroup R] [LinearOrder R] [IsOrderedAddMonoid R] [PseudoMetricSpace R]
-  [CompactIccSpace R]
-
-lemma isBounded_of_abs_le (C : R) : Bornology.IsBounded {x : R | |x| ≤ C} := by
-  convert Metric.isBounded_Icc (-C) C
-  ext1 x
-  simp [abs_le]
-
--- [Mathlib.Topology.MetricSpace.Bounded]
-
-end Metric
-
-namespace Continuous
-
-lemma exists_forall_le_of_isBounded {α β : Type*} [LinearOrder α]
-    [TopologicalSpace α] [OrderClosedTopology α] [PseudoMetricSpace β] [ProperSpace β]
-    {f : β → α} (hf : Continuous f) (x₀ : β) (h : Bornology.IsBounded {x : β | f x ≤ f x₀}) :
-    ∃ x, ∀ y, f x ≤ f y := by
-  refine hf.exists_forall_le' (x₀ := x₀) ?_
-  have hU : {x : β | f x₀ < f x} ∈ Filter.cocompact β := by
-    refine Filter.mem_cocompact'.mpr ⟨_, ?_, fun ⦃_⦄ a ↦ a⟩
-    simp only [Set.compl_setOf, not_lt]
-    exact Metric.isCompact_of_isClosed_isBounded (isClosed_le (by fun_prop) (by fun_prop)) h
-  filter_upwards [hU] with x hx
-  exact hx.le
-
--- [Mathlib.Topology.MetricSpace.Bounded]
-
-end Continuous
-
 namespace Algebra
 
 lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
@@ -282,8 +250,12 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
     _ ≤ M ^ n + ‖c‖ ^ n := hrel
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
   field_simp
+  -- leaves `M * (1 + (‖c‖ / M) ^ n) * M ^ (n - 1) = M ^ n + ‖c‖ ^ n`
   -- `M * (?e * M ^ (n - 1)) = ?e * M ^ n`, not solved by `ring`
-  rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn]
+  rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn, add_mul, one_mul]
+  congr
+  -- `field_simp` still doesn't work here
+  rw [div_pow, div_mul_cancel₀ _ <| pow_ne_zero n h₀]
 
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
