@@ -330,7 +330,7 @@ This relies on the fact that irreducible polynomials over `ℝ` have degree at m
 lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n : ℕ}
     (hf : IsMonicOfDegree f (n + 2)) :
     ∃ f₁ f₂ : ℝ[X], IsMonicOfDegree f₁ 2 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by grind [IsMonicOfDegree.natDegree_eq]
   obtain ⟨g, hgm, hgi, hgd⟩ := exists_monic_irreducible_factor f hu
   have hdeg := hgi.natDegree_le_two
   set m := g.natDegree with hm
@@ -342,22 +342,22 @@ lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f :
     obtain ⟨f₁, hf₁⟩ := hgd
     rw [hf₁, show n + 2 = 1 + (1 + n) by omega] at hf
     have hf₁' : IsMonicOfDegree f₁ (1 + n) := hg.of_mul_left hf
-    have hu₁ : ¬ IsUnit f₁ := not_isUnit_of_natDegree_pos f₁ <| by have := hf₁'.natDegree_eq; omega
+    have hu₁ : ¬ IsUnit f₁ :=
+      not_isUnit_of_natDegree_pos f₁ <| by grind [IsMonicOfDegree.natDegree_eq]
     obtain ⟨g₁, hgm₁, hgi₁, hgd₁⟩ := exists_monic_irreducible_factor f₁ hu₁
     obtain ⟨f₂, hf₂⟩ := hgd₁
     have hdeg₁ := hgi₁.natDegree_le_two
     set m₁ := g₁.natDegree with hm₁
     have hg₁ : IsMonicOfDegree g₁ m₁ := ⟨hm₁.symm, hgm₁⟩
+    rw [show 1 + (1 + n) = 2 + n by omega] at hf
     interval_cases m₁
     · -- m₁ = 0
       exact (hm₁ ▸ hgi₁.natDegree_pos).false.elim
     · -- m₁ = 1
       rw [hf₂, ← mul_assoc] at hf₁ hf
-      rw [show 1 + (1 + n) = 2 + n by omega] at hf
       exact ⟨g * g₁, f₂, hg.mul hg₁, (hg.mul hg₁).of_mul_left hf, hf₁⟩
     · -- m₁ = 2
       rw [hf₂, mul_left_comm] at hf₁ hf
-      rw [show 1 + (1 + n) = 2 + n by omega] at hf
       exact ⟨g₁, g * f₂, hg₁, hg₁.of_mul_left hf, hf₁⟩
   · -- m = 2
     obtain ⟨f₂, hf₂⟩ := hgd
@@ -379,7 +379,7 @@ lemma continuous_φ (x : F) : Continuous (φ x) := by fun_prop
 lemma aeval_eq_φ (x : F) (u : ℝ × ℝ) : aeval x (X ^ 2 - C u.1 * X + C u.2) = φ x u := by
   simp [Algebra.algebraMap_eq_smul_one]
 
-variable  [NormOneClass F] [NormMulClass F]
+variable [NormOneClass F] [NormMulClass F]
 
 lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M) (h : ∀ z : ℝ × ℝ, M ≤ ‖φ x z‖)
     {p : ℝ[X]} {n : ℕ} (hp : IsMonicOfDegree p (2 * n)) :
@@ -403,20 +403,19 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
   refine isOpen_iff_mem_nhds.mpr fun w hw ↦ ?_
   simp only [Set.mem_setOf] at hw
-  replace H := ((lt_of_le_of_ne (norm_nonneg _) H.symm).trans_le (h w)).ne'
-  replace h := hw ▸ h
+  simp only [← hw] at H h ⊢
   set M : ℝ := ‖φ x w‖
   have hM₀ : 0 < M := by positivity
   suffices ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ x u‖ = M by
     obtain ⟨U, hU₁, hU₂⟩ := this
-    exact Filter.mem_of_superset hU₁ fun _ hu ↦ Set.mem_setOf.mpr <| hw ▸ hU₂ _ hu
+    exact Filter.mem_of_superset hU₁ fun u hu ↦ Set.mem_setOf.mpr <| hU₂ u hu
   obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ x u - φ x w‖ < M := by
     refine ⟨φ x ⁻¹' {y : F | ‖y - φ x w‖ < M}, (continuous_φ x).tendsto w ?_,
       fun _ H ↦ by simpa using H⟩
     exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
   refine ⟨U, hU₀, fun u hu ↦ ?_⟩; clear hU₀ hw
   suffices ∀ n > 0, ‖φ x u‖ ≤ M * (1 + (‖φ x u - φ x w‖ / M) ^ n) by
-    refine (le_antisymm (show M ≤ ‖φ x u‖ from h ..) ?_).symm
+    refine (le_antisymm (h ..) ?_).symm
     refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
     conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
     refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
@@ -425,8 +424,7 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
     exact (div_lt_one hM₀).mpr <| hU u hu
   intro n hn; clear hU hu
   have HH : M * (1 + (‖φ x u - φ x w‖ / M) ^ n) = (M ^ n + ‖φ x u - φ x w‖ ^ n) / M ^ (n - 1) := by
-    rw [mul_comm, eq_div_iff (by positivity), mul_assoc, ← pow_succ', Nat.sub_one_add_one hn.ne',
-      add_mul, one_mul, ← mul_pow, div_mul_cancel₀ _ H]
+    simp only [field, div_pow, ← pow_succ', Nat.sub_add_cancel hn]
   rw [HH, le_div_iff₀ (by positivity)]; clear HH
   let q (y : ℝ × ℝ) : ℝ[X] := X ^ 2 - C y.1 * X + C y.2
   have hq (y : ℝ × ℝ) : IsMonicOfDegree (q y) 2 := isMonicOfDegree_sub_add_two ..
@@ -444,7 +442,7 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   _ ≤ ‖φ x u‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
   _ = ‖aeval x (q w ^ n) - aeval x ((q w - q u) ^ n)‖ := hrel
   _ ≤ ‖aeval x (q w ^ n)‖ + ‖aeval x ((q w - q u) ^ n)‖ := norm_sub_le ..
-  _ = _ := by simp only [q, map_pow, norm_pow, map_sub, aeval_eq_φ x]; rw [norm_sub_rev]
+  _ = _ := by rw [norm_sub_rev]; simp [q, aeval_eq_φ x, M]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
