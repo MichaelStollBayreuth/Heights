@@ -110,6 +110,11 @@ section auxiliary
 
 namespace Algebra
 
+lemma add_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
+    (x + r • 1) ^ 2 = x ^ 2 + 2 * x * (r • 1) + (r • 1) ^ 2 := by
+    -- `add_sq` assumes `CommSemiring A`
+    simp [sq, add_mul, mul_add, smul_add, smul_smul, two_mul, add_assoc]
+
 lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
     (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
     -- `sub_sq` assumes `CommRing A`
@@ -249,13 +254,9 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
     _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
     _ ≤ M ^ n + ‖c‖ ^ n := hrel
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
+  rw [div_pow]
   field_simp
-  -- leaves `M * (1 + (‖c‖ / M) ^ n) * M ^ (n - 1) = M ^ n + ‖c‖ ^ n`
-  -- `M * (?e * M ^ (n - 1)) = ?e * M ^ n`, not solved by `ring`
-  rw [mul_comm M, mul_assoc, ← pow_succ', Nat.sub_add_cancel hn, add_mul, one_mul]
-  congr
-  -- `field_simp` still doesn't work here
-  rw [div_pow, div_mul_cancel₀ _ <| pow_ne_zero n h₀]
+  rw [mul_comm M, ← pow_succ, Nat.sub_add_cancel hn]
 
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
