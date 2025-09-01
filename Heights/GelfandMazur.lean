@@ -138,13 +138,13 @@ section Real
 
 variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
 
-@[simp]
+/- @[simp]
 lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
-  rw [norm_smul_one_eq_norm, x.norm_eq_abs]
+  simp -/
 
-@[simp]
+/- @[simp]
 lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
-  rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat]
+  rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat] -/
 
 -- [Mathlib.Analysis.Normed.Module.Basic] for the two lemmas above
 
@@ -154,11 +154,11 @@ end Algebra
 
 namespace Polynomial
 
-@[simp]
+/- @[simp]
 lemma aeval_ofNat {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (n : ℕ)
     [n.AtLeastTwo] :
     (Polynomial.aeval (R := R) x) (ofNat(n) : R[X]) = (ofNat(n) : A) :=
-  aeval_natCast x _
+  aeval_natCast x _ -/
 
 -- [Mathlib.Algebra.Polynomial.AlgebraMap]
 
@@ -461,7 +461,7 @@ lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ �
   have : |r| - ‖x‖ ≤ ‖x - r • 1‖ := by
     rw [norm_sub_rev]
     convert norm_sub_norm_le (r • 1) x
-    exact (Algebra.norm_smul_one_eq_abs r).symm
+    simp
   linarith
 
 lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x - r • 1‖) {a b : ℝ}
