@@ -195,10 +195,9 @@ open Polynomial
 /-- If `f : F[X]` is monic of degree `≥ 1` and `F` is an algebraically closed field,
 then `f = f₁ * f₂` with `f₁` monic of degree `1` and `f₂` monic of degree `f.natDegree - 1`. -/
 lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Field F]
-    [IsAlgClosed F] {f : F[X]} {n : ℕ}
-    (hf : IsMonicOfDegree f (n + 1)) :
+    [IsAlgClosed F] {f : F[X]} {n : ℕ} (hf : IsMonicOfDegree f (n + 1)) :
     ∃ f₁ f₂ : F[X], IsMonicOfDegree f₁ 1 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by have := hf.natDegree_eq; omega
+  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by grind [IsMonicOfDegree.natDegree_eq]
   obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ := exists_monic_irreducible_factor f hu
   have hf₁ : IsMonicOfDegree f₁ 1 := by
     refine ⟨?_, hf₁m⟩
@@ -237,9 +236,10 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
       tendsto_pow_atTop_nhds_zero_of_lt_one (by positivity) <|
       (div_lt_one <| by positivity).mpr hc
   intro n hn
-  have := sub_dvd_pow_sub_pow X (C c) n
+  -- write `X^n = p * (X - c) + c^n` with `p` monic of degree `n-1`.
   obtain ⟨p, hp, hrel⟩ := by
-    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega) (isMonicOfDegree_X_sub_one c) ?_ this
+    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega) (isMonicOfDegree_X_sub_one c) ?_ <|
+      sub_dvd_pow_sub_pow X (C c) n
     compute_degree!
   rw [eq_comm, ← eq_sub_iff_add_eq] at hrel
   apply_fun (‖aeval (x - z • 1) ·‖) at hrel -- evaluate at `x - z•1` and take norms
@@ -250,22 +250,20 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
   rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm, ← hM] at hrel
   have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := le_aeval_of_isMonicOfDegree x hM₀ h hp _
   have HH : ‖x - (z + c) • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖c‖ ^ n := by
-    calc _
+    calc
     _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
     _ ≤ M ^ n + ‖c‖ ^ n := hrel
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
   simp only [div_pow, field]
-  rw [mul_comm M, ← pow_succ, Nat.sub_add_cancel hn]
+  rw [← pow_succ', Nat.sub_add_cancel hn]
 
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
   have hf : Continuous fun z : ℂ ↦ ‖x - z • 1‖ := by fun_prop
   refine hf.exists_forall_le_of_isBounded 0 <|
      (Metric.isBounded_iff_subset_closedBall 0).mpr ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
-  rw [zero_smul, sub_zero, Set.mem_setOf, norm_sub_rev] at hz
-  replace hz := (norm_sub_norm_le ..).trans hz
-  simp only [Metric.mem_closedBall, dist_zero_right]
-  rwa [tsub_le_iff_right, Algebra.norm_smul_one_eq_norm, ← two_mul] at hz
+  rw [Set.mem_setOf, norm_sub_rev] at hz
+  simpa [← two_mul] using (norm_sub_norm_le ..).trans hz
 
 lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
     (H : ∀ z' : ℂ, ‖x - z' • 1‖ ≠ 0) (c : ℂ) :
