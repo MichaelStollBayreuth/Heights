@@ -254,8 +254,7 @@ lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1
     _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
     _ ≤ M ^ n + ‖c‖ ^ n := hrel
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
-  rw [div_pow]
-  field_simp
+  simp only [div_pow, field]
   rw [mul_comm M, ← pow_succ, Nat.sub_add_cancel hn]
 
 omit [NormMulClass F] in
