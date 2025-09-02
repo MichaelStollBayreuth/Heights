@@ -205,6 +205,32 @@ lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F :
   rw [hf₂, add_comm] at hf
   exact ⟨f₁, f₂, hf₁, hf₁.of_mul_left hf, hf₂⟩
 
+/-- The key step: show that the norm of a suitable function is constant if the norm takes
+a positive minimum and condition `H` below is satisfied. -/
+lemma GelfandMazur.aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
+    [SeminormedAddCommGroup E] {f : X → E} {M : ℝ} {x : X} (hM : 0 < M) (hx : ‖f x‖ = M)
+    (h : ∀ y, M ≤ ‖f y‖) (hf : Continuous f)
+    (H : ∀ {y} z, ‖f y‖ = M → ∀ n > 0, ‖f z‖ ≤ M * (1 + (‖f z - f y‖ / M) ^ n)) (y : X) :
+    ‖f y‖ = M := by
+  suffices {y | ‖f y‖ = ‖f x‖} = Set.univ by simpa only [← this, hx] using Set.mem_univ y
+  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
+  refine isOpen_iff_mem_nhds.mpr fun w hw ↦ ?_
+  simp only [Set.mem_setOf, hx] at hw ⊢
+  suffices ∃ U ∈ nhds w, ∀ u ∈ U, ‖f u‖ = M by
+    obtain ⟨U, hU₁, hU₂⟩ := this
+    exact Filter.mem_of_superset hU₁ fun u hu ↦ Set.mem_setOf.mpr <| hU₂ u hu
+  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds w, ∀ u ∈ U, ‖f u - f w‖ < M := by
+    refine ⟨f ⁻¹' {y | ‖y - f w‖ < M}, hf.tendsto w ?_, fun _ H ↦ by simpa using H⟩
+    exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
+  refine ⟨U, hU₀, fun u hu ↦ (le_antisymm (h ..) ?_).symm⟩
+  refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) <| H u hw
+  conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
+  refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
+    tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
+  rw [abs_of_nonneg (by positivity)]
+  exact (div_lt_one hM).mpr <| hU u hu
+
+
 namespace GelfandMazur.Complex
 
 variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
@@ -222,40 +248,32 @@ lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' :
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hr, H', sub_add, ← sub_smul]
     exact mul_le_mul (ih hf₂) (h (c - r)) hM (norm_nonneg _)
 
-lemma constant_on_open_ball_of_ne_zero (x : F) {z :  ℂ} (h₀ : ‖x - z • 1‖ ≠ 0)
-    (h : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖) :
-    ∃ ε > 0, ∀ c : ℂ, ‖c‖ < ε → ‖x - (z + c) • 1‖ = ‖x - z • 1‖ := by
-  set M : ℝ := ‖x - z • 1‖ with hM
-  have hM₀ : 0 ≤ M := norm_nonneg _
-  refine ⟨M, by positivity, fun c hc ↦ ?_⟩
-  suffices ∀ n > 0, ‖x - (z + c) • 1‖ ≤ M * (1 + (‖c‖ / M) ^ n) by
-    refine (le_antisymm (h _) <|
-      ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this).symm
-    conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
-    exact tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
-      tendsto_pow_atTop_nhds_zero_of_lt_one (by positivity) <|
-      (div_lt_one <| by positivity).mpr hc
-  intro n hn
-  -- write `X^n = p * (X - c) + c^n` with `p` monic of degree `n-1`.
+lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+    (H : ∀ z' : ℂ, ‖x - z' • 1‖ ≠ 0) (c : ℂ) :
+    ‖x - c • 1‖ = ‖x - z • 1‖ := by
+  set M := ‖x - z • 1‖ with hMdef
+  have hM₀ : 0 < M := by have := H z; positivity
+  refine aux (f := (x - · • 1)) hM₀ hMdef.symm hz (by fun_prop) (fun {y} w hy n hn ↦ ?_) c
+  dsimp only at hy
+  simp only [sub_sub_sub_cancel_left, ← sub_smul, Algebra.norm_smul_one_eq_norm]
   obtain ⟨p, hp, hrel⟩ := by
-    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega) (isMonicOfDegree_X_sub_one c) ?_ <|
-      sub_dvd_pow_sub_pow X (C c) n
+    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega)
+      (isMonicOfDegree_X_sub_one (w - y)) ?_ <| sub_dvd_pow_sub_pow X (C (w - y)) n
     compute_degree!
   rw [eq_comm, ← eq_sub_iff_add_eq] at hrel
-  apply_fun (‖aeval (x - z • 1) ·‖) at hrel -- evaluate at `x - z•1` and take norms
+  apply_fun (‖aeval (x - y • 1) ·‖) at hrel -- evaluate at `x - y•1` and take norms
   simp only [map_mul, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, norm_mul,
-    map_pow] at hrel
-  rw [mul_comm, sub_sub, ← add_smul] at hrel
+    map_pow, sub_sub_sub_cancel_right] at hrel
+  rw [mul_comm, ← sub_smul] at hrel
   replace hrel := hrel.trans_le (norm_sub_le ..)
-  rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm, ← hM] at hrel
-  have hz : M ^ (n - 1) ≤ ‖aeval (x - z • 1) p‖ := le_aeval_of_isMonicOfDegree x hM₀ h hp _
-  have HH : ‖x - (z + c) • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖c‖ ^ n := by
+  rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm] at hrel
+  have HH : ‖x - w • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖y - w‖ ^ n := by
     calc
-    _ ≤ ‖x - (z + c) • 1‖ * ‖aeval (x - z • 1) p‖ := by gcongr
-    _ ≤ M ^ n + ‖c‖ ^ n := hrel
+    _ ≤ ‖x - w • 1‖ * ‖aeval (x - y • 1) p‖ := by
+        gcongr; exact le_aeval_of_isMonicOfDegree x hM₀.le hz hp _
+    _ ≤ M ^ n + ‖y - w‖ ^ n := by rwa [norm_sub_rev y w, ← hy] -- uses `hrel`
   convert (le_div_iff₀ (by positivity)).mpr HH using 1
-  simp only [div_pow, field]
-  rw [← pow_succ', Nat.sub_add_cancel hn]
+  simp [div_pow, field, ← pow_succ', Nat.sub_add_cancel hn]
 
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
@@ -264,20 +282,6 @@ lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ 
      (Metric.isBounded_iff_subset_closedBall 0).mpr ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
   rw [Set.mem_setOf, norm_sub_rev] at hz
   simpa [← two_mul] using (norm_sub_norm_le ..).trans hz
-
-lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
-    (H : ∀ z' : ℂ, ‖x - z' • 1‖ ≠ 0) (c : ℂ) :
-    ‖x - c • 1‖ = ‖x - z • 1‖ := by
-  suffices {c : ℂ | ‖x - c • 1‖ = ‖x - z • 1‖} = Set.univ by
-    simpa only [← this] using Set.mem_univ c
-  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <|
-    Set.nonempty_of_mem rfl
-  refine isOpen_iff_forall_mem_open.mpr fun c hc ↦ ?_
-  simp only [Set.mem_setOf_eq] at hc
-  obtain ⟨ε, hε₀, hε⟩ := constant_on_open_ball_of_ne_zero x (H c) (fun z' ↦ hc ▸ hz z')
-  refine ⟨Metric.ball c ε, fun u hu ↦ ?_, Metric.isOpen_ball, Metric.mem_ball_self hε₀⟩
-  rw [Set.mem_setOf, ← hc, show u = c + (u - c) by abel]
-  exact hε (u - c) hu
 
 lemma exists_norm_sub_smul_one_eq_zero [Nontrivial F] (x : F) :
     ∃ z : ℂ, ‖x - z • 1‖ = 0 := by
@@ -399,30 +403,9 @@ is constant. -/
 lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖ ≤ ‖φ x w‖) (H : ‖φ x z‖ ≠ 0)
     (w : ℝ × ℝ) :
     ‖φ x w‖ = ‖φ x z‖ := by
-  suffices {w : ℝ × ℝ | ‖φ x w‖ = ‖φ x z‖} = Set.univ by simpa only [← this] using Set.mem_univ w
-  refine IsClopen.eq_univ ⟨isClosed_eq (by fun_prop) (by fun_prop), ?_⟩ <| Set.nonempty_of_mem rfl
-  refine isOpen_iff_mem_nhds.mpr fun w hw ↦ ?_
-  simp only [Set.mem_setOf] at hw
-  simp only [← hw] at H h ⊢
-  set M : ℝ := ‖φ x w‖
+  set M : ℝ := ‖φ x z‖ with hMdef
   have hM₀ : 0 < M := by positivity
-  suffices ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ x u‖ = M by
-    obtain ⟨U, hU₁, hU₂⟩ := this
-    exact Filter.mem_of_superset hU₁ fun u hu ↦ Set.mem_setOf.mpr <| hU₂ u hu
-  obtain ⟨U, hU₀, hU⟩ : ∃ U ∈ nhds w, ∀ u ∈ U, ‖φ x u - φ x w‖ < M := by
-    refine ⟨φ x ⁻¹' {y : F | ‖y - φ x w‖ < M}, (continuous_φ x).tendsto w ?_,
-      fun _ H ↦ by simpa using H⟩
-    exact isOpen_lt (by fun_prop) (by fun_prop) |>.mem_nhds (by simpa)
-  refine ⟨U, hU₀, fun u hu ↦ ?_⟩; clear hU₀ hw
-  suffices ∀ n > 0, ‖φ x u‖ ≤ M * (1 + (‖φ x u - φ x w‖ / M) ^ n) by
-    refine (le_antisymm (h ..) ?_).symm
-    refine ge_of_tendsto ?_ <| Filter.Eventually.mono (Filter.Ioi_mem_atTop 0) this
-    conv => enter [3, 1]; rw [show M = M * (1 + 0) by ring] -- preparation
-    refine tendsto_const_nhds.mul <| tendsto_const_nhds.add <|
-      tendsto_pow_atTop_nhds_zero_of_abs_lt_one ?_
-    rw [abs_of_nonneg (by positivity)]
-    exact (div_lt_one hM₀).mpr <| hU u hu
-  intro n hn; clear hU hu
+  refine aux hM₀ hMdef.symm h (continuous_φ x) (fun {w} u hw n hn ↦ ?_) w
   have HH : M * (1 + (‖φ x u - φ x w‖ / M) ^ n) = (M ^ n + ‖φ x u - φ x w‖ ^ n) / M ^ (n - 1) := by
     simp only [field, div_pow, ← pow_succ', Nat.sub_add_cancel hn]
   rw [HH, le_div_iff₀ (by positivity)]; clear HH
@@ -442,7 +425,7 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   _ ≤ ‖φ x u‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
   _ = ‖aeval x (q w ^ n) - aeval x ((q w - q u) ^ n)‖ := hrel
   _ ≤ ‖aeval x (q w ^ n)‖ + ‖aeval x ((q w - q u) ^ n)‖ := norm_sub_le ..
-  _ = _ := by rw [norm_sub_rev]; simp [q, aeval_eq_φ x, M]
+  _ = _ := by rw [norm_sub_rev]; simp [q, aeval_eq_φ x, M, hw]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
