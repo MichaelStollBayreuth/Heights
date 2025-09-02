@@ -254,26 +254,21 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1�
   set M := ‖x - z • 1‖ with hMdef
   have hM₀ : 0 < M := by have := H z; positivity
   refine aux (f := (x - · • 1)) hM₀ hMdef.symm hz (by fun_prop) (fun {y} w hy n hn ↦ ?_) c
-  dsimp only at hy
-  simp only [sub_sub_sub_cancel_left, ← sub_smul, Algebra.norm_smul_one_eq_norm]
-  obtain ⟨p, hp, hrel⟩ := by
-    refine (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega)
-      (isMonicOfDegree_X_sub_one (w - y)) ?_ <| sub_dvd_pow_sub_pow X (C (w - y)) n
-    compute_degree!
-  rw [eq_comm, ← eq_sub_iff_add_eq] at hrel
-  apply_fun (‖aeval (x - y • 1) ·‖) at hrel -- evaluate at `x - y•1` and take norms
+  dsimp only at hy ⊢
+  rw [sub_sub_sub_cancel_left, ← sub_smul, Algebra.norm_smul_one_eq_norm, norm_sub_rev y w,
+    show M * (1 + (‖w - y‖ / M) ^ n) = (M ^ n + ‖w - y‖ ^ n) / M ^ (n - 1) by
+      simp only [field, div_pow, ← pow_succ', Nat.sub_add_cancel hn],
+    le_div_iff₀ (by positivity)]
+  obtain ⟨p, hp, hrel⟩ :=
+    (isMonicOfDegree_X_pow ℂ n).of_dvd_sub (by omega)
+      (isMonicOfDegree_X_sub_one (w - y)) (by compute_degree!) <| sub_dvd_pow_sub_pow X _ n
+  grw [le_aeval_of_isMonicOfDegree x hM₀.le hz hp y]
+  rw [eq_comm, ← eq_sub_iff_add_eq, mul_comm] at hrel
+  apply_fun (‖aeval (x - y • 1) ·‖) at hrel
   simp only [map_mul, map_sub, aeval_X, aeval_C, Algebra.algebraMap_eq_smul_one, norm_mul,
     map_pow, sub_sub_sub_cancel_right] at hrel
-  rw [mul_comm, ← sub_smul] at hrel
-  replace hrel := hrel.trans_le (norm_sub_le ..)
-  rw [norm_pow, norm_pow, Algebra.norm_smul_one_eq_norm] at hrel
-  have HH : ‖x - w • 1‖ * M ^ (n - 1) ≤ M ^ n + ‖y - w‖ ^ n := by
-    calc
-    _ ≤ ‖x - w • 1‖ * ‖aeval (x - y • 1) p‖ := by
-        gcongr; exact le_aeval_of_isMonicOfDegree x hM₀.le hz hp _
-    _ ≤ M ^ n + ‖y - w‖ ^ n := by rwa [norm_sub_rev y w, ← hy] -- uses `hrel`
-  convert (le_div_iff₀ (by positivity)).mpr HH using 1
-  simp [div_pow, field, ← pow_succ', Nat.sub_add_cancel hn]
+  rw [hrel]
+  exact (norm_sub_le ..).trans <| by simp [hy, ← sub_smul]
 
 omit [NormMulClass F] in
 lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
@@ -415,17 +410,16 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   have hdvd : q u ∣ q w ^ n - (q w - q u) ^ n := by
     nth_rewrite 1 [← sub_sub_self (q w) (q u)]
     exact sub_dvd_pow_sub_pow ..
+  have hqe (y : ℝ × ℝ) : aeval x (q y) = φ x y := by simp [φ, q, Algebra.smul_def]
   have H' : ((q w - q u) ^ n).natDegree < 2 * n := by rw [hsub]; compute_degree; omega
   obtain ⟨p, hp, hrel⟩ := ((hq w).pow n).of_dvd_sub (by omega) (hq u) H' hdvd; clear H' hdvd hsub
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
+  grw [le_aeval_of_isMonicOfDegree hM₀.le h hp]
   rw [← sub_eq_iff_eq_add, eq_comm, mul_comm] at hrel
   apply_fun (‖aeval x ·‖) at hrel
   rw [map_mul, norm_mul, map_sub, aeval_eq_φ x u] at hrel
-  calc
-  _ ≤ ‖φ x u‖ * ‖(aeval x) p‖ := by gcongr; exact le_aeval_of_isMonicOfDegree hM₀.le h hp
-  _ = ‖aeval x (q w ^ n) - aeval x ((q w - q u) ^ n)‖ := hrel
-  _ ≤ ‖aeval x (q w ^ n)‖ + ‖aeval x ((q w - q u) ^ n)‖ := norm_sub_le ..
-  _ = _ := by rw [norm_sub_rev]; simp [q, aeval_eq_φ x, M, hw]
+  rw [hrel, norm_sub_rev (φ ..)]
+  exact (norm_sub_le ..).trans <| by simp [hqe, hw]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
