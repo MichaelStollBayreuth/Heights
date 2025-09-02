@@ -108,17 +108,37 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 
 section auxiliary
 
+namespace Commute
+
+lemma add_sq {R : Type*} [Semiring R] {x y : R} (h : Commute x y) :
+    (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
+  simp [sq, add_mul, mul_add, two_mul, h.eq]
+  abel
+
+lemma sub_sq {R : Type*} [Ring R] {x y : R} (h : Commute x y) :
+    (x - y) ^ 2 = x ^ 2 - 2 * x * y + y ^ 2 := by
+  simp [sq, sub_mul, add_mul, mul_sub, two_mul, h.eq]
+  abel
+
+end Commute
+
 namespace Algebra
 
-lemma add_smul_one_sq {A R : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (r : R) :
+/- lemma add_smul_one_sq {A R : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (r : R) :
     (x + r • 1) ^ 2 = x ^ 2 + 2 * x * (r • 1) + (r • 1) ^ 2 := by
-    -- `add_sq` assumes `CommSemiring A`
-    simp [sq, add_mul, mul_add, smul_add, smul_smul, two_mul, add_assoc]
+  refine Commute.add_sq ?_
+  rw [← algebraMap_eq_smul_one]
+  exact commute_algebraMap_right r x
+  -- `add_sq` assumes `CommSemiring A`
+  -- simp [sq, add_mul, mul_add, smul_add, smul_smul, two_mul, add_assoc]
 
 lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
     (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
-    -- `sub_sq` assumes `CommRing A`
-    simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add]
+  refine Commute.sub_sq ?_
+  rw [← algebraMap_eq_smul_one]
+  exact commute_algebraMap_right r x
+  -- `sub_sq` assumes `CommRing A`
+  -- simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add] -/
 
 -- [Mathlib.Algebra.Algebra.Defs] (after removing Algebra.Lie.* from imports)
 
@@ -459,6 +479,7 @@ lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z
 ### The main result
 -/
 
+open Algebra in
 /-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
 with real coefficients. -/
@@ -474,7 +495,7 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
     linarith
   refine a_bound (x := x) (c := √M) (by positivity) (fun r ↦ ?_) (b := 0) ?_
   · rw [← sq_le_sq₀ (Real.sqrt_nonneg M) (norm_nonneg _), Real.sq_sqrt hM₀, ← norm_pow,
-      Algebra.sub_smul_one_sq]
+      Commute.sub_sq <| algebraMap_eq_smul_one (A := F) r ▸ commute_algebraMap_right r x]
     convert h (2 * r, r ^ 2) using 4 <;> simp [two_mul, add_smul, _root_.smul_pow]
   · nth_rewrite 2 [show ‖x‖ ^ 2 = ‖x ^ 2 - (0 : ℝ) • x + (0 : ℝ) • 1‖ by simp]
     rw [is_const_norm_sq_sub_add h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
