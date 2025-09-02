@@ -423,7 +423,6 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   have hdvd : q u ∣ q w ^ n - (q w - q u) ^ n := by
     nth_rewrite 1 [← sub_sub_self (q w) (q u)]
     exact sub_dvd_pow_sub_pow ..
-  have hqe (y : ℝ × ℝ) : aeval x (q y) = φ x y := by simp [φ, q, Algebra.smul_def]
   have H' : ((q w - q u) ^ n).natDegree < 2 * n := by rw [hsub]; compute_degree; omega
   obtain ⟨p, hp, hrel⟩ := ((hq w).pow n).of_dvd_sub (by omega) (hq u) H' hdvd; clear H' hdvd hsub
   rw [show 2 * n - 2 = 2 * (n - 1) by omega] at hp
@@ -432,7 +431,7 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   apply_fun (‖aeval x ·‖) at hrel
   rw [map_mul, norm_mul, map_sub, aeval_eq_φ x u] at hrel
   rw [hrel, norm_sub_rev (φ ..)]
-  exact (norm_sub_le ..).trans <| by simp [hqe, hw]
+  exact (norm_sub_le ..).trans <| by simp [q, aeval_eq_φ, hw]
 
 /-!
 ### Existence of a minimizing monic polynomial of degree 2
@@ -453,7 +452,7 @@ lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x -
       simpa only [← norm_pow, sub_add, norm_sub_rev (x ^ 2)] using norm_le_norm_add_norm_sub' ..
   _ ≤ _ := by rw [two_mul]; exact add_le_add_left h _
 
-lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z‖ ≤ ‖φ x w‖ := by
+lemma exists_min_norm_φ (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z‖ ≤ ‖φ x w‖ := by
   obtain ⟨u, hu⟩ := GelfandMazur.exists_min_norm_sub_smul ℝ x
   rcases eq_or_lt_of_le (norm_nonneg (x - u • 1)) with hc₀ | hc₀
   · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
@@ -484,7 +483,7 @@ open Algebra in
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
 with real coefficients. -/
 lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
-  obtain ⟨z, h⟩ := min_ex_deg_two x
+  obtain ⟨z, h⟩ := exists_min_norm_φ x
   suffices φ x z = 0 from ⟨_, isMonicOfDegree_sub_add_two z.1 z.2, by rwa [aeval_eq_φ]⟩
   by_contra! H
   set M := ‖φ x z‖
