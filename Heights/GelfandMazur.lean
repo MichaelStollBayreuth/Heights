@@ -197,12 +197,12 @@ then `f = f₁ * f₂` with `f₁` monic of degree `1` and `f₂` monic of degre
 lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Field F]
     [IsAlgClosed F] {f : F[X]} {n : ℕ} (hf : IsMonicOfDegree f (n + 1)) :
     ∃ f₁ f₂ : F[X], IsMonicOfDegree f₁ 1 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  have hu : ¬ IsUnit f := not_isUnit_of_natDegree_pos f <| by grind [IsMonicOfDegree.natDegree_eq]
-  obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ := exists_monic_irreducible_factor f hu
-  have hf₁ : IsMonicOfDegree f₁ 1 := by
-    refine ⟨?_, hf₁m⟩
-    exact natDegree_eq_of_degree_eq_some <| IsAlgClosed.degree_eq_one_of_irreducible F hf₁i
+  obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ :=
+    exists_monic_irreducible_factor f <| not_isUnit_of_natDegree_pos f <|
+      by grind [IsMonicOfDegree.natDegree_eq]
   rw [hf₂, add_comm] at hf
+  have hf₁ : IsMonicOfDegree f₁ 1 :=
+    ⟨natDegree_eq_of_degree_eq_some <| IsAlgClosed.degree_eq_one_of_irreducible F hf₁i, hf₁m⟩
   exact ⟨f₁, f₂, hf₁, hf₁.of_mul_left hf, hf₂⟩
 
 /-- The key step: show that the norm of a suitable function is constant if the norm takes
