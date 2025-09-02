@@ -116,7 +116,7 @@ variable {R A : Type*} [NormedField R] [SeminormedRing A] [NormedAlgebra R A] [N
 
 @[simp]
 lemma norm_smul_one_eq_norm (z : R) : ‖z • (1 : A)‖ = ‖z‖ := by
-  rw [← Algebra.algebraMap_eq_smul_one, norm_algebraMap']
+  simp [norm_smul]
 
 -- [Mathlib.Analysis.Normed.Module.Basic]
 
