@@ -230,6 +230,14 @@ lemma GelfandMazur.aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
   rw [abs_of_nonneg (by positivity)]
   exact (div_lt_one hM).mpr <| hU u hu
 
+lemma GelfandMazur.exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
+    [ProperSpace 𝕜] [SeminormedRing F] [NormedAlgebra 𝕜 F] [NormOneClass F] (x : F) :
+  ∃ z : 𝕜, ∀ z' : 𝕜, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
+  have hf : Continuous fun z : 𝕜 ↦ ‖x - z • 1‖ := by fun_prop
+  refine hf.exists_forall_le_of_isBounded 0 <|
+     (Metric.isBounded_iff_subset_closedBall 0).mpr ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
+  rw [Set.mem_setOf, norm_sub_rev] at hz
+  simpa [← two_mul] using (norm_sub_norm_le ..).trans hz
 
 namespace GelfandMazur.Complex
 
@@ -270,17 +278,9 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1�
   rw [hrel]
   exact (norm_sub_le ..).trans <| by simp [hy, ← sub_smul]
 
-omit [NormMulClass F] in
-lemma min_ex_deg_one (x : F) : ∃ z : ℂ, ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
-  have hf : Continuous fun z : ℂ ↦ ‖x - z • 1‖ := by fun_prop
-  refine hf.exists_forall_le_of_isBounded 0 <|
-     (Metric.isBounded_iff_subset_closedBall 0).mpr ⟨2 * ‖x‖, fun z hz ↦ ?_⟩
-  rw [Set.mem_setOf, norm_sub_rev] at hz
-  simpa [← two_mul] using (norm_sub_norm_le ..).trans hz
-
 lemma exists_norm_sub_smul_one_eq_zero [Nontrivial F] (x : F) :
     ∃ z : ℂ, ‖x - z • 1‖ = 0 := by
-  obtain ⟨z, hz⟩ := min_ex_deg_one x
+  obtain ⟨z, hz⟩ := GelfandMazur.exists_min_norm_sub_smul ℂ x
   set M := ‖x - z • 1‖ with hM
   rcases eq_or_lt_of_le (show 0 ≤ M from norm_nonneg _) with hM₀ | hM₀
   · exact ⟨z, hM₀.symm⟩
@@ -425,18 +425,6 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
 ### Existence of a minimizing monic polynomial of degree 2
 -/
 
-omit [NormMulClass F] in
-lemma min_ex_deg_one (x : F) : ∃ u : ℝ, ∀ r : ℝ, ‖x - u • 1‖ ≤ ‖x - r • 1‖ := by
-  have hf : Continuous fun r : ℝ ↦ ‖x - r • 1‖ := by fun_prop
-  refine hf.exists_forall_le_of_isBounded 0 <|
-    (Metric.isBounded_of_abs_le (2 * ‖x‖)).subset fun r hr ↦ ?_
-  simp only [zero_smul, sub_zero, Set.mem_setOf_eq] at hr ⊢
-  have : |r| - ‖x‖ ≤ ‖x - r • 1‖ := by
-    rw [norm_sub_rev]
-    convert norm_sub_norm_le (r • 1) x
-    simp
-  linarith
-
 lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x - r • 1‖) {a b : ℝ}
     (h : ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x‖ ^ 2) :
     |a| ≤ 2 * ‖x‖ ^ 2 / c := by
@@ -453,7 +441,7 @@ lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x -
   _ ≤ _ := by rw [two_mul]; exact add_le_add_left h _
 
 lemma min_ex_deg_two (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z‖ ≤ ‖φ x w‖ := by
-  obtain ⟨u, hu⟩ := min_ex_deg_one x
+  obtain ⟨u, hu⟩ := GelfandMazur.exists_min_norm_sub_smul ℝ x
   rcases eq_or_lt_of_le (norm_nonneg (x - u • 1)) with hc₀ | hc₀
   · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
     exact ⟨(u, 0), fun z' ↦ by simp [φ, hc₀, sq]⟩
