@@ -108,39 +108,7 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 
 section auxiliary
 
-namespace Commute
-
-lemma add_sq {R : Type*} [Semiring R] {x y : R} (h : Commute x y) :
-    (x + y) ^ 2 = x ^ 2 + 2 * x * y + y ^ 2 := by
-  simp [sq, add_mul, mul_add, two_mul, h.eq]
-  abel
-
-lemma sub_sq {R : Type*} [Ring R] {x y : R} (h : Commute x y) :
-    (x - y) ^ 2 = x ^ 2 - 2 * x * y + y ^ 2 := by
-  simp [sq, sub_mul, add_mul, mul_sub, two_mul, h.eq]
-  abel
-
-end Commute
-
 namespace Algebra
-
-/- lemma add_smul_one_sq {A R : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (r : R) :
-    (x + r • 1) ^ 2 = x ^ 2 + 2 * x * (r • 1) + (r • 1) ^ 2 := by
-  refine Commute.add_sq ?_
-  rw [← algebraMap_eq_smul_one]
-  exact commute_algebraMap_right r x
-  -- `add_sq` assumes `CommSemiring A`
-  -- simp [sq, add_mul, mul_add, smul_add, smul_smul, two_mul, add_assoc]
-
-lemma sub_smul_one_sq {A R : Type*} [CommRing R] [Ring A] [Algebra R A] (x : A) (r : R) :
-    (x - r • 1) ^ 2 = x ^ 2 - 2 * x * (r • 1) + (r • 1) ^ 2 := by
-  refine Commute.sub_sq ?_
-  rw [← algebraMap_eq_smul_one]
-  exact commute_algebraMap_right r x
-  -- `sub_sq` assumes `CommRing A`
-  -- simp [sq, sub_mul, mul_sub, smul_sub, smul_smul, two_mul, ← sub_sub, ← sub_add] -/
-
--- [Mathlib.Algebra.Algebra.Defs] (after removing Algebra.Lie.* from imports)
 
 section General
 
