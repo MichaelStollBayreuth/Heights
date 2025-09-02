@@ -333,14 +333,14 @@ lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f :
   obtain ⟨g, hgm, hgi, f₁, hf₁⟩ :=
     exists_monic_irreducible_factor f <| not_isUnit_of_natDegree_pos f <|
       by grind [IsMonicOfDegree.natDegree_eq]
+  rw [hf₁, add_comm] at hf
   have hdegpos := hgi.natDegree_pos
   have hdegle := hgi.natDegree_le_two
   have hg : IsMonicOfDegree g g.natDegree := ⟨rfl, hgm⟩
   set m := g.natDegree
   interval_cases m -- `m = 1` or `m = 2`
-  · rw [hf₁, show n + 2 = 1 + (n + 1) by omega] at hf
-    have hf₁' : f₁.natDegree = n + 1 := (hg.of_mul_left hf).natDegree_eq
-    rw [show 1 + (n + 1) = 2 + n by omega] at hf
+  · have hf₁' : f₁.natDegree = n + 1 :=
+      hg.of_mul_left ((show 2 + n = 1 + (n + 1) by omega) ▸ hf) |>.natDegree_eq
     obtain ⟨g₁, hgm₁, hgi₁, f₂, hf₂⟩ :=
       exists_monic_irreducible_factor f₁ <| not_isUnit_of_natDegree_pos f₁ <| by omega
     have hdeg₁pos := hgi₁.natDegree_pos
@@ -352,8 +352,7 @@ lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f :
       exact ⟨g * g₁, f₂, hg.mul hg₁, (hg.mul hg₁).of_mul_left hf, hf₁⟩
     · rw [hf₂, mul_left_comm] at hf₁ hf
       exact ⟨g₁, g * f₂, hg₁, hg₁.of_mul_left hf, hf₁⟩
-  · rw [hf₁, add_comm] at hf
-    exact ⟨g, f₁, hg, hg.of_mul_left hf, hf₁⟩
+  · exact ⟨g, f₁, hg, hg.of_mul_left hf, hf₁⟩
 
 /-!
 ### The key step of the proof
