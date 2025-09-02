@@ -230,6 +230,8 @@ lemma GelfandMazur.aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
   rw [abs_of_nonneg (by positivity)]
   exact (div_lt_one hM).mpr <| hU u hu
 
+/-- In a normed algebra `F` over a normed field `𝕜` that is a proper space, the function
+`z : 𝕜 ↦ ‖x - z • 1‖` achieves a global minimum for every `x : F`. -/
 lemma GelfandMazur.exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
     [ProperSpace 𝕜] [SeminormedRing F] [NormedAlgebra 𝕜 F] [NormOneClass F] (x : F) :
   ∃ z : 𝕜, ∀ z' : 𝕜, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
