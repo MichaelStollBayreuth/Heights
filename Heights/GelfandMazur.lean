@@ -182,7 +182,7 @@ open Polynomial
 
 /-- If `f : F[X]` is monic of degree `≥ 1` and `F` is an algebraically closed field,
 then `f = f₁ * f₂` with `f₁` monic of degree `1` and `f₂` monic of degree `f.natDegree - 1`. -/
-lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_one_isMonicOfDegree {F : Type*} [Field F]
+lemma Polynomial.IsMonicOfDegree.eq_isMonicOfDegree_one_mul_isMonicOfDegree {F : Type*} [Field F]
     [IsAlgClosed F] {f : F[X]} {n : ℕ} (hf : IsMonicOfDegree f (n + 1)) :
     ∃ f₁ f₂ : F[X], IsMonicOfDegree f₁ 1 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
   obtain ⟨f₁, hf₁m, hf₁i, f₂, hf₂⟩ :=
@@ -239,7 +239,7 @@ lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' :
   induction n generalizing p with
   | zero => simp [isMonicOfDegree_zero_iff.mp hp]
   | succ n ih =>
-    obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_one_isMonicOfDegree
+    obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_isMonicOfDegree_one_mul_isMonicOfDegree
     obtain ⟨r, hr⟩ := isMonicOfDegree_one_iff.mp hf₁
     have H' (y : F) : aeval y (X + C r) = y + r • 1 := by
       simp [Algebra.algebraMap_eq_smul_one]
@@ -312,37 +312,44 @@ section Real
 
 open Polynomial
 
+/-- If `f : ℝ[X]` is monic of positive degree, then `f = f₁ * f₂` with `f₁` monic
+of degree `1` or `2`.
+
+This relies on the fact that irreducible polynomials over `ℝ` have degree at most `2`. -/
+-- TODO: generalize to real closed fields when they are available.
+lemma Polynomial.IsMonicOfDegree.eq_isMonicOfDegree_one_or_two_mul {f : ℝ[X]} {n : ℕ}
+    (hf : IsMonicOfDegree f (n + 1)) :
+    ∃ f₁ f₂ : ℝ[X], (IsMonicOfDegree f₁ 1 ∨ IsMonicOfDegree f₁ 2) ∧ f = f₁ * f₂ := by
+  obtain ⟨f₁, hm, hirr, f₂, hf₂⟩ :=
+    exists_monic_irreducible_factor f <| not_isUnit_of_natDegree_pos f <|
+      by grind [IsMonicOfDegree.natDegree_eq]
+  refine ⟨f₁, f₂, ?_, hf₂⟩
+  clear hf -- without this, `grind` below fails
+  have h₀ := hirr.natDegree_pos
+  have h₂ := hirr.natDegree_le_two
+  have : f₁.natDegree = 1 ∨ f₁.natDegree = 2 := by omega -- without this, `grind` below fails
+  replace hm : f₁.IsMonicOfDegree f₁.natDegree := ⟨rfl, hm⟩ -- with `have` instead of `replace`, `grind` below fails
+  grind
+
 /-- If `f : ℝ[X]` is monic of degree `≥ 2`, then `f = f₁ * f₂` with `f₁` monic of degree `2`
 and `f₂` monic of degree `f.natDegree - 2`.
 
 This relies on the fact that irreducible polynomials over `ℝ` have degree at most `2`. -/
 -- TODO: generalize to real closed fields when they are available.
-lemma Polynomial.IsMonicOfDegree.eq_mul_isMonicOfDegree_two_isMonicOfDegree {f : ℝ[X]} {n : ℕ}
+lemma Polynomial.IsMonicOfDegree.eq_isMonicOfDegree_two_mul_isMonicOfDegree {f : ℝ[X]} {n : ℕ}
     (hf : IsMonicOfDegree f (n + 2)) :
     ∃ f₁ f₂ : ℝ[X], IsMonicOfDegree f₁ 2 ∧ IsMonicOfDegree f₂ n ∧ f = f₁ * f₂ := by
-  obtain ⟨g, hgm, hgi, f₁, hf₁⟩ :=
-    exists_monic_irreducible_factor f <| not_isUnit_of_natDegree_pos f <|
-      by grind [IsMonicOfDegree.natDegree_eq]
-  rw [hf₁, add_comm] at hf
-  have hdegpos := hgi.natDegree_pos
-  have hdegle := hgi.natDegree_le_two
-  have hg : IsMonicOfDegree g g.natDegree := ⟨rfl, hgm⟩
-  set m := g.natDegree
-  interval_cases m -- `m = 1` or `m = 2`
-  · have hf₁' : f₁.natDegree = n + 1 :=
-      hg.of_mul_left ((show 2 + n = 1 + (n + 1) by omega) ▸ hf) |>.natDegree_eq
-    obtain ⟨g₁, hgm₁, hgi₁, f₂, hf₂⟩ :=
-      exists_monic_irreducible_factor f₁ <| not_isUnit_of_natDegree_pos f₁ <| by omega
-    have hdeg₁pos := hgi₁.natDegree_pos
-    have hdeg₁le := hgi₁.natDegree_le_two
-    have hg₁ : IsMonicOfDegree g₁ g₁.natDegree := ⟨rfl, hgm₁⟩
-    set m₁ := g₁.natDegree
-    interval_cases m₁ -- `m₁ = 1` or `m₁ = 2`
-    · rw [hf₂, ← mul_assoc] at hf₁ hf
-      exact ⟨g * g₁, f₂, hg.mul hg₁, (hg.mul hg₁).of_mul_left hf, hf₁⟩
-    · rw [hf₂, mul_left_comm] at hf₁ hf
-      exact ⟨g₁, g * f₂, hg₁, hg₁.of_mul_left hf, hf₁⟩
-  · exact ⟨g, f₁, hg, hg.of_mul_left hf, hf₁⟩
+  obtain ⟨g₁, g₂, hd₁ | hd₂, h⟩ := hf.eq_isMonicOfDegree_one_or_two_mul
+  all_goals rw [h, add_comm] at hf
+  · rw [show 2 + n = 1 + (n + 1) by omega] at hf
+    have hg₂ := of_mul_left hd₁ hf
+    obtain ⟨p₁, p₂, hp₁ | hp₂, h'⟩ := hg₂.eq_isMonicOfDegree_one_or_two_mul
+    all_goals rw [h'] at h hf; rw [show 1 + (n + 1) = 2 + n by omega] at hf
+    · rw [← mul_assoc] at h hf
+      exact ⟨g₁ * p₁, p₂, hd₁.mul hp₁, (hd₁.mul hp₁).of_mul_left hf, h⟩
+    · rw [mul_left_comm] at h hf
+      exact ⟨p₁, g₁ * p₂, hp₂, of_mul_left hp₂ hf, h⟩
+  · exact ⟨g₁, g₂, hd₂, of_mul_left hd₂ hf, h⟩
 
 /-!
 ### The key step of the proof
@@ -368,7 +375,7 @@ lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M) (h : ∀ z : 
   | zero => simp_all
   | succ n ih =>
     rw [mul_add, mul_one] at hp
-    obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_mul_isMonicOfDegree_two_isMonicOfDegree
+    obtain ⟨f₁, f₂, hf₁, hf₂, H⟩ := hp.eq_isMonicOfDegree_two_mul_isMonicOfDegree
     obtain ⟨a, b, hab⟩ := isMonicOfDegree_two_iff'.mp hf₁
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hab, aeval_eq_φ x (a, b)]
     exact mul_le_mul (ih hf₂) (h (a, b)) hM (norm_nonneg _)
