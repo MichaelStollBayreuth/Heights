@@ -324,12 +324,9 @@ lemma Polynomial.IsMonicOfDegree.eq_isMonicOfDegree_one_or_two_mul {f : ℝ[X]} 
     exists_monic_irreducible_factor f <| not_isUnit_of_natDegree_pos f <|
       by grind [IsMonicOfDegree.natDegree_eq]
   refine ⟨f₁, f₂, ?_, hf₂⟩
-  clear hf -- without this, `grind` below fails
-  have h₀ := hirr.natDegree_pos
-  have h₂ := hirr.natDegree_le_two
-  have : f₁.natDegree = 1 ∨ f₁.natDegree = 2 := by omega -- without this, `grind` below fails
-  replace hm : f₁.IsMonicOfDegree f₁.natDegree := ⟨rfl, hm⟩ -- with `have` instead of `replace`, `grind` below fails
-  grind
+  have help {P : ℕ → Prop} {m : ℕ} (hm₀ : 0 < m) (hm₂ : m ≤ 2) (h : P m) : P 1 ∨ P 2 := by
+    interval_cases m <;> tauto
+  exact help hirr.natDegree_pos hirr.natDegree_le_two <| IsMonicOfDegree.mk rfl hm
 
 /-- If `f : ℝ[X]` is monic of degree `≥ 2`, then `f = f₁ * f₂` with `f₁` monic of degree `2`
 and `f₂` monic of degree `f.natDegree - 2`.
