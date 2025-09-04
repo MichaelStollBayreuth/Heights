@@ -106,54 +106,6 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 `M ≤ ‖x^2 - a'•x + b'•1‖ ≤ M`, as desired.
 -/
 
-section auxiliary
-
-namespace Algebra
-
-section General
-
-variable {R A : Type*} [NormedField R] [SeminormedRing A] [NormedAlgebra R A] [NormOneClass A]
-
-@[simp]
-lemma norm_smul_one_eq_norm (z : R) : ‖z • (1 : A)‖ = ‖z‖ := by
-  simp [norm_smul]
-
--- [Mathlib.Analysis.Normed.Module.Basic]
-
-end General
-
-section Real
-
-variable {A : Type*} [SeminormedRing A] [NormedAlgebra ℝ A] [NormOneClass A]
-
-/- @[simp]
-lemma norm_smul_one_eq_abs (x : ℝ) : ‖x • (1 : A)‖ = |x| := by
-  simp -/
-
-/- @[simp]
-lemma norm_ofNat (n : ℕ) [n.AtLeastTwo] : ‖(ofNat(n) : A)‖ = (ofNat(n) : ℝ) := by
-  rw [← map_ofNat (algebraMap ℝ A) n, norm_algebraMap', Real.norm_eq_abs, n.abs_ofNat] -/
-
--- [Mathlib.Analysis.Normed.Module.Basic] for the two lemmas above
-
-end Real
-
-end Algebra
-
-namespace Polynomial
-
-/- @[simp]
-lemma aeval_ofNat {R A : Type*} [CommSemiring R] [Semiring A] [Algebra R A] (x : A) (n : ℕ)
-    [n.AtLeastTwo] :
-    (Polynomial.aeval (R := R) x) (ofNat(n) : R[X]) = (ofNat(n) : A) :=
-  aeval_natCast x _ -/
-
--- [Mathlib.Algebra.Polynomial.AlgebraMap]
-
-end Polynomial
-
-end auxiliary
-
 section Complex
 
 /-!
