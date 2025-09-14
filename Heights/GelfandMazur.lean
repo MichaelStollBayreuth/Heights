@@ -3,22 +3,19 @@ import Mathlib.Analysis.Polynomial.Factorization
 /-!
 # A (new?) proof of the Gelfand-Mazur Theorem
 
-The goal of this file is to prove the following version of the Gelfand-Mazur Theorem:
+We provide a formalization of proofs of the following versions of the *Gelfand-Mazur* *Theorem*.
 
-Let `F` be a field that is complete with respect to an archimedean absolute value `v`.
-Then `F` is isomorphic, as a field with absolute value, to either `ℝ` or `ℂ` with
-an absolute value that is equivalent to the standard absolute value.
+* `GelfandMazur.Complex.algEquivOfNormMul`: if `F` is a nontrivial normed `ℂ`-algebra
+  with multiplicative norm, then we obtain a `ℂ`-algebra equivalence with `ℂ`.
 
-One can fairly easily conclude from the assumptions that `F` is an `ℝ`-algebra
-and that the restriction of `v` to `ℝ` is equivalent to the standard absolute value.
-There is then an absolute value `v'` on `F` that is equivalent to `v` and restricts
-to the standard absolute value on `ℝ`; in this way, `F` is a normed `ℝ`-algebra.
-So we will use this assumption in the following.
-
-The main idea is to show that each element of `F` satisfies a polynomial equation
-over `ℝ`; this implies that `F` is an algebraic field extension of `ℝ`, and so
-either `F` is already isomorphic to `ℝ` via the algebra map, or else `F` is isomorphic
-to `ℂ` as a normed `ℝ`-algebra.
+  This differs from `NormedRing.algEquivComplexOfComplete` in the assumptions: there,
+  * `F` is assumed to be complete,
+  * `F` is assumed to be a (nontrivial) division ring,
+  * but the norm is only required to be submultiplicative.
+* `GelfandMazur.Complex.nonempty_algEquiv`: A nontrivial normed `ℂ`-algebra with multiplicative norm
+  is isomorphic to `ℂ` as a `ℂ`-algebra.
+* `GelfandMazur.Real.nonempty_algEquiv_or`: if a field `F` is a normed `ℝ`-algebra,
+  then `F` is isomorphic as an `ℝ`-algebra either to `ℝ` or to `ℂ`.
 
 ### The complex case
 
@@ -240,7 +237,7 @@ def algEquivOfNormMul [Nontrivial F] : ℂ ≃ₐ[ℂ] F := by
 variable (F) in
 /-- A version of the **Gelfand-Mazur Theorem** for nontrivial normed `ℂ`-algebras `F`
 with multiplicative norm. -/
-theorem mainThm [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
+theorem nonempty_algEquiv [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
 
 end Complex
 

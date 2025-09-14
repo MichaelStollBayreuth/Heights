@@ -542,8 +542,19 @@ section GelfandMazur
 /-!
 ### A version of the Gelfand-Mazur Theorem
 
-We show that a complete field with real-valued archimedean absolute value must be
-isomorphic either to `ℝ` or to `ℂ` with a power of its usual absolute value.
+Let `F` be a field that is complete with respect to an archimedean absolute value `v`.
+Then `F` is isomorphic, as a field with absolute value, to either `ℝ` or `ℂ` with
+an absolute value that is equivalent to the standard absolute value.
+
+One can fairly easily conclude from the assumptions that `F` is an `ℝ`-algebra
+and that the restriction of `v` to `ℝ` is equivalent to the standard absolute value.
+There is then an absolute value `v'` on `F` that is equivalent to `v` and restricts
+to the standard absolute value on `ℝ`; in this way, `F` is a normed `ℝ`-algebra.
+So we will use this assumption in the following. The main ingredient is the
+Gelfand-Mazur Theorem in the following version:
+
+If a field `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
+either to `ℝ` or to `ℂ`.
 -/
 
 namespace Real
