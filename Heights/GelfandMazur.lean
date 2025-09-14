@@ -5,16 +5,16 @@ import Mathlib.Analysis.Polynomial.Factorization
 
 We provide a formalization of proofs of the following versions of the *Gelfand-Mazur* *Theorem*.
 
-* `GelfandMazur.Complex.algEquivOfNormMul`: if `F` is a nontrivial normed `ℂ`-algebra
+* `NormedAlgebra.Complex.algEquivOfNormMul`: if `F` is a nontrivial normed `ℂ`-algebra
   with multiplicative norm, then we obtain a `ℂ`-algebra equivalence with `ℂ`.
 
   This differs from `NormedRing.algEquivComplexOfComplete` in the assumptions: there,
   * `F` is assumed to be complete,
   * `F` is assumed to be a (nontrivial) division ring,
   * but the norm is only required to be submultiplicative.
-* `GelfandMazur.Complex.nonempty_algEquiv`: A nontrivial normed `ℂ`-algebra
+* `NormedAlgebra.Complex.nonempty_algEquiv`: A nontrivial normed `ℂ`-algebra
   with multiplicative norm is isomorphic to `ℂ` as a `ℂ`-algebra.
-* `GelfandMazur.Real.nonempty_algEquiv_or`: if a field `F` is a normed `ℝ`-algebra,
+* `NormedAlgebra.Real.nonempty_algEquiv_or`: if a field `F` is a normed `ℝ`-algebra,
   then `F` is isomorphic as an `ℝ`-algebra either to `ℝ` or to `ℂ`.
 
 ### The complex case
@@ -33,7 +33,7 @@ assume to be zero. If `M = 0`, we are done, so assume not. For `n : ℕ`,
 a primitive `n`th root of unity `ζ : ℂ`, and `z : ℂ` with `|z| < M = ‖x‖` we then have that
 `M ≤ ‖x - z•1‖ = ‖x^n - z^n•1‖ / ∏ 0 < k < n, ‖x - (ζ^k*z)•1‖`,
 which is bounded by `(M^n + |z|^n)/M^(n-1) = M*(1 + (|z|/M)^n)`.
-Letting `n` tend to infinity then shows that `‖x - z•1‖ = M` (see `GelfandMazur.aux`).
+Letting `n` tend to infinity then shows that `‖x - z•1‖ = M` (see `NormedAlgebra.aux`).
 This implies that the set of `z` such that `‖x - z•1‖ = M` is closed and open
 (and nonempty), so it is all of `ℂ`, which contradicts `‖x - z•1‖ ≥ |z| - M`
 when `|z|` is sufficiently large.
@@ -55,7 +55,7 @@ We fix `x : F` in the following.
 
 Because the space `ℝ²` of monic polynomials of degree `2` is complete and locally compact
 and `‖aeval x p‖` gets large when `p` has large coefficients (*), there will be some `p₀`
-such that `‖aeval x p₀‖` attains a minimum (see `GelfandMazur.Real.exists_min_norm_φ`).
+such that `‖aeval x p₀‖` attains a minimum (see `NormedAlgebra.Real.exists_min_norm_φ`).
 We assume that this is positive and derive a contradiction. Let `M := ‖aeval x p₀‖ > 0`
 be the minimal value.
 Since every monic polynomial `f : ℝ[X]` of even degree can be written as a product
@@ -72,7 +72,7 @@ The goal is now to show that when `a` and `b` achieve the minimum `M` of `‖x^2
 and `M > 0`, then we can find some neighborhood `U` of `(a,b)` in `ℝ × ℝ`
 such that `‖x^2 - a'•x + b'•1‖ = M` for all `(a',b') ∈ U`
 Then the set `S = {(a',b') | ‖x^2 - a'•x + b'•1‖ = M}` must be all of `ℝ × ℝ` (as it is
-closed, open, and nonempty). (see `GelfandMazur.Real.is_const_norm_sq_sub_add`).
+closed, open, and nonempty). (see `NormedAlgebra.Real.is_const_norm_sq_sub_add`).
 This will lead to a contradiction with the growth of `‖x^2 - a•x‖` as `|a|` gets large.
 
 To get there, the idea is, similarly to the complex case, to use the fact that
@@ -95,7 +95,7 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 
 open Polynomial
 
-namespace GelfandMazur
+namespace NormedAlgebra
 
 /- The key step: show that the norm of a suitable function is constant if the norm takes
 a positive minimum and condition `H` below is satisfied. -/
@@ -373,4 +373,4 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
 
 end Real
 
-end GelfandMazur
+end NormedAlgebra
