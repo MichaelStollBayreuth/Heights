@@ -105,35 +105,17 @@ which is bounded by `(M^n + c^n) / M^(n-1) = M * (1 + (c/M)^n)`, where
 `M ≤ ‖x^2 - a'•x + b'•1‖ ≤ M`, as desired.
 -/
 
-section Complex
-
 /-!
-### The complex case
-
-As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
-
-Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
-Then for `c : ℂ` and `n : ℕ`, we have
-`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) p‖`
-with a monic polynomial `p` of degree `n-1`.
-
-Since every monic polynomial of degree `m` over `ℂ` is a product of `m` monic polynomials
-of degree `1`, it follows that `‖aeval (x-z•1) p‖ ≥ M^(n-1)`. We obtain
-`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n) / M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
-so if `|c| < M`, then as `n → ∞` we see that `‖x - (z+c)•1‖ = M`.
-
-This implies that the function `c ↦ ‖x - c•1‖` is constant, which contradicts that
-`‖x - c•1‖ ≥ |c| - ‖x‖ > M` for `|c| > M + ‖x‖`.
-
-So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the algebra map
-`ℂ → F` is an isomorphism.
+### Auxiliary results used in both cases
 -/
 
 open Polynomial
 
+namespace GelfandMazur
+
 /-- The key step: show that the norm of a suitable function is constant if the norm takes
 a positive minimum and condition `H` below is satisfied. -/
-lemma GelfandMazur.aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
+lemma aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
     [SeminormedAddCommGroup E] {f : X → E} {M : ℝ} {x : X} (hM : 0 < M) (hx : ‖f x‖ = M)
     (h : ∀ y, M ≤ ‖f y‖) (hf : Continuous f)
     (H : ∀ {y} z, ‖f y‖ = M → ∀ n > 0, ‖f z‖ ≤ M * (1 + (‖f z - f y‖ / M) ^ n)) (y : X) :
@@ -158,7 +140,7 @@ lemma GelfandMazur.aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
 
 /-- In a normed algebra `F` over a normed field `𝕜` that is a proper space, the function
 `z : 𝕜 ↦ ‖x - z • 1‖` achieves a global minimum for every `x : F`. -/
-lemma GelfandMazur.exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
+lemma exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
     [ProperSpace 𝕜] [SeminormedRing F] [NormedAlgebra 𝕜 F] [NormOneClass F] (x : F) :
   ∃ z : 𝕜, ∀ z' : 𝕜, ‖x - z • 1‖ ≤ ‖x - z' • 1‖ := by
   have hf : Continuous fun z : 𝕜 ↦ ‖x - z • 1‖ := by fun_prop
@@ -167,7 +149,29 @@ lemma GelfandMazur.exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedFi
   rw [Set.mem_setOf, norm_sub_rev] at hz
   simpa [← two_mul] using (norm_sub_norm_le ..).trans hz
 
-namespace GelfandMazur.Complex
+/-!
+### The complex case
+
+As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
+
+Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
+Then for `c : ℂ` and `n : ℕ`, we have
+`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) p‖`
+with a monic polynomial `p` of degree `n-1`.
+
+Since every monic polynomial of degree `m` over `ℂ` is a product of `m` monic polynomials
+of degree `1`, it follows that `‖aeval (x-z•1) p‖ ≥ M^(n-1)`. We obtain
+`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n) / M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
+so if `|c| < M`, then as `n → ∞` we see that `‖x - (z+c)•1‖ = M`.
+
+This implies that the function `c ↦ ‖x - c•1‖` is constant, which contradicts that
+`‖x - c•1‖ ≥ |c| - ‖x‖ > M` for `|c| > M + ‖x‖`.
+
+So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the algebra map
+`ℂ → F` is an isomorphism.
+-/
+
+namespace Complex
 
 variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
 
@@ -238,23 +242,14 @@ variable (F) in
 with multiplicative norm. -/
 theorem mainThm [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
 
-end GelfandMazur.Complex
-
 end Complex
 
-section Real
 
 /-!
 ### The real case
 -/
 
-open Polynomial
-
-/-!
-### The key step of the proof
--/
-
-namespace GelfandMazur.Real
+namespace Real
 
 variable {F : Type*} [NormedRing F] [NormedAlgebra ℝ F]
 
@@ -397,6 +392,6 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
       exact Submonoid.one_mem (nonZeroDivisors ℝ)
 -/
 
-end GelfandMazur.Real
-
 end Real
+
+end GelfandMazur
