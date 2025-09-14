@@ -345,11 +345,11 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
     exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <| hf.natDegree_eq.trans_ne two_ne_zero
   exact _root_.Real.nonempty_algEquiv_or F
 
--- without going via `IsIntegral`:
+-- without going via `IsIntegral` (missing API for `IsAlgebraic`?):
 /-
   have : Algebra.IsAlgebraic ℝ F := by
     refine ⟨fun x ↦ ?_⟩
-    obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
+    obtain ⟨f, hf, hfx⟩ := exists_isMonicOfDegree_two_and_aeval_eq_zero x
     refine (hfx ▸ isAlgebraic_zero).of_aeval f ?_ ?_
     · exact hf.natDegree_eq.trans_ne two_ne_zero
     · rw [hf.monic.leadingCoeff]
