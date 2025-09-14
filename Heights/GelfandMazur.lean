@@ -135,22 +135,6 @@ lemma exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
 
 /-!
 ### The complex case
-
-Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
-Then for `c : ℂ` and `n : ℕ`, we have
-`‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) p‖`
-with a monic polynomial `p` of degree `n-1`.
-
-Since every monic polynomial of degree `m` over `ℂ` is a product of `m` monic polynomials
-of degree `1`, it follows that `‖aeval (x-z•1) p‖ ≥ M^(n-1)`. We obtain
-`M ≤ ‖x - (z+c)•1‖ ≤ (‖x - z•1‖^n + |c|^n) / M^(n-1) ≤ M*(1 + (|c|/M)^n)`,
-so if `|c| < M`, then as `n → ∞` we see that `‖x - (z+c)•1‖ = M`.
-
-This implies that the function `c ↦ ‖x - c•1‖` is constant, which contradicts that
-`‖x - c•1‖ ≥ |c| - ‖x‖ > M` for `|c| > M + ‖x‖`.
-
-So we conclude that there must be `z : ℂ` such that `x = z•1`; i.e., the algebra map
-`ℂ → F` is an isomorphism.
 -/
 
 namespace Complex
@@ -262,7 +246,7 @@ private lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M)
 /- The key step in the proof: if `a` and `b` are real numbers minimizing `‖x^2 - a•x + b•1‖`,
 and the minimal value is strictly positive, then the function `(s,t) ↦ ‖x^2 - s•x + t•1‖`
 is constant. -/
-private lemma is_const_φ {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖ ≤ ‖φ x w‖) (H : ‖φ x z‖ ≠ 0)
+private lemma is_const_norm_φ {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖ ≤ ‖φ x w‖) (H : ‖φ x z‖ ≠ 0)
     (w : ℝ × ℝ) :
     ‖φ x w‖ = ‖φ x z‖ := by
   set M : ℝ := ‖φ x z‖ with hMdef
@@ -330,7 +314,8 @@ open Algebra in
 /-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
 with real coefficients. -/
-lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
+lemma exists_isMonicOfDegree_two_and_aeval_eq_zero (x : F) :
+    ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ aeval x p = 0 := by
   obtain ⟨z, h⟩ := exists_min_norm_φ x
   suffices φ x z = 0 from ⟨_, isMonicOfDegree_sub_add_two z.1 z.2, by rwa [aeval_eq_φ]⟩
   by_contra! H
@@ -345,7 +330,7 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
       Commute.sub_sq <| algebraMap_eq_smul_one (A := F) r ▸ commute_algebraMap_right r x]
     convert h (2 * r, r ^ 2) using 4 <;> simp [two_mul, add_smul, _root_.smul_pow]
   · nth_rewrite 2 [show ‖x‖ ^ 2 = ‖x ^ 2 - (0 : ℝ) • x + (0 : ℝ) • 1‖ by simp]
-    rw [is_const_φ h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
+    rw [is_const_norm_φ h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
     exact h (0, 0)
 
 /-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`.
@@ -356,7 +341,7 @@ theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
     Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) := by
   have : Algebra.IsAlgebraic ℝ F := by
     refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
-    obtain ⟨f, hf, hfx⟩ := satisfies_quadratic_rel x
+    obtain ⟨f, hf, hfx⟩ := exists_isMonicOfDegree_two_and_aeval_eq_zero x
     exact (hfx ▸ isIntegral_zero).of_aeval_monic hf.monic <| hf.natDegree_eq.trans_ne two_ne_zero
   exact _root_.Real.nonempty_algEquiv_or F
 
