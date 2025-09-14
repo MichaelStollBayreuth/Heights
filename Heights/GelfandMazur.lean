@@ -337,7 +337,7 @@ lemma exists_isMonicOfDegree_two_and_aeval_eq_zero (x : F) :
 
 If a field `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
 either to `ℝ` or to `ℂ`. -/
-theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F]:
+theorem nonempty_algEquiv_or (F : Type*) [NormedField F] [NormedAlgebra ℝ F] :
     Nonempty (F ≃ₐ[ℝ] ℝ) ∨ Nonempty (F ≃ₐ[ℝ] ℂ) := by
   have : Algebra.IsAlgebraic ℝ F := by
     refine ⟨fun x ↦ IsIntegral.isAlgebraic ?_⟩
