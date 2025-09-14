@@ -97,9 +97,9 @@ open Polynomial
 
 namespace GelfandMazur
 
-/-- The key step: show that the norm of a suitable function is constant if the norm takes
+/- The key step: show that the norm of a suitable function is constant if the norm takes
 a positive minimum and condition `H` below is satisfied. -/
-lemma aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
+private lemma aux {X E : Type*} [TopologicalSpace X] [PreconnectedSpace X]
     [SeminormedAddCommGroup E] {f : X → E} {M : ℝ} {x : X} (hM : 0 < M) (hx : ‖f x‖ = M)
     (h : ∀ y, M ≤ ‖f y‖) (hf : Continuous f)
     (H : ∀ {y} z, ‖f y‖ = M → ∀ n > 0, ‖f z‖ ≤ M * (1 + (‖f z - f y‖ / M) ^ n)) (y : X) :
