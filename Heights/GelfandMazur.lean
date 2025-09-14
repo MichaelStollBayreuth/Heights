@@ -333,7 +333,7 @@ lemma exists_isMonicOfDegree_two_and_aeval_eq_zero (x : F) :
     rw [is_const_norm_φ h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
     exact h (0, 0)
 
-/-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`.
+/-- A version of the **Gelfand-Mazur Theorem** over `ℝ`.
 
 If a field `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
 either to `ℝ` or to `ℂ`. -/
