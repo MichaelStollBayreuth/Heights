@@ -136,8 +136,6 @@ lemma exists_min_norm_sub_smul (𝕜 : Type*) {F : Type*} [NormedField 𝕜]
 /-!
 ### The complex case
 
-As a proof of concept, we formalize here the proof for normed `ℂ`-algebras.
-
 Fix `x : F` and assume that `M := ‖x - z•1‖` is minimal and non-zero for `z : ℂ`.
 Then for `c : ℂ` and `n : ℕ`, we have
 `‖x - (z+c)•1‖ = ‖(x - z•1)^n - c^n•1‖/‖aeval (x-z•1) p‖`
@@ -159,8 +157,8 @@ namespace Complex
 
 variable {F : Type*} [NormedRing F] [NormOneClass F] [NormMulClass F] [NormedAlgebra ℂ F]
 
-lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' : ℂ, M ≤ ‖x - z' • 1‖)
-    {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
+private lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M)
+    (h : ∀ z' : ℂ, M ≤ ‖x - z' • 1‖) {p : ℂ[X]} {n : ℕ} (hp : IsMonicOfDegree p n) (c : ℂ) :
     M ^ n ≤ ‖aeval (x - c • 1) p‖ := by
   induction n generalizing p with
   | zero => simp [isMonicOfDegree_zero_iff.mp hp]
@@ -172,7 +170,7 @@ lemma le_aeval_of_isMonicOfDegree (x : F) {M : ℝ} (hM : 0 ≤ M) (h : ∀ z' :
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hr, H', sub_add, ← sub_smul]
     exact mul_le_mul (ih hf₂) (h (c - r)) hM (norm_nonneg _)
 
-lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
+private lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1‖ ≤ ‖x - z' • 1‖)
     (H : ∀ z' : ℂ, ‖x - z' • 1‖ ≠ 0) (c : ℂ) :
     ‖x - c • 1‖ = ‖x - z • 1‖ := by
   set M := ‖x - z • 1‖ with hMdef
@@ -194,9 +192,9 @@ lemma norm_sub_is_constant {x : F} {z : ℂ} (hz : ∀ z' : ℂ, ‖x - z • 1�
   rw [hrel]
   exact (norm_sub_le ..).trans <| by simp [hy, ← sub_smul]
 
-lemma exists_norm_sub_smul_one_eq_zero [Nontrivial F] (x : F) :
+lemma exists_norm_sub_smul_one_eq_zero (x : F) :
     ∃ z : ℂ, ‖x - z • 1‖ = 0 := by
-  obtain ⟨z, hz⟩ := GelfandMazur.exists_min_norm_sub_smul ℂ x
+  obtain ⟨z, hz⟩ := exists_min_norm_sub_smul ℂ x
   set M := ‖x - z • 1‖ with hM
   rcases eq_or_lt_of_le (show 0 ≤ M from norm_nonneg _) with hM₀ | hM₀
   · exact ⟨z, hM₀.symm⟩
@@ -209,11 +207,14 @@ lemma exists_norm_sub_smul_one_eq_zero [Nontrivial F] (x : F) :
   rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at key
   linarith
 
-variable (F) in
-/-- If `F` is a nontrivial normed `ℂ`-algebra with multiplicative norm, then we obtain a
+variable (F) [Nontrivial F]
+
+/-- A version of the **Gelfand-Mazur Theorem**.
+
+If `F` is a nontrivial normed `ℂ`-algebra with multiplicative norm, then we obtain a
 `ℂ`-algebra equivalence with `ℂ`. -/
 noncomputable
-def algEquivOfNormMul [Nontrivial F] : ℂ ≃ₐ[ℂ] F := by
+def algEquivOfNormMul : ℂ ≃ₐ[ℂ] F := by
   let e : ℂ →ₐ[ℂ] F := AlgHom.mk' (algebraMap ℂ F) (algebraMap.coe_smul ℂ ℂ F)
   refine AlgEquiv.ofBijective e ⟨FaithfulSMul.algebraMap_injective ℂ F, fun x ↦ ?_⟩
   obtain ⟨z, hz⟩ := exists_norm_sub_smul_one_eq_zero x
@@ -221,10 +222,9 @@ def algEquivOfNormMul [Nontrivial F] : ℂ ≃ₐ[ℂ] F := by
   rw [AlgHom.coe_mk', Algebra.algebraMap_eq_smul_one, eq_comm, ← sub_eq_zero]
   exact norm_eq_zero.mp hz
 
-variable (F) in
 /-- A version of the **Gelfand-Mazur Theorem** for nontrivial normed `ℂ`-algebras `F`
 with multiplicative norm. -/
-theorem nonempty_algEquiv [Nontrivial F] : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
+theorem nonempty_algEquiv : Nonempty (ℂ ≃ₐ[ℂ] F) := ⟨algEquivOfNormMul F⟩
 
 end Complex
 
