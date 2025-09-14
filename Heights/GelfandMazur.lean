@@ -237,17 +237,18 @@ namespace Real
 
 variable {F : Type*} [NormedRing F] [NormedAlgebra ℝ F]
 
-abbrev φ (x : F) (u : ℝ × ℝ) : F := x ^ 2 - u.1 • x + u.2 • 1
+/- An abbreviation introduced for conciseness below. -/
+private abbrev φ (x : F) (u : ℝ × ℝ) : F := x ^ 2 - u.1 • x + u.2 • 1
 
-lemma continuous_φ (x : F) : Continuous (φ x) := by fun_prop
+private lemma continuous_φ (x : F) : Continuous (φ x) := by fun_prop
 
-lemma aeval_eq_φ (x : F) (u : ℝ × ℝ) : aeval x (X ^ 2 - C u.1 * X + C u.2) = φ x u := by
+private lemma aeval_eq_φ (x : F) (u : ℝ × ℝ) : aeval x (X ^ 2 - C u.1 * X + C u.2) = φ x u := by
   simp [Algebra.algebraMap_eq_smul_one]
 
 variable [NormOneClass F] [NormMulClass F]
 
-lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M) (h : ∀ z : ℝ × ℝ, M ≤ ‖φ x z‖)
-    {p : ℝ[X]} {n : ℕ} (hp : IsMonicOfDegree p (2 * n)) :
+private lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M)
+    (h : ∀ z : ℝ × ℝ, M ≤ ‖φ x z‖) {p : ℝ[X]} {n : ℕ} (hp : IsMonicOfDegree p (2 * n)) :
     M ^ n ≤ ‖aeval x p‖ := by
   induction n generalizing p with
   | zero => simp_all
@@ -258,10 +259,10 @@ lemma le_aeval_of_isMonicOfDegree {x : F} {M : ℝ} (hM : 0 ≤ M) (h : ∀ z : 
     rw [H, aeval_mul, norm_mul, mul_comm, pow_succ, hab, aeval_eq_φ x (a, b)]
     exact mul_le_mul (ih hf₂) (h (a, b)) hM (norm_nonneg _)
 
-/-- The key step in the proof: if `a` and `b` are real numbers minimizing `‖x^2 - a•x + b•1‖`,
+/- The key step in the proof: if `a` and `b` are real numbers minimizing `‖x^2 - a•x + b•1‖`,
 and the minimal value is strictly positive, then the function `(s,t) ↦ ‖x^2 - s•x + t•1‖`
 is constant. -/
-lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖ ≤ ‖φ x w‖) (H : ‖φ x z‖ ≠ 0)
+private lemma is_const_φ {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖ ≤ ‖φ x w‖) (H : ‖φ x z‖ ≠ 0)
     (w : ℝ × ℝ) :
     ‖φ x w‖ = ‖φ x z‖ := by
   set M : ℝ := ‖φ x z‖ with hMdef
@@ -286,11 +287,9 @@ lemma is_const_norm_sq_sub_add {x : F} {z : ℝ × ℝ} (h : ∀ w, ‖φ x z‖
   rw [hrel, norm_sub_rev (φ ..)]
   exact (norm_sub_le ..).trans <| by simp [q, aeval_eq_φ, hw]
 
-/-!
-### Existence of a minimizing monic polynomial of degree 2
--/
+/- Existence of a minimizing monic polynomial of degree 2 -/
 
-lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x - r • 1‖) {a b : ℝ}
+private lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x - r • 1‖) {a b : ℝ}
     (h : ‖x ^ 2 - a • x + b • 1‖ ≤ ‖x‖ ^ 2) :
     |a| ≤ 2 * ‖x‖ ^ 2 / c := by
   rcases eq_or_ne a 0 with rfl | ha
@@ -305,8 +304,8 @@ lemma a_bound {x : F} {c : ℝ} (hc₀ : 0 < c) (hbd : ∀ r : ℝ, c ≤ ‖x -
       simpa only [← norm_pow, sub_add, norm_sub_rev (x ^ 2)] using norm_le_norm_add_norm_sub' ..
   _ ≤ _ := by rw [two_mul]; exact add_le_add_left h _
 
-lemma exists_min_norm_φ (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z‖ ≤ ‖φ x w‖ := by
-  obtain ⟨u, hu⟩ := GelfandMazur.exists_min_norm_sub_smul ℝ x
+private lemma exists_min_norm_φ (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ x z‖ ≤ ‖φ x w‖ := by
+  obtain ⟨u, hu⟩ := exists_min_norm_sub_smul ℝ x
   rcases eq_or_lt_of_le (norm_nonneg (x - u • 1)) with hc₀ | hc₀
   · rw [eq_comm, norm_eq_zero, sub_eq_zero] at hc₀
     exact ⟨(u, 0), fun z' ↦ by simp [φ, hc₀, sq]⟩
@@ -327,10 +326,6 @@ lemma exists_min_norm_φ (x : F) : ∃ z : ℝ × ℝ, ∀ w : ℝ × ℝ, ‖φ
   _ ≤ ‖x ^ 2 - a • x + b • 1‖ := by rw [sub_add_comm]; exact norm_sub_le_norm_add ..
   _ ≤ ‖x‖ ^ 2 := hab
 
-/-!
-### The main result
--/
-
 open Algebra in
 /-- If `F` is a normed `ℝ`-algebra with a multiplicative norm (and such that `‖1‖ = 1`),
 e.g., a normed division ring, then every `x : F` is the root of a monic quadratic polynomial
@@ -350,10 +345,10 @@ lemma satisfies_quadratic_rel (x : F) : ∃ p : ℝ[X], IsMonicOfDegree p 2 ∧ 
       Commute.sub_sq <| algebraMap_eq_smul_one (A := F) r ▸ commute_algebraMap_right r x]
     convert h (2 * r, r ^ 2) using 4 <;> simp [two_mul, add_smul, _root_.smul_pow]
   · nth_rewrite 2 [show ‖x‖ ^ 2 = ‖x ^ 2 - (0 : ℝ) • x + (0 : ℝ) • 1‖ by simp]
-    rw [is_const_norm_sq_sub_add h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
+    rw [is_const_φ h (norm_ne_zero_iff.mpr H) (2 * (‖x‖ ^ 2 / √M + 1), 0)]
     exact h (0, 0)
 
-/-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`:
+/-- A variant of the **Gelfand-Mazur Theorem** over `ℝ`.
 
 If a field `F` is a normed `ℝ`-algebra, then `F` is isomorphic as an `ℝ`-algebra
 either to `ℝ` or to `ℂ`. -/
