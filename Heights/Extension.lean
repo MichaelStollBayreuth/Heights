@@ -589,7 +589,7 @@ theorem GelfandMazur_restrict_eq (hv : v.restrict ℝ = .abs) :
       ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) =
         NormedField.toAbsoluteValue ℂ := by
   let inst := normedAlgebraOfAbsoluteValue hv
-  rcases GelfandMazur.Real.nonempty_algEquiv_or (WithAbs v) with hℝ | hℂ
+  rcases NormedAlgebra.Real.nonempty_algEquiv_or (WithAbs v) with hℝ | hℂ
   · left
     let e := Classical.choice hℝ
     refine ⟨e.symm, ?_⟩
