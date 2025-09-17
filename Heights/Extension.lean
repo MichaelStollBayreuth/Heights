@@ -140,17 +140,14 @@ lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.coma
 
 lemma isEquiv_comap {v v' : AbsoluteValue R ℝ} (f : F →+* R) (h : v ≈ v') :
     v.comap f ≈ v'.comap f := by
-  obtain ⟨c, hc₀, hc⟩ := h
-  refine ⟨c, hc₀, ?_⟩
-  ext1 x
-  simp [comap, comp, congrFun hc (f x)]
+  simpa [comap, comp, isEquiv_def', IsEquiv] using fun x y ↦ h (f x) (f y)
 
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_isEquiv_of_comap_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂) (f : F →+* R)
-    (h₂ : v₁.comap f = v₂.comap f) (h₃ : (v₁.comap f).IsNontrivial) :
+lemma eq_of_isEquiv_of_comap_eq {R : Type*} [Field R] {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
+    (f : F →+* R) (h₂ : v₁.comap f = v₂.comap f) (h₃ : (v₁.comap f).IsNontrivial) :
     v₁ = v₂ := by
-  obtain ⟨c, hc₀, hc₁⟩ := h₁
+  obtain ⟨c, hc₀, hc₁⟩ := isEquiv_iff_exists_rpow_eq.mp h₁
   obtain ⟨x, hx⟩ := h₃.exists_abv_gt_one
   suffices c = 1 by simpa [this] using hc₁
   have H : v₁ (f x) = v₂ (f x) := by
@@ -245,8 +242,8 @@ lemma isNontrivial_of_restrict (v : AbsoluteValue R S) (h : (v.restrict F).IsNon
 
 /-- Two equivalent extensions from `F` to `R` of the same nontrivial absolute value
 must be equal. -/
-lemma eq_of_isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue R ℝ} (h₁ : v₁ ≈ v₂)
-    (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
+lemma eq_of_isEquiv_of_restrict_eq {R : Type*} [Field R] [Algebra F R] {v₁ v₂ : AbsoluteValue R ℝ}
+    (h₁ : v₁ ≈ v₂) (h₂ : v₁.restrict F = v₂.restrict F) (h₃ : (v₁.restrict F).IsNontrivial) :
     v₁ = v₂ :=
   eq_of_isEquiv_of_comap_eq h₁ (algebraMap F R) h₂ h₃
 

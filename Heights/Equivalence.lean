@@ -24,28 +24,28 @@ section isEquiv
 
 namespace AbsoluteValue
 
-variable {R : Type*} [Semiring R]
+variable {R : Type*} [Field R]
 
 /-- The exponent `c` in the definition of equivalence of absolute values. -/
 noncomputable
 def IsEquiv.exponent {v v' : AbsoluteValue R ℝ} (h : v ≈ v') : ℝ :=
-  Classical.choose h
+  Classical.choose <| isEquiv_iff_exists_rpow_eq.mp h
 
 lemma IsEquiv.exponent_pos {v v' : AbsoluteValue R ℝ} (h : v ≈ v') : 0 < exponent h :=
-  (Classical.choose_spec h).1
+  (Classical.choose_spec <| isEquiv_iff_exists_rpow_eq.mp h).1
 
 lemma IsEquiv.exponent_def {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (x : R) :
     v x ^ exponent h = v' x :=
-  congrFun (Classical.choose_spec h).2 x
+  congrFun (Classical.choose_spec <| isEquiv_iff_exists_rpow_eq.mp h).2 x
 
-lemma IsEquiv.isNontrivial {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (h' : v.IsNontrivial) :
+/- lemma IsEquiv.isNontrivial {v v' : AbsoluteValue R ℝ} (h : v ≈ v') (h' : v.IsNontrivial) :
     v'.IsNontrivial := by
   obtain ⟨x, hx₀, hx₁⟩ := h'
   refine ⟨x, hx₀, ?_⟩
   rw [← exponent_def h]
   contrapose! hx₁
   apply_fun (· ^ (exponent h)⁻¹) at hx₁
-  rwa [Real.one_rpow, Real.rpow_rpow_inv (AbsoluteValue.nonneg ..) h.exponent_pos.ne'] at hx₁
+  rwa [Real.one_rpow, Real.rpow_rpow_inv (AbsoluteValue.nonneg ..) h.exponent_pos.ne'] at hx₁ -/
 
 lemma rpow_add_le (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) (x y : R) :
     v (x + y) ^ e ≤ v x ^ e + v y ^ e := by
@@ -85,12 +85,12 @@ def rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v)
 
 lemma isEquiv_rpow (v : AbsoluteValue R ℝ) {e : ℝ} (h₀ : 0 < e) (h₁ : e ≤ 1) :
     v.rpow h₀ h₁ ≈ v :=
-  Setoid.symm ⟨e, h₀, rfl⟩
+  Setoid.symm <| isEquiv_iff_exists_rpow_eq.mpr ⟨e, h₀, rfl⟩
 
 lemma isEquiv_rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {e : ℝ}
     (he : 0 < e) :
     v.rpow_of_isNonarchimedean hv he ≈ v :=
-  Setoid.symm <| ⟨e, he, rfl⟩
+  Setoid.symm <| isEquiv_iff_exists_rpow_eq.mpr ⟨e, he, rfl⟩
 
 lemma isNonarchimedean_rpow_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v)
     {e : ℝ} (he : 0 < e) :
@@ -107,7 +107,7 @@ namespace Rat.AbsoluteValue
 then `v = |·| ^ e` for some `0 < e ≤ 1`. -/
 lemma eq_rpow_of_isEquiv_real {v : AbsoluteValue ℚ ℝ} (hv : v ≈ real) :
     ∃ (e : ℝ) (h₀ : 0 < e) (h₁ : e ≤ 1), v = real.rpow h₀ h₁ := by
-  obtain ⟨e, he₀, he⟩ := Setoid.symm hv
+  obtain ⟨e, he₀, he⟩ := AbsoluteValue.isEquiv_iff_exists_rpow_eq.mp <| Setoid.symm hv
   refine ⟨e, he₀, ?_, by ext1; simp [← congrFun he, AbsoluteValue.rpow]⟩
   have h₂ := congrFun he 2
   simp only [real_eq_abs, Nat.abs_ofNat, cast_ofNat] at h₂
@@ -201,11 +201,12 @@ end withAbs
 
 section equiv_trivial
 
-variable {R : Type*} [Ring R]
+variable {R : Type*} [Field R]
 
 lemma isEquiv_iff_eq_of_not_isNontrivial {v₁ v₂ : AbsoluteValue R ℝ} (h : ¬ v₁.IsNontrivial) :
     v₁ ≈ v₂ ↔ v₁ = v₂ := by
-  refine ⟨fun ⟨c, hc₀, hc₁⟩ ↦ ?_, fun H ↦ H ▸ isEquiv_refl v₂⟩
+  refine ⟨fun H ↦ ?_, fun H ↦ H ▸ IsEquiv.refl v₂⟩
+  obtain ⟨c, hc₀, hc₁⟩ := isEquiv_iff_exists_rpow_eq.mp H
   ext1 x
   rcases eq_or_ne x 0 with rfl | hx
   · simp
@@ -229,7 +230,7 @@ open WithAbs
 
 lemma continuous_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     Continuous (WithAbs.equiv₂ v₁ v₂) := by
-  obtain ⟨c, hc₀, hc₁⟩ := h
+  obtain ⟨c, hc₀, hc₁⟩ := isEquiv_iff_exists_rpow_eq.mp h
   rw [Metric.continuous_iff]
   simp only [dist_eq_norm_sub, norm_eq_abv, equiv₂]
   intro x ε hε₀
@@ -324,7 +325,7 @@ lemma isEquiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v�
       rw [← map_zpow₀, ← one_lt_div (v₂.pos (by exact zpow_ne_zero m hc₀)), ← map_div₀] at hm₂
       exact (h _).mp hm₁ |>.trans hm₂ |>.false
     simp only [not_lt] at key
-    refine ⟨e, he₀, funext fun x ↦ ?_⟩
+    refine isEquiv_iff_exists_rpow_eq.mpr ⟨e, he₀, funext fun x ↦ ?_⟩
     rcases eq_or_ne x 0 with rfl | hx₀
     · simpa only [AbsoluteValue.map_zero, le_refl] using zero_rpow he₀.ne'
     · refine le_antisymm ?_ (key x)

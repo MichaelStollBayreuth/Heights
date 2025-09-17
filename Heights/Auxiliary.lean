@@ -508,19 +508,20 @@ variable {R : Type*} [Semiring R] {S : Type*} [Semiring S] [PartialOrder S] [IsO
 
 section nonarchimedean
 
-variable {R : Type*} [Ring R] {v : AbsoluteValue R ℝ}
+variable {R : Type*} [Field R] {v : AbsoluteValue R ℝ}
 
 /-- A version of `AbsoluteValue.isEquiv_def` that uses `AbsoluteValue.IsEquiv`. -/
 lemma isEquiv_def' {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ v.IsEquiv v' := Iff.rfl
 
-lemma isEquiv_def {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ ∃ c : ℝ, c > 0 ∧ (v · ^ c) = v' := Iff.rfl
+lemma isEquiv_def {v' : AbsoluteValue R ℝ} : v ≈ v' ↔ ∃ c : ℝ, c > 0 ∧ (v · ^ c) = v' :=
+  isEquiv_iff_exists_rpow_eq ..
 
 lemma isNonarchimedean_of_isEquiv {v' : AbsoluteValue R ℝ} (h₁ : v ≈ v')
     (h₂ : IsNonarchimedean v) :
     IsNonarchimedean v' := by
   intro x y
   specialize h₂ x y
-  obtain ⟨c, hc₀, hc⟩ := h₁
+  obtain ⟨c, hc₀, hc⟩ := isEquiv_iff_exists_rpow_eq.mp h₁
   simp_rw [← hc, Real.max_map_rpow (v.nonneg x) (v.nonneg y) hc₀.le]
   exact Real.rpow_le_rpow (v.nonneg _) h₂ hc₀.le
 
