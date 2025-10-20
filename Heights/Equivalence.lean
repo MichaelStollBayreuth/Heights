@@ -229,10 +229,10 @@ variable {F : Type*} [Field F]
 open WithAbs
 
 lemma continuous_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    Continuous (WithAbs.equiv₂ v₁ v₂) := by
+    Continuous (equivWithAbs v₁ v₂) := by
   obtain ⟨c, hc₀, hc₁⟩ := isEquiv_iff_exists_rpow_eq.mp h
   rw [Metric.continuous_iff]
-  simp only [dist_eq_norm_sub, norm_eq_abv, equiv₂]
+  simp only [dist_eq_norm_sub, norm_eq_abv, equivWithAbs]
   intro x ε hε₀
   conv =>
     enter [1, δ, 2, y, 2, 1]
@@ -261,7 +261,7 @@ def homeomorph_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) 
   continuous_invFun := continuous_equiv₂ (Setoid.symm h)
 
 lemma homeomorph_of_isEquiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    ⇑(homeomorph_of_isEquiv h) = ⇑(equiv₂ v₁ v₂) :=
+    ⇑(homeomorph_of_isEquiv h) = ⇑(equivWithAbs v₁ v₂) :=
   rfl
 
 open Filter Topology in
@@ -269,30 +269,30 @@ open Filter Topology in
 absolute value less than one with respect to the first absolute value, then also with respect
 to the second absolute value. -/
 lemma abv_lt_one_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
-    (h : IsHomeomorph (WithAbs.equiv₂ v₁ v₂)) {x : F} (hx : v₁ x < 1) :
+    (h : IsHomeomorph (equivWithAbs v₁ v₂)) {x : F} (hx : v₁ x < 1) :
     v₂ x < 1 := by
   let x₁ : WithAbs v₁ := (WithAbs.equiv v₁).symm x
   let x₂ : WithAbs v₂ := (WithAbs.equiv v₂).symm x
   have hx₁ : Tendsto (fun n : ℕ ↦ x₁ ^ n) atTop (𝓝 0) :=
     (tendsto_nhds_zero_iff_abv_lt_one v₁ x).mpr hx
   have hx₂ : Tendsto (fun n : ℕ ↦ x₂ ^ n) atTop (𝓝 0) := by
-    have (n : ℕ) : x₂ ^ n = (WithAbs.equiv₂ v₁ v₂) (x₁ ^ n) := rfl
+    have (n : ℕ) : x₂ ^ n = (equivWithAbs v₁ v₂) (x₁ ^ n) := rfl
     simp_rw [this]
-    refine Tendsto.comp (g := (WithAbs.equiv₂ v₁ v₂)) ?_ hx₁
+    refine Tendsto.comp (g := (equivWithAbs v₁ v₂)) ?_ hx₁
     exact Continuous.tendsto h.continuous 0
   exact (tendsto_nhds_zero_iff_abv_lt_one v₂ x).mp hx₂
 
 /--If two absolute values on a field `F` induce the same topology, then the sets of elements
 of absolute value less than one agree for both absolute values. -/
 lemma abv_lt_one_iff_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
-    (h : IsHomeomorph (WithAbs.equiv₂ v₁ v₂)) (x : F) :
+    (h : IsHomeomorph (equivWithAbs v₁ v₂)) (x : F) :
     v₁ x < 1 ↔ v₂ x < 1 := by
   refine ⟨abv_lt_one_of_isHomeomorph h, abv_lt_one_of_isHomeomorph ?_⟩
   obtain ⟨φ, hφ⟩ := isHomeomorph_iff_exists_homeomorph.mp h
   refine isHomeomorph_iff_exists_homeomorph.mpr ⟨φ.symm, ?_⟩
-  apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (WithAbs.equiv₂ v₂ v₁)) at hφ
+  apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (equivWithAbs v₂ v₁)) at hφ
   simp only [Homeomorph.symm_comp_self, CompTriple.comp_eq] at hφ
-  rw [hφ, Function.comp_assoc, ← WithAbs.equiv₂_symm_eq, ← RingEquiv.coe_trans,
+  rw [hφ, Function.comp_assoc, ← WithAbs.equivWithAbs_symm, ← RingEquiv.coe_trans,
     RingEquiv.self_trans_symm]
   simp
 
@@ -341,20 +341,20 @@ lemma isEquiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v�
     rw [of_not_not <| (isNontrivial_iff_ne_trivial v₁).not.mp H₁,
       of_not_not <| (isNontrivial_iff_ne_trivial v₂).not.mp H₂]
 
-open Filter Topology in
+/- open Filter Topology in
 /-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
 -- (This is Theorem 1.1 in the reference.)
 lemma isEquiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
-    v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equiv₂ v₁ v₂) := by
+    v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equivWithAbs v₁ v₂) := by
   refine ⟨fun H ↦ ?_, fun H ↦ isEquiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
-  exact isHomeomorph_iff_exists_homeomorph.mpr ⟨homeomorph_of_isEquiv H, rfl⟩
+  exact isHomeomorph_iff_exists_homeomorph.mpr ⟨homeomorph_of_isEquiv H, rfl⟩ -/
 
 /-- The induced ring homomorphism between two completions with respect to equivalent
 absolute values. -/
 noncomputable
 def ringHom_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion →+* v₂.Completion :=
-  UniformSpace.Completion.mapRingHom (WithAbs.equiv₂ v₁ v₂) <|
+  UniformSpace.Completion.mapRingHom (equivWithAbs v₁ v₂) <|
     ((isEquiv_iff_isHomeomorph v₁ v₂).mp h).continuous
 
 /-- The induced ring isomorphism between two completions with respect to equivalent
@@ -362,10 +362,10 @@ absolute values. -/
 noncomputable
 def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion ≃+* v₂.Completion := by
-  refine UniformSpace.Completion.mapRingEquiv (WithAbs.equiv₂ v₁ v₂) ?_ ?_
+  refine UniformSpace.Completion.mapRingEquiv (equivWithAbs v₁ v₂) ?_ ?_
   · rw [← homeomorph_of_isEquiv_toFun_eq h]
     exact Homeomorph.continuous (homeomorph_of_isEquiv h)
-  · rw [WithAbs.equiv₂_symm_eq, ← homeomorph_of_isEquiv_toFun_eq (Setoid.symm h)]
+  · rw [WithAbs.equivWithAbs_symm, ← homeomorph_of_isEquiv_toFun_eq (Setoid.symm h)]
     exact Homeomorph.continuous (homeomorph_of_isEquiv (Setoid.symm h))
 
 lemma ringEquiv_completion_coe_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
@@ -373,11 +373,12 @@ lemma ringEquiv_completion_coe_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ �
   rfl
 
 lemma ringEquiv_completion_coeFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    ⇑(ringEquiv_completion_of_isEquiv h) = ringHom_completion_of_isEquiv h :=
+    (ringEquiv_completion_of_isEquiv h).toRingHom = ringHom_completion_of_isEquiv h :=
   rfl
 
 lemma ringEquiv_completion_symm_coeFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    ⇑(ringEquiv_completion_of_isEquiv h).symm = ringHom_completion_of_isEquiv (Setoid.symm h) :=
+    (ringEquiv_completion_of_isEquiv h).symm.toRingHom =
+      ringHom_completion_of_isEquiv (Setoid.symm h) :=
   rfl
 
 open UniformSpace.Completion in
@@ -387,27 +388,31 @@ lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v
     IsHomeomorph (ringEquiv_completion_of_isEquiv h) := by
   refine isHomeomorph_iff_exists_inverse.mpr
     ⟨?_, (ringEquiv_completion_of_isEquiv h).symm, ?_, ?_, ?_⟩
-  · rw [ringEquiv_completion_coeFun_eq, ringHom_completion_of_isEquiv]
+  · rw [show ⇑(ringEquiv_completion_of_isEquiv h) = ⇑(ringEquiv_completion_of_isEquiv h).toRingHom
+         from rfl]
+    rw [congrArg DFunLike.coe (ringEquiv_completion_coeFun_eq ..), ringHom_completion_of_isEquiv]
     exact continuous_mapRingHom (continuous_equiv₂ h)
   · simp [Function.LeftInverse]
   · simp [Function.RightInverse, Function.LeftInverse]
-  · rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
+  · rw [show ⇑(ringEquiv_completion_of_isEquiv h).symm =
+          ⇑(ringEquiv_completion_of_isEquiv h).symm.toRingHom from rfl]
+    rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
     exact continuous_mapRingHom (continuous_equiv₂ (Setoid.symm h))
 
 lemma uniformContinuous_equiv₂_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    UniformContinuous (equiv₂ v₁ v₂) :=
+    UniformContinuous (equivWithAbs v₁ v₂) :=
   uniformContinuous_of_continuousAt_zero _ (continuous_equiv₂ h).continuousAt
 
 /-- If `v₁` and `v₂` are equivalent absolute values on `F`, then `WithAbs.equiv₂ v₁ v₂`
 is an equivalence of uniformities. This gives the `UniformEquiv`. -/
 def uniformEquivOfIsEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ᵤ WithAbs v₂ :=
-  UniformEquiv.mk (equiv₂ v₁ v₂) (uniformContinuous_equiv₂_of_isEquiv h)
+  UniformEquiv.mk (equivWithAbs v₁ v₂) (uniformContinuous_equiv₂_of_isEquiv h)
     (uniformContinuous_equiv₂_of_isEquiv <| Setoid.symm h)
 
 /-- The underlying equivalence of `uniformEquivOfIsEquiv h` is `WithAbs.equiv₂ _ _`. -/
 lemma uniformEquiv_eq_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    (uniformEquivOfIsEquiv h).toEquiv = (equiv₂ v₁ v₂).toEquiv :=
+    (uniformEquivOfIsEquiv h).toEquiv = (equivWithAbs v₁ v₂).toEquiv :=
   rfl
 
 /-- If `v₁` and `v₂` are equivalent absolute values on `F` and `F` is complete

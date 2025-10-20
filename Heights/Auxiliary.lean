@@ -260,17 +260,19 @@ section Mathlib.Analysis.Normed.Ring.WithAbs
 
 namespace WithAbs
 
-/-- The identity map of `R` as a ring isomorphism between normed ring structures on `R` induced
+/- /-- The identity map of `R` as a ring isomorphism between normed ring structures on `R` induced
 by two absolute values- -/
-abbrev equiv₂ {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
-  (equiv v₁).trans (equiv v₂).symm
+abbrev equivWithAbs {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) : WithAbs v₁ ≃+* WithAbs v₂ :=
+  (equiv v₁).trans (equiv v₂).symm -/
 
-@[simp]
-lemma equiv₂_symm_eq {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) :
-    (equiv₂ v₁ v₂).symm = equiv₂ v₂ v₁ := by
+/- @[simp]
+lemma equivWithAbs_symm {R : Type*} [Semiring R] (v₁ v₂ : AbsoluteValue R ℝ) :
+    (equivWithAbs v₁ v₂).symm = equivWithAbs v₂ v₁ := by
+  exact?
   ext1
-  simp
+  simp -/
 
+-- TODO: defeq abuse? check if necessary!
 @[simp]
 lemma apply_equiv {R α : Type*} [Semiring R] (f : R → α) (v : AbsoluteValue R ℝ) (x : R) :
     f (equiv v x) = f x := rfl
@@ -283,6 +285,7 @@ lemma abv_algebraMap {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F R]
 
 /-- The identity map of `R` as an algebra isomorphism between normed ring structures on `R` induced
 by two absolute values- -/
+-- TODO: rename to `algEquivWithAbs`
 abbrev algEquiv₂ {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F R]
     (v₁ v₂ : AbsoluteValue R ℝ) :
     WithAbs v₁ ≃ₐ[F] WithAbs v₂ :=
@@ -295,6 +298,7 @@ lemma algEquiv₂_symm_eq {F R : Type*} [CommSemiring F] [Semiring R] [Algebra F
   ext1
   simp
 
+-- TODO: defeq abuse? check if necessary!
 @[simp]
 lemma apply_algEquiv {F R α : Type*} [CommRing F] [Semiring R] [Algebra F R] (f : R → α)
     (v : AbsoluteValue R ℝ) (x : R) :
@@ -305,15 +309,15 @@ section equal
 variable {R : Type*} [Ring R] {v v' : AbsoluteValue R ℝ} (h : v = v')
 
 include h in
-lemma uniformContinuous_equiv₂_of_eq : UniformContinuous (equiv₂ v v') := by
+lemma uniformContinuous_equivWithAbs_of_eq : UniformContinuous (equivWithAbs v v') := by
   apply Isometry.uniformContinuous
   refine AddMonoidHomClass.isometry_of_norm _ fun x ↦ ?_
-  rw [h]
+  rw [h, equivWithAbs]
   simp
 
 include h in
-lemma continuous_equiv₂_of_eq : Continuous (equiv₂ v v') :=
-  (uniformContinuous_equiv₂_of_eq h).continuous
+lemma continuous_equivWithAbs_of_eq : Continuous (equivWithAbs v v') :=
+  (uniformContinuous_equivWithAbs_of_eq h).continuous
 
 end equal
 
@@ -460,26 +464,27 @@ def ringHom_of_eq : v.Completion →+* v'.Completion :=
   extensionEmbedding_of_comp <| WithAbs.norm_equiv_eq h
 
 lemma coeFun_ringHom_of_eq :
-    ⇑(ringHom_of_eq h) = UniformSpace.Completion.map ⇑(equiv₂ v v') := rfl
+    ⇑(ringHom_of_eq h) = UniformSpace.Completion.map ⇑(equivWithAbs v v') := rfl
 
 open UniformSpace.Completion in
 lemma ringHom_of_eq_comp_symm :
     (ringHom_of_eq h).comp (ringHom_of_eq h.symm) = RingHom.id _ := by
   apply RingHom.coe_inj
   rw [RingHom.coe_comp, coeFun_ringHom_of_eq, coeFun_ringHom_of_eq, RingHom.coe_id,
-    map_comp (uniformContinuous_equiv₂_of_eq h) (uniformContinuous_equiv₂_of_eq h.symm),
-    RingEquiv.trans_symm_comp_trans_symm]
+    map_comp (uniformContinuous_equivWithAbs_of_eq h)
+      (uniformContinuous_equivWithAbs_of_eq h.symm),
+    equivWithAbs, equivWithAbs, RingEquiv.trans_symm_comp_trans_symm]
   simp
 
 noncomputable
 def ringEquiv_of_eq : v.Completion ≃+* v'.Completion :=
-  UniformSpace.Completion.mapRingEquiv (equiv₂ v v')
-    (continuous_equiv₂_of_eq h) (continuous_equiv₂_of_eq h.symm)
+  UniformSpace.Completion.mapRingEquiv (equivWithAbs v v')
+    (continuous_equivWithAbs_of_eq h) (continuous_equivWithAbs_of_eq h.symm)
   -- RingEquiv.ofRingHom (ringHom_of_eq h) (ringHom_of_eq h.symm)
   --   (ringHom_of_eq_comp_symm h) (ringHom_of_eq_comp_symm h.symm)
 
 lemma coeFun_ringEquiv_of_eq :
-    ⇑(ringEquiv_of_eq h) = UniformSpace.Completion.map ⇑(equiv₂ v v') := rfl
+    ⇑(ringEquiv_of_eq h) = UniformSpace.Completion.map ⇑(equivWithAbs v v') := rfl
 
 lemma ringEquiv_of_eq_apply_ringEquiv_of_eq_apply (x : v'.Completion) :
     ringEquiv_of_eq h (ringEquiv_of_eq h.symm x) = x :=
@@ -492,7 +497,7 @@ lemma isometry_ringEquiv_of_eq : Isometry <| ringEquiv_of_eq h := by
   rw [← funext_iff]
   refine UniformSpace.Completion.ext (UniformSpace.Completion.continuous_map).norm
     continuous_id'.norm fun x ↦ ?_
-  rw [h] -- take the cheap way out
+  rw [h, equivWithAbs] -- take the cheap way out
   simp
 
 noncomputable
@@ -862,7 +867,7 @@ lemma abv_natCast_strictMono_of_not_isNonarchimedean {R : Type*} [Field R] {v : 
     obtain ⟨n, hn⟩ := hv
     exact ⟨n, H n ▸ hn⟩
   have := Setoid.symm <| Rat.AbsoluteValue.real_of_archimedean hvℚ
-  rw [isEquiv_def] at this
+  rw [isEquiv_def', isEquiv_iff_exists_rpow_eq] at this
   obtain ⟨c, hc₀, hc⟩ := this
   have H' : ⇑v ∘ NatCast.natCast = ⇑vℚ ∘ NatCast.natCast := by
     ext1

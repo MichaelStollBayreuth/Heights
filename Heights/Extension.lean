@@ -28,7 +28,7 @@ lemma Finset.sum_range_two_mul (n : ℕ) {M : Type*} [AddCommMonoid M] (f : ℕ 
       (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
       simp only [mem_filter, mem_range] at hk ⊢
     · omega
-    · simp only [Nat.ofNat_pos, mul_lt_mul_left, even_two, Even.mul_right, and_true] at hk ⊢
+    · simp only [Nat.ofNat_pos, mul_lt_mul_iff_right₀, even_two, Even.mul_right, and_true] at hk ⊢
       omega
     · exact Nat.two_mul_div_two_of_even hk.2
     · omega
@@ -385,12 +385,12 @@ variable {v} in
 private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.IsNontrivial)
     (h₁ : v₁.restrict F = v) (h₂ : v₂.restrict F = v) :
     v₁ ≈ v₂ := by
-  rw [isEquiv_iff_isHomeomorph]
+  rw [isEquiv_def', isEquiv_iff_isHomeomorph]
   let e : WithAbs v₁ ≃ₗ[WithAbs v] WithAbs v₂ := {
-    toFun := WithAbs.equiv₂ v₁ v₂
+    toFun := WithAbs.equivWithAbs v₁ v₂
     map_add' x y := rfl
     map_smul' c x := rfl
-    invFun := WithAbs.equiv₂ v₂ v₁
+    invFun := WithAbs.equivWithAbs v₂ v₁
     left_inv x := rfl
     right_inv x := rfl
   }
@@ -522,7 +522,7 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
   -- is equivalent to the standard absolute value.
   have H₂ : (Completion.absoluteValue v₀).comap e₄ ≈ .abs := by
     refine (isEquiv_iff_isHomeomorph _ .abs).mpr ?_
-    simp only [equiv₂, coe_trans]
+    simp only [equivWithAbs, coe_trans]
     refine isHomeomorph_equiv_realAbs.ringEquiv_symm.comp ?_
     convert He₄.ringEquiv_symm.comp <|isHomeomorph_equiv_comap e₄
     rw [coe_trans, ← Function.comp_assoc, ← coe_trans, self_trans_symm, coe_refl,
