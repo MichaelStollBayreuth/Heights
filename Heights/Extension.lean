@@ -576,12 +576,17 @@ lemma algebraEquiv_eq_algebraMap (e : ℝ ≃ₐ[ℝ] F) : e = algebraMap ℝ F 
   apply_fun (· x) at this
   simp only [RingHom.coe_comp, Function.comp_apply, RingHom.id_apply] at this
   nth_rewrite 1 [← this]
-  set y := algebraMap ℝ F x -- without that, `simp` does not close the goal
-  simp
+  -- set y := algebraMap ℝ F x -- without that, `simp` does not close the goal
+  simp only [RingHom.coe_coe, AlgEquiv.apply_symm_apply]
 
 open AbsoluteValue WithAbs
 
-theorem GelfandMazur_restrict_eq (hv : v.restrict ℝ = .abs) :
+/-- A version of the **Gelfand-Mazur Theorem** over the reals:
+A field `F` that is an `ℝ`-algebra and has an absolute value `v` whose pull-back to `ℝ` is
+the standard absolute value is either isomorphic to `ℝ` (via the algebra map)
+or is isomorphic to `ℂ` as an `ℝ`-algebra in such a way that the pull-back of `v` to `ℂ`
+is the standard absolute value of `ℂ`. -/
+theorem nonempty_algEquiv_or_of_restrict_eq (hv : v.restrict ℝ = .abs) :
     (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) = .abs) ∨
       ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) =
         NormedField.toAbsoluteValue ℂ := by
@@ -617,7 +622,12 @@ theorem GelfandMazur_restrict_eq (hv : v.restrict ℝ = .abs) :
       (lemma_6_1_a (F := ℝ) (F' := ℂ) .abs).elim ..
     exact congrArg Subtype.val H₁
 
-theorem GelfandMazur_restrict_isEquiv (hv : v.restrict ℝ ≈ .abs) :
+/-- A version of the **Gelfand-Mazur Theorem** over the reals:
+A field `F` that is an `ℝ`-algebra and has an absolute value `v` whose pull-back to `ℝ` is
+equivalent to the standard absolute value is either isomorphic to `ℝ` (via the algebra map)
+or is isomorphic to `ℂ` as an `ℝ`-algebra in such a way that the pull-back of `v` to `ℂ`
+is equivalent to the standard absolute value of `ℂ`. -/
+theorem nonempty_algEquiv_or_of_restrict_isEquiv (hv : v.restrict ℝ ≈ .abs) :
     (∃ e : ℝ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈ .abs) ∨
       ∃ e : ℂ ≃ₐ[ℝ] WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈
         NormedField.toAbsoluteValue ℂ := by
@@ -625,7 +635,7 @@ theorem GelfandMazur_restrict_isEquiv (hv : v.restrict ℝ ≈ .abs) :
   have hv' : restrict ℝ v' = .abs := ofIsEquivComap_def ..
   have Hv' : v ≈ v' := Setoid.symm <| ofIsEquivComap_isEquiv (algebraMap ℝ F) hv
   let inst := normedAlgebraOfAbsoluteValue hv'
-  rcases GelfandMazur_restrict_eq hv' with ⟨e, he⟩ | ⟨e, he⟩
+  rcases nonempty_algEquiv_or_of_restrict_eq hv' with ⟨e, he⟩ | ⟨e, he⟩
   · exact .inl ⟨e.trans (algEquiv₂ v' v), he ▸ isEquiv_comap _ Hv'⟩
   · exact .inr ⟨e.trans (algEquiv₂ v' v), he ▸ isEquiv_comap _ Hv'⟩
 
@@ -635,13 +645,18 @@ variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
 
 open AbsoluteValue WithAbs
 
-theorem GelfandMazur_nonarch [CompleteSpace (WithAbs v)] (h : ¬IsNonarchimedean v) :
+/-- **Ostrowski's Theorem** (a different one from `Rat.AbsoluteValue.equiv_real_or_padic`):
+A field `F` that is complete with respect to an archimedean absolute value `v`
+is either isomorphic to `ℝ` or to `ℂ`; in both cases, `v` pulls back to an absolute value
+that is equivalent to the standard absolute value on `ℝ` or `ℂ`, respectively. -/
+theorem nonempty_algEquiv_or_of_complete_of_nonarch [CompleteSpace (WithAbs v)]
+    (h : ¬IsNonarchimedean v) :
     (∃ e : ℝ ≃+* WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈ .abs) ∨
       ∃ e : ℂ ≃+* WithAbs v, v.comap ((equiv v).toRingHom.comp e) ≈
         NormedField.toAbsoluteValue ℂ := by
   obtain ⟨f, hf⟩ := algebra_of_archimedean h
   let inst : Algebra ℝ F := f.toAlgebra
-  rcases GelfandMazur_restrict_isEquiv hf with ⟨e, he⟩ | ⟨e, he⟩
+  rcases nonempty_algEquiv_or_of_restrict_isEquiv hf with ⟨e, he⟩ | ⟨e, he⟩
   · exact .inl ⟨↑e, he⟩
   . exact .inr ⟨↑e, he⟩
 

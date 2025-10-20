@@ -3,16 +3,8 @@ import Heights.Auxiliary
 /-!
 # Two absolute values are equivalent iff they induce the same topology
 
-This is Theorem 1.1 in Conrad's notes. We split the interesting direction (same topology
-implies equivalence) into two steps:
-
-* `AbsoluteValue.abv_lt_one_iff_of_isHomeomorph`: if `v₁` and `v₂` induce the same
-  topology, then `{x | v₁ x < 1} = {x | v₂ x < 1}`.
-
-* `AbsoluteValue.isEquiv_of_abv_lt_one_iff`: if `{x | v₁ x < 1} = {x | v₂ x < 1}`,
-  then `v₁ ≈ v₂`.
-
-The main result is `AbsoluteValue.isEquiv_iff_isHomeomorph`.
+This is Theorem 1.1 in Conrad's notes. The result is now in Mathlib as
+`AbsoluteValue.isEquiv_iff_isHomeomorph`.
 -/
 
 
@@ -126,35 +118,9 @@ end isEquiv
 
 namespace AbsoluteValue
 
-/-!
-### Two absolute values are equivalent iff they induce the same topology
-
-This is Theorem 1.1 in Conrad's notes.
-
-The main result is `AbsoluteValue.isEquiv_iff_isHomeomorph`.
--/
-
 section withAbs
 
 open WithAbs
-
-variable {R : Type*} [Ring R]
-
-open Filter Topology in
-/-- The sequence of `n`th powers of an element `x` converges to zero in the topology induced
-by an absolute value `v` if and only if `v x < 1`. -/
-lemma tendsto_nhds_zero_iff_abv_lt_one [Nontrivial R] (v : AbsoluteValue R ℝ) (x : R) :
-    Tendsto (fun n : ℕ ↦ (WithAbs.equiv v).symm x ^ n) atTop (𝓝 0) ↔ v x < 1 := by
-  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-  · rw [Metric.tendsto_atTop] at H
-    obtain ⟨n, hn⟩ := H 1 zero_lt_one
-    simp only [ge_iff_le, dist_zero_right, norm_eq_abv, map_pow, RingEquiv.apply_symm_apply] at hn
-    replace hn := hn n le_rfl
-    refine (pow_lt_one_iff_of_nonneg (v.nonneg x) ?_).mp hn
-    rintro rfl
-    simp at hn
-  · refine tendsto_pow_atTop_nhds_zero_of_norm_lt_one ?_
-    rwa [norm_eq_abv]
 
 variable {F : Type*} [Field F]
 
@@ -193,7 +159,7 @@ def IsNontrivial.nontriviallyNormedField {v : AbsoluteValue F ℝ} (hv : v.IsNon
   non_trivial := hv.exists_abv_gt_one
 
 noncomputable
-instance _root_.WithAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact <| v.IsNontrivial] :
+instance _root_.WithAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact v.IsNontrivial] :
     NontriviallyNormedField (WithAbs v) :=
   (Fact.out : v.IsNontrivial).nontriviallyNormedField
 
@@ -228,126 +194,24 @@ variable {F : Type*} [Field F]
 
 open WithAbs
 
-lemma continuous_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    Continuous (equivWithAbs v₁ v₂) := by
-  obtain ⟨c, hc₀, hc₁⟩ := isEquiv_iff_exists_rpow_eq.mp h
-  rw [Metric.continuous_iff]
-  simp only [dist_eq_norm_sub, norm_eq_abv, equivWithAbs]
-  intro x ε hε₀
-  conv =>
-    enter [1, δ, 2, y, 2, 1]
-    rw [← map_sub, RingEquiv.coe_trans, Function.comp_apply, RingEquiv.apply_symm_apply]
-  refine ⟨ε ^ (1 / c), Real.rpow_pos_of_pos hε₀ _, fun y h ↦ ?_⟩
-  let x' := WithAbs.equiv v₁ x
-  let y' := WithAbs.equiv v₁ y
-  have hx : x = (WithAbs.equiv v₁).symm x' := rfl
-  have hy : y = (WithAbs.equiv v₁).symm y' := rfl
-  rw [hx, hy, ← map_sub, RingEquiv.apply_symm_apply] at h
-  rw [map_sub, hx, hy]
-  simp only [← hc₁]
-  calc v₁ (y' - x') ^ c
-  _ < (ε ^ (1 / c)) ^ c := by gcongr
-  _ = ε := by rw [← Real.rpow_mul hε₀.le, one_div_mul_cancel hc₀.ne', Real.rpow_one]
+lemma continuous_equivWithAbs {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+    Continuous (equivWithAbs v₁ v₂) :=
+  isEquiv_iff_isHomeomorph v₁ v₂ |>.mp h |>.continuous
 
 /-- Two equivalent absolute values on a field `F` induce the same topology.
 This defines the identity map `F → F` as a homeomorphism between the two topologies. -/
 def homeomorph_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ₜ WithAbs v₂ where
-  toFun := (WithAbs.equiv v₂).symm ∘ WithAbs.equiv v₁
-  invFun := (WithAbs.equiv v₁).symm ∘ WithAbs.equiv v₂
+  toFun := WithAbs.equivWithAbs v₁ v₂
+  invFun := WithAbs.equivWithAbs v₂ v₁
   left_inv _ := rfl
   right_inv _ := rfl
-  continuous_toFun := continuous_equiv₂ h
-  continuous_invFun := continuous_equiv₂ (Setoid.symm h)
+  continuous_toFun := continuous_equivWithAbs h
+  continuous_invFun := continuous_equivWithAbs (Setoid.symm h)
 
 lemma homeomorph_of_isEquiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     ⇑(homeomorph_of_isEquiv h) = ⇑(equivWithAbs v₁ v₂) :=
   rfl
-
-open Filter Topology in
-/-- If two absolute values on a field `F` induce the same topology and an element of `F` has
-absolute value less than one with respect to the first absolute value, then also with respect
-to the second absolute value. -/
-lemma abv_lt_one_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
-    (h : IsHomeomorph (equivWithAbs v₁ v₂)) {x : F} (hx : v₁ x < 1) :
-    v₂ x < 1 := by
-  let x₁ : WithAbs v₁ := (WithAbs.equiv v₁).symm x
-  let x₂ : WithAbs v₂ := (WithAbs.equiv v₂).symm x
-  have hx₁ : Tendsto (fun n : ℕ ↦ x₁ ^ n) atTop (𝓝 0) :=
-    (tendsto_nhds_zero_iff_abv_lt_one v₁ x).mpr hx
-  have hx₂ : Tendsto (fun n : ℕ ↦ x₂ ^ n) atTop (𝓝 0) := by
-    have (n : ℕ) : x₂ ^ n = (equivWithAbs v₁ v₂) (x₁ ^ n) := rfl
-    simp_rw [this]
-    refine Tendsto.comp (g := (equivWithAbs v₁ v₂)) ?_ hx₁
-    exact Continuous.tendsto h.continuous 0
-  exact (tendsto_nhds_zero_iff_abv_lt_one v₂ x).mp hx₂
-
-/--If two absolute values on a field `F` induce the same topology, then the sets of elements
-of absolute value less than one agree for both absolute values. -/
-lemma abv_lt_one_iff_of_isHomeomorph {v₁ v₂ : AbsoluteValue F ℝ}
-    (h : IsHomeomorph (equivWithAbs v₁ v₂)) (x : F) :
-    v₁ x < 1 ↔ v₂ x < 1 := by
-  refine ⟨abv_lt_one_of_isHomeomorph h, abv_lt_one_of_isHomeomorph ?_⟩
-  obtain ⟨φ, hφ⟩ := isHomeomorph_iff_exists_homeomorph.mp h
-  refine isHomeomorph_iff_exists_homeomorph.mpr ⟨φ.symm, ?_⟩
-  apply_fun (fun f ↦ (φ.symm ∘ f) ∘ (equivWithAbs v₂ v₁)) at hφ
-  simp only [Homeomorph.symm_comp_self, CompTriple.comp_eq] at hφ
-  rw [hφ, Function.comp_assoc, ← WithAbs.equivWithAbs_symm, ← RingEquiv.coe_trans,
-    RingEquiv.self_trans_symm]
-  simp
-
-open Real in
-/-- If the sets of elements of absolute value less than one agree for two absolute values
-on a field `F`, then the two absolute values are equivalent. -/
-lemma isEquiv_of_abv_lt_one_iff {v₁ v₂ : AbsoluteValue F ℝ} (h : ∀ x, v₁ x < 1 ↔ v₂ x < 1) :
-    v₁ ≈ v₂ := by
-  by_cases H : ∃ x ≠ 0, v₁ x < 1
-  · obtain ⟨c, hc₀, hc₁⟩ := H
-    have hc₂ := (h c).mp hc₁
-    have hcv₁ := v₁.pos hc₀
-    have hcv₁' := v₁.nonneg c
-    have hcv₂ := v₂.pos hc₀
-    let e := logb (v₁ c) (v₂ c)
-    have he : v₁ c ^ e = v₂ c := rpow_logb hcv₁ hc₁.ne hcv₂
-    have he₀ : 0 < e := logb_pos_of_base_lt_one hcv₁ hc₁ hcv₂ hc₂
-    have key (y : F) : ¬ v₁ y ^ e < v₂ y := by
-      intro hy
-      have hyv₁ := v₁.nonneg y
-      have hy₀ : y ≠ 0 := v₂.ne_zero_iff.mp ((rpow_nonneg hyv₁ e).trans_lt hy).ne'
-      obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hcv₂ <| (div_lt_one (v₂.pos hy₀)).mpr hy
-      obtain ⟨m, hm₁, hm₂⟩ : ∃ m : ℤ, v₁ (y ^ n) ^ e < v₂ c ^ m ∧ v₂ c ^ m < v₂ (y ^ n) := by
-        have hv₂y := v₂.pos <| pow_ne_zero n hy₀
-        refine exists_zpow_btwn_of_lt_mul ?_ hv₂y hcv₂ hc₂
-        rwa [div_pow, ← v₂.map_pow, div_lt_iff₀ hv₂y, rpow_pow_comm hyv₁,
-          mul_comm, ← v₁.map_pow] at hn
-      rw [← he, rpow_zpow_comm hcv₁', rpow_lt_rpow_iff (v₁.nonneg _) (zpow_nonneg hcv₁' m) he₀,
-        ← div_lt_one (zpow_pos hcv₁ m), ← map_zpow₀, ← map_div₀] at hm₁
-      rw [← map_zpow₀, ← one_lt_div (v₂.pos (by exact zpow_ne_zero m hc₀)), ← map_div₀] at hm₂
-      exact (h _).mp hm₁ |>.trans hm₂ |>.false
-    simp only [not_lt] at key
-    refine isEquiv_iff_exists_rpow_eq.mpr ⟨e, he₀, funext fun x ↦ ?_⟩
-    rcases eq_or_ne x 0 with rfl | hx₀
-    · simpa only [AbsoluteValue.map_zero, le_refl] using zero_rpow he₀.ne'
-    · refine le_antisymm ?_ (key x)
-      have := key x⁻¹
-      simp only [map_inv₀, inv_rpow (v₁.nonneg _)] at this
-      rwa [inv_le_inv₀ (v₂.pos hx₀) <| rpow_pos_of_pos (v₁.pos hx₀) e] at this
-  · -- both are trivial
-    have H₁ := mt IsNontrivial.exists_abv_lt_one H
-    have H' : ¬∃ x, x ≠ 0 ∧ v₂ x < 1 := by
-      simp_all only [not_false_eq_true, ne_eq, not_exists, not_and, not_lt, implies_true]
-    have H₂ := mt IsNontrivial.exists_abv_lt_one H'
-    classical
-    rw [of_not_not <| (isNontrivial_iff_ne_trivial v₁).not.mp H₁,
-      of_not_not <| (isNontrivial_iff_ne_trivial v₂).not.mp H₂]
-
-/- open Filter Topology in
-/-- Two absolute values on a field are equivalent if and only if they induce the same topology. -/
--- (This is Theorem 1.1 in the reference.)
-lemma isEquiv_iff_isHomeomorph (v₁ v₂ : AbsoluteValue F ℝ) :
-    v₁ ≈ v₂ ↔ IsHomeomorph (WithAbs.equivWithAbs v₁ v₂) := by
-  refine ⟨fun H ↦ ?_, fun H ↦ isEquiv_of_abv_lt_one_iff <| abv_lt_one_iff_of_isHomeomorph H⟩
-  exact isHomeomorph_iff_exists_homeomorph.mpr ⟨homeomorph_of_isEquiv H, rfl⟩ -/
 
 /-- The induced ring homomorphism between two completions with respect to equivalent
 absolute values. -/
@@ -391,26 +255,26 @@ lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v
   · rw [show ⇑(ringEquiv_completion_of_isEquiv h) = ⇑(ringEquiv_completion_of_isEquiv h).toRingHom
          from rfl]
     rw [congrArg DFunLike.coe (ringEquiv_completion_coeFun_eq ..), ringHom_completion_of_isEquiv]
-    exact continuous_mapRingHom (continuous_equiv₂ h)
+    exact continuous_mapRingHom (continuous_equivWithAbs h)
   · simp [Function.LeftInverse]
   · simp [Function.RightInverse, Function.LeftInverse]
   · rw [show ⇑(ringEquiv_completion_of_isEquiv h).symm =
           ⇑(ringEquiv_completion_of_isEquiv h).symm.toRingHom from rfl]
     rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
-    exact continuous_mapRingHom (continuous_equiv₂ (Setoid.symm h))
+    exact continuous_mapRingHom (continuous_equivWithAbs (Setoid.symm h))
 
-lemma uniformContinuous_equiv₂_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
+lemma uniformContinuous_equivWithAbs_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     UniformContinuous (equivWithAbs v₁ v₂) :=
-  uniformContinuous_of_continuousAt_zero _ (continuous_equiv₂ h).continuousAt
+  uniformContinuous_of_continuousAt_zero _ (continuous_equivWithAbs h).continuousAt
 
-/-- If `v₁` and `v₂` are equivalent absolute values on `F`, then `WithAbs.equiv₂ v₁ v₂`
+/-- If `v₁` and `v₂` are equivalent absolute values on `F`, then `WithAbs.equivWithAbs v₁ v₂`
 is an equivalence of uniformities. This gives the `UniformEquiv`. -/
 def uniformEquivOfIsEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ᵤ WithAbs v₂ :=
-  UniformEquiv.mk (equivWithAbs v₁ v₂) (uniformContinuous_equiv₂_of_isEquiv h)
-    (uniformContinuous_equiv₂_of_isEquiv <| Setoid.symm h)
+  UniformEquiv.mk (equivWithAbs v₁ v₂) (uniformContinuous_equivWithAbs_of_isEquiv h)
+    (uniformContinuous_equivWithAbs_of_isEquiv <| Setoid.symm h)
 
-/-- The underlying equivalence of `uniformEquivOfIsEquiv h` is `WithAbs.equiv₂ _ _`. -/
+/-- The underlying equivalence of `uniformEquivOfIsEquiv h` is `WithAbs.equivWithAbs _ _`. -/
 lemma uniformEquiv_eq_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     (uniformEquivOfIsEquiv h).toEquiv = (equivWithAbs v₁ v₂).toEquiv :=
   rfl
