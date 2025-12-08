@@ -673,101 +673,51 @@ lemma abv_finsetSum_le_mul_max (f : ℕ → R) {N : ℕ} (hN : 0 < N) :
     induction n generalizing f with
     | zero => simp
     | succ n ih =>
-      have H₁ : 2 ^ n ≤ 2 ^ (n + 1) := by
-        rw [pow_succ', Nat.two_mul]
-        exact Nat.le_add_right ..
-      rw [← sum_range_add_sum_Ico f H₁, sum_Ico_eq_sum_range]
-      have H₂ : 2 ^ (n + 1) - 2 ^ n = 2 ^ n := by
-        rw [pow_succ', Nat.two_mul]
-        exact Nat.add_sub_self_left ..
-      rw [H₂, pow_succ', mul_assoc]
-      refine (ha ..).trans ?_
+      have H₁ : 2 ^ n ≤ 2 ^ (n + 1) := by grind
+      rw [← sum_range_add_sum_Ico f H₁, sum_Ico_eq_sum_range,
+        show 2 ^ (n + 1) - 2 ^ n = 2 ^ n by grind, pow_succ', mul_assoc]
+      grw [ha]
       gcongr (2 * ?_)
       have hnr := nonempty_range_iff.mpr n.two_pow_pos.ne'
-      have : (range (2 ^ (n + 1))).sup'
-          (nonempty_range_iff.mpr (n + 1).two_pow_pos.ne') (fun i ↦ v (f i)) =
+      have : (range (2 ^ (n + 1))).sup' (by grind) (fun i ↦ v (f i)) =
             max ((range (2 ^ n)).sup' hnr (fun i ↦ v (f i)))
               ((range (2 ^ n)).sup' hnr fun i ↦ v (f (2 ^ n + i))) := by
         have : range (2 ^ (n + 1)) = range (2 ^ n) ∪ Ico (2 ^ n) (2 ^ (n + 1)) := by
           rw [range_eq_Ico]
           exact (Ico_union_Ico_eq_Ico (Nat.zero_le _) H₁).symm
         simp_rw [this]
-        have H : (Ico (2 ^ n) (2 ^ (n + 1))).Nonempty := by
-          rw [nonempty_Ico, ← one_mul (2 ^ n), pow_succ']
-          gcongr
-          exact one_lt_two
+        have H : (Ico (2 ^ n) (2 ^ (n + 1))).Nonempty := by grind [nonempty_Ico]
         rw [sup'_union hnr H]
         congr 1
-        -- `rw` does not work
-        erw [sup'_comp_eq_image (f := fun i ↦ 2 ^ n + i) hnr (fun i ↦ v (f i)),
-          sup'_comp_eq_image (f := id) ?_ (fun i ↦ v (f i))]
-        refine sup'_congr ?_ ?_ fun i hi ↦ rfl
-        · simp only [image_id, range_eq_Ico, image_add_left_Ico, add_zero, pow_succ']
-          congr 2
-          exact Nat.two_mul _
-        · exact H
+        -- to make `rw` work
+        change Finset.sup' _ _ ((fun i ↦ v (f i)) ∘ id) =
+          Finset.sup' _ _ ((fun i ↦ v (f i)) ∘ (2 ^ n + ·))
+        rw [sup'_comp_eq_image (f := fun i ↦ 2 ^ n + i) hnr (fun i ↦ v (f i)),
+          sup'_comp_eq_image (f := id) H (fun i ↦ v (f i))]
+        simp only [image_id]
+        refine sup'_congr H ?_ fun i hi ↦ rfl
+        simp only [range_eq_Ico, image_add_left_Ico, add_zero, pow_succ', two_mul]
       rw [this, mul_max_of_nonneg _ _ (mod_cast (2 ^ n).zero_le)]
       gcongr <;> exact ih _
-  rcases le_or_gt N 1 with hN₁ | hN₁
-  · replace hN₁ : N = 1 := by omega
-    simp only [hN₁, range_one, sum_singleton, Nat.cast_one, mul_one, sup'_singleton]
-    nth_rewrite 1 [← one_mul (v (f 0))]
-    gcongr
-    · exact hn (f 0)
-    · exact one_le_two
-  obtain ⟨m, hm₁, hm₂⟩ : ∃ m : ℕ, 2 ^ m < N ∧ N ≤ 2 ^ (m + 1) := by
-    induction N with
-    | zero => exact hN.false.elim
-    | succ n ih =>
-      rcases eq_or_ne n 0 with rfl | hn
-      · norm_num at hN₁
-      replace hN₁ : 0 < n := by omega
-      rcases eq_or_ne n 1 with rfl | hn₁
-      · exact ⟨0, by norm_num, by norm_num⟩
-      have hn₁ : 1 < n := by omega
-      obtain ⟨m, hm₁, hm₂⟩ := ih hN₁ hn₁
-      rcases lt_or_eq_of_le hm₂ with hm | rfl
-      · exact ⟨m, by omega⟩
-      · exact ⟨m + 1, by omega⟩
-  have HN := nonempty_range_iff.mpr hN.ne'
+  obtain ⟨m, hm₁, hm₂⟩ : ∃ m : ℕ, 2 ^ m ≤ N ∧ N < 2 ^ (m + 1) :=
+    ⟨N.log2, (Nat.log2_eq_iff <| Nat.ne_zero_of_lt hN).mp rfl⟩
   let g i := if i < N then f i else 0
-  have hg₁ : ∑ i ∈ range N, f i = ∑ i ∈ range (2 ^ (m + 1)), g i := by
-    have : ∀ i ≥ N, g i = 0 := by
-      intro i hi
-      replace hi : ¬ i < N := Nat.not_lt.mpr hi
-      simp [g, hi]
-    rw [Finset.eventually_constant_sum this hm₂]
-    refine sum_congr rfl fun i hi ↦ ?_
-    simp [g, mem_range.mp hi]
-  have hg₂ : (range N).sup' HN (fun i ↦ v (f i)) =
-      (range (2 ^ (m + 1))).sup'
-        (nonempty_range_iff.mpr (m + 1).two_pow_pos.ne') fun i ↦ v (g i) := by
-    rcases eq_or_lt_of_le hm₂ with rfl | hm₂
-    · refine sup'_congr (nonempty_range_iff.mpr (m + 1).two_pow_pos.ne') rfl fun i hi ↦ ?_
-      simp [g, mem_range.mp hi]
-    have : range (2 ^ (m + 1)) = range N ∪ Ico N (2 ^ (m + 1)) := by
-      rw [range_eq_Ico, eq_comm]
-      exact Ico_union_Ico_eq_Ico N.zero_le hm₂.le
-    simp_rw [this]
-    have H₁ : (Ico N (2 ^ (m + 1))).Nonempty := by simpa
-    rw [sup'_union HN H₁]
-    have H₂ : ((Ico N (2 ^ (m + 1))).sup' H₁ fun x ↦ v (g x)) ≤
-        ((range N).sup' HN fun x ↦ v (g x)) := by
-      refine sup'_le H₁ (fun x ↦ v (g x)) fun i hi ↦ ?_
-      simp only [mem_Ico] at hi
-      have hi' : ¬ i < N := Nat.not_lt.mpr hi.1
-      simp only [hi', ↓reduceIte, le_sup'_iff, mem_range, g, (h₀ 0).mpr rfl]
-      exact ⟨0, hN, hn _⟩
-    rw [max_eq_left H₂]
-    refine sup'_congr HN rfl fun i hi ↦ ?_
-    simp [g, mem_range.mp hi]
-  rw [hg₁, hg₂]
-  refine (key g (m + 1)).trans ?_
+  have hg : ∑ i ∈ range N, f i = ∑ i ∈ range (2 ^ (m + 1)), g i := by
+    rw [Finset.eventually_constant_sum (by grind) hm₂.le]
+    exact sum_congr rfl fun i hi ↦ by simp [g, mem_range.mp hi]
+  rw [hg]
+  grw [key]
   gcongr
-  · exact le_sup'_of_le _ (mem_range.mpr (m + 1).two_pow_pos) <| hn (g 0)
+  · exact le_sup'_of_le _ (by grind) <| hn (g 0)
   · rw [pow_succ']
     gcongr
-    exact_mod_cast hm₁.le
+    exact_mod_cast hm₁
+  · refine sup'_le (by grind) _ fun i hi ↦ ?_
+    simp only [g]
+    split_ifs with h
+    · exact le_sup' (fun i ↦ v (f i)) (mem_range.mpr h)
+    · rw [(h₀ _).mpr rfl]
+      exact le_sup'_of_le _ (mem_range.mpr hN) <| hn (f 0)
 
 include hm
 
