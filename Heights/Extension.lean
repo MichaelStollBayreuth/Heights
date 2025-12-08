@@ -1,5 +1,5 @@
 import Heights.Equivalence
-import Heights.GelfandMazur
+import Mathlib.Analysis.Normed.Algebra.GelfandMazur
 
 /-!
 # Extensions of absolute values
@@ -79,7 +79,7 @@ open Topology Filter in
 lemma Real.tendsto_two_pow_mul_pow_div_one_sub_pow {x : ℝ} (hx₀ : 0 ≤ x) (hx₁ : x < 1) :
     Tendsto (fun n : ℕ ↦ 2 ^ n * x ^ 2 ^ n / (1 - x ^ 2 ^ n)) atTop (𝓝 0) := by
   have : Tendsto (fun n : ℕ ↦ 2 ^ n) atTop atTop :=
-    Nat.tendsto_pow_atTop_atTop_of_one_lt one_lt_two
+    tendsto_pow_atTop_atTop_of_one_lt one_lt_two
   convert (tendsto_mul_pow_div_one_sub_pow hx₀ hx₁).comp this with n
   simp
 

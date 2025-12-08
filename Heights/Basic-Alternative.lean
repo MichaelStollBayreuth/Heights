@@ -389,8 +389,7 @@ lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
     logHeight₁ (∑ a ∈ s, x a) ≤
       (s.card - 1 : ) * Real.log (heightSumBound K) + ∑ a ∈ s, logHeight₁ (x a) := by
   simp only [logHeight₁]
-  rw [← Real.log_pow, ← Real.log_prod _ _ <| fun a _ ↦ mulHeight₁_ne_zero (x a),
-    ← Real.log_mul ?h₁ ?h₂]
+  rw [← Real.log_pow, ← Real.log_prod <| fun a _ ↦ mulHeight₁_ne_zero (x a), ← Real.log_mul ?h₁ ?h₂]
   · exact Real.log_le_log (mulHeight₁_pos _) <| mod_cast mulHeight₁_sum_le ..
   case h₁ => exact pow_ne_zero _ <| heightSumBound_ne_zero K
   case h₂ => exact Finset.prod_ne_zero_iff.mpr fun a _ ↦ mulHeight₁_ne_zero (x a)
