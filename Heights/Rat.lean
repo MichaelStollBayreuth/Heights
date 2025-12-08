@@ -203,9 +203,6 @@ def Rat.coprimeIntToProjective :
     { x : ι → ℤ // Finset.univ.gcd x = 1 } → Projectivization ℚ (ι → ℚ) :=
   fun x ↦ .mk ℚ (((↑) : ℤ → ℚ) ∘ x.val) (Int.ne_zero_of_gcd_eq_one x.prop)
 
-lemma Rat.isCoprime_num_den (r : ℚ) : IsCoprime r.num r.den :=
-  Int.isCoprime_iff_gcd_eq_one.mpr r.reduced
-
 lemma Rat.exists_int_mul_eq_cast (r : ℚ) (n : ℕ) : (∃ z : ℤ, n * r = z) ↔ r.den ∣ n := by
   have hr₀ : (r.den : ℚ) ≠ 0 := Nat.cast_ne_zero.mpr r.pos.ne'
   nth_rewrite 1 [← Rat.num_div_den r, ← mul_div_assoc]

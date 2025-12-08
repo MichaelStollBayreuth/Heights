@@ -137,7 +137,7 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
     have H {y : F} (hy₀ : y ≠ 0) (hy : v y < 1) : False := by
       obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hε₀ hy
       rw [← v.map_pow] at hn
-      exact hy₀ <| pow_eq_zero <| hε₁ _ hn
+      exact hy₀ <| eq_zero_of_pow_eq_zero <| hε₁ _ hn
     rcases h.lt_or_gt with h | h
     · exact H hx₀ h
     · replace h := inv_lt_one_of_one_lt₀ h
