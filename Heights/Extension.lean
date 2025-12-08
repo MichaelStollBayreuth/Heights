@@ -11,87 +11,9 @@ to an absolute value `v'` on `F'` and that
 `∏ v', v' x ^ localDegree F v' = v (Algebra.norm F' x)`,
 where `localDegree F v'` is the degree of the extension of completions `F'_v' / F_v`.
 
-We follow [Brian Conrad's notes}(http://math.stanford.edu/~conrad/676Page/handouts/ostrowski.pdf),
+We follow [Brian Conrad's notes](http://math.stanford.edu/~conrad/676Page/handouts/ostrowski.pdf),
 Sections 6 and 7.
 -/
-
-/-!
-### Auxiliary lemmas
--/
-
-lemma Finset.sum_range_two_mul (n : ℕ) {M : Type*} [AddCommMonoid M] (f : ℕ → M) :
-    ∑ k ∈ range (2 * n), f k =
-      ∑ k ∈ range n, f (2 * k) + ∑ k ∈ range n, f (2 * k + 1) := by
-  rw [← sum_filter_add_sum_filter_not _ Even]
-  congr 1
-  · refine sum_bij' (fun k _ ↦ k / 2) (fun k _ ↦ 2 * k) (fun k hk ↦ ?_)
-      (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
-      simp only [mem_filter, mem_range] at hk ⊢
-    · omega
-    · simp only [Nat.ofNat_pos, mul_lt_mul_iff_right₀, even_two, Even.mul_right, and_true] at hk ⊢
-      omega
-    · exact Nat.two_mul_div_two_of_even hk.2
-    · omega
-    · rw [Nat.two_mul_div_two_of_even hk.2]
-  · refine sum_bij' (fun k _ ↦ k / 2) (fun k _ ↦ 2 * k + 1) (fun k hk ↦ ?_)
-      (fun k hk ↦ ?_ ) (fun k hk ↦ ?_) (fun k hk ↦ ?_) (fun k hk ↦ ?_) <;>
-      simp only [mem_filter, mem_range, Nat.not_even_iff_odd] at hk ⊢
-    · omega
-    · simp only [odd_two_mul_add_one, and_true]
-      omega
-    · exact Nat.two_mul_div_two_add_one_of_odd hk.2
-    · omega
-    · rw [Nat.two_mul_div_two_add_one_of_odd hk.2]
-
-lemma Complex.cpow_inv_ofReal_mul_ofReal (z : ℂ) {x : ℝ} (hx : 1 ≤ x) :
-    (z ^ (x⁻¹ : ℂ)) ^ (x : ℂ) = z := by
-  rw [← cpow_mul, inv_mul_cancel₀ (by norm_cast; linarith), cpow_one]
-  -- side goals
-  · rw [← ofReal_inv, im_mul_ofReal, ← div_eq_mul_inv, lt_div_iff₀ (by linarith)]
-    calc
-    _ ≤ -Real.pi := mul_le_of_one_le_right (neg_nonpos.mpr Real.pi_nonneg) hx
-    _ < (log z).im := neg_pi_lt_log_im z
-  · rw [← ofReal_inv, im_mul_ofReal, ← div_eq_mul_inv, div_le_iff₀ (by linarith)]
-    calc
-    _ ≤ Real.pi := log_im_le_pi z
-    _ ≤ Real.pi * x := by refine le_mul_of_one_le_right Real.pi_nonneg hx
-
-lemma IsPrimitiveRoot.map_nthRootsFinset {K F : Type*} [Field K] [Field F] [Algebra K F]
-    {n : ℕ} [NeZero n] {ζ : K} (hζ : IsPrimitiveRoot ζ n)
-    {x : F} (hx : x ∈ Polynomial.nthRootsFinset n 1) :
-    ∃ y ∈ Polynomial.nthRootsFinset n (1 : K), algebraMap K F y = x := by
-  let ξ := algebraMap K F ζ
-  have hξ : IsPrimitiveRoot ξ n := hζ.map_of_injective <| FaithfulSMul.algebraMap_injective ..
-  rw [Polynomial.mem_nthRootsFinset (NeZero.pos n)] at hx
-  obtain ⟨k, _, hk⟩ := hξ.eq_pow_of_pow_eq_one hx
-  refine ⟨ζ ^ k, ?_, hk ▸ algebraMap.coe_pow ζ k⟩
-  rw [Polynomial.mem_nthRootsFinset (NeZero.pos n), pow_right_comm, hζ.pow_eq_one, one_pow]
-
-open Topology Filter in
-lemma Real.tendsto_mul_pow_div_one_sub_pow {x : ℝ} (hx₀ : 0 ≤ x) (hx₁ : x < 1) :
-    Tendsto (fun n : ℕ ↦ n * x ^ n / (1 - x ^ n)) atTop (𝓝 0) := by
-  conv => enter [1, n]; rw [div_eq_mul_inv]
-  conv => enter [3, 1]; rw [show (0 : ℝ) = 0 * (1 - 0)⁻¹ by simp]
-  exact (tendsto_self_mul_const_pow_of_lt_one hx₀ hx₁).mul <|
-    ((tendsto_pow_atTop_nhds_zero_of_lt_one hx₀ hx₁).const_sub 1).inv₀ (by simp)
-
-open Topology Filter in
-lemma Real.tendsto_two_pow_mul_pow_div_one_sub_pow {x : ℝ} (hx₀ : 0 ≤ x) (hx₁ : x < 1) :
-    Tendsto (fun n : ℕ ↦ 2 ^ n * x ^ 2 ^ n / (1 - x ^ 2 ^ n)) atTop (𝓝 0) := by
-  have : Tendsto (fun n : ℕ ↦ 2 ^ n) atTop atTop :=
-    tendsto_pow_atTop_atTop_of_one_lt one_lt_two
-  convert (tendsto_mul_pow_div_one_sub_pow hx₀ hx₁).comp this with n
-  simp
-
-/- lemma norm_natCast_le {E : Type*} [SeminormedRing E] [NormOneClass E] (n : ℕ) :
-    ‖(n : E)‖ ≤ n := by
-  induction n with
-  | zero => simp [norm_zero]
-  | succ n ih =>
-    push_cast
-    refine (norm_add_le ..).trans ?_
-    rw [norm_one]
-    exact add_le_add_right ih 1 -/
 
 section restrict
 
@@ -122,16 +44,16 @@ lemma comap_comp {F' : Type*} [Field F'] (v : AbsoluteValue R S) (f : F →+* F'
 lemma comap_apply (v : AbsoluteValue R S) (f : F →+* R) (x : F) :
     v.comap f x = v (f x) := rfl
 
-@[simp]
+/- @[simp]
 lemma comap_equiv_comp (v : AbsoluteValue R S) (f : F →+* R) :
     v.comap ((WithAbs.equiv v).toRingHom.comp f) = v.comap f :=
-  rfl
+  rfl -/
 
 open WithAbs in
 lemma isometry_comap {F' : Type*} [Field F'] (v : AbsoluteValue F' ℝ) (f : F →+* F') :
     Isometry ((equiv v).symm.toRingHom.comp (f.comp (equiv (v.comap f)).toRingHom)) := by
   refine AddMonoidHomClass.isometry_of_norm _ fun x ↦ ?_
-  simp [WithAbs.norm_eq_abv]
+  simp [norm_eq_abv]
 
 lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.comap f).IsNontrivial) :
     v.IsNontrivial := by
@@ -182,35 +104,35 @@ lemma ofIsEquivComap_eq_zero' (x : R) :
   simp [Real.rpow_eq_zero_iff_of_nonneg (v'.nonneg x), v'.eq_zero, (IsEquiv.exponent_pos <| h).ne']
 
 /-- If an absolute value `v` on `F` is equivalent to the pull-back
-of an absolute value `v'` on `R`, then we can construct an absolute value on `R`
+of an absolute value `v'` on `R`, then we can construct an
+(equivalent: see `AbsoluteValue.ofIsEquivComap_isEquiv`) absolute value on `R`
 whose pull-back to `F` is `v`. -/
 noncomputable
 def ofIsEquivComap : AbsoluteValue R ℝ where
-      toFun x := v' x ^ IsEquiv.exponent h
-      map_mul' := ofIsEquivComap_map_mul' f h
-      nonneg' := ofIsEquivComap_nonneg' f h
-      eq_zero' := ofIsEquivComap_eq_zero' f h
-      add_le' x y := by
-        set c := IsEquiv.exponent h with hc
-        have hc₁ : 0 < c := IsEquiv.exponent_pos h
-        by_cases hna : IsNonarchimedean v'
-        · let v'' := rpow_of_isNonarchimedean hna hc₁
-          have H (x : R) : v' x ^ c = v'' x := by simp [v'', c]
-          simp only [H, v''.add_le]
-        · refine add_le_add_of_add_le_two_mul_max (ofIsEquivComap_map_mul' f h)
-            (ofIsEquivComap_nonneg' f h) (ofIsEquivComap_eq_zero' f h) (fun x y ↦ ?_) x y
-          have H₁ : v' 2 ^ c ≤ 2 := by
-            have := IsEquiv.exponent_def h 2
-            simp only [comap_apply, map_ofNat] at this
-            rw [this]
-            exact v.apply_nat_le_self 2
-          have H₂ := Real.rpow_le_rpow (v'.nonneg _) (abv_add_le_abv_two_mul_max hna x y) hc₁.le
-          rw [← hc] at *
-          rw [Real.mul_rpow (v'.nonneg 2) (le_max_iff.mpr <| .inl (v'.nonneg x))] at H₂
-          refine H₂.trans ?_
-          gcongr
-          exact ((Real.monotoneOn_rpow_Ici_of_exponent_nonneg hc₁.le).map_max
-            (v'.nonneg x) (v'.nonneg y)).le
+  toFun x := v' x ^ IsEquiv.exponent h
+  map_mul' := ofIsEquivComap_map_mul' f h
+  nonneg' := ofIsEquivComap_nonneg' f h
+  eq_zero' := ofIsEquivComap_eq_zero' f h
+  add_le' x y := by
+    set c := IsEquiv.exponent h with hc
+    have hc₁ : 0 < c := IsEquiv.exponent_pos h
+    by_cases hna : IsNonarchimedean v'
+    · let v'' := rpow_of_isNonarchimedean hna hc₁
+      have H (x : R) : v' x ^ c = v'' x := by simp [v'', c]
+      simp only [H, v''.add_le]
+    · refine add_le_add_of_add_le_two_mul_max (ofIsEquivComap_map_mul' f h)
+        (ofIsEquivComap_nonneg' f h) (ofIsEquivComap_eq_zero' f h) (fun x y ↦ ?_) x y
+      have H₁ : v' 2 ^ c ≤ 2 := by
+        have := IsEquiv.exponent_def h 2
+        simp only [comap_apply, map_ofNat] at this
+        exact this ▸ v.apply_nat_le_self 2
+      have H₂ := Real.rpow_le_rpow (v'.nonneg _) (abv_add_le_abv_two_mul_max hna x y) hc₁.le
+      rw [← hc] at *
+      rw [Real.mul_rpow (v'.nonneg 2) (le_max_iff.mpr <| .inl (v'.nonneg x))] at H₂
+      grw [H₂]
+      gcongr
+      exact Real.monotoneOn_rpow_Ici_of_exponent_nonneg hc₁.le |>.map_max
+        (v'.nonneg x) (v'.nonneg y) |>.le
 
 lemma ofIsEquivComap_def : (ofIsEquivComap f h).comap f = v := by
   ext1 x
@@ -219,13 +141,10 @@ lemma ofIsEquivComap_def : (ofIsEquivComap f h).comap f = v := by
 lemma ofIsEquivComap_isEquiv : ofIsEquivComap f h ≈ v' :=
   Setoid.symm <| isEquiv_def.mpr ⟨IsEquiv.exponent h, IsEquiv.exponent_pos h, rfl⟩
 
--- v.comap ((equiv v).toRingHom.comp ↑(e.trans (algEquiv₂ (ofIsEquivComap (algebraMap ℝ F) hv) v))) ≈
---   (ofIsEquivComap (algebraMap ℝ F) hv).comap ((equiv (ofIsEquivComap (algebraMap ℝ F) hv)).toRingHom.comp ↑e)
-
-
 end
 
-variable {F R S : Type*} [Field F] [Nontrivial R] [Semiring R] [Algebra F R] [Semiring S] [PartialOrder S]
+variable {F R S : Type*} [Field F] [Nontrivial R] [Semiring R] [Algebra F R]
+  [Semiring S] [PartialOrder S]
 
 variable (F) in
 /-- The restriction to a field `F` of an absolute value on an `F`-algebra `R`. -/
@@ -303,19 +222,18 @@ end complex_real
 
 variable {F' : Type*} [Ring F'] [Algebra F F'] {v : AbsoluteValue F ℝ}
 
+open WithAbs
+
 @[simp]
 lemma equiv_symm_apply_algebraMap (v' : AbsoluteValue F' ℝ) (x : WithAbs v) :
-    (WithAbs.equiv v').symm (algebraMap F F' (WithAbs.equiv v x)) =
-      algebraMap (WithAbs v) (WithAbs v') x :=
+    (equiv v').symm (algebraMap F F' (equiv v x)) = algebraMap (WithAbs v) (WithAbs v') x :=
   rfl
 
 variable [Nontrivial F']
 
-open WithAbs
-
 @[simp]
 lemma apply_algebraMap_withAbs {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) (x : WithAbs v) :
-    v' (WithAbs.equiv v' (algebraMap (WithAbs v) (WithAbs v') x)) = v (WithAbs.equiv v x) := by
+    v' (equiv v' (algebraMap (WithAbs v) (WithAbs v') x)) = v (equiv v x) := by
   rw [← h, ← equiv_symm_apply_algebraMap, RingEquiv.apply_symm_apply, apply_algebraMap]
 
 @[fun_prop]
@@ -365,7 +283,7 @@ lemma isHomeomorph_equiv_realAbs : IsHomeomorph (WithAbs.equiv (R := ℝ) .abs) 
   Isometry.isHomeomorph_ofEquiv isometry_equiv_realAbs
 
 instance : CompleteSpace (WithAbs (R := ℝ) .abs) := by
-  let f := (WithAbs.equiv (R := ℝ) .abs)
+  let f := WithAbs.equiv (R := ℝ) .abs
   have H₁ : IsHomeomorph f := isHomeomorph_equiv_realAbs
   have H₂ : IsHomeomorph f.symm := H₁ -- not sure why this works...
   refine (UniformEquiv.completeSpace_iff ?_).mp (inferInstance : CompleteSpace ℝ)
@@ -505,7 +423,7 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
   let e₁ : v₀.Completion →+* WithAbs v :=
     Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
   have he₁ : Isometry e₁ := Completion.isometry_extensionEmbedding_of_comp fun _ ↦ rfl
-  -- The pull-back ov `v` under `e₁` is the absolute value of the completion.
+  -- The pull-back of `v` under `e₁` is the absolute value of the completion.
   have H₁ : v.comap e₁ = Completion.absoluteValue v₀ :=
     comap_completion_eq_of_isometry v he₁
   -- We can identify `v₀.Completion` with `ℝ` via a ring isomorphism and
@@ -562,7 +480,7 @@ variable {F : Type*} [Field F] [Algebra ℝ F] {v : AbsoluteValue F ℝ}
 
 noncomputable
 def normedAlgebraOfAbsoluteValue (hv : v.restrict ℝ = .abs) : NormedAlgebra ℝ (WithAbs v) where
-  __ := WithAbs.instAlgebra_right v --‹Algebra ℝ (WithAbs v)›
+  __ := ‹Algebra ℝ (WithAbs v)› -- WithAbs.instAlgebra_right v --
   norm_smul_le r x := by
     rw [Algebra.smul_def, norm_mul]
     refine le_of_eq ?_
@@ -576,7 +494,6 @@ lemma algebraEquiv_eq_algebraMap (e : ℝ ≃ₐ[ℝ] F) : e = algebraMap ℝ F 
   apply_fun (· x) at this
   simp only [RingHom.coe_comp, Function.comp_apply, RingHom.id_apply] at this
   nth_rewrite 1 [← this]
-  -- set y := algebraMap ℝ F x -- without that, `simp` does not close the goal
   simp only [RingHom.coe_coe, AlgEquiv.apply_symm_apply]
 
 open AbsoluteValue WithAbs
@@ -623,6 +540,7 @@ theorem nonempty_algEquiv_or_of_restrict_eq (hv : v.restrict ℝ = .abs) :
     exact congrArg Subtype.val H₁
 
 /-- A version of the **Gelfand-Mazur Theorem** over the reals:
+
 A field `F` that is an `ℝ`-algebra and has an absolute value `v` whose pull-back to `ℝ` is
 equivalent to the standard absolute value is either isomorphic to `ℝ` (via the algebra map)
 or is isomorphic to `ℂ` as an `ℝ`-algebra in such a way that the pull-back of `v` to `ℂ`

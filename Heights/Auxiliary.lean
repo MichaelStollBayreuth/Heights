@@ -356,7 +356,7 @@ lemma equiv_apply_algebraMap {R S : Type*} [CommRing R] [Ring S] [Algebra R S]
   rfl -/
 
 lemma norm_equiv_eq {v v' : AbsoluteValue F ℝ} (h : v = v') (x : WithAbs v) :
-    ‖(algebraMap (WithAbs v') v'.Completion).comp (WithAbs.equiv v).toRingHom x‖ = v x := by
+    ‖(algebraMap (WithAbs v') v'.Completion).comp (equiv v).toRingHom x‖ = v x := by
   simp [h]
   rfl
 
@@ -668,7 +668,7 @@ open Finset in
 lemma abv_finsetSum_le_mul_max (f : ℕ → R) {N : ℕ} (hN : 0 < N) :
     v (∑ i ∈ range N, f i) ≤
       2 * N * (range N).sup' (nonempty_range_iff.mpr hN.ne') fun i ↦ v (f i) := by
-  have key (f : ℕ → R) (n : ℕ) : v (∑ i ∈ range (2 ^n), f i) ≤
+  have key (f : ℕ → R) (n : ℕ) : v (∑ i ∈ range (2 ^ n), f i) ≤
       2 ^ n * (range (2 ^ n)).sup' (nonempty_range_iff.mpr n.two_pow_pos.ne') fun i ↦ v (f i) := by
     induction n generalizing f with
     | zero => simp
@@ -771,36 +771,32 @@ lemma abv_finsetSum_le_mul_max (f : ℕ → R) {N : ℕ} (hN : 0 < N) :
 
 include hm
 
+omit hn h₀ ha in
+lemma abv_one_sq_eq : v 1 ^ 2 = v 1 :=
+  calc
+  _ = v 1 * v 1 := by rw [sq]
+  _ = v (1 * 1) := (hm 1 1).symm
+  _ = v 1 := by rw [mul_one]
+
+omit hn h₀ ha in
+lemma abv_one_le : v 1 ≤ 1 := by
+  by_contra! h
+  rcases eq_zero_or_one_of_sq_eq_self (abv_one_sq_eq hm) with h' | h' <;> linarith only [h, h']
+
 lemma abv_natCast_le (n : ℕ) : v n ≤ 2 * n := by
   rcases n.eq_zero_or_pos with rfl | hn₀
   · simp [(h₀ 0).mpr rfl]
-  have : (n : R) = ∑ i ∈ Finset.range n, 1 := by
-    refine (Finset.sum_range_induction (fun k ↦ 1) Nat.cast Nat.cast_zero n (fun n ↦ ?_)).symm
-    simp
-  rw [this]
-  have : v 1 ≤ 1 := by
-    by_contra! h
-    have : v 1 ^ 2 = v 1 := by
-      calc
-      _ = v 1 * v 1 := by rw[sq]
-      _ = v (1 * 1) := (hm 1 1).symm
-      _ = v 1 := by rw [mul_one]
-    rcases eq_zero_or_one_of_sq_eq_self this with h' | h' <;> linarith only [h, h']
+  rw [show (n : R) = ∑ i ∈ Finset.range n, 1 by simp]
   refine (abv_finsetSum_le_mul_max hn h₀ ha _ hn₀).trans ?_
   simp only [Finset.sup'_const]
-  nth_rewrite 2 [← mul_one (2 * (n : ℝ))]
-  gcongr
+  grw [abv_one_le hm]
+  exact (mul_one _).le
 
 variable [Nontrivial R]
 
 omit hn ha in
-lemma abv_one : v 1 = 1 := by
-  have : v 1 ^ 2 = v 1 := by
-    calc
-    _ = v 1 * v 1 := by rw[sq]
-    _ = v (1 * 1) := (hm 1 1).symm
-    _ = v 1 := by rw [mul_one]
-  exact (eq_zero_or_one_of_sq_eq_self this).resolve_left <| (h₀ 1).not.mpr one_ne_zero
+lemma abv_one : v 1 = 1 :=
+  (eq_zero_or_one_of_sq_eq_self (abv_one_sq_eq hm)).resolve_left <| (h₀ 1).not.mpr one_ne_zero
 
 omit hn ha in
 lemma abv_pow (x : R) (n : ℕ) : v (x ^ n) = v x ^ n := by
@@ -840,11 +836,11 @@ lemma add_le_add_of_add_le_two_mul_max (x y : R) : v (x + y) ≤ v x + v y := by
 /-- A "weak absolute value" (satisfying the weaker triangle inequality
 `v (x + y) ≤ 2 * max (v x) (v y)`) is actually an absolute value. -/
 def of_add_le_two_mul_max : AbsoluteValue R ℝ where
-      toFun := v
-      map_mul' := hm
-      nonneg' := hn
-      eq_zero' := h₀
-      add_le' := add_le_add_of_add_le_two_mul_max hm hn h₀ ha
+  toFun := v
+  map_mul' := hm
+  nonneg' := hn
+  eq_zero' := h₀
+  add_le' := add_le_add_of_add_le_two_mul_max hm hn h₀ ha
 
 end weak
 
