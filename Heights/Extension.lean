@@ -1,4 +1,5 @@
 import Heights.Equivalence
+import Heights.WeakAbsoluteValue
 import Mathlib.Analysis.Normed.Algebra.GelfandMazur
 
 /-!
