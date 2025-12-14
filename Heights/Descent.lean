@@ -5,7 +5,7 @@ import Mathlib.GroupTheory.CosetCover
 import Mathlib.Algebra.Module.NatInt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
-
+import Mathlib
 /-!
 # Descent Theorem
 
@@ -34,6 +34,8 @@ Replacing `ℝ` by an ordered field (`{R : Type*} [LinearOrder R] [Field R] [IsO
 works, but makes the type check quite slow (and `to_additive` needs some  help...).
 -/
 
+open scoped Pointwise
+
 open Subgroup Finset in
 /-- If `G` is a group and `f : G →* G` is an endomorphism sending subgroups into themselves,
 and if there is a "height function" `h : G → ℝ` with respect to `f` and a finite subset `s`
@@ -43,7 +45,7 @@ subgroups into themselves, and if there is a "height function" `h : G → ℝ` w
 to `f` and a finite subset `s` of `G`, then `G` is finitely generated. -/]
 theorem Group.FG_of_descent {G : Type*} [Group G]
     {f : G →* G} (hf : ∀ U : Subgroup G, U.map f ≤ U) {s : Finset G} {h : G → ℝ} {a b c : ℝ}
-    (ha : 0 ≤ a) (H₀ : a < b) (H₁ : Set.SurjOn (QuotientGroup.mk (s := map f ⊤)) s ⊤)
+    (ha : 0 ≤ a) (H₀ : a < b) (H₁ : (s : Set G) * Set.range f = .univ)
     (H₂ : ∀ g ∈ s, ∀ x, h (g⁻¹ * x) ≤ a * h x + c) (H₃ : ∀ x, b * h x - c ≤ h (f x))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     FG G := by
@@ -63,11 +65,8 @@ theorem Group.FG_of_descent {G : Type*} [Group G]
   have HT : T.Nonempty := ⟨_, hx₀T⟩
   obtain ⟨x, hx₁, hx₂⟩ := mem_image.mp <| (T.image h).min'_mem (HT.image h)
   -- Now we construct an element `y` of smaller height and not in `U`.
-  have ⟨g, hg, y, hy⟩ : ∃ g ∈ s, ∃ y, g * f y = x := by
-    obtain ⟨g, hg₁, hg₂⟩ := (Set.mem_image ..).mp (H₁ <| Set.mem_univ (q x))
-    refine ⟨g, SetLike.mem_coe.mp hg₁, ?_⟩
-    obtain ⟨y, -, hy₂⟩ := mem_map.mp <| QuotientGroup.eq.mp hg₂
-    exact ⟨y, by rw [hy₂, mul_inv_cancel_left]⟩
+  obtain ⟨g, hg, z, hz, hy⟩ := Set.mem_mul.mp <| H₁ ▸ Set.mem_univ x
+  obtain ⟨y, rfl⟩ := Set.mem_range.mp hz
   rw [← eq_inv_mul_iff_mul_eq] at hy
   have H' : h y < h x := by
     suffices a * h x + 2 * c < b * h x by nlinarith [hy ▸ H₂ g hg x, H₃ y]
@@ -82,7 +81,6 @@ theorem Group.FG_of_descent {G : Type*} [Group G]
   suffices x ∉ U by rw [mul_inv_cancel_left] at Hfy; exact this Hfy
   grind
 
-open scoped Pointwise in
 open AddSubgroup DistribMulAction in
 /--
 If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` and `s : Finset G` satisfy
@@ -95,18 +93,21 @@ then `G` is finitely generated.
 -/
 theorem AddCommGroup.FG_of_descent' {G : Type*} [AddCommGroup G] {n : ℕ}
     {s : Finset G} {h : G → ℝ} {a b c : ℝ} (ha : 0 ≤ a) (H₀ : a < b)
-    (H₁ : Set.SurjOn (QuotientAddGroup.mk (s := n • (⊤ : AddSubgroup G))) s ⊤)
+    (H₁ : (s : Set G) + (n • (⊤ : AddSubgroup G) :) = .univ)
     (H₂ : ∀ g ∈ s, ∀ x, h (x - g) ≤ a * h x + c) (H₃ : ∀ x, b * h x - c ≤ h (n • x))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     AddGroup.FG G := by
-  refine AddGroup.FG_of_descent (fun U u hu ↦ ?_) ha H₀ H₁ ?_ H₃ H₄
-  · simp only [toAddMonoidEnd_apply, mem_map, toAddMonoidHom_apply] at hu
-    obtain ⟨u', hu₁, rfl⟩ := hu
+  let f := nsmulAddMonoidHom (α := G) n
+  have H₁' : (s : Set G) + Set.range f = .univ := by
+    convert H₁
+    ext
+    simp [f, Set.mem_smul_set]
+  refine AddGroup.FG_of_descent (fun U u hu ↦ ?_) ha H₀ H₁' ?_ H₃ H₄
+  · obtain ⟨u', hu₁, rfl⟩ := mem_map.mp hu
     exact AddSubgroup.nsmul_mem U hu₁ n
   · convert H₂ using 5
     exact neg_add_eq_sub ..
 
-open scoped Pointwise in
 open AddSubgroup DistribMulAction Finset in
 /--
 If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
@@ -132,9 +133,11 @@ theorem AddCommGroup.FG_of_descent {G : Type*} [AddCommGroup G] {n : ℕ}
   let c' : ℝ := max c₀ <| (s.image c).max' (image_nonempty.mpr hs)
   have H₃' x : b * h x - c' ≤ h (n • x) := by grind
   refine FG_of_descent' (s := s) ha H₀ ?_ (fun g hg x ↦ ?_) H₃' H₄
-  · simp only [coe_image, Set.Finite.coe_toFinset, Set.top_eq_univ, s]
-    refine Set.surjOn_comp_iff.mp ?_
-    rw [Function.comp_surjInv, QuotientAddGroup.range_mk]
-    exact Set.surjOn_id Set.univ
+  · ext x
+    simp only [Set.mem_add, Set.mem_univ, iff_true]
+    refine ⟨qi (q x), by simp [s], ?_⟩
+    simp only [eq_comm, ← sub_eq_iff_eq_add', exists_eq_right, SetLike.mem_coe,
+      ← QuotientAddGroup.eq_iff_sub_mem]
+    exact (Function.surjInv_eq QuotientAddGroup.mk_surjective _).symm
   · have hc : c g ≤ c' := le_sup_of_le_right <| le_max' _ _ <| mem_image_of_mem c hg
     grind
