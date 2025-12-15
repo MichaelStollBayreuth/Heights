@@ -78,39 +78,44 @@ theorem Group.fg_of_descent {G : Type*} [Group G]
   have Hfy := U.mul_mem (mem_closure_of_mem <| by grind : g ∈ U) (hf U <| hy ▸ mem_map_of_mem f H)
   exact hx₁.2 (mul_inv_cancel_left g x ▸ Hfy)
 
-open AddSubgroup QuotientAddGroup in
+open Subgroup QuotientGroup in
 /--
-If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
+If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
+* `G / G ^ n` is finite
+* for all `g x : G`, `h (x / g) ≤ a * h x + c g`,
+* for all `x : G`, `h (x ^ n) ≥ b * h x - c₀`,
+* for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
+* `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`,
+then `G` is finitely generated.
+-/
+@[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
 * `G / n • G` is finite
 * for all `g x : G`, `h (x - g) ≤ a * h x + c g`,
 * for all `x : G`, `h (n • x) ≥ b * h x - c₀`,
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
 * `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`,
-then `G` is finitely generated.
--/
-theorem AddCommGroup.fg_of_descent {G : Type*} [AddCommGroup G] {n : ℕ}
+then `G` is finitely generated. -/]
+theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ}
     {h : G → ℝ} {a b c₀ : ℝ} {c : G → ℝ} (ha : 0 ≤ a) (H₀ : a < b)
-    (H₁ : (nsmulAddMonoidHom (α := G) n).range.FiniteIndex)
-    (H₂ : ∀ g x, h (x - g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (n • x))
+    (H₁ : (powMonoidHom (α := G) n).range.FiniteIndex)
+    (H₂ : ∀ g x, h (x / g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
-    AddGroup.FG G := by
-  let f : G →+ G := nsmulAddMonoidHom n
-  let q := QuotientAddGroup.mk (s := f.range)
+    Group.FG G := by
+  let f : G →* G := powMonoidHom n
+  let q := QuotientGroup.mk (s := f.range)
   let qi : G ⧸ f.range → G := Function.surjInv mk_surjective
   let s : Set G := Set.range qi
   obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| Set.range_nonempty qi
   let c' : ℝ := max c₀ (c g)
-  have H₁' : s + f.range = .univ := by
+  have H₁' : s * f.range = .univ := by
     ext x
-    simp only [Set.mem_add, SetLike.mem_coe, Set.mem_univ, iff_true]
+    simp only [Set.mem_mul, SetLike.mem_coe, Set.mem_univ, iff_true]
     refine ⟨qi (q x), by simp [s], ?_⟩
-    conv => enter [1, y]; rw [eq_comm, ← sub_eq_iff_eq_add']
+    conv => enter [1, y]; rw [eq_comm, ← div_eq_iff_eq_mul']
     simp only [↓existsAndEq, and_true]
-    exact eq_iff_sub_mem.mp (Function.surjInv_eq mk_surjective _).symm
-  have H₃' x : b * h x - c' ≤ h (f x) := by simp only [nsmulAddMonoidHom_apply, f]; grind
-  refine AddGroup.fg_of_descent (fun U u hu ↦ ?_) ha H₀ s.toFinite H₁' (fun g' hg' x ↦ ?_) H₃' H₄
+    exact eq_iff_div_mem.mp (Function.surjInv_eq mk_surjective _).symm
+  have H₃' x : b * h x - c' ≤ h (f x) := by simp only [powMonoidHom_apply, f]; grind
+  refine Group.fg_of_descent (fun U u hu ↦ ?_) ha H₀ s.toFinite H₁' (fun g' hg' x ↦ ?_) H₃' H₄
   · obtain ⟨u', hu₁, rfl⟩ := mem_map.mp hu
-    exact U.nsmul_mem hu₁ n
-  · rw [neg_add_eq_sub] -- `grind [neg_add_eq_sub]` solves the goal, but is slow
-    grw [H₂]
-    exact add_le_add_left (le_sup_of_le_right (hg₂ g' hg')) _
+    exact U.pow_mem hu₁ n
+  · grind [inv_mul_eq_div]
