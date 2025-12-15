@@ -97,8 +97,8 @@ theorem AddCommGroup.fg_of_descent {G : Type*} [AddCommGroup G] {n : ℕ}
   let f : G →+ G := nsmulAddMonoidHom n
   let q := QuotientAddGroup.mk (s := f.range)
   let qi : G ⧸ f.range → G := Function.surjInv mk_surjective
-  let s : Set G := (Set.range q).image qi
-  obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| (Set.range_nonempty q).image qi
+  let s : Set G := Set.range qi
+  obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| Set.range_nonempty qi
   let c' : ℝ := max c₀ (c g)
   have H₁' : s + f.range = .univ := by
     ext x
