@@ -350,43 +350,9 @@ namespace UniformSpace.Completion
 
 variable {α : Type*} [Ring α] [UniformSpace α] [IsTopologicalRing α] [IsUniformAddGroup α]
 variable {β : Type*} [Ring β] [UniformSpace β] [IsTopologicalRing β] [IsUniformAddGroup β]
-variable {γ : Type*} [Ring γ] [UniformSpace γ] [IsTopologicalRing γ] [IsUniformAddGroup γ]
 
 lemma continuous_mapRingHom {f : α →+* β} (hf : Continuous f) : Continuous (mapRingHom f hf) := by
   simpa only [mapRingHom, extensionHom, DFunLike.coe] using continuous_extension
-
-lemma mapRingHom_id : mapRingHom (RingHom.id α) continuous_id = RingHom.id _ := by
-  ext1 x
-  simp only [mapRingHom, extensionHom, RingHomCompTriple.comp_eq, RingHom.coe_mk, MonoidHom.coe_mk,
-    OneHom.coe_mk, RingHom.id_apply]
-  exact congrFun (extension_unique (uniformContinuous_coe α) uniformContinuous_id (fun _ ↦ rfl)) x
-
-lemma mapRingHom_comp {f : α →+* β} {g : β →+* γ} (hf : Continuous f) (hg : Continuous g) :
-    mapRingHom (g.comp f) (RingHom.coe_comp .. ▸ Continuous.comp hg hf) =
-      (mapRingHom g hg).comp (mapRingHom f hf) := by
-  ext1 x
-  simp only [mapRingHom, extensionHom, RingHom.coe_comp, RingHom.coe_mk, MonoidHom.coe_mk,
-    OneHom.coe_mk, Function.comp_apply]
-  convert congrFun (extension_unique (f := ⇑coeRingHom ∘ ⇑g ∘ ⇑f)
-    (g := (mapRingHom g hg).comp (mapRingHom f hf)) ?_ ?_ (fun a ↦ ?_)) x
-  · refine UniformContinuous.comp (uniformContinuous_coe _) <| UniformContinuous.comp ?_ ?_
-    · exact uniformContinuous_addMonoidHom_of_continuous hg
-    · exact uniformContinuous_addMonoidHom_of_continuous hf
-  · rw [RingHom.coe_comp]
-    refine UniformContinuous.comp ?_ ?_ <;>
-      simpa [mapRingHom, extensionHom] using uniformContinuous_extension
-  · simp [Function.comp_apply, RingHom.coe_comp, mapRingHom, extensionHom_coe, coeRingHom]
-
-/-- A ring isomorphism that is also a homeomorphism between two topological rings induces
-a ring isomorphism between their completions. -/
-noncomputable
-def mapRingEquiv (f : α ≃+* β) (hf : Continuous f) (hf' : Continuous f.symm):
-    Completion α ≃+* Completion β := by
-  refine RingEquiv.ofRingHom (mapRingHom f.toRingHom hf) (mapRingHom f.symm.toRingHom hf')
-    ?_ ?_ <;>
-  { rw [← mapRingHom_comp]
-    simpa [RingEquiv.toRingHom_eq_coe, RingEquiv.comp_symm] using mapRingHom_id
-  }
 
 end UniformSpace.Completion
 
@@ -420,7 +386,7 @@ variable {F : Type*} [Field F] {v v' : AbsoluteValue F ℝ} (h : v = v')
 
 noncomputable
 def ringHom_of_eq : v.Completion →+* v'.Completion :=
-  extensionEmbedding_of_comp <| WithAbs.norm_equiv_eq h
+  (AddMonoidHomClass.isometry_of_norm _ (WithAbs.norm_equiv_eq h)).extensionHom
 
 lemma coeFun_ringHom_of_eq :
     ⇑(ringHom_of_eq h) = UniformSpace.Completion.map ⇑(equivWithAbs v v') := rfl
@@ -583,12 +549,13 @@ lemma norm_algebraMap_comp_eq_real (x : WithAbs real) :
 open Completion in
 noncomputable
 def ringHom_completion_real : real.Completion →+* ℝ :=
-  extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+  (AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real).extensionHom
 
 open Completion Topology in
 lemma ringHom_completion_real_surjective : Function.Surjective ringHom_completion_real := by
   have : IsClosedEmbedding ringHom_completion_real :=
-    isClosedEmbedding_extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+    (AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real)
+      |>.completion_extension.isClosedEmbedding
   exact RingHom.fieldRange_eq_top_iff.mp <| Real.subfield_eq_of_closed this.isClosed_range
 
 open Completion Topology in
@@ -601,12 +568,13 @@ lemma isometry_ringEquiv_completion_real : Isometry ringEquiv_completion_real :=
   refine AddMonoidHomClass.isometry_of_norm ringEquiv_completion_real fun x ↦ ?_
   simp only [ringEquiv_completion_real, RingEquiv.coe_ofBijective, ringHom_completion_real]
   refine (AddMonoidHomClass.isometry_iff_norm _).mp ?_ x
-  exact AbsoluteValue.Completion.isometry_extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+  exact AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real |>.completion_extension
 
 open Completion Topology in
 lemma isHomeomorph_ringEquiv_completion_real : IsHomeomorph ringEquiv_completion_real := by
   simp only [ringEquiv_completion_real, RingEquiv.coe_ofBijective]
-  have := isClosedEmbedding_extensionEmbedding_of_comp norm_algebraMap_comp_eq_real
+  have := (AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real)
+            |>.completion_extension.isClosedEmbedding
   exact isHomeomorph_iff_isEmbedding_surjective.mpr
     ⟨this.toIsEmbedding, ringEquiv_completion_real.surjective⟩
 

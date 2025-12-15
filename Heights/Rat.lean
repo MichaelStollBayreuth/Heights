@@ -61,7 +61,7 @@ lemma Int.heightOneSpectrum_aux₂ (p : Nat.Primes) :
     (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose.natAbs = p := by
   have := (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose_spec
   rw [submodule_span_eq, span_singleton_eq_span_singleton, associated_iff_natAbs] at this
-  rw [← this, natAbs_cast]
+  rw [← this, natAbs_natCast]
 
 /-- The canonical bijection between the set of prime numbers and the height one spectrum of `ℤ` -/
 noncomputable

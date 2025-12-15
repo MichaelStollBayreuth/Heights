@@ -392,10 +392,12 @@ lemma comap_completion_eq_of_isometry {F' : Type*} [Field F'] (v' : AbsoluteValu
   simpa only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
     norm_eq_abv, RingEquiv.apply_symm_apply, ← Completion.absoluteValue_eq_norm] using this
 
+-- without these, instance search times out below (necessary after bump to v4.26.0)
+attribute [local instance 2000] RingEquivClass.toRingHomClass RingHomClass.toAddMonoidHomClass in
 lemma isometry_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
     Isometry ((equiv ((Completion.absoluteValue v).comap f)).trans f) := by
   have H : Isometry (equiv (Completion.absoluteValue v)) :=
-    (AddMonoidHomClass.isometry_iff_norm _).mpr (congrFun rfl)
+    (AddMonoidHomClass.isometry_iff_norm _).mpr (fun _ ↦ rfl)
   replace H := H.comp <| isometry_comap (Completion.absoluteValue v) f.toRingHom
   simpa only [RingEquiv.coe_trans, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp,
     RingHom.coe_coe] using H
@@ -422,8 +424,9 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
   -- By functoriality of the completion, we obtain a ring homomorphism and isometry
   -- `e₁ : v₀.Completion → F`.
   let e₁ : v₀.Completion →+* WithAbs v :=
-    Completion.extensionEmbedding_of_comp (f := e₀) fun _ ↦ rfl
-  have he₁ : Isometry e₁ := Completion.isometry_extensionEmbedding_of_comp fun _ ↦ rfl
+    (AddMonoidHomClass.isometry_of_norm (e₀.comp (WithAbs.equiv v₀)) fun _ ↦ rfl).extensionHom
+  have he₁ : Isometry e₁ :=
+    AddMonoidHomClass.isometry_of_norm _ (fun _ ↦ rfl) |>.completion_extension
   -- The pull-back of `v` under `e₁` is the absolute value of the completion.
   have H₁ : v.comap e₁ = Completion.absoluteValue v₀ :=
     comap_completion_eq_of_isometry v he₁
