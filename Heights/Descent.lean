@@ -43,11 +43,10 @@ of `G`, then `G` is finitely generated. -/
 @[to_additive /-- If `G` is an additive group and `f : G →+ G` is an endomorphism sending
 subgroups into themselves, and if there is a "height function" `h : G → ℝ` with respect
 to `f` and a finite subset `s` of `G`, then `G` is finitely generated. -/]
-theorem Group.fg_of_descent {G : Type*} [Group G]
-    {f : G →* G} (hf : ∀ U : Subgroup G, U.map f ≤ U) {s : Set G} {h : G → ℝ} {a b c : ℝ}
-    (ha : 0 ≤ a) (H₀ : a < b) (hs : s.Finite) (H₁ : s * f.range = .univ)
-    (H₂ : ∀ g ∈ s, ∀ x, h (g⁻¹ * x) ≤ a * h x + c) (H₃ : ∀ x, b * h x - c ≤ h (f x))
-    (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
+theorem Group.fg_of_descent {G : Type*} [Group G] {f : G →* G} (hf : ∀ U : Subgroup G, U.map f ≤ U)
+    {s : Set G} {h : G → ℝ} {a b c : ℝ} (ha : 0 ≤ a) (H₀ : a < b) (hs : s.Finite)
+    (H₁ : s * f.range = .univ) (H₂ : ∀ g ∈ s, ∀ x, h (g⁻¹ * x) ≤ a * h x + c)
+    (H₃ : ∀ x, b * h x - c ≤ h (f x)) (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     FG G := by
   set q := QuotientGroup.mk (s := map f ⊤)
   -- Main proof idea: `s` together with elements of sufficiently small "height" `h` generates `G`.
@@ -95,9 +94,8 @@ then `G` is finitely generated.
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
 * `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`,
 then `G` is finitely generated. -/]
-theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ}
-    {h : G → ℝ} {a b c₀ : ℝ} {c : G → ℝ} (ha : 0 ≤ a) (H₀ : a < b)
-    (H₁ : (powMonoidHom (α := G) n).range.FiniteIndex)
+theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → ℝ} {a b c₀ : ℝ}
+    {c : G → ℝ} (ha : 0 ≤ a) (H₀ : a < b) (H₁ : (powMonoidHom (α := G) n).range.FiniteIndex)
     (H₂ : ∀ g x, h (x / g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     Group.FG G := by
@@ -108,10 +106,8 @@ theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ}
   obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| Set.range_nonempty qi
   let c' : ℝ := max c₀ (c g)
   have H₁' : s * f.range = .univ := by
-    ext x
-    simp only [Set.mem_mul, SetLike.mem_coe, Set.mem_univ, iff_true]
-    refine ⟨qi (q x), by simp [s], ?_⟩
-    conv => enter [1, y]; rw [eq_comm, ← div_eq_iff_eq_mul']
+    refine Set.eq_univ_iff_forall.mpr fun x ↦ Set.mem_mul.mpr ⟨qi (q x), by simp [s], ?_⟩
+    conv => enter [1, y]; rw [eq_comm, ← div_eq_iff_eq_mul', SetLike.mem_coe]
     simp only [↓existsAndEq, and_true]
     exact eq_iff_div_mem.mp (Function.surjInv_eq mk_surjective _).symm
   have H₃' x : b * h x - c' ≤ h (f x) := by simp only [powMonoidHom_apply, f]; grind
