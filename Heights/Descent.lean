@@ -45,7 +45,7 @@ subgroups into themselves, and if there is a "height function" `h : G → ℝ` w
 to `f` and a finite subset `s` of `G`, then `G` is finitely generated. -/]
 theorem Group.fg_of_descent {G : Type*} [Group G]
     {f : G →* G} (hf : ∀ U : Subgroup G, U.map f ≤ U) {s : Set G} {h : G → ℝ} {a b c : ℝ}
-    (ha : 0 ≤ a) (H₀ : a < b) (hs : s.Finite) (H₁ : s * Set.range f = .univ)
+    (ha : 0 ≤ a) (H₀ : a < b) (hs : s.Finite) (H₁ : s * f.range = .univ)
     (H₂ : ∀ g ∈ s, ∀ x, h (g⁻¹ * x) ≤ a * h x + c) (H₃ : ∀ x, b * h x - c ≤ h (f x))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     FG G := by
@@ -90,23 +90,19 @@ then `G` is finitely generated.
 -/
 theorem AddCommGroup.fg_of_descent {G : Type*} [AddCommGroup G] {n : ℕ}
     {h : G → ℝ} {a b c₀ : ℝ} {c : G → ℝ} (ha : 0 ≤ a) (H₀ : a < b)
-    (H₁ : (n • (⊤ : AddSubgroup G)).FiniteIndex)
+    (H₁ : (nsmulAddMonoidHom (α := G) n).range.FiniteIndex)
     (H₂ : ∀ g x, h (x - g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (n • x))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     AddGroup.FG G := by
-  let q := QuotientAddGroup.mk (s := n • (⊤ : AddSubgroup G))
-  let qi : G ⧸ n • ⊤ → G := Function.surjInv mk_surjective
+  let f : G →+ G := nsmulAddMonoidHom n
+  let q := QuotientAddGroup.mk (s := f.range)
+  let qi : G ⧸ f.range → G := Function.surjInv mk_surjective
   let s : Set G := (Set.range q).image qi
   obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| (Set.range_nonempty q).image qi
   let c' : ℝ := max c₀ (c g)
-  let f : G →+ G := nsmulAddMonoidHom n
-  have H₁' : s + Set.range f = .univ := by
-    convert_to s + (n • (⊤ : AddSubgroup G) :) = .univ
-    · congr
-      ext
-      simp [-coe_pointwise_smul, f, mem_smul_pointwise_iff_exists]
+  have H₁' : s + f.range = .univ := by
     ext x
-    simp only [Set.mem_add, Set.mem_univ, iff_true, SetLike.mem_coe]
+    simp only [Set.mem_add, SetLike.mem_coe, Set.mem_univ, iff_true]
     refine ⟨qi (q x), by simp [s], ?_⟩
     conv => enter [1, y]; rw [eq_comm, ← sub_eq_iff_eq_add']
     simp only [↓existsAndEq, and_true]
