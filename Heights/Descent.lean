@@ -1,12 +1,11 @@
-import Mathlib.Algebra.GroupWithZero.Subgroup
-import Mathlib.Data.Real.Basic
-import Mathlib.GroupTheory.Finiteness
-import Mathlib.GroupTheory.CosetCover
 import Mathlib.Algebra.Module.NatInt
+import Mathlib.Data.Real.Basic
+import Mathlib.Data.Set.Finite.Lemmas
+import Mathlib.GroupTheory.Finiteness
+import Mathlib.GroupTheory.Index
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
-import Mathlib.Data.Set.Finite.Lemmas
--- import Mathlib
+
 /-!
 # Descent Theorem
 
