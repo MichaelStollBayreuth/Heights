@@ -81,7 +81,7 @@ open Subgroup QuotientGroup in
 /--
 If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
 * `G / G ^ n` is finite
-* for all `g x : G`, `h (x / g) ≤ a * h x + c g`,
+* for all `g x : G`, `h (x * g) ≤ a * h x + c g`,
 * for all `x : G`, `h (x ^ n) ≥ b * h x - c₀`,
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
 * `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`,
@@ -89,22 +89,22 @@ then `G` is finitely generated.
 -/
 @[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
 * `G / n • G` is finite
-* for all `g x : G`, `h (x - g) ≤ a * h x + c g`,
+* for all `g x : G`, `h (x + g) ≤ a * h x + c g`,
 * for all `x : G`, `h (n • x) ≥ b * h x - c₀`,
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
 * `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`,
 then `G` is finitely generated. -/]
 theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → ℝ} {a b c₀ : ℝ}
     {c : G → ℝ} (ha : 0 ≤ a) (H₀ : a < b) (H₁ : (powMonoidHom (α := G) n).range.FiniteIndex)
-    (H₂ : ∀ g x, h (x / g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n))
+    (H₂ : ∀ g x, h (x * g) ≤ a * h x + c g) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n))
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     Group.FG G := by
   let f : G →* G := powMonoidHom n
   let q := QuotientGroup.mk (s := f.range)
   let qi : G ⧸ f.range → G := Function.surjInv mk_surjective
   let s : Set G := Set.range qi
-  obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image c s.toFinite <| Set.range_nonempty qi
-  let c' : ℝ := max c₀ (c g)
+  obtain ⟨g, hg₁, hg₂⟩ := s.exists_max_image (c ·⁻¹) s.toFinite <| Set.range_nonempty qi
+  let c' : ℝ := max c₀ (c g⁻¹)
   have H₁' : s * f.range = .univ := by
     refine Set.eq_univ_iff_forall.mpr fun x ↦ Set.mem_mul.mpr ⟨qi (q x), by simp [s], ?_⟩
     conv => enter [1, y]; rw [eq_comm, ← div_eq_iff_eq_mul', SetLike.mem_coe]
@@ -114,4 +114,4 @@ theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → �
   refine Group.fg_of_descent (fun U u hu ↦ ?_) ha H₀ s.toFinite H₁' (fun g' hg' x ↦ ?_) H₃' H₄
   · obtain ⟨u', hu₁, rfl⟩ := mem_map.mp hu
     exact U.pow_mem hu₁ n
-  · grind [inv_mul_eq_div]
+  · grind [mul_comm, inv_mul_eq_div]
