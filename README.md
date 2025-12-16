@@ -100,3 +100,11 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
   in [__Rat.lean__](Heights/Rat.lean)).
 * The height on `ℚ` satisfies the *Northcott Property* (see `Rat.finite_of_mulHeight_le` and
   `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
+
+## Further developments
+
+* In [__Descent.lean__](Heights/Descent.lean) we provide a proof of the "infinite descent"
+  part of the *Mordell-Weil Theorem*, i.e., the implication
+  "`G/n•G` finite ⇒ `G` finitely generated", assuming there is a suitable kind
+  of height function on the additive commutative group `G`. See (the additivized version of)
+  `CommGroup.fg_of_descent`.
