@@ -124,7 +124,7 @@ lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSu
     (Function.mulSupport fun a ↦ f a * g a).Finite :=
   (hf.union hg).subset <| mulSupport_mul f g
 
--- needed
+-- needed [Mathlib.Algebra.BigOperators.Finprod]
 lemma one_le_finprod {M : Type*} [CommMonoidWithZero M] [Preorder M] [ZeroLEOneClass M]
     [PosMulMono M] {f : α → M} (hf : ∀ i, 1 ≤ f i) :
     1 ≤ ∏ᶠ i, f i :=
