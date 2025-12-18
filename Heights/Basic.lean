@@ -1,4 +1,5 @@
 import Heights.Auxiliary
+-- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
 # Basic theory of heights
@@ -52,11 +53,11 @@ We define the following variants.
 
 section aux
 
+-- Some lemmas needed later
+
 private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
   nth_rewrite 1 [← mul_one b]
-  gcongr
-  · exact le_max_left _ 1
-  · exact le_max_right _ 1
+  gcongr <;> grind
 
 private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
   rw [mul_comm]
@@ -96,7 +97,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   NonarchAbsVal : Type*
   /-- The nonarchimedean absolute values. -/
   nonarchAbsVal : NonarchAbsVal → AbsoluteValue K ℝ
-  /-- The nonarchiemdean absolute values are indeed nonarchimedean. -/
+  /-- The nonarchimedean absolute values are indeed nonarchimedean. -/
   strong_triangle_ineq (v : NonarchAbsVal) : IsNonarchimedean (nonarchAbsVal v)
   /-- Only finitely many absolute values are `≠ 1` for any nonzero `x : K`. -/
   mulSupport_nonarchAbsVal_finite {x : K} (_ : x ≠ 0) : (nonarchAbsVal · x).mulSupport.Finite

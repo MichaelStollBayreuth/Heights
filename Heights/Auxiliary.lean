@@ -66,6 +66,7 @@ section aux
 
 variable {α β : Type*}
 
+-- needed later
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
@@ -76,6 +77,7 @@ lemma Real.max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ 
   · simpa only [h, sup_of_le_right, sup_eq_right] using Real.rpow_le_rpow hx h hc
   · simpa only [h, sup_of_le_left, sup_eq_left] using Real.rpow_le_rpow hy h hc
 
+-- needed later
 lemma Real.iSup_pow_of_nonneg [Fintype α] [Nonempty α] {f : α → ℝ} (hf : ∀ a, 0 ≤ f a) (n : ℕ) :
     (⨆ a, f a) ^ n = ⨆ a, (f a ^ n) := by
   have H a : ((f a).toNNReal  : ℝ) = f a := Real.coe_toNNReal (f a) (hf a)
@@ -115,17 +117,20 @@ lemma finprod_mono' [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β
     finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
   exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
 
+-- needed later
 @[to_additive]
 lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
     (hg : g.mulSupport.Finite) :
     (Function.mulSupport fun a ↦ f a * g a).Finite :=
   (hf.union hg).subset <| mulSupport_mul f g
 
+-- needed
 lemma one_le_finprod {M : Type*} [CommMonoidWithZero M] [Preorder M] [ZeroLEOneClass M]
     [PosMulMono M] {f : α → M} (hf : ∀ i, 1 ≤ f i) :
     1 ≤ ∏ᶠ i, f i :=
   finprod_induction _ le_rfl (fun _ _ ↦ one_le_mul_of_one_le_of_one_le) hf
 
+-- needed
 lemma Finset.one_le_prod [DecidableEq α] (s : Finset α) {M : Type*} [CommMonoidWithZero M]
     [Preorder M] [ZeroLEOneClass M] [PosMulMono M] {f : α → M} (hf : ∀ i, 1 ≤ f i) :
     1 ≤ ∏ i ∈ s, f i := by
@@ -135,6 +140,7 @@ lemma Finset.one_le_prod [DecidableEq α] (s : Finset α) {M : Type*} [CommMonoi
 
 variable {K : Type*} [Field K] {ι : Type*} [Fintype ι]
 
+-- needed later
 lemma AbsoluteValue.iSup_eq_subtype (v : AbsoluteValue K ℝ) {x : ι → K} (hx : x ≠ 0) :
     ⨆ i, v (x i) = ⨆ i : {j // x j ≠ 0}, v (x i) := by
   have ⟨i, hi⟩ : ∃ j, x j ≠ 0 := Function.ne_iff.mp hx
@@ -148,6 +154,7 @@ lemma AbsoluteValue.iSup_eq_subtype (v : AbsoluteValue K ℝ) {x : ι → K} (hx
     · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨j, h⟩ le_rfl
   · exact ciSup_le fun ⟨j, hj⟩ ↦ le_ciSup_of_le (Finite.bddAbove_range _) j le_rfl
 
+-- needed later
 lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
     v x ⊔ 1 = ⨆ i, v (![x, 1] i) := by
   have H (i : Fin 2) : v (![x, 1] i) = ![v x, 1] i := by fin_cases i <;> simp
