@@ -80,7 +80,7 @@ theorem Group.fg_of_descent {G : Type*} [Group G] {f : G →* G} (hf : ∀ U : S
 open Subgroup QuotientGroup in
 /--
 If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
-* `G / G ^ n` is finite
+* `G / G ^ n` is finite,
 * for all `g x : G`, `h (x * g) ≤ a * h x + c g`,
 * for all `x : G`, `h (x ^ n) ≥ b * h x - c₀`,
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
@@ -88,7 +88,7 @@ If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
 then `G` is finitely generated.
 -/
 @[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
-* `G / n • G` is finite
+* `G / n • G` is finite,
 * for all `g x : G`, `h (x + g) ≤ a * h x + c g`,
 * for all `x : G`, `h (n • x) ≥ b * h x - c₀`,
 * for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`, and
@@ -115,3 +115,26 @@ theorem CommGroup.fg_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → �
   · obtain ⟨u', hu₁, rfl⟩ := mem_map.mp hu
     exact U.pow_mem hu₁ n
   · grind [mul_comm, inv_mul_eq_div]
+
+/--
+If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
+* `G / G ^ 2` is finite,
+* `0 ≤ h x` for all `x : G`,
+* there is `C : ℝ` such that for all `x y : G`, `|h (x * y) + h(x / y) - 2 * (h x + h y)| ≤ C`,
+* for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`,
+then `G` is finitely generated.
+-/
+@[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
+* `G / 2 • G` is finite,
+* `0 ≤ h x` for all `x : G`,
+* there is `C : ℝ` such that for all `x y : G`, `|h (x + y) + h(x - y) - 2 * (h x + h y)| ≤ C`,
+* for all `B : R`, there are only finitely many `x : G` such that `h x ≤ B`,
+then `G` is finitely generated. -/]
+theorem CommGroup.fg_of_descent' {G : Type*} [CommGroup G] {h : G → ℝ} {C : ℝ}
+    (H₁ : (powMonoidHom (α := G) 2).range.FiniteIndex) (H₂ : ∀ x, 0 ≤ h x)
+    (H₃ : ∀ x y, |h (x * y) + h (x / y) - 2 * (h x + h y)| ≤ C)
+    (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
+    Group.FG G := by
+  have H₂' g x : h (x * g) ≤ 2 * h x + (2 * h g + C) := by grind
+  have H₃' x : 4 * h x - (h 1 + C) ≤ h (x ^ 2) := by grind [sq, div_self']
+  exact fg_of_descent (b := 4) (by norm_num) (by norm_num) H₁ H₂' H₃' H₄
