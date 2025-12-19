@@ -19,7 +19,7 @@ The general set-up for heights is the following. Let `K` be a field.
 
 ## Implementation
 
-This file implements an alternative to the version outlined in [[Basic.lean]].
+This file implements an alternative to the version outlined in [[Basic-Alternative.lean]].
 The motivation is that trying to use the more uniform structure as defined there
 leads to some pain when trying to produce an instance of `AdmissibleAbsValues K`
 for a number field `K`: `Vals` is naturally given as `FinitePlace K ⊕ InfinitePlace K`,
