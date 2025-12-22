@@ -163,16 +163,14 @@ lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
 
 variable [NumberField K]
 
+-- Mathlib.NumberTheory.NumberField.FinitePlaces]
 lemma NumberField.FinitePlace.add_le (v : FinitePlace K) (x y : K) :
     v (x + y) ≤ max (v x) (v y) := by
-  simp_rw [← NumberField.FinitePlace.norm_embedding_eq, map_add]
-  rcases le_total ‖embedding v.maximalIdeal x‖ ‖embedding v.maximalIdeal y‖ with h | h
-  · refine le_sup_of_le_right ?_
-    rw [Valued.toNormedField.norm_le_iff] at h ⊢
-    exact sup_of_le_right h ▸ Valuation.map_add_le_max' Valued.v ..
-  · refine le_sup_of_le_left ?_
-    rw [Valued.toNormedField.norm_le_iff] at h ⊢
-    exact sup_of_le_left h ▸ Valuation.map_add_le_max' Valued.v ..
+  obtain ⟨w, hw⟩ := v.prop
+  have : v.val = RingOfIntegers.HeightOneSpectrum.adicAbv w :=
+    AbsoluteValue.ext fun x ↦ by grind only [place_apply, norm_def]
+  simp_rw [show ∀ x, v x = v.val x from fun _ ↦ rfl, this]
+  exact RingOfIntegers.HeightOneSpectrum.adicAbv_add_le_max w x y
 
 instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
   map_add_le_max v a b := NumberField.FinitePlace.add_le v a b
