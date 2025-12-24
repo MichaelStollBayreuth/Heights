@@ -19,20 +19,7 @@ open Height AdmissibleAbsValues
 @[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
     (archAbsVal.map f).prod = f Rat.infinitePlace.val := by
-  classical
-  have : archAbsVal = {Rat.infinitePlace.val} := by
-    refine Multiset.ext' fun v ↦ ?_
-    simp only [archAbsVal]
-    by_cases h : IsInfinitePlace v
-    · have : ⟨v, h⟩ = infinitePlace := Subsingleton.elim ..
-      rw [count_multisetInfinitePlace_eq_mult ⟨v, h⟩, this, Multiset.count_singleton,
-        show v = (⟨v, h⟩ : InfinitePlace ℚ) from rfl, ← Subtype.ext_iff, this]
-      simp
-    · simp_all only [mem_multisetInfinitePlace, not_false_eq_true, right_eq_ite_iff, zero_ne_one,
-        Multiset.count_eq_zero_of_notMem, Multiset.count_singleton, imp_false]
-      intro rfl
-      exact h infinitePlace.isInfinitePlace
-  simp [this]
+  simp [archAbsVal, prod_multisetInfinitePlace_eq, ← Finset.singleton_eq_univ Rat.infinitePlace]
 
 -- The following are not needed, after all, but might be useful eventually.
 /-
