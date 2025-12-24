@@ -12,24 +12,24 @@ section API
 
 instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only [eq_ratCast] }
 
+-- (up to here)
+
 open Height AdmissibleAbsValues
 
 @[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
     ∏ v ∈ archAbsVal, f v = f Rat.infinitePlace.val := by
   have : archAbsVal = {Rat.infinitePlace.val} := by
-    change finsetInfinitePlace ℚ = _
     ext v
-    simp only [mem_finsetInfinitePlace, isInfinitePlace_iff, Finset.mem_singleton]
-    refine ⟨fun ⟨w, hw⟩ ↦ hw  ▸ congrArg Subtype.val ?_, fun H ↦ H ▸ ⟨_, rfl⟩⟩
-    exact Subsingleton.elim (h := (inferInstance : Subsingleton (InfinitePlace ℚ))) ..
+    simp only [archAbsVal, mem_finsetInfinitePlace, Finset.mem_singleton, isInfinitePlace_iff]
+    exact ⟨fun ⟨w, hw⟩ ↦ hw ▸ Subtype.ext_iff.mp (Subsingleton.elim .. : w = _),
+           fun H ↦ H ▸ ⟨_, rfl⟩⟩
   simp [this]
 
 @[simp]
 lemma Rat.weight_eq_one (v : AbsoluteValue ℚ ℝ) : weight v = 1 := by
-  simp [weight]
+  simp [weight, weight']
 
--- (up to here)
 
 -- The following are not needed, after all, but might be useful eventually.
 /-

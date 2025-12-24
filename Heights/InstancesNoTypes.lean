@@ -1,5 +1,4 @@
 import Heights.BasicNoTypes
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 /-!
 # Instances of AdmissibleAbsValues
@@ -26,45 +25,53 @@ open Height Classical
 
 variable {K : Type*} [Field K] [NumberField K]
 
+/-- A predicate singling out finite places among the absolute values on a number field `K`. -/
 def IsFinitePlace (w : AbsoluteValue K ℝ) : Prop :=
-    ∃ v : IsDedekindDomain.HeightOneSpectrum (𝓞 K), place (FinitePlace.embedding v) = w
+  ∃ v : IsDedekindDomain.HeightOneSpectrum (𝓞 K), place (FinitePlace.embedding v) = w
 
+/-- A predicate singling out infinite places among the absolute values on a number field `K`. -/
 def IsInfinitePlace (w : AbsoluteValue K ℝ) : Prop :=
-    ∃ (φ : K →+* ℂ), place φ = w
+  ∃ (φ : K →+* ℂ), place φ = w
 
 variable (K) in
-noncomputable
-def finsetInfinitePlace : Finset (AbsoluteValue K ℝ) :=
-  (Set.finite_coe_iff.mp <| Finite.of_fintype (InfinitePlace K)).toFinset
+/-- The infinite places of a number field `K` as a `Finset` of absolute values on `K`. -/
+noncomputable def finsetInfinitePlace : Finset (AbsoluteValue K ℝ) :=
+  Finset.image Subtype.val (.univ : Finset (InfinitePlace K))
 
-lemma mem_finsetInfinitePlace (v : AbsoluteValue K ℝ) :
+@[simp]
+lemma mem_finsetInfinitePlace {v : AbsoluteValue K ℝ} :
     v ∈ finsetInfinitePlace K ↔ IsInfinitePlace v := by
-  rw [finsetInfinitePlace, IsInfinitePlace, Set.Finite.mem_toFinset]
-  exact Iff.rfl
+  simp [finsetInfinitePlace, IsInfinitePlace]
 
 omit [NumberField K] in
-lemma isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
+lemma InfinitePlace.isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
   simp [IsInfinitePlace, v.prop]
 
 omit [NumberField K] in
 lemma isInfinitePlace_iff (v : AbsoluteValue K ℝ) :
     IsInfinitePlace v ↔ ∃ w : InfinitePlace K, w.val = v :=
-  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ isInfinitePlace w⟩
+  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩
+
+/-- The weight of an absolute value `v` on a number field `K`,
+equal to its multiplicity when `v` is an infinite place, the junk value `1` otherwise. -/
+noncomputable def weight' (v : AbsoluteValue K ℝ) : ℕ :=
+  if h : IsInfinitePlace v then InfinitePlace.mult ⟨v, h⟩ else 1
+
+variable (K) in
+lemma prod_finsetInfinitePlace_eq {f : AbsoluteValue K ℝ → ℝ} :
+    ∏ v ∈ finsetInfinitePlace K, f v ^ weight' v = ∏ v : InfinitePlace K, f v.val ^ v.mult :=
+  Finset.prod_bij' (fun w hw ↦ ⟨w, mem_finsetInfinitePlace.mp hw⟩)
+    (fun v _ ↦ v.val) (by grind) (fun v _ ↦ by simp [v.isInfinitePlace])
+    (by grind) (by simp) fun w hw ↦ by simp [weight', mem_finsetInfinitePlace.mp hw]
 
 noncomputable
 instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   archAbsVal := finsetInfinitePlace K
-  weight v := if h : IsInfinitePlace v then InfinitePlace.mult ⟨v, h⟩ else 1
-  weight_pos v hv := by simp_all [mem_finsetInfinitePlace, InfinitePlace.mult_pos]
+  weight := weight'
+  weight_pos v hv := by simp_all [weight', InfinitePlace.mult_pos]
   nonarchAbsVal := {v | IsFinitePlace v}
   strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
   mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
-  product_formula {x} hx := by
-    convert prod_abs_eq_one hx
-    refine Finset.prod_bij' (fun w hw ↦ ⟨w, (mem_finsetInfinitePlace w).mp hw⟩)
-      (fun v _ ↦ v.val) (by grind) (fun v _ ↦ by simp [mem_finsetInfinitePlace, isInfinitePlace])
-      (by grind) (by simp) fun w hw ↦ ?_
-    replace hw : IsInfinitePlace w := by simpa [mem_finsetInfinitePlace] using hw
-    simp only [hw, ↓reduceDIte, InfinitePlace.coe_apply]
+  product_formula {x} hx := prod_finsetInfinitePlace_eq K ▸ prod_abs_eq_one hx
 
 end NumberField
