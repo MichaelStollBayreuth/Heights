@@ -62,7 +62,7 @@ lemma count_multisetInfinitePlace_eq_mult [DecidableEq (AbsoluteValue K ℝ)]
     Multiset.count_replicate, ← Subtype.ext_iff] using Fintype.sum_ite_eq' v ..
 
 variable (K) in
-lemma prod_finsetInfinitePlace_eq {f : AbsoluteValue K ℝ → ℝ} :
+lemma prod_multisetInfinitePlace_eq {f : AbsoluteValue K ℝ → ℝ} :
     ((multisetInfinitePlace K).map f).prod = ∏ v : InfinitePlace K, f v.val ^ v.mult := by
   classical
   rw [Finset.prod_multiset_map_count]
@@ -77,6 +77,6 @@ instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   nonarchAbsVal := {v | IsFinitePlace v}
   strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
   mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
-  product_formula {x} hx := prod_finsetInfinitePlace_eq K ▸ prod_abs_eq_one hx
+  product_formula {x} hx := prod_multisetInfinitePlace_eq K ▸ prod_abs_eq_one hx
 
 end NumberField
