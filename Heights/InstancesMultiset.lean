@@ -1,5 +1,4 @@
-import Heights.BasicNoTypes
-
+import Heights.BasicMultiset
 /-!
 # Instances of AdmissibleAbsValues
 
@@ -34,15 +33,18 @@ def IsInfinitePlace (w : AbsoluteValue K ℝ) : Prop :=
   ∃ (φ : K →+* ℂ), place φ = w
 
 variable (K) in
-/-- The infinite places of a number field `K` as a `Finset` of absolute values on `K`. -/
-noncomputable def finsetInfinitePlace : Finset (AbsoluteValue K ℝ) := by
-  classical
-  exact Finset.image Subtype.val (.univ : Finset (InfinitePlace K))
+/-- The infinite places of a number field `K` as a `Multiset` of absolute values on `K`,
+with multiplicity given by `InfinitePlace.mult`. -/
+noncomputable def multisetInfinitePlace : Multiset (AbsoluteValue K ℝ) :=
+  Multiset.bind (.univ : Finset (InfinitePlace K)).val fun v ↦ .replicate v.mult v.val
 
 @[simp]
-lemma mem_finsetInfinitePlace {v : AbsoluteValue K ℝ} :
-    v ∈ finsetInfinitePlace K ↔ IsInfinitePlace v := by
-  simp [finsetInfinitePlace, IsInfinitePlace]
+lemma mem_multisetInfinitePlace {v : AbsoluteValue K ℝ} :
+    v ∈ multisetInfinitePlace K ↔ IsInfinitePlace v := by
+  simp only [multisetInfinitePlace, Multiset.mem_bind, Finset.mem_val, Finset.mem_univ,
+    Multiset.mem_replicate, ne_eq, InfinitePlace.mult_ne_zero, not_false_eq_true, true_and,
+    IsInfinitePlace]
+  exact ⟨fun ⟨w, hw⟩ ↦ hw ▸ w.prop, fun H ↦ ⟨⟨v, H⟩, rfl⟩⟩
 
 omit [NumberField K] in
 lemma InfinitePlace.isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
@@ -53,25 +55,25 @@ lemma isInfinitePlace_iff (v : AbsoluteValue K ℝ) :
     IsInfinitePlace v ↔ ∃ w : InfinitePlace K, w.val = v :=
   ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩
 
-variable [∀ v : AbsoluteValue K ℝ, Decidable (IsInfinitePlace v)]
-
-/-- The weight of an absolute value `v` on a number field `K`,
-equal to its multiplicity when `v` is an infinite place, the junk value `1` otherwise. -/
-noncomputable def weight' (v : AbsoluteValue K ℝ) : ℕ :=
-  if h : IsInfinitePlace v then InfinitePlace.mult ⟨v, h⟩ else 1
+lemma count_multisetInfinitePlace_eq_mult [DecidableEq (AbsoluteValue K ℝ)]
+    [DecidableEq (InfinitePlace K)] (v : InfinitePlace K) :
+    (multisetInfinitePlace K).count v.val = v.mult := by
+  simpa only [multisetInfinitePlace, Multiset.count_bind, Finset.sum_map_val,
+    Multiset.count_replicate, ← Subtype.ext_iff] using Fintype.sum_ite_eq' v ..
 
 variable (K) in
 lemma prod_finsetInfinitePlace_eq {f : AbsoluteValue K ℝ → ℝ} :
-    ∏ v ∈ finsetInfinitePlace K, f v ^ weight' v = ∏ v : InfinitePlace K, f v.val ^ v.mult :=
-  Finset.prod_bij' (fun w hw ↦ ⟨w, mem_finsetInfinitePlace.mp hw⟩)
+    ((multisetInfinitePlace K).map f).prod = ∏ v : InfinitePlace K, f v.val ^ v.mult := by
+  classical
+  rw [Finset.prod_multiset_map_count]
+  exact Finset.prod_bij' (fun w hw ↦ ⟨w, mem_multisetInfinitePlace.mp <| Multiset.mem_dedup.mp hw⟩)
     (fun v _ ↦ v.val) (by grind) (fun v _ ↦ by simp [v.isInfinitePlace])
-    (by grind) (by simp) fun w hw ↦ by simp [weight', mem_finsetInfinitePlace.mp hw]
+    (by grind) (by simp) fun w hw ↦ by rw [count_multisetInfinitePlace_eq_mult ⟨w, _⟩]
+
 
 noncomputable
 instance instAdmissibleAbsValues : AdmissibleAbsValues K where
-  archAbsVal := finsetInfinitePlace K
-  weight := weight'
-  weight_pos v hv := by simp_all [weight', InfinitePlace.mult_pos]
+  archAbsVal := multisetInfinitePlace K
   nonarchAbsVal := {v | IsFinitePlace v}
   strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
   mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
