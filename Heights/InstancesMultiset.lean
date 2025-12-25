@@ -22,38 +22,35 @@ namespace NumberField
 
 open Height
 
-variable {K : Type*} [Field K] [NumberField K]
+variable {K : Type*} [Field K]
+
+/-- A predicate singling out infinite places among the absolute values on a number field `K`. -/
+def IsInfinitePlace (w : AbsoluteValue K ℝ) : Prop :=
+  ∃ φ : K →+* ℂ, place φ = w
+
+lemma InfinitePlace.isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
+  simp [IsInfinitePlace, v.prop]
+
+lemma isInfinitePlace_iff (v : AbsoluteValue K ℝ) :
+    IsInfinitePlace v ↔ ∃ w : InfinitePlace K, w.val = v :=
+  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩
+
+variable  [NumberField K]
 
 /-- A predicate singling out finite places among the absolute values on a number field `K`. -/
 def IsFinitePlace (w : AbsoluteValue K ℝ) : Prop :=
   ∃ v : IsDedekindDomain.HeightOneSpectrum (𝓞 K), place (FinitePlace.embedding v) = w
 
-/-- A predicate singling out infinite places among the absolute values on a number field `K`. -/
-def IsInfinitePlace (w : AbsoluteValue K ℝ) : Prop :=
-  ∃ (φ : K →+* ℂ), place φ = w
-
 variable (K) in
 /-- The infinite places of a number field `K` as a `Multiset` of absolute values on `K`,
 with multiplicity given by `InfinitePlace.mult`. -/
 noncomputable def multisetInfinitePlace : Multiset (AbsoluteValue K ℝ) :=
-  Multiset.bind (.univ : Finset (InfinitePlace K)).val fun v ↦ .replicate v.mult v.val
+  .bind (.univ : Finset (InfinitePlace K)).val fun v ↦ .replicate v.mult v.val
 
 @[simp]
 lemma mem_multisetInfinitePlace {v : AbsoluteValue K ℝ} :
     v ∈ multisetInfinitePlace K ↔ IsInfinitePlace v := by
-  simp only [multisetInfinitePlace, Multiset.mem_bind, Finset.mem_val, Finset.mem_univ,
-    Multiset.mem_replicate, ne_eq, InfinitePlace.mult_ne_zero, not_false_eq_true, true_and,
-    IsInfinitePlace]
-  exact ⟨fun ⟨w, hw⟩ ↦ hw ▸ w.prop, fun H ↦ ⟨⟨v, H⟩, rfl⟩⟩
-
-omit [NumberField K] in
-lemma InfinitePlace.isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
-  simp [IsInfinitePlace, v.prop]
-
-omit [NumberField K] in
-lemma isInfinitePlace_iff (v : AbsoluteValue K ℝ) :
-    IsInfinitePlace v ↔ ∃ w : InfinitePlace K, w.val = v :=
-  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩
+  simp [multisetInfinitePlace, Multiset.mem_replicate, isInfinitePlace_iff, eq_comm (a := v)]
 
 lemma count_multisetInfinitePlace_eq_mult [DecidableEq (AbsoluteValue K ℝ)]
     [DecidableEq (InfinitePlace K)] (v : InfinitePlace K) :
@@ -67,9 +64,8 @@ lemma prod_multisetInfinitePlace_eq {M : Type*} [CommMonoid M] {f : AbsoluteValu
   classical
   rw [Finset.prod_multiset_map_count]
   exact Finset.prod_bij' (fun w hw ↦ ⟨w, mem_multisetInfinitePlace.mp <| Multiset.mem_dedup.mp hw⟩)
-    (fun v _ ↦ v.val) (by grind) (fun v _ ↦ by simp [v.isInfinitePlace])
-    (by grind) (by simp) fun w hw ↦ by rw [count_multisetInfinitePlace_eq_mult ⟨w, _⟩]
-
+    (fun v _ ↦ v.val) (fun _ _ ↦ Finset.mem_univ _) (fun v _ ↦ by simp [v.isInfinitePlace])
+    (fun _ _ ↦ rfl) (fun _ _ ↦ rfl) fun w hw ↦ by rw [count_multisetInfinitePlace_eq_mult ⟨w, _⟩]
 
 noncomputable
 instance instAdmissibleAbsValues : AdmissibleAbsValues K where
