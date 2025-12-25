@@ -137,7 +137,7 @@ lemma zero_le_logHeight₁ (x : K) : 0 ≤ logHeight₁ x :=
 variable {ι : Type*} [Fintype ι]
 
 lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
-    (Function.mulSupport (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i))).Finite := by
+    (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite := by
   simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
   exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_finite i.prop).subset <|
