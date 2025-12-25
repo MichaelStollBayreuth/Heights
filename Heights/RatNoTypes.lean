@@ -14,7 +14,7 @@ instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only
 
 -- (up to here)
 
-open Height AdmissibleAbsValues
+open Height AdmissibleAbsValues Classical
 
 @[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
@@ -171,7 +171,7 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
   exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one v' _) zero_le_one) <|
     le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
 
-open Height
+open Height Classical
 
 open AdmissibleAbsValues in
 /-- The multiplicative height of a tuple of rational numbers that consists of coprime integers
@@ -270,7 +270,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
     simp at hd
   exact ⟨ha.isUnit.unit, hR₃.symm⟩
 
-open Height
+open Height Classical
 
 lemma Rat.mulHeight_coprimeIntToProjective_eq (x : { x : ι → ℤ // Finset.univ.gcd x = 1 }) :
     mulHeight (((↑) : ℤ → ℚ) ∘ x.val) = (coprimeIntToProjective x).mulHeight := rfl
