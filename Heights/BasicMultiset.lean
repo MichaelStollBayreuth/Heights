@@ -136,16 +136,16 @@ lemma zero_le_logHeight₁ (x : K) : 0 ≤ logHeight₁ x :=
 
 variable {ι : Type*} [Fintype ι]
 
-lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
+lemma mulSupport_iSup_nonarchAbsVal_finite {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite := by
   simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
   exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_finite i.prop).subset <|
     Function.mulSupport_iSup _
 
-lemma mulSupport_max_absValue_finite (x : K) :
+lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
     (Function.mulSupport fun v : nonarchAbsVal ↦ v.val x ⊔ 1).Finite := by
-  convert mulSupport_iSup_absValue_finite (x := ![x, 1]) <| by simp with v
+  convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v
   rw [max_eq_iSup]
   congr 1
   ext1 i
@@ -192,7 +192,7 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
   simp only [mulHeight, Pi.smul_apply, smul_eq_mul, map_mul,
     ← mul_iSup_of_nonneg <| AbsoluteValue.nonneg ..]
   rw [Multiset.prod_map_mul,
-    finprod_mul_distrib (mulSupport_finite hc) (mulSupport_iSup_absValue_finite hx),
+    finprod_mul_distrib (mulSupport_finite hc) (mulSupport_iSup_nonarchAbsVal_finite hx),
     mul_mul_mul_comm, product_formula hc, one_mul]
 
 lemma one_le_mulHeight {x : ι → K} (hx : x ≠ 0) : 1 ≤ mulHeight x := by
@@ -244,7 +244,7 @@ is the `n`th power of its multiplicative height. -/
 lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) = mulHeight x ^ n := by
   have : Nonempty ι := Nonempty.intro (Function.ne_iff.mp hx).choose
   simp only [mulHeight, Pi.pow_apply, map_pow]
-  rw [mul_pow, finprod_pow <| mulSupport_iSup_absValue_finite hx, ← Multiset.prod_map_pow,]
+  rw [mul_pow, finprod_pow <| mulSupport_iSup_nonarchAbsVal_finite hx, ← Multiset.prod_map_pow,]
   congr 2 <;> ext1 v
   · simp only [iSup_pow_of_nonneg fun _ ↦ AbsoluteValue.nonneg ..]
   · exact (iSup_pow_of_nonneg (fun _ ↦ AbsoluteValue.nonneg ..) n).symm
@@ -324,7 +324,7 @@ lemma mulHeight₁_add_le (x y : K) :
     mul_mul_mul_comm, ← mul_assoc,← mul_assoc, mul_assoc (2 ^ _),
     ← Multiset.prod_map_mul, ← smul_eq_mul (2 ^ _), ← Multiset.card_map, Multiset.smul_prod,
     Multiset.map_map, mul_assoc,
-    ← finprod_mul_distrib (mulSupport_max_absValue_finite x) (mulSupport_max_absValue_finite y)]
+    ← finprod_mul_distrib (mulSupport_max_nonarchAbsVal_finite x) (mulSupport_max_nonarchAbsVal_finite y)]
   simp only [Function.comp_apply, smul_eq_mul]
   gcongr
   · -- 0 ≤ ∏ᶠ (v : NonarchAbsVal K), (nonarchAbsVal v) (x + y) ⊔ 1
@@ -343,9 +343,9 @@ lemma mulHeight₁_add_le (x y : K) :
       exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two
   · -- ∏ᶠ v, (nonarchAbsVal v) (x + y) ⊔ 1 ≤
     --   ∏ᶠ v, ((nonarchAbsVal v) x ⊔ 1) * ((nonarchAbsVal v) y ⊔ 1)
-    have hf := Function.mulSupport_mul_finite (mulSupport_max_absValue_finite x)
-      (mulSupport_max_absValue_finite y)
-    refine finprod_mono' (mulSupport_max_absValue_finite _)
+    have hf := Function.mulSupport_mul_finite (mulSupport_max_nonarchAbsVal_finite x)
+      (mulSupport_max_nonarchAbsVal_finite y)
+    refine finprod_mono' (mulSupport_max_nonarchAbsVal_finite _)
       (fun _ ↦ zero_le_one.trans <| le_max_right _ 1) hf fun v ↦ sup_le ?_ <| one_le_mul_max_max ..
     exact (isNonarchimedean v.val v.prop x y).trans <|
       sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)
