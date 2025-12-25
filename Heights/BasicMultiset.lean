@@ -79,11 +79,6 @@ def totalWeight : ℕ := archAbsVal (K := K) |>.card
 
 variable {K}
 
-/-- A convenient abbreviation, to take the place of the missing analogue of `Finset.prod`. -/
-@[simp]
-abbrev archAbsVal_prod {M : Type*} [CommMonoid M] (f : AbsoluteValue K ℝ → M) : M :=
-  (archAbsVal.map f).prod
-
 /-!
 ### Heights of field elements
 
@@ -93,7 +88,7 @@ We use the subscipt `₁` to denote multiplicative and logarithmic heights of fi
 
 /-- The multiplicative height of an element of `K`. -/
 def mulHeight₁ (x : K) : ℝ :=
-  (archAbsVal_prod fun v ↦ max (v x) 1) * ∏ᶠ v : nonarchAbsVal, max (v.val x) 1
+  (archAbsVal.map fun v ↦ max (v x) 1).prod * ∏ᶠ v : nonarchAbsVal, max (v.val x) 1
 
 @[simp]
 lemma mulHeight₁_zero : mulHeight₁ (0 : K) = 1 := by
@@ -160,7 +155,7 @@ lemma mulSupport_max_absValue_finite (x : K) :
 
 /-- The multiplicative height of a tuple of elements of `K`. -/
 def mulHeight (x : ι → K) : ℝ :=
-  (archAbsVal_prod fun v ↦ ⨆ i, v (x i)) * ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i)
+  (archAbsVal.map fun v ↦ ⨆ i, v (x i)).prod * ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i)
 
 omit [Fintype ι] in
 /-- The multiplicative height does not change under re-indexing. -/
