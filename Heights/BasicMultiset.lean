@@ -42,23 +42,6 @@ We define the following variants.
 
 -/
 
-section aux
-
--- Some lemmas needed later
-
-private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
-  nth_rewrite 1 [← mul_one b]
-  gcongr <;> grind
-
-private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
-  rw [mul_comm]
-  exact le_mul_max_max_left b a
-
-private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
-  nth_rewrite 1 [← mul_one 1]
-  gcongr <;> exact le_max_right ..
-
-end aux
 
 noncomputable section
 
@@ -312,6 +295,24 @@ lemma mulHeight₁_zpow (x : K) (n : ℤ) : mulHeight₁ (x ^ n) = mulHeight₁ 
 is `|n|` times the multiplicative height of `x`. -/
 lemma logHeight₁_zpow (x : K) (n : ℤ) : logHeight₁ (x ^ n) = n.natAbs * logHeight₁ x := by
   simp only [logHeight₁, mulHeight₁_zpow, Real.log_pow]
+
+section aux
+
+-- Some lemmas needed below
+
+private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  nth_rewrite 1 [← mul_one b]
+  gcongr <;> grind
+
+private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  rw [mul_comm]
+  exact le_mul_max_max_left b a
+
+private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
+  nth_rewrite 1 [← mul_one 1]
+  gcongr <;> exact le_max_right ..
+
+end aux
 
 /-- The multiplicative height of `x + y` is at most `2 ^ totalWeight K`
 times the product of the multiplicative heights of `x` and `y`. -/
