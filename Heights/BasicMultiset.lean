@@ -73,9 +73,9 @@ open AdmissibleAbsValues
 
 variable (K : Type*) [Field K] [aav : AdmissibleAbsValues K]
 
-/-- The `totalWeight` of a field with `AdmissibleAbsValues` is the sum of the weights of
+/-- The `totalWeight` of a field with `AdmissibleAbsValues` is the sum of the multiplicities of
 the archimedean places. -/
-def totalWeight : ℕ := archAbsVal (K := K).card
+def totalWeight : ℕ := archAbsVal (K := K) |>.card
 
 variable {K}
 
