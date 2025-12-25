@@ -17,7 +17,7 @@ instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only
 open Height AdmissibleAbsValues
 
 @[simp]
-lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
+lemma Rat.prod_archAbsVal {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
     (archAbsVal.map f).prod = f Rat.infinitePlace.val := by
   simp [archAbsVal, prod_multisetInfinitePlace_eq, ← Finset.singleton_eq_univ Rat.infinitePlace]
 
@@ -172,7 +172,7 @@ lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty
   simp only [mulHeight]
   conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
   congr 1
-  · simp only [Function.comp_apply, prod_infinitePlace]
+  · simp only [Function.comp_apply, prod_archAbsVal]
     have (i : ι) : Rat.infinitePlace.val (x i) = Rat.infinitePlace (x i) := rfl
     conv => enter [1, 1, i]; rw [this, Rat.infinitePlace_apply]
     exact_mod_cast (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
