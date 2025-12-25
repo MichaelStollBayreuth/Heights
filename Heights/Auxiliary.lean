@@ -138,7 +138,7 @@ lemma Finset.one_le_prod [DecidableEq α] (s : Finset α) {M : Type*} [CommMonoi
   | empty => simp
   | @insert a s h ih => simpa [h] using one_le_mul_of_one_le_of_one_le (hf a) ih
 
-variable {K : Type*} [Field K] {ι : Type*} [Fintype ι]
+variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
 -- needed later
 lemma AbsoluteValue.iSup_eq_subtype (v : AbsoluteValue K ℝ) {x : ι → K} (hx : x ≠ 0) :

@@ -134,9 +134,9 @@ lemma zero_le_logHeight₁ (x : K) : 0 ≤ logHeight₁ x :=
 ### Heights of tuples and finitely supported maps
 -/
 
-variable {ι : Type*} [Fintype ι]
+variable {ι : Type*} -- [Fintype ι]
 
-lemma mulSupport_iSup_nonarchAbsVal_finite {x : ι → K} (hx : x ≠ 0) :
+lemma mulSupport_iSup_nonarchAbsVal_finite [Finite ι] {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite := by
   simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
@@ -155,7 +155,6 @@ lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
 def mulHeight (x : ι → K) : ℝ :=
   (archAbsVal.map fun v ↦ ⨆ i, v (x i)).prod * ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i)
 
-omit [Fintype ι] in
 /-- The multiplicative height does not change under re-indexing. -/
 lemma mulHeight_comp_equiv {ι' : Type*} (e : ι ≃ ι') (x : ι' → K) :
     mulHeight (x ∘ e) = mulHeight x := by
@@ -182,6 +181,8 @@ def logHeight_finsupp {α :Type*} (x : α →₀ K) : ℝ := log (mulHeight_fins
 /-!
 ### Properties of heights
 -/
+
+variable [Finite ι]
 
 /-- The multiplicative height of a (nonzero) tuple does not change under scaling. -/
 lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
@@ -239,9 +240,12 @@ lemma logHeight₁_div_eq_logHeight (x : K) {y : K} (hy : y ≠ 0) :
     logHeight₁ (x / y) = logHeight ![x, y] := by
   rw [logHeight₁, logHeight, mulHeight₁_div_eq_mulHeight x hy]
 
+variable [Fintype ι]
+
 /-- The multiplicative height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n`th power of its multiplicative height. -/
-lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) = mulHeight x ^ n := by
+lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) :
+    mulHeight (x ^ n) = mulHeight x ^ n := by
   have : Nonempty ι := Nonempty.intro (Function.ne_iff.mp hx).choose
   simp only [mulHeight, Pi.pow_apply, map_pow]
   rw [mul_pow, finprod_pow <| mulSupport_iSup_nonarchAbsVal_finite hx, ← Multiset.prod_map_pow,]
