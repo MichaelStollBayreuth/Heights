@@ -99,10 +99,8 @@ lemma mulHeight₁_one : mulHeight₁ (1 : K) = 1 := by
   simp [mulHeight₁]
 
 lemma one_le_mulHeight₁ (x : K) : 1 ≤ mulHeight₁ x := by
-  classical
-  refine one_le_mul_of_one_le_of_one_le ?_ ?_
-  · refine Multiset.one_le_prod fun _ h ↦ ?_
-    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp h
+  refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod fun _ h ↦ ?_) ?_
+  · obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp h
     exact le_max_right ..
   · exact one_le_finprod fun _ ↦ le_max_right ..
 
