@@ -56,16 +56,16 @@ family of absolute values on `K` satisfying a product formula.
 
 /-- A type class capturing an admissible family of (weak) absolute values. -/
 class AdmissibleAbsValues (K : Type*) [Field K] where
-  /-- The archimedean absolute values. -/
+  /-- The archimedean absolute values as a multiset of `ℝ`-valued absolute values on `K`. -/
   archAbsVal : Multiset (AbsoluteValue K ℝ)
-  /-- The nonarchimedean absolute values. -/
+  /-- The nonarchimedean absolute values as a set of `ℝ`-valued absolute values on `K`. -/
   nonarchAbsVal : Set (AbsoluteValue K ℝ)
   /-- The nonarchimedean absolute values are indeed nonarchimedean. -/
-  strong_triangle_ineq : ∀ v ∈ nonarchAbsVal, IsNonarchimedean v
-  /-- Only finitely many absolute values are `≠ 1` for any nonzero `x : K`. -/
-  mulSupport_nonarchAbsVal_finite {x : K} (_ : x ≠ 0) :
+  isNonarchimedean : ∀ v ∈ nonarchAbsVal, IsNonarchimedean v
+  /-- Only finitely many (nonarchimedean) absolute values are `≠ 1` for any nonzero `x : K`. -/
+  mulSupport_finite {x : K} (_ : x ≠ 0) :
       (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite
-  /-- The product formula -/
+  /-- The product formula. The archimedean absolute values are taken with their multiplicity. -/
   product_formula {x : K} (_ : x ≠ 0) :
       (archAbsVal.map (· x)).prod * ∏ᶠ v : nonarchAbsVal, v.val x = 1
 
@@ -139,7 +139,7 @@ lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i))).Finite := by
   simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
-  exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_nonarchAbsVal_finite i.prop).subset <|
+  exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_finite i.prop).subset <|
     Function.mulSupport_iSup _
 
 lemma mulSupport_max_absValue_finite (x : K) :
@@ -191,7 +191,7 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
   simp only [mulHeight, Pi.smul_apply, smul_eq_mul, map_mul,
     ← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg ..]
   rw [Multiset.prod_map_mul,
-    finprod_mul_distrib (mulSupport_nonarchAbsVal_finite hc) (mulSupport_iSup_absValue_finite hx),
+    finprod_mul_distrib (mulSupport_finite hc) (mulSupport_iSup_absValue_finite hx),
     mul_mul_mul_comm, product_formula hc, one_mul]
 
 lemma one_le_mulHeight {x : ι → K} (hx : x ≠ 0) : 1 ≤ mulHeight x := by
@@ -346,7 +346,7 @@ lemma mulHeight₁_add_le (x y : K) :
       (mulSupport_max_absValue_finite y)
     refine finprod_mono' (mulSupport_max_absValue_finite _)
       (fun _ ↦ zero_le_one.trans <| le_max_right _ 1) hf fun v ↦ sup_le ?_ <| one_le_mul_max_max ..
-    exact (strong_triangle_ineq v.val v.prop x y).trans <|
+    exact (isNonarchimedean v.val v.prop x y).trans <|
       sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)
 
 open Real in

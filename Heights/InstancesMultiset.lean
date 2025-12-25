@@ -75,8 +75,8 @@ noncomputable
 instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   archAbsVal := multisetInfinitePlace K
   nonarchAbsVal := {v | IsFinitePlace v}
-  strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
-  mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
+  isNonarchimedean v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
+  mulSupport_finite := FinitePlace.mulSupport_finite
   product_formula {x} hx := prod_multisetInfinitePlace_eq (M := ℝ) K ▸ prod_abs_eq_one hx
 
 end NumberField
