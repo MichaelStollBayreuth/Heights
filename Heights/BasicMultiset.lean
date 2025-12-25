@@ -118,6 +118,8 @@ lemma zero_le_mulHeight₁ (x : K) : 0 ≤ mulHeight₁ x :=
 /-- The logarithmic height of an element of `K`. -/
 def logHeight₁ (x : K) : ℝ := log (mulHeight₁ x)
 
+lemma logHeight₁_eq_log_mulHeight₁ (x : K) : logHeight₁ x = log (mulHeight₁ x) := rfl
+
 @[simp]
 lemma logHeight₁_zero : logHeight₁ (0 : K) = 0 := by
   simp [logHeight₁]
@@ -170,13 +172,19 @@ lemma mulHeight_swap (x y : K) : mulHeight ![x, y] = mulHeight ![y, x] := by
 /-- The logarithmic height of a tuple of elements of `K`. -/
 def logHeight (x : ι → K) : ℝ := log (mulHeight x)
 
+lemma logHeight_eq_log_mulHeight (x : ι → K) : logHeight x = log (mulHeight x) := rfl
+
+variable {α : Type*}
+
 /-- The multiplicative height of a finitely supported function. -/
-def mulHeight_finsupp {α : Type*} (x : α →₀ K) : ℝ :=
+def mulHeight_finsupp (x : α →₀ K) : ℝ :=
   mulHeight fun i : x.support ↦ x i
 
 /-- The logarithmic height of a finitely supported function. -/
-def logHeight_finsupp {α :Type*} (x : α →₀ K) : ℝ := log (mulHeight_finsupp x)
+def logHeight_finsupp (x : α →₀ K) : ℝ := log (mulHeight_finsupp x)
 
+lemma logHeight_finsupp_eq_log_mulHeight_finsupp (x : α →₀ K) :
+    logHeight_finsupp x = log (mulHeight_finsupp x) := rfl
 
 /-!
 ### Properties of heights
@@ -218,13 +226,13 @@ lemma zero_le_logHeight {x : ι → K} (hx : x ≠ 0) : 0 ≤ logHeight x :=
 /-- The logarithmic height of a (nonzero) tuple does not change under scaling. -/
 lemma logHeight_smul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     logHeight (c • x) = logHeight x := by
-  simp only [logHeight, mulHeight_smul_eq_mulHeight hc]
+  simp only [logHeight_eq_log_mulHeight, mulHeight_smul_eq_mulHeight hc]
 
 lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := by
   simp only [mulHeight₁, mulHeight, AbsoluteValue.max_one_eq_iSup]
 
 lemma logHeight₁_eq_logHeight (x : K) : logHeight₁ x = logHeight ![x, 1] := by
-  simp only [logHeight₁, logHeight, mulHeight₁_eq_mulHeight x]
+  simp only [logHeight₁_eq_log_mulHeight₁, logHeight_eq_log_mulHeight, mulHeight₁_eq_mulHeight x]
 
 lemma mulHeight₁_div_eq_mulHeight (x : K) {y : K} (hy : y ≠ 0) :
     mulHeight₁ (x / y) = mulHeight ![x, y] := by
@@ -233,7 +241,7 @@ lemma mulHeight₁_div_eq_mulHeight (x : K) {y : K} (hy : y ≠ 0) :
 
 lemma logHeight₁_div_eq_logHeight (x : K) {y : K} (hy : y ≠ 0) :
     logHeight₁ (x / y) = logHeight ![x, y] := by
-  rw [logHeight₁, logHeight, mulHeight₁_div_eq_mulHeight x hy]
+  rw [logHeight₁_eq_log_mulHeight₁, logHeight_eq_log_mulHeight, mulHeight₁_div_eq_mulHeight x hy]
 
 variable [Fintype ι]
 
@@ -248,7 +256,7 @@ lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) :
 /-- The logarithmic height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n` times its logarithmic height. -/
 lemma logHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : logHeight (x ^ n) = n * logHeight x := by
-  simp [logHeight, mulHeight_pow hx]
+  simp [logHeight_eq_log_mulHeight, mulHeight_pow hx]
 
 /-- The multiplicative height of the inverse of a field element `x`
 is the same as the multiplicative height of `x`. -/
@@ -262,7 +270,7 @@ lemma mulHeight₁_inv (x : K) : mulHeight₁ (x⁻¹) = mulHeight₁ x := by
 /-- The logarithmic height of the inverse of a field element `x`
 is the same as the logarithmic height of `x`. -/
 lemma logHeight₁_inv (x : K) : logHeight₁ (x⁻¹) = logHeight₁ x := by
-  simp only [logHeight₁, mulHeight₁_inv]
+  simp only [logHeight₁_eq_log_mulHeight₁, mulHeight₁_inv]
 
 /-- The multiplicative height of the `n`th power of a field element `x` (with `n : ℕ`)
 is the `n`th power of the multiplicative height of `x`. -/
@@ -276,7 +284,7 @@ lemma mulHeight₁_pow (x : K) (n : ℕ) : mulHeight₁ (x ^ n) = mulHeight₁ x
 /-- The logarithmic height of the `n`th power of a field element `x` (with `n : ℕ`)
 is `n` times the logaritmic height of `x`. -/
 lemma logHeight₁_pow (x : K) (n : ℕ) : logHeight₁ (x ^ n) = n * logHeight₁ x := by
-  simp only [logHeight₁, mulHeight₁_pow, log_pow]
+  simp only [logHeight₁_eq_log_mulHeight₁, mulHeight₁_pow, log_pow]
 
 /-- The multiplicative height of the `n`th power of a field element `x` (with `n : ℤ`)
 is the `|n|`th power of the multiplicative height of `x`. -/
@@ -290,7 +298,7 @@ lemma mulHeight₁_zpow (x : K) (n : ℤ) : mulHeight₁ (x ^ n) = mulHeight₁ 
 /-- The logarithmic height of the `n`th power of a field element `x` (with `n : ℤ`)
 is `|n|` times the logarithmic height of `x`. -/
 lemma logHeight₁_zpow (x : K) (n : ℤ) : logHeight₁ (x ^ n) = n.natAbs * logHeight₁ x := by
-  simp only [logHeight₁, mulHeight₁_zpow, log_pow]
+  simp only [logHeight₁_eq_log_mulHeight₁, mulHeight₁_zpow, log_pow]
 
 section aux
 
@@ -348,7 +356,7 @@ lemma mulHeight₁_add_le (x y : K) :
 plus the sum of the logarithmic heights of `x` and `y`. -/
 lemma logHeight₁_add_le (x y : K) :
     logHeight₁ (x + y) ≤ totalWeight K * log 2 + logHeight₁ x + logHeight₁ y := by
-  simp only [logHeight₁]
+  simp only [logHeight₁_eq_log_mulHeight₁]
   refine (log_le_iff_le_exp <| mulHeight₁_pos _).mpr ?_
   grw [mulHeight₁_add_le]
   simp [exp_add, exp_log, mulHeight₁_pos, exp_nat_mul]
@@ -381,7 +389,7 @@ where `n` is the number of terms. -/
 lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
     logHeight₁ (∑ a ∈ s, x a) ≤
       ((s.card - 1) * totalWeight K : ) * log 2 + ∑ a ∈ s, logHeight₁ (x a) := by
-  simp only [logHeight₁]
+  simp only [logHeight₁_eq_log_mulHeight₁]
   refine (log_le_iff_le_exp <| mulHeight₁_pos _).mpr ?_
   grw [mulHeight₁_sum_le]
   generalize (s.card - 1) * totalWeight K = w -- to avoid `simp` goig into it
@@ -412,12 +420,12 @@ lemma logHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t �
 /-- The multiplicative height of a point on a finite-dimensional projective space over `K`
 with a given basis. -/
 def mulHeight (x : Projectivization K (ι → K)) : ℝ :=
-  Projectivization.lift (fun r ↦ Height.mulHeight r.val) mulHeight_aux x
+  x.lift (fun r ↦ Height.mulHeight r.val) mulHeight_aux
 
 /-- The logarithmic height of a point on a finite-dimensional projective space over `K`
 with a given basis. -/
 def logHeight (x : Projectivization K (ι → K)) : ℝ :=
-  Projectivization.lift (fun r ↦ Height.logHeight r.val) logHeight_aux x
+  x.lift (fun r ↦ Height.logHeight r.val) logHeight_aux
 
 lemma mulHeight_mk {x : ι → K} (hx : x ≠ 0) : mulHeight (mk K x hx) = Height.mulHeight x := rfl
 
