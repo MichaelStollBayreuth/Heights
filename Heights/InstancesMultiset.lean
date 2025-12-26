@@ -41,6 +41,15 @@ variable  [NumberField K]
 def IsFinitePlace (w : AbsoluteValue K ℝ) : Prop :=
   ∃ v : IsDedekindDomain.HeightOneSpectrum (𝓞 K), place (FinitePlace.embedding v) = w
 
+lemma FinitePlace.isFinitePlace (v : FinitePlace K) : IsFinitePlace v.val := by
+  simp [IsFinitePlace, v.prop]
+
+lemma isFinitePlace_iff (v : AbsoluteValue K ℝ) :
+    IsFinitePlace v ↔ ∃ w : FinitePlace K, w.val = v :=
+  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isFinitePlace⟩
+
+lemma FinitePlace.coe_apply (v : FinitePlace K) (x : K) : v x = v.val x := rfl
+
 variable (K) in
 /-- The infinite places of a number field `K` as a `Multiset` of absolute values on `K`,
 with multiplicity given by `InfinitePlace.mult`. -/
@@ -58,8 +67,9 @@ lemma count_multisetInfinitePlace_eq_mult [DecidableEq (AbsoluteValue K ℝ)]
   simpa only [multisetInfinitePlace, Multiset.count_bind, Finset.sum_map_val,
     Multiset.count_replicate, ← Subtype.ext_iff] using Fintype.sum_ite_eq' v ..
 
+-- For the user-facing version, see `prod_archAbsVal_eq` below.
 variable (K) in
-lemma prod_multisetInfinitePlace_eq {M : Type*} [CommMonoid M] {f : AbsoluteValue K ℝ → M} :
+private lemma prod_multisetInfinitePlace_eq {M : Type*} [CommMonoid M] {f : AbsoluteValue K ℝ → M} :
     ((multisetInfinitePlace K).map f).prod = ∏ v : InfinitePlace K, f v.val ^ v.mult := by
   classical
   rw [Finset.prod_multiset_map_count]
@@ -74,5 +84,28 @@ instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   isNonarchimedean v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
   mulSupport_finite := FinitePlace.mulSupport_finite
   product_formula {x} hx := prod_multisetInfinitePlace_eq (M := ℝ) K ▸ prod_abs_eq_one hx
+
+lemma prod_archAbsVal_eq {M : Type*} [CommMonoid M] (f : AbsoluteValue K ℝ → M) :
+    (AdmissibleAbsValues.archAbsVal.map f).prod = ∏ v : InfinitePlace K, f v.val ^ v.mult :=
+  prod_multisetInfinitePlace_eq K
+
+lemma prod_nonarchAbsVal_eq {M : Type*} [CommMonoid M] (f : AbsoluteValue K ℝ → M) :
+    (∏ᶠ v : AdmissibleAbsValues.nonarchAbsVal, f v.val) = ∏ᶠ v : FinitePlace K, f v.val :=
+  rfl
+
+/-- This is the familiar definition of the multiplicative height on a number field. -/
+lemma mulHeight₁_eq (x : K) :
+    mulHeight₁ x =
+      (∏ v : InfinitePlace K, max (v x) 1 ^ v.mult) * ∏ᶠ v : FinitePlace K, max (v x) 1 := by
+  simp only [FinitePlace.coe_apply, InfinitePlace.coe_apply, mulHeight₁, prod_archAbsVal_eq,
+    prod_nonarchAbsVal_eq (f := fun v ↦ max (v x) 1)]
+
+/-- This is the familiar definition of the multiplicative height on tuples
+of number field elements. -/
+lemma mulHeight_eq {ι : Type*} (x : ι → K) :
+    mulHeight x =
+      (∏ v : InfinitePlace K, (⨆ i, v (x i)) ^ v.mult) * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) := by
+  simp only [FinitePlace.coe_apply, InfinitePlace.coe_apply, mulHeight, prod_archAbsVal_eq,
+    prod_nonarchAbsVal_eq (f := fun v ↦ ⨆ i, v (x i))]
 
 end NumberField
