@@ -34,11 +34,16 @@ We define the following variants.
 * `mulHeight_finsupp x` and `logHeight_finsupp x` for `x : α →₀ K`. This is the same
   as the height of `x` restricted to any finite subtype containing the support of `x`.
 * `Projectivization.mulHeight` and `Projectivization.logHeight` on
-  `Projectivization K (ι → K)` (with a `Fintype ι`). This is the height of a point
+  `Projectivization K (ι → K)` (with a finite type `ι`). This is the height of a point
   on projective space (with fixed basis).
 
 ## Main results
 
+* Behavior of `mulHeight` and `logHeight` under component-wise exponentiation
+  (and as a consequence, the corresponding statements for `mulHeight₁` and `logHeight₁).
+* Scaling invariance of `mulHeight` and `logHeight` (allowing to define heights on
+  points in projective space).
+* A bound for `mulHeight₁` and `logHeight₁` of sums of two or arbitrarily many elements.
 
 -/
 

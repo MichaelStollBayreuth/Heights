@@ -13,7 +13,7 @@ The general set-up for heights is the following. Let `K` be a field.
 
 ## Implementation
 
-We try two implementations of the class `AdmissibleAbsValues K` that reflects
+We try several implementations of the class `AdmissibleAbsValues K` that reflects
 these requirements.
 
 * In [__Basic-Alternative.lean__](Heights/Basic-Alternative.lean) we use *one* indexing type for *all*
@@ -35,7 +35,7 @@ these requirements.
   See [__Instances-Alternative.lean__](Heights/Instances-Alternative.lean) for an attempt at providing
   an instance of `AdmissibleAbsValues` for a number field.
 
-* In [__Basic.lean__](Heights/Basic.lean) we instead use *two* indexing types,
+* In [__BasicWithTypes.lean__](Heights/BasicWithTypes.lean) we instead use *two* indexing types,
   one for the archimedean and one for the non-archimedean absolute values.
   For the archimedean ones, we need "weights" (which are the exponents with which
   the absolute values occur in the product formula). We can then use the type `AbsoluteValue K ℝ`.
@@ -45,12 +45,23 @@ these requirements.
   the non-archimedean ones instead of just one `finprod` over all places.
   A big advantage is that it is now quite easy to set up an instance of
   `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
-  preparatory work); see [__Instances.lean__](Heights/Instances.lean).
+  preparatory work); see [__InstancesWithTypes.lean__](Heights/InstancesWithTypes.lean).
 
-There are actually two independent design decisions involved:
+* In [__Basic.lean__](Heights/Basic.lean) we replace the indexing types by 
+  a `Multiset` of (archimedean) absolute values (with multiplicities corresponding to weights)
+  and a `Set` of nonarchimedean absolte values. As can be seen in
+  [__Instances.lean__](Heights/Instances.lean), this needs a bit more glue to set up the
+  instance for number fields, but otherwise is quite workable.
+
+* A further variant can be found in [__BasicNoTypes.lean__](Heights/BasicNoTypes.lean).
+  Here we use a `Finset` for the archimedean absolute values with a weight function,
+  together with a `Set` for the nonarchimedean ones. 
+
+There are actually several independent design decisions involved:
 * absolute values with values in `ℝ≥0` vs. with values in `ℝ`
 * one common indexing type vs. two separate ones for archimedean/non-archimedean
   absolute values
+* or no indexing type at all; instead use Finsets or Multisets and Sets
 
 The two versions implemented here combine the first choices (Basic.lean) or the
 second choices (Variant.lean) in both.
