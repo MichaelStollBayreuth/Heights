@@ -19,7 +19,7 @@ open Height AdmissibleAbsValues
 @[simp]
 lemma Rat.prod_archAbsVal {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ → M) :
     (archAbsVal.map f).prod = f Rat.infinitePlace.val := by
-  simp [archAbsVal, prod_multisetInfinitePlace_eq, ← Finset.singleton_eq_univ Rat.infinitePlace]
+  simp [prod_archAbsVal_eq, ← Finset.singleton_eq_univ Rat.infinitePlace]
 
 -- The following are not needed, after all, but might be useful eventually.
 /-
@@ -172,9 +172,8 @@ lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty
   simp only [mulHeight]
   conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
   congr 1
-  · simp only [Function.comp_apply, prod_archAbsVal]
-    have (i : ι) : Rat.infinitePlace.val (x i) = Rat.infinitePlace (x i) := rfl
-    conv => enter [1, 1, i]; rw [this, Rat.infinitePlace_apply]
+  · simp only [Function.comp_apply, prod_archAbsVal, ← InfinitePlace.coe_apply]
+    conv => enter [1, 1, i]; rw [Rat.infinitePlace_apply]
     exact_mod_cast (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
       Int.cast_mono (Finite.bddAbove_range _)).symm
   · exact finprod_eq_one_of_forall_eq_one
