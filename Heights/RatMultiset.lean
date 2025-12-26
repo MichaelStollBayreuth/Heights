@@ -21,6 +21,11 @@ lemma Rat.prod_archAbsVal {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ ℝ 
     (archAbsVal.map f).prod = f Rat.infinitePlace.val := by
   simp [prod_archAbsVal_eq, ← Finset.singleton_eq_univ Rat.infinitePlace]
 
+@[simp]
+lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ → M) :
+    ∏ v : InfinitePlace ℚ, f v ^v.mult = f infinitePlace := by
+  simp [← Finset.singleton_eq_univ Rat.infinitePlace]
+
 -- The following are not needed, after all, but might be useful eventually.
 /-
 lemma ciSup_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
@@ -143,10 +148,10 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
   let v' : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) := v.maximalIdeal
-  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (Rat.ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
+  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
     simp_rw [FinitePlace.norm_eq_one_iff_notMem]
     by_contra! H
-    let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
+    let pI := ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
     let p := Int.natPrimesEquivHeightOneSpectrum.symm pI
     have h i : (p : ℤ) ∣ x i := by
       rw [← pI.mem_iff_dvd, show pI.asIdeal = .map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
@@ -155,9 +160,9 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     refine p.prop.not_dvd_one ?_
     rw [← Int.ofNat_dvd, Nat.cast_one, ← hx]
     exact Finset.dvd_gcd fun i _ ↦ h i
-  have H i : (x i : ℚ) = Rat.ringOfIntegersEquiv.symm (x i) := by
+  have H i : (x i : ℚ) = ringOfIntegersEquiv.symm (x i) := by
     simp only [eq_intCast, map_intCast]
-  simp_rw [H, ← FinitePlace.norm_embedding_eq]
+  simp_rw [H, ← v.norm_embedding_eq]
   exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one v' _) zero_le_one) <|
     le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
 
@@ -169,15 +174,11 @@ is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
     (hx : Finset.univ.gcd x = 1) :
     mulHeight (((↑) : ℤ →  ℚ) ∘ x) = ⨆ i, |x i| := by
-  simp only [mulHeight]
-  conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
-  congr 1
-  · simp only [Function.comp_apply, prod_archAbsVal, ← InfinitePlace.coe_apply]
-    conv => enter [1, 1, i]; rw [Rat.infinitePlace_apply]
-    exact_mod_cast (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
-      Int.cast_mono (Finite.bddAbove_range _)).symm
-  · exact finprod_eq_one_of_forall_eq_one
-      fun v ↦ Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one v hx
+  simpa only [mulHeight_eq, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs, cast_intCast,
+    finprod_eq_one_of_forall_eq_one (iSup_finitePlace_apply_eq_one_of_gcd_eq_one · hx),
+    mul_one, prod_infinitePlace] using
+    (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt Int.cast_mono
+        (Finite.bddAbove_range _)).symm
 
 /-- The multiplicative height of a tuple of rational numbers that consists of coprime integers
 is the maximum of the absolute values of the entries. This version is in terms of a subtype. -/
