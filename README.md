@@ -110,6 +110,9 @@ We define the following variants.
 
 ## Main results
 
+We set up an instance of `AdmissibleAbsValues` for number fields
+(see [__Instances.lean__](Heights/Instances.lean)).
+
 Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
 we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 * The multiplicative height of a tuple of rational numbers consisting of coprime integers
