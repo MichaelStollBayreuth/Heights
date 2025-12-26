@@ -10,14 +10,17 @@ section API
 
 -- The following should go into `Mathlib.NumberTheory.NumberField.Embeddings`
 
-instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only [eq_ratCast] }
+-- needed?
+-- instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only [eq_ratCast] }
+
+-- (up to here)
+
+open Height AdmissibleAbsValues
 
 @[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ → M) :
-    ∏ v, f v = f Rat.infinitePlace := by
-  simp only [← Finset.singleton_eq_univ Rat.infinitePlace, Finset.prod_singleton]
-
--- (up to here)
+    ∏ v : InfinitePlace ℚ, f v ^ v.mult = f infinitePlace := by
+  simp [Fintype.prod_subsingleton _ infinitePlace]
 
 -- The following are not needed, after all, but might be useful eventually.
 /-
@@ -50,6 +53,7 @@ lemma Real.iSup_inv_eq_iInf {ι : Type*} [Fintype ι] [Nonempty ι] {f : ι → 
 
 open Ideal
 
+private
 lemma Int.heightOneSpectrum_aux₁ (I : IsDedekindDomain.HeightOneSpectrum ℤ) :
     span {((Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs : ℤ)} = I.asIdeal := by
   have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
@@ -57,6 +61,7 @@ lemma Int.heightOneSpectrum_aux₁ (I : IsDedekindDomain.HeightOneSpectrum ℤ) 
   rw [this, span_natAbs]
   convert rfl
 
+private
 lemma Int.heightOneSpectrum_aux₂ (p : Nat.Primes) :
     (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose.natAbs = p := by
   have := (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose_spec
@@ -68,8 +73,7 @@ noncomputable
 def Int.natPrimesEquivHeightOneSpectrum : Nat.Primes ≃ IsDedekindDomain.HeightOneSpectrum ℤ where
   toFun p := .mk (span {(p.val : ℤ)})
     ((span_singleton_prime <| mod_cast p.prop.ne_zero).mpr <| Nat.prime_iff_prime_int.mp p.prop)
-    (by simp only [ne_eq, span_singleton_eq_bot, Nat.cast_eq_zero]
-        exact_mod_cast p.prop.ne_zero)
+    (by simpa only [ne_eq, span_singleton_eq_bot, Nat.cast_eq_zero] using mod_cast p.prop.ne_zero)
   invFun I :=
     ⟨(Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs, by
       have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
@@ -87,10 +91,8 @@ ideal is equivalent to divisibility by the corresponding prime number. -/
 lemma IsDedekindDomain.HeightOneSpectrum.mem_iff_dvd (v : HeightOneSpectrum ℤ) (x : ℤ) :
     x ∈ v.asIdeal ↔ (Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ) ∣ x := by
   have : v.asIdeal = span {(Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ)} := by
+    rw [← Int.heightOneSpectrum_aux₁]
     simp only [Int.natPrimesEquivHeightOneSpectrum, submodule_span_eq, Equiv.coe_fn_symm_mk]
-    have := (Submodule.IsPrincipal.principal v.asIdeal).choose_spec
-    rw [submodule_span_eq] at this
-    exact this.trans <| span_singleton_eq_span_singleton.mpr <| Int.associated_natAbs _
   simpa only [this] using mem_span_singleton
 
 /-- A ring isomorphism `R → S` induces a map from the height one spectrum of `R` to that of `S`. -/
@@ -98,11 +100,8 @@ def RingEquiv.mapIsDedekindDomainHeightOneSpectrum {R S : Type*} [CommRing R] [I
     [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) (v : IsDedekindDomain.HeightOneSpectrum R) :
     IsDedekindDomain.HeightOneSpectrum S :=
   .mk (map e v.asIdeal)
-      (by have := v.isPrime
-          exact map_isPrime_of_equiv e (I := v.asIdeal))
-      (by have := v.ne_bot
-          contrapose! this
-          rwa [map_eq_bot_iff_of_injective <| RingEquiv.injective e] at this)
+      (have := v.isPrime; map_isPrime_of_equiv e (I := v.asIdeal))
+      (mt (map_eq_bot_iff_of_injective e.injective).mp v.ne_bot)
 
 /-- A ring isomorphism (of Dedekind domains) induces an equivalence
 between the height one spectra. -/
@@ -141,10 +140,10 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
   let v' : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) := v.maximalIdeal
-  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (Rat.ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
+  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
     simp_rw [FinitePlace.norm_eq_one_iff_notMem]
     by_contra! H
-    let pI := Rat.ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
+    let pI := ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
     let p := Int.natPrimesEquivHeightOneSpectrum.symm pI
     have h i : (p : ℤ) ∣ x i := by
       rw [← pI.mem_iff_dvd, show pI.asIdeal = .map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
@@ -153,9 +152,9 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     refine p.prop.not_dvd_one ?_
     rw [← Int.ofNat_dvd, Nat.cast_one, ← hx]
     exact Finset.dvd_gcd fun i _ ↦ h i
-  have H i : (x i : ℚ) = Rat.ringOfIntegersEquiv.symm (x i) := by
+  have H i : (x i : ℚ) = ringOfIntegersEquiv.symm (x i) := by
     simp only [eq_intCast, map_intCast]
-  simp_rw [H, ← FinitePlace.norm_embedding_eq]
+  simp_rw [H, ← v.norm_embedding_eq]
   exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one v' _) zero_le_one) <|
     le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
 
@@ -167,17 +166,11 @@ is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
     (hx : Finset.univ.gcd x = 1) :
     mulHeight (((↑) : ℤ →  ℚ) ∘ x) = ⨆ i, |x i| := by
-  simp only [mulHeight]
-  conv_rhs => rw [← mul_one ((⨆ i, |x i| :) : ℝ)]
-  congr 1
-  · simp only [ArchAbsVal, archAbsVal, Function.comp_apply, weight, InfinitePlace.mult, pow_ite,
-      pow_one, prod_infinitePlace, isReal_infinitePlace, ↓reduceIte]
-    have (i : ι) : Rat.infinitePlace.val (x i) = Rat.infinitePlace (x i) := rfl
-    conv => enter [1, 1, i]; rw [this, Rat.infinitePlace_apply]
-    exact_mod_cast (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt
-      Int.cast_mono (Finite.bddAbove_range _)).symm
-  · exact finprod_eq_one_of_forall_eq_one
-      fun v ↦ Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one v hx
+  simpa only [mulHeight_eq, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs, cast_intCast,
+    finprod_eq_one_of_forall_eq_one (iSup_finitePlace_apply_eq_one_of_gcd_eq_one · hx),
+    mul_one, prod_infinitePlace] using
+    (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt Int.cast_mono
+        (Finite.bddAbove_range _)).symm
 
 /-- The multiplicative height of a tuple of rational numbers that consists of coprime integers
 is the maximum of the absolute values of the entries. This version is in terms of a subtype. -/
@@ -266,8 +259,10 @@ lemma Rat.mulHeight_coprimeIntToProjective_eq (x : { x : ι → ℤ // Finset.un
 
 /-- The height on `ℙⁿ(ℚ)` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (multiplicative) height. -/
-lemma Projectivization.Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
+lemma Projectivization.Rat.finite_of_mulHeight_le (B : ℝ) :
     {x : Projectivization ℚ (ι → ℚ) | x.mulHeight ≤ B}.Finite := by
+  rcases isEmpty_or_nonempty ι with H | H
+  · exact Set.toFinite _
   let s := {x : { x : ι → ℤ  // Finset.univ.gcd x = 1 } |
     Height.mulHeight (((↑) : ℤ → ℚ) ∘  x.val) ≤ B}
   have hs : s.Finite := by
@@ -298,7 +293,7 @@ lemma Projectivization.Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
 
 /-- The height on `ℙⁿ(ℚ)` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (logarithmic) height. -/
-lemma Projectivization.Rat.finite_of_logHeight_le [Nonempty ι] (B : ℝ) :
+lemma Projectivization.Rat.finite_of_logHeight_le (B : ℝ) :
     {x : Projectivization ℚ (ι → ℚ) | x.logHeight ≤ B}.Finite := by
   have H (x : Projectivization ℚ (ι → ℚ)) : x.logHeight ≤ B ↔ x.mulHeight ≤ B.exp := by
     rw [x.logHeight_eq_log_mulHeight]
