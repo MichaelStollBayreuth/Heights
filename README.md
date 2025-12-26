@@ -25,7 +25,7 @@ these requirements.
   `Cᵥ = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
   `AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
   use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A slight further disadvantage
-  is that the obtain less-than-optimal bounds for heights of sums with more than two terms,
+  is that we obtain less-than-optimal bounds for heights of sums with more than two terms,
   e.g., we get that `H_ℚ (x + y + z) ≤ 4 * H_ℚ x * H_ℚ y * H_ℚ z` instead of `≤ 3 * ⋯`.
   A downside of this approach is that it becomes rather cumbersome to set up the relevant
   structure for a number field. The natural indexing type is the sum type
@@ -63,8 +63,11 @@ There are actually several independent design decisions involved:
   absolute values
 * or no indexing type at all; instead use Finsets or Multisets and Sets
 
-The two versions implemented here combine the first choices (Basic.lean) or the
-second choices (Variant.lean) in both.
+The various versions implemented here combine
+* `ℝ≥0` with one indexing type (Basic-Alternative.lean),
+* `ℝ` with two indexing types and weights (BasicWithTypes.lean),
+* `ℝ` with a multiset and a set (Basic.lean),
+* `ℝ` with a finset (plus weights) and a set.
 
 Advantage of `ℝ≥0` over `ℝ`:
 * `ℝ≥0` is an `OrderedCommMonoid` (which `ℝ` is not); this gives access to a broader API
@@ -78,6 +81,13 @@ Disadvantage:
   for what this means. (Instead of using `ℝ` in `AdmissibleAbsValues`, one could
   of course refactor the other side to use `ℝ≥0`. I don't have a feeling for the
   ramifications of that.)
+
+In a comment on the
+[first PR to Mathlib](https://github.com/leanprover-community/mathlib4/pull/33054)
+(which was following BasicWithTypes.lean),
+it was pointed out that a class using indexing types could potentially lead to problems
+with universes later on. We will therefore switch to the multiset+set approach
+as in [__Basic.lean__](Heights/Basic.lean) and [__Instances.lean__](Heights/Instances.lean).
 
 
 ## Main definitions
