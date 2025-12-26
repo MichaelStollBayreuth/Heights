@@ -19,14 +19,9 @@ The general set-up for heights is the following. Let `K` be a field.
 
 ## Implementation
 
-This file implements an alternative to the version outlined in [[Basic-Alternative.lean]].
-The motivation is that trying to use the more uniform structure as defined there
-leads to some pain when trying to produce an instance of `AdmissibleAbsValues K`
-for a number field `K`: `Vals` is naturally given as `FinitePlace K ⊕ InfinitePlace K`,
-so all functions on `Vals` need to be defined via `Sum.elim` (or `match`), and we found
-the API for such functions severely lacking.
-
-We realize our alternative implementation via the class `AdmissibleAbsValues K`.
+This file implements a version that uses a `Finset` of archimedean absolute values
+together with a weight function and a `Set` of nonarchimedean absolute values.
+See the class `AdmissibleAbsValues K`.
 
 ## Main definitions
 
