@@ -17,7 +17,7 @@ The general set-up for heights is the following. Let `K` be a field.
   for all `x ≠ 0` in `K`, where the first product is over the multiset of archimedean
   absolute values.
 
-We realize this implementation via the class `AdmissibleAbsValues K`.
+We realize this implementation via the class `Height.AdmissibleAbsValues K`.
 
 ## Main definitions
 
@@ -27,11 +27,12 @@ duplication (in the definitions and statements; the proofs are reduced to those 
 multiplicative height), which is justified, as both versions are frequently used.
 
 We define the following variants.
-* `mulHeight₁ x` and `logHeight₁ x` for `x : K`. This is the height of an element of `K`.
-* `mulHeight x` and `logHeight x` for `x : ι → K` with `ι` finite. This is the height
+* `Height.mulHeight₁ x` and `Height.logHeight₁ x` for `x : K`.
+  This is the height of an element of `K`.
+* `Height.mulHeight x` and `Height.logHeight x` for `x : ι → K` with `ι` finite. This is the height
   of a tuple of elements of `K` representing a point in projective space.
   It is invariant under scaling by nonzero elements of `K` (for `x ≠ 0`).
-* `mulHeight_finsupp x` and `logHeight_finsupp x` for `x : α →₀ K`. This is the same
+* `Finsupp.mulHeight x` and `Finsupp.logHeight x` for `x : α →₀ K`. This is the same
   as the height of `x` restricted to any finite subtype containing the support of `x`.
 * `Projectivization.mulHeight` and `Projectivization.logHeight` on
   `Projectivization K (ι → K)` (with a finite type `ι`). This is the height of a point
@@ -40,7 +41,7 @@ We define the following variants.
 ## Main results
 
 * Behavior of `mulHeight` and `logHeight` under component-wise exponentiation
-  (and as a consequence, the corresponding statements for `mulHeight₁` and `logHeight₁).
+  (and as a consequence, the corresponding statements for `mulHeight₁` and `logHeight₁`).
 * Scaling invariance of `mulHeight` and `logHeight` (allowing to define heights on
   points in projective space).
 * A bound for `mulHeight₁` and `logHeight₁` of sums of two or arbitrarily many elements.
@@ -183,14 +184,14 @@ lemma logHeight_eq_log_mulHeight (x : ι → K) : logHeight x = log (mulHeight x
 variable {α : Type*}
 
 /-- The multiplicative height of a finitely supported function. -/
-def mulHeight_finsupp (x : α →₀ K) : ℝ :=
-  mulHeight fun i : x.support ↦ x i
+def Finsupp.mulHeight (x : α →₀ K) : ℝ :=
+  Height.mulHeight fun i : x.support ↦ x i
 
 /-- The logarithmic height of a finitely supported function. -/
-def logHeight_finsupp (x : α →₀ K) : ℝ := log (mulHeight_finsupp x)
+def Finsupp.logHeight (x : α →₀ K) : ℝ := log (mulHeight x)
 
-lemma logHeight_finsupp_eq_log_mulHeight_finsupp (x : α →₀ K) :
-    logHeight_finsupp x = log (mulHeight_finsupp x) := rfl
+lemma Finsupp.logHeight_eq_log_mulHeight (x : α →₀ K) :
+    logHeight x = log (mulHeight x) := rfl
 
 /-!
 ### Properties of heights
