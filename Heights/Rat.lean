@@ -166,9 +166,9 @@ is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
     (hx : Finset.univ.gcd x = 1) :
     mulHeight (((↑) : ℤ →  ℚ) ∘ x) = ⨆ i, |x i| := by
-  simpa only [mulHeight_eq, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs, cast_intCast,
-    finprod_eq_one_of_forall_eq_one (iSup_finitePlace_apply_eq_one_of_gcd_eq_one · hx),
-    mul_one, prod_infinitePlace] using
+  simpa only [NumberField.mulHeight_eq, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs,
+    cast_intCast, mul_one, prod_infinitePlace,
+    finprod_eq_one_of_forall_eq_one (iSup_finitePlace_apply_eq_one_of_gcd_eq_one · hx)] using
     (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt Int.cast_mono
         (Finite.bddAbove_range _)).symm
 
