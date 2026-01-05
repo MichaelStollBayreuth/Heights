@@ -1,4 +1,5 @@
 import Heights.Auxiliary
+import Mathlib.NumberTheory.Height.Basic
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
@@ -53,94 +54,9 @@ noncomputable section
 
 namespace Height
 
-/-!
-### Families of admissible absolute values
-
-We define the class `AdmissibleAbsValues K` for a field `K`, which captures the notion of a
-family of absolute values on `K` satisfying a product formula.
--/
-
-/-- A type class capturing an admissible family of (weak) absolute values. -/
-class AdmissibleAbsValues (K : Type*) [Field K] where
-  /-- The archimedean absolute values as a multiset of `ℝ`-valued absolute values on `K`. -/
-  archAbsVal : Multiset (AbsoluteValue K ℝ)
-  /-- The nonarchimedean absolute values as a set of `ℝ`-valued absolute values on `K`. -/
-  nonarchAbsVal : Set (AbsoluteValue K ℝ)
-  /-- The nonarchimedean absolute values are indeed nonarchimedean. -/
-  isNonarchimedean : ∀ v ∈ nonarchAbsVal, IsNonarchimedean v
-  /-- Only finitely many (nonarchimedean) absolute values are `≠ 1` for any nonzero `x : K`. -/
-  mulSupport_finite {x : K} (_ : x ≠ 0) : (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite
-  /-- The product formula. The archimedean absolute values are taken with their multiplicity. -/
-  product_formula {x : K} (_ : x ≠ 0) :
-      (archAbsVal.map (· x)).prod * ∏ᶠ v : nonarchAbsVal, v.val x = 1
-
 open AdmissibleAbsValues Real
 
-variable (K : Type*) [Field K] [AdmissibleAbsValues K]
-
-/-- The `totalWeight` of a field with `AdmissibleAbsValues` is the sum of the multiplicities of
-the archimedean places. -/
-def totalWeight : ℕ := archAbsVal (K := K) |>.card
-
-variable {K}
-
-/-!
-### Heights of field elements
-
-We use the subscipt `₁` to denote multiplicative and logarithmic heights of field elements
-(this is because we are in the one-dimensional case of (affine) heights).
--/
-
-/-- The multiplicative height of an element of `K`. -/
-def mulHeight₁ (x : K) : ℝ :=
-  (archAbsVal.map fun v ↦ max (v x) 1).prod * ∏ᶠ v : nonarchAbsVal, max (v.val x) 1
-
-lemma mulHeight₁_eq (x : K) :
-    mulHeight₁ x =
-      (archAbsVal.map fun v ↦ max (v x) 1).prod * ∏ᶠ v : nonarchAbsVal, max (v.val x) 1 :=
-  rfl
-
-@[simp]
-lemma mulHeight₁_zero : mulHeight₁ (0 : K) = 1 := by
-  simp [mulHeight₁_eq]
-
-@[simp]
-lemma mulHeight₁_one : mulHeight₁ (1 : K) = 1 := by
-  simp [mulHeight₁_eq]
-
-lemma one_le_mulHeight₁ (x : K) : 1 ≤ mulHeight₁ x := by
-  refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod fun _ h ↦ ?_) ?_
-  · obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp h
-    exact le_max_right ..
-  · exact one_le_finprod fun _ ↦ le_max_right ..
-
--- This is needed as a side condition in proofs about logarithmic heights
-lemma mulHeight₁_pos (x : K) : 0 < mulHeight₁ x :=
-  zero_lt_one.trans_le <| one_le_mulHeight₁ x
-
--- This is needed as a side condition in proofs about logarithmic heights
-lemma mulHeight₁_ne_zero (x : K) : mulHeight₁ x ≠ 0 :=
-  (mulHeight₁_pos x).ne'
-
-lemma zero_le_mulHeight₁ (x : K) : 0 ≤ mulHeight₁ x :=
-  (mulHeight₁_pos x).le
-
-/-- The logarithmic height of an element of `K`. -/
-def logHeight₁ (x : K) : ℝ := log (mulHeight₁ x)
-
-lemma logHeight₁_eq_log_mulHeight₁ (x : K) : logHeight₁ x = log (mulHeight₁ x) := rfl
-
-@[simp]
-lemma logHeight₁_zero : logHeight₁ (0 : K) = 0 := by
-  simp [logHeight₁_eq_log_mulHeight₁]
-
-@[simp]
-lemma logHeight₁_one : logHeight₁ (1 : K) = 0 := by
-  simp [logHeight₁_eq_log_mulHeight₁]
-
-lemma zero_le_logHeight₁ (x : K) : 0 ≤ logHeight₁ x :=
-  log_nonneg <| one_le_mulHeight₁ x
-
+variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
 /-!
 ### Heights of tuples and finitely supported maps

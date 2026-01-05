@@ -124,20 +124,6 @@ lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSu
     (Function.mulSupport fun a ↦ f a * g a).Finite :=
   (hf.union hg).subset <| mulSupport_mul f g
 
--- needed [Mathlib.Algebra.BigOperators.Finprod]
-lemma one_le_finprod {M : Type*} [CommMonoidWithZero M] [Preorder M] [ZeroLEOneClass M]
-    [PosMulMono M] {f : α → M} (hf : ∀ i, 1 ≤ f i) :
-    1 ≤ ∏ᶠ i, f i :=
-  finprod_induction _ le_rfl (fun _ _ ↦ one_le_mul_of_one_le_of_one_le) hf
-
--- needed
-lemma Finset.one_le_prod [DecidableEq α] (s : Finset α) {M : Type*} [CommMonoidWithZero M]
-    [Preorder M] [ZeroLEOneClass M] [PosMulMono M] {f : α → M} (hf : ∀ i, 1 ≤ f i) :
-    1 ≤ ∏ i ∈ s, f i := by
-  induction s using Finset.induction with
-  | empty => simp
-  | @insert a s h ih => simpa [h] using one_le_mul_of_one_le_of_one_le (hf a) ih
-
 variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
 -- needed later
@@ -162,15 +148,6 @@ lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
   exact max_eq_iSup (v x) 1
 
 variable [NumberField K]
-
--- Mathlib.NumberTheory.NumberField.FinitePlaces]
-lemma NumberField.FinitePlace.add_le (v : FinitePlace K) (x y : K) :
-    v (x + y) ≤ max (v x) (v y) := by
-  obtain ⟨w, hw⟩ := v.prop
-  have : v.val = RingOfIntegers.HeightOneSpectrum.adicAbv w :=
-    AbsoluteValue.ext fun x ↦ by grind only [place_apply, norm_def]
-  simp_rw [show ∀ x, v x = v.val x from fun _ ↦ rfl, this]
-  exact RingOfIntegers.HeightOneSpectrum.adicAbv_add_le_max w x y
 
 instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
   map_add_le_max v a b := NumberField.FinitePlace.add_le v a b
