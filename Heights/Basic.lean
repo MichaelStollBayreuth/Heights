@@ -54,36 +54,85 @@ We define the following variants.
 
 noncomputable section
 
+/-!
+### Properties of heights
+-/
+
+section aux
+
+-- Some lemmas needed below
+namespace Height
+
+private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  nth_rewrite 1 [← mul_one b]
+  gcongr <;> grind
+
+private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
+  rw [mul_comm]
+  exact le_mul_max_max_left b a
+
+private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
+  nth_rewrite 1 [← mul_one 1]
+  gcongr <;> exact le_max_right ..
+
+end Height
+
+end aux
+
+-- needed later (only used once)
+@[to_additive]
+lemma Function.mulSupport_mul_finite {α β : Type*} [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
+    (hg : g.mulSupport.Finite) :
+    (mulSupport fun a ↦ f a * g a).Finite :=
+  (hf.union hg).subset <| mulSupport_mul f g
+
+variable {α β : Type*}
+
+/-- Monotonicity of `finprod`. See `finprod_le_finprod` for a variant where
+`β` is a `CommMonoidWithZero`. -/
+@[to_additive /-- Monotonicity of `finsum.` -/]
+lemma finprod_le_finprod' [CommMonoid β] [PartialOrder β] [MulLeftMono β] {f g : α → β}
+    (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) (h : f ≤ g) :
+    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
+  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
+  let s := (f.mulSupport ∪ g.mulSupport).toFinset
+  have hf₁ : f.mulSupport ⊆ s := by
+    simp only [Set.coe_toFinset, Set.subset_union_left, s]
+  have hg₁ : g.mulSupport ⊆ s := by
+    simp only [Set.coe_toFinset, Set.subset_union_right, s]
+  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
+    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
+  exact Finset.prod_le_prod' fun i _ ↦ h i
+
+/-- Monotonicity of `finprod`. See `finprod_le_finprod'` for a variant where
+`β` is an ordered `CommMonoid`. -/
+lemma finprod_le_finprod [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β] [PosMulMono β]
+    {f g : α → β} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
+    (hg : g.mulSupport.Finite) (h : f ≤ g) :
+    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
+  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
+  let s := (f.mulSupport ∪ g.mulSupport).toFinset
+  have hf₁ : f.mulSupport ⊆ s := by
+    simp only [Set.coe_toFinset, Set.subset_union_left, s]
+  have hg₁ : g.mulSupport ⊆ s := by
+    simp only [Set.coe_toFinset, Set.subset_union_right, s]
+  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
+    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
+  exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
+
+-- Mathlib.Algebra.BigOperators.Finprod ?
+
 namespace Height
 
 open AdmissibleAbsValues Real
 
 variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
-/-!
-### Heights of tuples and finitely supported maps
-
-We define the multiplicative height of a nonzero tuple `x : ι → K` as the product of the maxima
-of `v` on `x`, as `v` runs through the relevant absolute values of `K`. As usual, the
-logarithmic height is the logarithm of the multiplicative height.
-
-For a finitely supported function `x : ι →₀ K`, we define the height as the height of `x`
-restricted to its support.
--/
-
-variable {ι : Type*}
-
-/-!
-### Properties of heights
--/
-
-/- private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
+private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
     max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
-variable [Finite ι]
-
-private lemma mulSupport_iSup_nonarchAbsVal_finite {x : ι → K} (hx : x ≠ 0) :
+private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite := by
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
   suffices (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i : {j // x j ≠ 0}, v.val (x i)).Finite by
@@ -105,34 +154,7 @@ private lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
   rw [max_eq_iSup]
   congr 1
   ext1 i
-  fin_cases i <;> simp -/
-
-
-#exit
-section aux
-
--- Some lemmas needed below
-
-private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
-  nth_rewrite 1 [← mul_one b]
-  gcongr <;> grind
-
-private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
-  rw [mul_comm]
-  exact le_mul_max_max_left b a
-
-private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
-  nth_rewrite 1 [← mul_one 1]
-  gcongr <;> exact le_max_right ..
-
-end aux
-
--- needed later (only used once)
-@[to_additive]
-lemma Function.mulSupport_mul_finite {α β : Type*} [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
-    (hg : g.mulSupport.Finite) :
-    (mulSupport fun a ↦ f a * g a).Finite :=
-  (hf.union hg).subset <| mulSupport_mul f g
+  fin_cases i <;> simp
 
 /-- The multiplicative height of `x + y` is at most `2 ^ totalWeight K`
 times the product of the multiplicative heights of `x` and `y`. -/
@@ -154,7 +176,7 @@ lemma mulHeight₁_add_le (x y : K) :
         positivity
       have hf := Function.mulSupport_mul_finite (mulSupport_max_nonarchAbsVal_finite x)
         (mulSupport_max_nonarchAbsVal_finite y)
-      refine finprod_mono' (mulSupport_max_nonarchAbsVal_finite _)
+      refine finprod_le_finprod (mulSupport_max_nonarchAbsVal_finite _)
         (by grind) hf fun v ↦ sup_le ?_ <| one_le_mul_max_max ..
       exact (isNonarchimedean _ v.prop x y).trans <|
         sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)
@@ -208,6 +230,7 @@ lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α 
 
 end Height
 
+#exit
 /-!
 ### Heights on projective spaces
 -/
