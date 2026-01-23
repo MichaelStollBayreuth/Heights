@@ -5,6 +5,7 @@ import Mathlib.Algebra.Order.Group.Indicator
 import Mathlib.NumberTheory.Height.Basic
 import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
+import Mathlib.Tactic.Positivity.Core
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
@@ -57,7 +58,7 @@ We define the following variants.
 noncomputable section
 
 /-!
-### Properties of heights
+### Bounds for the height of sums of field elements
 -/
 
 section aux
@@ -69,134 +70,124 @@ lemma Multiset.prod_map_prod {ι α M : Type*} [CommMonoid M] {m : Multiset ι} 
   classical
   induction s using Finset.induction with
   | empty => simp
-  | insert a s ha ih => simp [Finset.prod_insert ha, Multiset.prod_map_mul, ih]
+  | insert a s ha ih => simp [Finset.prod_insert ha, prod_map_mul, ih]
 
--- Some lemmas needed below
+-- [Mathlib.Algebra.BigOperators.Group.Finset.Basic]
+
+section
+
+variable {α M : Type*}
+
+/-- Monotonicity of `finprod`. See `finprod_le_finprod` for a variant where
+`β` is a `CommMonoidWithZero`. -/
+@[to_additive /-- Monotonicity of `finsum.` -/]
+lemma finprod_le_finprod' [CommMonoid M] [PartialOrder M] [MulLeftMono M] {f g : α → M}
+    (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) (h : f ≤ g) :
+    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
+  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (hf.union hg).fintype
+  let s := (f.mulSupport ∪ g.mulSupport).toFinset
+  rw [finprod_eq_finset_prod_of_mulSupport_subset f (show f.mulSupport ⊆ s by grind),
+    finprod_eq_finset_prod_of_mulSupport_subset g (show g.mulSupport ⊆ s by grind)]
+  exact Finset.prod_le_prod' fun i _ ↦ h i
+
+/-- Monotonicity of `finprod`. See `finprod_le_finprod'` for a variant where
+`β` is an ordered `CommMonoid`. -/
+lemma finprod_le_finprod [CommMonoidWithZero M] [PartialOrder M] [ZeroLEOneClass M] [PosMulMono M]
+    {f g : α → M} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
+    (hg : g.mulSupport.Finite) (h : f ≤ g) :
+    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
+  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (hf.union hg).fintype
+  let s := (f.mulSupport ∪ g.mulSupport).toFinset
+  rw [finprod_eq_finset_prod_of_mulSupport_subset f (show f.mulSupport ⊆ s by grind),
+    finprod_eq_finset_prod_of_mulSupport_subset g (show g.mulSupport ⊆ s by grind)]
+  exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
+
+-- #find_home! finprod_le_finprod
+-- Mathlib.Algebra.BigOperators.Finprod ?
+
+end
+-- Some helper lemmas needed below
+
 namespace Height
 
-private lemma le_mul_max_max_left (a b : ℝ) : b ≤ (b ⊔ 1) * (a ⊔ 1) := by
-  nth_rewrite 1 [← mul_one b]
-  gcongr <;> grind
+private lemma le_mul_max_max_left (a b : ℝ) : a ≤ (max a 1) * (max b 1) :=
+  calc
+    a = a * 1 := (mul_one a).symm
+    _  ≤ _ := by gcongr <;> grind
 
-private lemma le_mul_max_max_right (a b : ℝ) : a ≤ (b ⊔ 1) * (a ⊔ 1) := by
+private lemma le_mul_max_max_right (a b : ℝ) : b ≤ (max a 1) * (max b 1) := by
   rw [mul_comm]
   exact le_mul_max_max_left b a
 
-private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (a ⊔ 1) * (b ⊔ 1) := by
-  nth_rewrite 1 [← mul_one 1]
-  gcongr <;> exact le_max_right ..
+private lemma one_le_mul_max_max (a b : ℝ) : 1 ≤ (max a 1) * (max b 1) :=
+  calc
+    (1 : ℝ) = 1 * 1 := (mul_one 1).symm
+    _ ≤ _ := by gcongr <;> grind
 
 variable {K : Type*} [Field K]
 
+-- The "local" version of the height bound for `x + y` for archimedean `v`.
 private lemma max_abv_add_one_le (v : AbsoluteValue K ℝ) (x y : K) :
     max (v (x + y)) 1 ≤ 2 * (max (v x) 1 * max (v y) 1) := by
-  refine sup_le ?_ ?_
-  · refine (v.add_le x y).trans ?_
-    rw [two_mul]
+  refine sup_le ((v.add_le x y).trans ?_) <| (show (1 : ℝ) ≤ 2 * 1 by norm_num).trans ?_
+  · rw [two_mul]
     exact add_le_add (le_mul_max_max_left ..) (le_mul_max_max_right ..)
-  · refine (show (1 : ℝ) ≤ 2 * 1 by norm_num).trans ?_
-    exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two
+  · exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two
 
+-- The "local" version of the height bound for `x + y` for nonarchimedean `v`.
 private lemma max_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
     (x y : K) :
     max (v (x + y)) 1 ≤ (max (v x) 1 * max (v y) 1) := by
   refine sup_le ?_ <| one_le_mul_max_max ..
   exact (hv x y).trans <| sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)
 
-private lemma le_prod_max_one {ι : Type*} {s : Finset ι} {i : ι} (hi : i ∈ s) (f : ι → ℝ)
-    (hf : 0 ≤ f i) :
+private lemma le_prod_max_one {ι : Type*} {s : Finset ι} {i : ι} (hi : i ∈ s) (f : ι → ℝ) :
     f i ≤ ∏ i ∈ s, max (f i) 1 := by
   classical
+  rcases lt_or_ge (f i) 0 with hf | hf
+  · exact (hf.trans_le (by positivity)).le
   have : f i = ∏ j ∈ s, if i = j then f i else 1 := by
     rw [Finset.prod_eq_single_of_mem i hi fun _ _ _ ↦ by grind]
     simp
-  rw [this]
-  exact Finset.prod_le_prod (fun _ _ ↦ by grind) fun _ _ ↦ by grind
+  exact this ▸ Finset.prod_le_prod (fun _ _ ↦ by grind) fun _ _ ↦ by grind
 
-private lemma sup_abv_add_one_le (v : AbsoluteValue K ℝ) {ι : Type*} {s : Finset ι} (hs : s.Nonempty)
-    (f : ι → K) :
-    max (v (∑ i ∈ s, f i)) 1 ≤ s.card * ∏ i ∈ s, max (v (f i)) 1 := by
+-- The "local" version of the height bound for arbitrary sums for archimedean `v`.
+private lemma max_abv_sum_one_le (v : AbsoluteValue K ℝ) {ι : Type*} {s : Finset ι} (hs : s.Nonempty)
+    (x : ι → K) :
+    max (v (∑ i ∈ s, x i)) 1 ≤ s.card * ∏ i ∈ s, max (v (x i)) 1 := by
   refine sup_le ?_ ?_
   · rw [← nsmul_eq_mul, ← Finset.sum_const]
-    grw [v.sum_le s f]
+    grw [v.sum_le s x]
     gcongr with i hi
-    exact le_prod_max_one hi (fun i ↦ v (f i)) (v.nonneg _)
+    exact le_prod_max_one hi (fun i ↦ v (x i))
   · nth_rewrite 1 [← mul_one 1]
     gcongr
-    · norm_num [hs]
+    · simp [hs]
     · exact s.one_le_prod fun _ ↦ le_max_right ..
 
-private lemma sup_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
-    {ι : Type*} {s : Finset ι} (hs : s.Nonempty) (f : ι → K) :
-    max (v (∑ i ∈ s, f i)) 1 ≤ ∏ i ∈ s, max (v (f i)) 1 := by
+-- The "local" version of the height bound for arbitrary sums for nonarchimedean `v`.
+private lemma max_abv_sum_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
+    {ι : Type*} {s : Finset ι} (hs : s.Nonempty) (x : ι → K) :
+    max (v (∑ i ∈ s, x i)) 1 ≤ ∏ i ∈ s, max (v (x i)) 1 := by
   refine sup_le ?_ <| s.one_le_prod fun _ ↦ le_max_right ..
   grw [hv.apply_sum_le_sup_of_isNonarchimedean hs]
-  exact Finset.sup'_le hs (fun i ↦ v (f i))
-    fun i hi ↦ le_prod_max_one hi (fun i ↦ v (f i)) (v.nonneg _)
-
-end Height
-
-end aux
-
--- needed later (only used once)
-/- @[to_additive]
-lemma Function.mulSupport_mul_finite {α β : Type*} [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
-    (hg : g.mulSupport.Finite) :
-    (mulSupport fun a ↦ f a * g a).Finite :=
-  (hf.union hg).subset <| mulSupport_mul f g -/
-
-variable {α β : Type*}
-
-/-- Monotonicity of `finprod`. See `finprod_le_finprod` for a variant where
-`β` is a `CommMonoidWithZero`. -/
-@[to_additive /-- Monotonicity of `finsum.` -/]
-lemma finprod_le_finprod' [CommMonoid β] [PartialOrder β] [MulLeftMono β] {f g : α → β}
-    (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  have hf₁ : f.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_left, s]
-  have hg₁ : g.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
-    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
-  exact Finset.prod_le_prod' fun i _ ↦ h i
-
-/-- Monotonicity of `finprod`. See `finprod_le_finprod'` for a variant where
-`β` is an ordered `CommMonoid`. -/
-lemma finprod_le_finprod [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β] [PosMulMono β]
-    {f g : α → β} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
-    (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  have hf₁ : f.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_left, s]
-  have hg₁ : g.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
-    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
-  exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
-
--- Mathlib.Algebra.BigOperators.Finprod ?
-
-namespace Height
-
-open AdmissibleAbsValues Real
-
-variable {K : Type*} [Field K] [AdmissibleAbsValues K]
+  exact Finset.sup'_le hs (fun i ↦ v (x i)) fun i hi ↦ le_prod_max_one hi (fun i ↦ v (x i))
 
 private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
     max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
+variable [AdmissibleAbsValues K]
+
+open AdmissibleAbsValues
+
+-- Finiteness of the multiplicative support for some relevant functions.
 private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
-    (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite := by
+    (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).mulSupport.Finite := by
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
-  suffices (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i : {j // x j ≠ 0}, v.val (x i)).Finite by
+  suffices (fun v : nonarchAbsVal ↦ ⨆ i : {j // x j ≠ 0}, v.val (x i)).mulSupport.Finite by
     convert this with v
-    have ⟨i, hi⟩ : ∃ j, x j ≠ 0 := Function.ne_iff.mp hx
+    obtain ⟨i, hi⟩ : ∃ j, x j ≠ 0 := Function.ne_iff.mp hx
     have : Nonempty ι := .intro i
     refine le_antisymm ?_ <| ciSup_le fun ⟨j, hj⟩ ↦ le_ciSup_of_le (Finite.bddAbove_range _) j le_rfl
     refine ciSup_le fun j ↦ ?_
@@ -208,12 +199,79 @@ private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x :
     Function.mulSupport_iSup _
 
 private lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
-    (Function.mulSupport fun v : nonarchAbsVal ↦ v.val x ⊔ 1).Finite := by
-  convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v
-  rw [max_eq_iSup]
-  congr 1
-  ext1 i
+    (fun v : nonarchAbsVal ↦ max (v.val x) 1).mulSupport.Finite := by
+  simp_rw [max_eq_iSup]
+  convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
   fin_cases i <;> simp
+
+end Height
+
+end aux
+
+namespace Mathlib.Meta.Positivity
+
+open Lean.Meta Qq Height
+
+/-- Extension for the `positivity` tactic: `Height.mulHeight₁` is always positive. -/
+@[positivity Height.mulHeight₁ _]
+meta def evalMulHeight₁ : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@mulHeight₁ $K $KF $KA $a) =>
+    assertInstancesCommute
+    pure (.positive q(@mulHeight₁_pos $K $KF $KA $a))
+  | _, _, _ => throwError "not Height.mulHeight₁"
+
+/-- Extension for the `positivity` tactic: `Height.logHeight₁` is always nonnegative. -/
+@[positivity Height.logHeight₁ _]
+meta def evalLogHeight₁ : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@logHeight₁ $K $KF $KA $a) =>
+    assertInstancesCommute
+    pure (.nonnegative q(@zero_le_logHeight₁ $K $KF $KA $a))
+  | _, _, _ => throwError "not Height.logHeight₁"
+
+/-- Extension for the `positivity` tactic: `Height.mulHeight` is always positive. -/
+@[positivity Height.mulHeight _]
+meta def evalMulHeight : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@mulHeight $K $KF $KA $ι $a) =>
+    assertInstancesCommute
+    -- Check wether there is a `Finite` instance for `$ι` around.
+    let o : Option Q(Finite $ι) := ← do
+      let .some instFinite ← trySynthInstanceQ q(Finite $ι) | return none
+      return some instFinite
+    match o with
+    | some instFinite =>
+      assertInstancesCommute
+      return .positive q(@mulHeight_pos $K $KF $KA $ι $instFinite $a)
+    | none => throwError "index type in Height.mulHeight not known to be finite"
+  | _, _, _ => throwError "not Height.mulHeight"
+
+/-- Extension for the `positivity` tactic: `Height.logHeight` is always nonnegative. -/
+@[positivity Height.logHeight _]
+meta def evalLogHeight : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@logHeight $K $KF $KA $ι $a) =>
+    assertInstancesCommute
+    -- Check wether there is a `Finite` instance for `$ι` around.
+    let o : Option Q(Finite $ι) := ← do
+      let .some instFinite ← trySynthInstanceQ q(Finite $ι) | return none
+      return some instFinite
+    match o with
+    | some instFinite =>
+      assertInstancesCommute
+      return .nonnegative q(@zero_le_logHeight $K $KF $KA $ι $instFinite $a)
+    | none => throwError "index type in Height.logHeight not known to be finite"
+  | _, _, _ => throwError "not Height.logHeight"
+
+end Mathlib.Meta.Positivity
+
+
+namespace Height
+
+open AdmissibleAbsValues Real
+
+variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
 /-- The multiplicative height of `x + y` is at most `2 ^ totalWeight K`
 times the product of the multiplicative heights of `x` and `y`. -/
@@ -238,19 +296,15 @@ lemma mulHeight₁_add_le (x y : K) :
         mulSupport_max_nonarchAbsVal_finite, finprod_mul_distrib]
       ring
 
--- attribute [positivity mulHeight₁ _] mulHeight₁_pos
-
 /-- The logarithmic height of `x + y` is at most `totalWeight K * log 2`
 plus the sum of the logarithmic heights of `x` and `y`. -/
 lemma logHeight₁_add_le (x y : K) :
     logHeight₁ (x + y) ≤ totalWeight K * log 2 + logHeight₁ x + logHeight₁ y := by
   simp only [logHeight₁_eq_log_mulHeight₁]
-  have hx : 0 < mulHeight₁ x := mulHeight₁_pos x
-  have hy : 0 < mulHeight₁ y := mulHeight₁_pos y
   pull (disch := positivity) log
-  exact (log_le_log <| mulHeight₁_pos _) <| mulHeight₁_add_le ..
+  exact (log_le_log <| by positivity) <| mulHeight₁_add_le ..
 
-open Finset in
+open Finset Multiset in
 /-- The multiplicative height of a nonempty finite sum of field elements is at most
 `n ^ (totalWeight K)` times the product of the individual multiplicative
 heights, where `n` is the number of terms. -/
@@ -260,35 +314,37 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.
   calc
     _ ≤ (archAbsVal.map fun v ↦ (s.card : ℝ) * ∏ i ∈ s, max (v (x i)) 1).prod * _ := by
       refine mul_le_mul_of_nonneg_right ?_ <| finprod_nonneg fun _ ↦ by grind
-      exact Multiset.prod_map_le_prod_map₀ _ _ (fun _ _ ↦ by positivity)
-        fun _ _ ↦ sup_abv_add_one_le _ hs x
+      exact prod_map_le_prod_map₀ _ _ (fun _ _ ↦ by positivity) fun _ _ ↦ max_abv_sum_one_le _ hs x
     _ ≤ _ * ∏ᶠ (v : ↑nonarchAbsVal), ∏ i ∈ s, max (v.val (x i)) 1 := by
-      refine mul_le_mul_of_nonneg_left ?_ <| Multiset.prod_nonneg fun _ h ↦ by
-        obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp h
+      refine mul_le_mul_of_nonneg_left ?_ <| prod_nonneg fun _ h ↦ by
+        obtain ⟨v, -, rfl⟩ := mem_map.mp h
         positivity
       refine finprod_le_finprod (mulSupport_max_nonarchAbsVal_finite _) (fun v ↦ by grind) ?_ ?_
       · refine Set.Finite.subset ?_ <|
           s.mulSupport_prod fun i (v : nonarchAbsVal) ↦ max (v.val (x i)) 1
-        exact Set.Finite.biUnion s.finite_toSet fun i _ ↦ mulSupport_max_nonarchAbsVal_finite _
-      · exact Pi.le_def.mpr fun v ↦ sup_abv_add_one_le_of_nonarch (isNonarchimedean _ v.prop) hs x
+        exact s.finite_toSet.biUnion fun _ _ ↦ mulSupport_max_nonarchAbsVal_finite _
+      · exact Pi.le_def.mpr fun v ↦ max_abv_sum_one_le_of_nonarch (isNonarchimedean _ v.prop) hs x
     _ = _ := by
       rw [finprod_prod_comm _ _ fun i _ ↦ mulSupport_max_nonarchAbsVal_finite (x i),
-        Multiset.prod_map_mul, Multiset.prod_map_prod, Multiset.map_const',
-        Multiset.prod_replicate, Finset.prod_mul_distrib]
+        prod_map_mul, prod_map_prod, map_const', prod_replicate, prod_mul_distrib]
       ring
 
-/-- The logarithmic height of a nonempty finite sum of field elements is at most
+open Finset in
+/-- The logarithmic height of a finite sum of field elements is at most
 `totalWeight K * log n` plus the sum of the individual logarithmic heights,
-where `n` is the number of terms. -/
-lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.Nonempty) (x : α → K) :
-    logHeight₁ (∑ a ∈ s, x a) ≤
-      (totalWeight K : ) * log s.card + ∑ a ∈ s, logHeight₁ (x a) := by
+where `n` is the number of terms.
+
+(Note that here we do not need to assume that `s` is nonempty, due to the convenient
+junk value `log 0 = 0`.) -/
+lemma logHeight₁_sum_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
+    logHeight₁ (∑ a ∈ s, x a) ≤ (totalWeight K) * log #s + ∑ a ∈ s, logHeight₁ (x a) := by
+  rcases s.eq_empty_or_nonempty with rfl | hs
+  · simp
   simp only [logHeight₁_eq_log_mulHeight₁]
   have : ∀ a ∈ s, mulHeight₁ (x a) ≠ 0 := fun _ _ ↦ (mulHeight₁_pos _).ne'
-  have : 0 < ∏ i ∈ s, mulHeight₁ (x i) := by refine Finset.prod_pos fun _ _ ↦ mulHeight₁_pos _
   have : (s.card : ℝ) ^ totalWeight K ≠ 0 := by simp [hs.ne_empty]
   pull (disch := first | positivity | assumption) log
-  refine (log_le_log <| mulHeight₁_pos _) <| mulHeight₁_sum_le hs x
+  exact (log_le_log <| by positivity) <| mulHeight₁_sum_le hs x
 
 end Height
 
