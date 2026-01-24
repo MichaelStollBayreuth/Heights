@@ -20,7 +20,9 @@ open Height AdmissibleAbsValues
 @[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ → M) :
     ∏ v : InfinitePlace ℚ, f v ^ v.mult = f infinitePlace := by
-  simp [Fintype.prod_subsingleton _ infinitePlace]
+  have : infinitePlace.mult = 1 :=
+    NumberField.InfinitePlace.mult_isReal ⟨infinitePlace, isReal_infinitePlace⟩
+  simp [Fintype.prod_subsingleton _ infinitePlace, this]
 
 -- The following are not needed, after all, but might be useful eventually.
 /-
@@ -166,7 +168,12 @@ is the maximum of the absolute values of the entries. -/
 lemma Rat.mulHeight_eq_max_abs_of_gcd_eq_one {ι : Type*} [Fintype ι] [Nonempty ι] {x : ι → ℤ}
     (hx : Finset.univ.gcd x = 1) :
     mulHeight (((↑) : ℤ →  ℚ) ∘ x) = ⨆ i, |x i| := by
-  simpa only [NumberField.mulHeight_eq, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs,
+  have hx₀ : Int.cast ∘ x ≠ (0 : ι → ℚ) := by
+    contrapose! hx
+    replace hx : x = 0 := by ext i; simpa using funext_iff.mp hx i
+    rw [hx, Finset.gcd_eq_zero_iff.mpr (by simp)]
+    simp
+  simpa only [NumberField.mulHeight_eq hx₀, Function.comp_apply, infinitePlace_apply, ← Int.cast_abs,
     cast_intCast, mul_one, prod_infinitePlace,
     finprod_eq_one_of_forall_eq_one (iSup_finitePlace_apply_eq_one_of_gcd_eq_one · hx)] using
     (Monotone.map_ciSup_of_continuousAt continuous_of_discreteTopology.continuousAt Int.cast_mono
