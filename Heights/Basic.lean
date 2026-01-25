@@ -8,6 +8,7 @@ import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Tactic.Positivity.Core
 
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
+import Mathlib.LinearAlgebra.Projectivization.Basic
 
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
@@ -365,13 +366,173 @@ lemma logHeight₁_add_le (x y : K) :
   simp only [logHeight₁_eq_log_mulHeight₁]
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight₁_add_le ..
-
 end Height
 
-#exit
+/-!
+### Height bounds for values of polynomials
+-/
+
+namespace Polynomial
+
+open Height
+
+variable {K : Type*} [Field K]
+
+open Finset in
+-- The "local" bound for archimedean absolute values.
+private lemma max_abv_eval_one_le (p : K[X]) (x : K) (v : AbsoluteValue K ℝ) :
+    max (v (p.eval x)) 1 ≤ max (p.sum fun _ c ↦ v c) 1 * (max (v x) 1) ^ p.natDegree := by
+  rcases eq_or_ne p 0 with rfl | hp
+  · simp
+  refine max_le ?_ ?_
+  · rw [eval_eq_sum_range, sum_over_range p fun _ ↦ v.map_zero]
+    grw [v.sum_le]
+    simp_rw [v.map_mul, v.map_pow]
+    calc
+      _ ≤ ∑ n ∈ range (p.natDegree + 1), v (p.coeff n) * (max (v x) 1) ^ n := by gcongr; grind
+      _ ≤ (∑ n ∈ range (p.natDegree + 1), v (p.coeff n)) * (max (v x) 1) ^ p.natDegree := by
+          rw [sum_mul]
+          gcongr <;> grind
+      _ ≤ _ := by gcongr; grind
+  · nth_rewrite 1 [← mul_one 1]
+    gcongr
+    · exact le_max_right ..
+    · rw [MonotoneOn.map_sup pow_left_monotoneOn] <;> simp
+
+open Finset in
+-- The "local" bound for nonarchimedean absolute values.
+private lemma max_abv_eval_one_le_of_nonarch (p : K[X]) (x : K) {v : AbsoluteValue K ℝ}
+    (hv : IsNonarchimedean v) :
+    max (v (p.eval x)) 1 ≤
+      max ((range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v (p.coeff n)) 1 *
+        (max (v x) 1) ^ p.natDegree := by
+  rcases eq_or_ne p 0 with rfl | hp
+  · simp
+  refine max_le ?_ ?_
+  · rw [eval_eq_sum_range]
+    grw [hv.apply_sum_le_sup_of_isNonarchimedean nonempty_range_add_one]
+    simp_rw [v.map_mul, v.map_pow]
+    calc
+      _ ≤ (range (p.natDegree + 1)).sup' nonempty_range_add_one
+            fun n ↦ v (p.coeff n) * (max (v x) 1) ^ n := by gcongr; grind
+      _ ≤ ((range (p.natDegree + 1)).sup' nonempty_range_add_one
+            fun n ↦ v (p.coeff n)) * (max (v x) 1) ^ p.natDegree := by
+          rw [sup'_mul₀ (by positivity) _ _ nonempty_range_add_one]
+          gcongr <;> grind
+      _ ≤ _ := by
+          gcongr
+          refine Finset.sup'_le nonempty_range_add_one _ fun n hn ↦ ?_
+          grw [← le_max_left]
+          exact Finset.le_sup' (fun n ↦ v (p.coeff n)) hn
+  · nth_rewrite 1 [← mul_one 1]
+    gcongr
+    · exact le_max_right ..
+    · rw [MonotoneOn.map_sup pow_left_monotoneOn] <;> simp
+
+variable [AdmissibleAbsValues K]
+
+open AdmissibleAbsValues Finset
+
+/-- The constant in the height bound on values of `p`. -/
+def mulHeight₁Bound (p : K[X]) : ℝ :=
+  (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1).prod *
+    ∏ᶠ v : nonarchAbsVal,
+      max ((range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n)) 1
+
+lemma mulHeight₁Bound_eq (p : K[X]) :
+    p.mulHeight₁Bound =
+      (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1).prod *
+      ∏ᶠ v : nonarchAbsVal,
+        max ((range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n)) 1 :=
+  rfl
+
+@[simp]
+lemma mulHeight₁Bound_zero : (0 : K[X]).mulHeight₁Bound = 1 := by
+  simp [Polynomial.mulHeight₁Bound]
+
+lemma one_le_mulHeight₁Bound (p : K[X]) : 1 ≤ p.mulHeight₁Bound := by
+  refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod fun _ h ↦ ?_) ?_
+  · obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp h
+    exact le_max_right ..
+  · exact one_le_finprod fun _ ↦ le_max_right ..
+
+private lemma mulSupport_max_sup'_nonarchAbsVal_finite (p : K[X]) :
+    (fun v : nonarchAbsVal ↦
+       max ((Finset.range (p.natDegree + 1)).sup' nonempty_range_add_one
+              fun n ↦ v.val (p.coeff n)) 1).mulSupport.Finite := by
+  let x := Fin.snoc (α := fun _ ↦ K) (fun n : Fin (p.natDegree + 1) ↦ p.coeff n) 1
+  have hx : x ≠ 0 := Function.ne_iff.mpr ⟨Fin.last _, by simp [x]⟩
+  convert mulSupport_iSup_nonarchAbsVal_finite hx with v
+  refine le_antisymm (max_le ?_ ?_) <| ciSup_le fun i ↦ ?_
+  · refine Finset.sup'_le _ _ fun n hn ↦ le_ciSup_of_le (Finite.bddAbove_range _) ⟨n, by grind⟩ ?_
+    simp only [x]
+    convert le_rfl
+    have : (⟨n, by grind⟩ : Fin (p.natDegree + 1 + 1)) =
+              (⟨n, by grind⟩ : Fin (p.natDegree + 1)).castSucc := by
+      grind
+    rw [this]
+    exact Fin.snoc_castSucc ..
+  · exact le_ciSup_of_le (Finite.bddAbove_range _) (Fin.last _) <| by simp [x]
+  · rcases eq_or_ne i (Fin.last _) with rfl | hi
+    · simp [x]
+    · simp only [le_sup_iff, le_sup'_iff, mem_range, Order.lt_add_one_iff, x]
+      refine .inl ⟨i.val, by grind, ?_⟩
+      convert le_rfl
+      have : i = Fin.castSucc ⟨i.val, by grind⟩ := by grind
+      nth_rewrite 2 [this]
+      exact (Fin.snoc_castSucc (α := fun _ ↦ K) (n := p.natDegree + 1) _ (fun n ↦ p.coeff ↑n)
+        ⟨i.val, by grind⟩).symm
+
+open Multiset in
+/-- The multiplicative height of the value of a polynomial `p : K[X]` at `x : K` is bounded
+by `p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree`. -/
+lemma mulHeight₁_eval_le (p : K[X]) (x : K) :
+    mulHeight₁ (p.eval x) ≤ p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree := by
+  simp only [mulHeight₁_eq, p.mulHeight₁Bound_eq]
+  have H : (fun v : nonarchAbsVal ↦ max (v.val x) 1 ^ p.natDegree).mulSupport.Finite :=
+    (mulSupport_max_nonarchAbsVal_finite x).subset <| Function.mulSupport_pow ..
+  calc
+    _ ≤ (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1 * (max (v x) 1) ^ p.natDegree).prod * _ := by
+      refine mul_le_mul_of_nonneg_right ?_ <| finprod_nonneg fun _ ↦ by grind
+      exact prod_map_le_prod_map₀ _ _ (fun _ _ ↦ by positivity)
+        fun _ _ ↦ max_abv_eval_one_le ..
+    _ ≤ _ * ∏ᶠ (v : ↑nonarchAbsVal), max ((Finset.range (p.natDegree + 1)).sup' nonempty_range_add_one
+          fun n ↦ v.val (p.coeff n)) 1 * (max (v.val x) 1) ^ p.natDegree := by
+      refine mul_le_mul_of_nonneg_left ?_ ?_
+      · refine finprod_le_finprod (mulSupport_max_nonarchAbsVal_finite _) (fun v ↦ by grind) ?_ ?_
+        · refine Set.Finite.subset ?_ <| Function.mulSupport_mul ..
+          exact p.mulSupport_max_sup'_nonarchAbsVal_finite.union H
+        · exact Pi.le_def.mpr fun v ↦ max_abv_eval_one_le_of_nonarch p x (isNonarchimedean _ v.prop)
+      · refine Multiset.prod_nonneg fun a ha ↦ ?_
+        simp only [Multiset.mem_map] at ha
+        obtain ⟨v, _, rfl⟩ := ha
+        positivity
+    _ = _ := by
+      rw [prod_map_mul, mul_pow, prod_map_pow,
+        finprod_mul_distrib p.mulSupport_max_sup'_nonarchAbsVal_finite H,
+        finprod_pow (mulSupport_max_nonarchAbsVal_finite x)]
+      ring
+
+open Real
+
+/-- The logarithmic height of the value of a polynomial `p : K[X]` at `x : K` is bounded
+by `log p.mulHeight₁Bound + p.natDegree * logHeight₁ x`. -/
+lemma logHeight₁_eval_le (p : K[X]) (x : K) :
+    logHeight₁ (p.eval x) ≤ log p.mulHeight₁Bound + p.natDegree * logHeight₁ x := by
+  simp_rw [logHeight₁_eq_log_mulHeight₁]
+  have : p.mulHeight₁Bound ≠ 0 := by grind [one_le_mulHeight₁Bound]
+  pull (disch := first | positivity | assumption) log
+  exact (log_le_log <| by positivity) <| mulHeight₁_eval_le p x
+
+end Polynomial
+
+
+-- #exit
 /-!
 ### Heights on projective spaces
 -/
+
+-- New file NumberTheory/Height/Projectivization.lean ?
 
 namespace Projectivization
 
@@ -382,7 +543,10 @@ variable {K : Type*} [Field K] [AdmissibleAbsValues K] {ι : Type*} [Finite ι]
 private
 lemma mulHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
     mulHeight a.val = mulHeight b.val :=
-  h ▸ mulHeight_smul_eq_mulHeight fun H ↦ a.prop <| (H ▸ h).trans <| zero_smul K b.val
+  have ht : t ≠ 0 := by
+    contrapose! h
+    simpa [h] using a.prop
+  h ▸ mulHeight_smul_eq_mulHeight _ ht
 
 private
 lemma logHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
@@ -409,7 +573,7 @@ lemma logHeight_eq_log_mulHeight (x : Projectivization K (ι → K)) :
 
 lemma one_le_mulHeight (x : Projectivization K (ι → K)) : 1 ≤ mulHeight x := by
   rw [← x.mk_rep, mulHeight_mk]
-  exact Height.one_le_mulHeight x.rep_nonzero
+  exact Height.one_le_mulHeight _
 
 lemma mulHeight_pos (x : Projectivization K (ι → K)) : 0 < mulHeight x :=
   zero_lt_one.trans_le <| one_le_mulHeight x
@@ -422,3 +586,27 @@ lemma zero_le_logHeight (x : Projectivization K (ι → K)) : 0 ≤ logHeight x 
   exact log_nonneg <| x.one_le_mulHeight
 
 end Projectivization
+
+namespace Mathlib.Meta.Positivity
+
+open Lean.Meta Qq Projectivization
+
+/-- Extension for the `positivity` tactic: `Projectivization.mulHeight` is always positive. -/
+@[positivity Projectivization.mulHeight _]
+meta def evalProjMulHeight : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@mulHeight $K $KF $KA $ι $ιF $a) =>
+    assertInstancesCommute
+    pure (.positive q(@mulHeight_pos $K $KF $KA $ι $ιF $a))
+  | _, _, _ => throwError "not Projectivization.mulHeight"
+
+/-- Extension for the `positivity` tactic: `Projectivization.logHeight` is always nonnegative. -/
+@[positivity Projectivization.logHeight _]
+meta def evalProjLogHeight : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℝ), ~q(@logHeight $K $KF $KA $ι $ιF $a) =>
+    assertInstancesCommute
+    pure (.nonnegative q(@zero_le_logHeight $K $KF $KA $ι $ιF $a))
+  | _, _, _ => throwError "not Projectivization.logHeight"
+
+end Mathlib.Meta.Positivity
