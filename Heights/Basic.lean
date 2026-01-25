@@ -6,6 +6,9 @@ import Mathlib.NumberTheory.Height.Basic
 import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Tactic.Positivity.Core
+
+import Mathlib.Analysis.SpecialFunctions.Log.PosLog
+
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
@@ -266,12 +269,46 @@ meta def evalLogHeight : PositivityExt where eval {u α} _ _ e := do
 
 end Mathlib.Meta.Positivity
 
+section aux
+
+-- For the next PR
+lemma Real.log_finprod {α : Type*} {f : α → ℝ} (h : ∀ a, 0 < f a) :
+    log (∏ᶠ a, f a) = ∑ᶠ a, log (f a) := by
+  classical
+  simp only [finprod_def, finsum_def]
+  have H : f.mulSupport = (fun i ↦ log (f i)).support := by
+    ext a
+    refine ⟨fun h' ↦ ?_, fun h' ↦ ?_⟩ <;> { simp at h' ⊢; grind }
+  simp only [← H]
+  split_ifs with h₁
+  · exact log_prod fun a _ ↦ (h a).ne'
+  · simp
+
+end aux
 
 namespace Height
 
 open AdmissibleAbsValues Real
 
 variable {K : Type*} [Field K] [AdmissibleAbsValues K]
+
+-- For the next PR
+lemma logHeight₁_eq (x : K) :
+    logHeight₁ x =
+      (archAbsVal.map fun v ↦ log⁺ (v x)).sum + ∑ᶠ v : nonarchAbsVal, log⁺ (v.val x) := by
+  simp only [logHeight₁_eq_log_mulHeight₁, mulHeight₁_eq]
+  have H : mulHeight₁ x ≠ 0 := mulHeight₁_ne_zero x
+  rw [mulHeight₁_eq] at H
+  have : (Multiset.map (fun v ↦ max (v x) 1) archAbsVal).prod ≠ 0 := left_ne_zero_of_mul H
+  have : ∀ a ∈ archAbsVal.map (fun v ↦ max (v x) 1), a ≠ 0 := by
+    intro a ha
+    contrapose! ha
+    rw [ha]
+    exact Multiset.prod_eq_zero_iff.not.mp this
+  have : ∏ᶠ (v : ↑nonarchAbsVal), max (v.val x) 1 ≠ 0 := right_ne_zero_of_mul H
+  rw [log_mul (by assumption) (by assumption), log_multiset_prod (by assumption),
+    Multiset.map_map, log_finprod (fun _ ↦ by positivity)]
+  congr 2 <;> simp [max_comm, posLog_eq_log_max_one]
 
 open Finset Multiset in
 /-- The multiplicative height of a nonempty finite sum of field elements is at most
