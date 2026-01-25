@@ -299,14 +299,12 @@ lemma logHeight₁_eq (x : K) :
   simp only [logHeight₁_eq_log_mulHeight₁, mulHeight₁_eq]
   have H : mulHeight₁ x ≠ 0 := mulHeight₁_ne_zero x
   rw [mulHeight₁_eq] at H
-  have : (Multiset.map (fun v ↦ max (v x) 1) archAbsVal).prod ≠ 0 := left_ne_zero_of_mul H
   have : ∀ a ∈ archAbsVal.map (fun v ↦ max (v x) 1), a ≠ 0 := by
     intro a ha
     contrapose! ha
     rw [ha]
-    exact Multiset.prod_eq_zero_iff.not.mp this
-  have : ∏ᶠ (v : ↑nonarchAbsVal), max (v.val x) 1 ≠ 0 := right_ne_zero_of_mul H
-  rw [log_mul (by assumption) (by assumption), log_multiset_prod (by assumption),
+    exact Multiset.prod_eq_zero_iff.not.mp <| left_ne_zero_of_mul H
+  rw [log_mul (left_ne_zero_of_mul H) (right_ne_zero_of_mul H), log_multiset_prod this,
     Multiset.map_map, log_finprod (fun _ ↦ by positivity)]
   congr 2 <;> simp [max_comm, posLog_eq_log_max_one]
 
