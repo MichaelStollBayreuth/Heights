@@ -463,6 +463,8 @@ private lemma mulSupport_max_sup'_nonarchAbsVal_finite (p : K[X]) :
   let x := Fin.snoc (α := fun _ ↦ K) (fun n : Fin (p.natDegree + 1) ↦ p.coeff n) 1
   have hx : x ≠ 0 := Function.ne_iff.mpr ⟨Fin.last _, by simp [x]⟩
   convert mulSupport_iSup_nonarchAbsVal_finite hx with v
+  -- `max ((range (p.natDegree + 1)).sup' ⋯ fun n ↦ ↑v (p.coeff n)) 1 = ⨆ i, ↑v (x i)`
+  -- Can this done in a more elegant way?
   refine le_antisymm (max_le ?_ ?_) <| ciSup_le fun i ↦ ?_
   · refine Finset.sup'_le _ _ fun n hn ↦ le_ciSup_of_le (Finite.bddAbove_range _) ⟨n, by grind⟩ ?_
     simp only [x]
