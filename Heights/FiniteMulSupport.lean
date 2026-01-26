@@ -121,8 +121,8 @@ lemma hasFiniteMulSupport_comp {N : Type*} [One N] (g : M → N) (f : α → M)
   hf.subset <| mulSupport_comp_subset hg f
 
 example {K : Type*} [Field K] {ι : Type*} {v : ι → AbsoluteValue K ℝ}
-    (hv : ∀ x, HasFiniteMulSupport fun i ↦ v i x) (x : K) :
-    HasFiniteMulSupport fun i ↦ max (v i x) 1 := by
+    (hv : ∀ x, HasFiniteMulSupport fun i ↦ v i x) (x y : K) :
+    HasFiniteMulSupport fun i ↦ max (v i x * v i y) 1 := by
   fun_prop
 
 end Function
