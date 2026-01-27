@@ -67,6 +67,12 @@ lemma hasFiniteMulSupport_inv {M : Type*} [DivisionMonoid M] (f : α → M)
   exact f.mulSupport_fun_inv ▸ hf
 
 @[to_additive (attr := fun_prop)]
+lemma hasFiniteMulSupport_prod {M : Type*} [CommMonoid M] {ι : Type*} (f : ι → α → M)
+    (hf : ∀ i, HasFiniteMulSupport (f i)) (s : Finset ι) :
+    HasFiniteMulSupport fun a ↦ ∏ i ∈ s, f i a :=
+  (s.finite_toSet.biUnion fun i _ ↦ hf i).subset <| s.mulSupport_prod f
+
+@[to_additive (attr := fun_prop)]
 lemma hasFiniteMulSupport_div {M : Type*} [DivisionMonoid M] (f g : α → M)
     (hf : HasFiniteMulSupport f) (hg : HasFiniteMulSupport g) :
     HasFiniteMulSupport fun a ↦ f a / g a :=
@@ -119,6 +125,35 @@ lemma hasFiniteMulSupport_comp {N : Type*} [One N] (g : M → N) (f : α → M)
     (hf : HasFiniteMulSupport f) (hg : g 1 = 1) :
     HasFiniteMulSupport fun a ↦ g (f a) :=
   hf.subset <| mulSupport_comp_subset hg f
+
+@[to_additive (attr := fun_prop)]
+lemma hasFiniteMulSupport_pi {ι : Type*} [Finite α] (f : ι → α → M)
+    (hf : ∀ a, HasFiniteMulSupport (f · a)) :
+    HasFiniteMulSupport f := by
+  simp only [HasFiniteMulSupport] at hf ⊢
+  refine (Set.finite_iUnion hf).subset fun i hi ↦ ?_
+  simp only [mem_mulSupport, Set.mem_iUnion] at hi ⊢
+  exact ne_iff.mp hi
+
+@[to_additive (attr := fun_prop)]
+lemma hasFiniteMulSupport_sup' [SemilatticeSup M] {ι : Type*} (f : ι → α → M)
+    (hf : ∀ i, HasFiniteMulSupport (f i)) (s : Finset ι) (hs : s.Nonempty) :
+    HasFiniteMulSupport fun a ↦ s.sup' hs (f · a) := by
+  simp only [HasFiniteMulSupport] at hf ⊢
+  refine (s.finite_toSet.biUnion fun i _ ↦ hf i).subset fun a ha ↦ ?_
+  simp only [mem_mulSupport, SetLike.mem_coe, Set.mem_iUnion, exists_prop] at ha ⊢
+  contrapose! ha
+  exact Finset.sup'_eq_of_forall hs (fun x ↦ f x a) ha
+
+@[to_additive (attr := fun_prop)]
+lemma hasFiniteMulSupport_inf' [SemilatticeInf M] {ι : Type*} (f : ι → α → M)
+    (hf : ∀ i, HasFiniteMulSupport (f i)) (s : Finset ι) (hs : s.Nonempty) :
+    HasFiniteMulSupport fun a ↦ s.inf' hs (f · a) := by
+  simp only [HasFiniteMulSupport] at hf ⊢
+  refine (s.finite_toSet.biUnion fun i _ ↦ hf i).subset fun a ha ↦ ?_
+  simp only [mem_mulSupport, SetLike.mem_coe, Set.mem_iUnion, exists_prop] at ha ⊢
+  contrapose! ha
+  exact Finset.inf'_eq_of_forall hs (fun x ↦ f x a) ha
 
 example {K : Type*} [Field K] {ι : Type*} {v : ι → AbsoluteValue K ℝ}
     (hv : ∀ x, HasFiniteMulSupport fun i ↦ v i x) (x y : K) :
