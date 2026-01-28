@@ -13,7 +13,7 @@ namespace Function
 variable {α M : Type*} [One M]
 
 /-- The function `f` has finite multiplicative support. -/
-@[to_additive (attr := fun_prop)]
+@[to_additive (attr := fun_prop) /-- The function `f` has finite support. -/]
 def HasFiniteMulSupport (f : α → M) : Prop := f.mulSupport.Finite
 
 @[to_additive (attr := fun_prop)]
