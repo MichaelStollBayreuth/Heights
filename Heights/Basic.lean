@@ -69,51 +69,6 @@ noncomputable section
 
 section aux
 
-@[to_additive]
-lemma Multiset.prod_map_prod {ι α M : Type*} [CommMonoid M] {m : Multiset ι} {s : Finset α}
-    {f : ι → α  → M} :
-    (m.map fun i ↦ ∏ a ∈ s, f i a).prod = ∏ a ∈ s, (m.map fun i ↦ f i a).prod := by
-  classical
-  induction s using Finset.induction with
-  | empty => simp
-  | insert a s ha ih => simp [Finset.prod_insert ha, prod_map_mul, ih]
-
--- [Mathlib.Algebra.BigOperators.Group.Finset.Basic]
-
-section
-
-variable {α M : Type*}
-
-/-- Monotonicity of `finprod`. See `finprod_le_finprod` for a variant where
-`β` is a `CommMonoidWithZero`. -/
-@[to_additive /-- Monotonicity of `finsum.` -/]
-lemma finprod_le_finprod' [CommMonoid M] [PartialOrder M] [MulLeftMono M] {f g : α → M}
-    (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (hf.union hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f (show f.mulSupport ⊆ s by grind),
-    finprod_eq_finset_prod_of_mulSupport_subset g (show g.mulSupport ⊆ s by grind)]
-  exact Finset.prod_le_prod' fun i _ ↦ h i
-
-/-- Monotonicity of `finprod`. See `finprod_le_finprod'` for a variant where
-`β` is an ordered `CommMonoid`. -/
-lemma finprod_le_finprod [CommMonoidWithZero M] [PartialOrder M] [ZeroLEOneClass M] [PosMulMono M]
-    {f g : α → M} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
-    (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (hf.union hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f (show f.mulSupport ⊆ s by grind),
-    finprod_eq_finset_prod_of_mulSupport_subset g (show g.mulSupport ⊆ s by grind)]
-  exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
-
--- #find_home! finprod_le_finprod
--- Mathlib.Algebra.BigOperators.Finprod ?
-
-end
--- Some helper lemmas needed below
-
 namespace Height
 
 /- private lemma le_mul_max_max_left (a b : ℝ) : a ≤ (max a 1) * (max b 1) :=
