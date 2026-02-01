@@ -106,10 +106,14 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
         · refine ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
           exact Finsupp.single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
       · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ ?_
-        · change Function.HasFiniteMulSupport _
-          fun_prop (disch := assumption)
+        · -- change Function.HasFiniteMulSupport _
+          -- fun_prop (disch := assumption)
+          have : Nonempty ι' := (Function.ne_iff.mp h).nonempty
+          refine Function.finite_mulSupport_iSup fun i ↦ ?_
+          refine mulSupport_finite ?_
+          sorry
         · exact Real.iSup_nonneg fun j ↦ by positivity
-        · change Function.HasFiniteMulSupport _
+        · -- change Function.HasFiniteMulSupport _
           -- fun_prop (disch := assumption)
           sorry
         · refine fun v ↦ ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
