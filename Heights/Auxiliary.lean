@@ -102,7 +102,7 @@ lemma finprod_mono [CommMonoid β] [PartialOrder β] [IsOrderedMonoid β] {f g :
   exact Finset.prod_le_prod' fun i _ ↦ h i
 
 /-- Monotonicity of `finprod`. See `finprod_mono` for a variant
-where `β` is an `OrderedCommMonoid`. -/
+where `β` is an ordered `CommMonoid`. -/
 lemma finprod_mono' [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β] [PosMulMono β]
     {f g : α → β} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
     (hg : g.mulSupport.Finite) (h : f ≤ g) :

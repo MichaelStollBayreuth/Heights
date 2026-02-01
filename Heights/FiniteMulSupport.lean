@@ -1,4 +1,7 @@
-import Mathlib
+import Mathlib.Algebra.BigOperators.Group.Finset.Lemmas
+import Mathlib.Algebra.Group.Support
+import Mathlib.Algebra.Order.Group.Indicator
+import Mathlib.Data.Set.Finite.Lattice
 
 /-!
 # Make fun_prop work for finite (mulitplicative) support
@@ -25,7 +28,9 @@ lemma hasFiniteMulSupport_one : HasFiniteMulSupport fun _ : α ↦ (1 : M) := by
 lemma hasFiniteMulSupport_one' : HasFiniteMulSupport (1 : α → M) := by
   simp [HasFiniteMulSupport]
 
-example : HasFiniteMulSupport (1 : ℕ → ℝ) := by fun_prop
+example : HasFiniteMulSupport (1 : ℕ → ℕ) := by fun_prop
+
+example : HasFiniteMulSupport fun _ : ℕ ↦ (1 : ℤ) := by fun_prop
 
 @[to_additive (attr := fun_prop)]
 lemma hasFiniteMulSupport_fst {M' : Type*} [One M'] (f : α → M × M') (hf : HasFiniteMulSupport f) :
@@ -155,8 +160,7 @@ lemma hasFiniteMulSupport_inf' [SemilatticeInf M] {ι : Type*} (f : ι → α �
   contrapose! ha
   exact Finset.inf'_eq_of_forall hs (fun x ↦ f x a) ha
 
-example {K : Type*} [Field K] {ι : Type*} {v : ι → AbsoluteValue K ℝ}
-    (hv : ∀ x, HasFiniteMulSupport fun i ↦ v i x) (x y : K) :
+example {K ι : Type*} {v : ι → K → ℤ} (hv : ∀ x, HasFiniteMulSupport fun i ↦ v i x) (x y : K) :
     HasFiniteMulSupport fun i ↦ max (v i x * v i y) 1 := by
   fun_prop
 
