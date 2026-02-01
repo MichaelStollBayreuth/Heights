@@ -10,7 +10,7 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 import Mathlib.LinearAlgebra.Projectivization.Basic
 
--- import Heights.FiniteMulSupport
+import Heights.FiniteSupport
 
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
@@ -164,8 +164,9 @@ private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x :
     · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨j, h⟩ le_rfl
   -- fun_prop (disch := grind)
   -- solve_by_elim [Set.finite_iUnion, Set.Finite.subset, Function.mulSupport_iSup, mulSupport_finite]
-  exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_finite i.prop).subset <|
-    Function.mulSupport_iSup _
+  exact Function.finite_mulSupport_iSup fun i ↦ mulSupport_finite i.prop
+  -- exact (Set.finite_iUnion fun i : {j | x j ≠ 0} ↦ mulSupport_finite i.prop).subset <|
+  --   Function.mulSupport_iSup _
 
 -- @[fun_prop]
 private lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
@@ -173,9 +174,10 @@ private lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
   rcases eq_or_ne x 0 with rfl | hx
   · simp
   -- fun_prop (disch := assumption)
-  simp_rw [max_eq_iSup]
-  convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
-  fin_cases i <;> simp
+  exact Function.finite_mulSupport_max (mulSupport_finite hx) Function.finite_mulSupport_one
+  -- simp_rw [max_eq_iSup]
+  -- convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
+  -- fin_cases i <;> simp
 
 end Height
 
@@ -368,6 +370,7 @@ lemma one_le_mulHeight₁Bound (p : K[X]) : 1 ≤ p.mulHeight₁Bound := by
     exact le_max_right ..
   · exact one_le_finprod fun _ ↦ le_max_right ..
 
+open Function in
 -- @[fun_prop]
 private lemma mulSupport_max_sup'_nonarchAbsVal_finite (p : K[X]) :
     (fun v : nonarchAbsVal ↦
@@ -388,24 +391,28 @@ private lemma mulSupport_max_sup'_nonarchAbsVal_finite (p : K[X]) :
         exact leadingCoeff_ne_zero.mpr hp
     · refine Finset.sup'_mono _ (fun i hi ↦ ?_) (support_nonempty.mpr hp)
       exact mem_range_succ_iff.mpr <| le_natDegree_of_mem_supp i hi
+  refine finite_mulSupport_max ?_ finite_mulSupport_one
+  refine finite_mulSupport_sup' p.support (fun _ _ ↦ ?_) (support_nonempty.mpr hp)
+  exact mulSupport_finite (by grind)
   -- fun_prop (disch := grind)
-  refine (Set.Finite.union ?_ ?_).subset <| Function.mulSupport_max ..
+  /- refine (Set.Finite.union ?_ ?_).subset <| Function.mulSupport_max ..
   · have : ∀ i ∈ p.support, (fun v : nonarchAbsVal ↦ v.val (p.coeff i)).mulSupport.Finite :=
       fun i hi ↦ mulSupport_finite <| mem_support_iff.mp hi
     refine (p.support.finite_toSet.biUnion this).subset fun v hv ↦ ?_
     simp only [Function.mem_mulSupport, SetLike.mem_coe, Set.mem_iUnion, exists_prop] at hv ⊢
     contrapose! hv
     exact Finset.sup'_eq_of_forall _ (fun i ↦ v.val (p.coeff i)) hv
-  · exact Function.mulSupport_fun_one (M := ℝ) ▸ Set.finite_empty
+  · exact Function.mulSupport_fun_one (M := ℝ) ▸ Set.finite_empty -/
 
-open Multiset in
+open Multiset Function in
 /-- The multiplicative height of the value of a polynomial `p : K[X]` at `x : K` is bounded
 by `p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree`. -/
 lemma mulHeight₁_eval_le (p : K[X]) (x : K) :
     mulHeight₁ (p.eval x) ≤ p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree := by
   simp only [mulHeight₁_eq, p.mulHeight₁Bound_eq]
   have H : (fun v : nonarchAbsVal ↦ max (v.val x) 1 ^ p.natDegree).mulSupport.Finite :=
-    (mulSupport_max_nonarchAbsVal_finite x).subset <| Function.mulSupport_pow ..
+    finite_mulSupport_pow (mulSupport_max_nonarchAbsVal_finite _) _
+    -- (mulSupport_max_nonarchAbsVal_finite x).subset <| Function.mulSupport_pow ..
   calc
     _ ≤ (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1 * (max (v x) 1) ^ p.natDegree).prod * _ := by
       refine mul_le_mul_of_nonneg_right ?_ <| finprod_nonneg fun _ ↦ by grind
@@ -416,14 +423,15 @@ lemma mulHeight₁_eval_le (p : K[X]) (x : K) :
       · refine finprod_le_finprod (mulSupport_max_nonarchAbsVal_finite _) (fun v ↦ by grind) ?_ ?_
         · -- change Function.HasFiniteMulSupport _
           -- fun_prop
-          refine Set.Finite.subset ?_ <| Function.mulSupport_mul ..
-          exact p.mulSupport_max_sup'_nonarchAbsVal_finite.union H
+          exact finite_mulSupport_mul (mulSupport_max_sup'_nonarchAbsVal_finite p) H
+          -- refine Set.Finite.subset ?_ <| Function.mulSupport_mul ..
+          -- exact p.mulSupport_max_sup'_nonarchAbsVal_finite.union H
         · exact Pi.le_def.mpr fun v ↦ max_abv_eval_one_le_of_nonarch p x (isNonarchimedean _ v.prop)
       · obtain ⟨v, _, rfl⟩ := Multiset.mem_map.mp ha
         positivity
     _ = _ := by
       rw [prod_map_mul, mul_pow, prod_map_pow,
-        finprod_mul_distrib p.mulSupport_max_sup'_nonarchAbsVal_finite (Set.not_infinite.mp (· H)),
+        finprod_mul_distrib p.mulSupport_max_sup'_nonarchAbsVal_finite H,
           -- (by change Function.HasFiniteMulSupport _; fun_prop),
         finprod_pow (mulSupport_max_nonarchAbsVal_finite x)]
       ring
