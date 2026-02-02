@@ -69,8 +69,6 @@ noncomputable section
 
 section aux
 
-namespace Height
-
 /- private lemma le_mul_max_max_left (a b : ℝ) : a ≤ (max a 1) * (max b 1) :=
   calc
     a = a * 1 := (mul_one a).symm
@@ -84,6 +82,57 @@ namespace Height
   calc
     (1 : ℝ) = 1 * 1 := (mul_one 1).symm
     _ ≤ _ := by gcongr <;> grind -/
+
+namespace Finset
+
+lemma le_prod_max_one {ι M : Type*} [CommMonoidWithZero M] [LinearOrder M] [ZeroLEOneClass M]
+    [PosMulMono M] {s : Finset ι} {i : ι} (hi : i ∈ s) (f : ι → M) :
+    f i ≤ ∏ i ∈ s, max (f i) 1 := by
+  classical
+  rcases lt_or_ge (f i) 0 with hf | hf
+  · exact (hf.trans_le <| Finset.prod_nonneg fun _ _ ↦ le_sup_of_le_right zero_le_one).le
+  have : f i = ∏ j ∈ s, if i = j then f i else 1 := by
+    rw [Finset.prod_eq_single_of_mem i hi fun _ _ _ ↦ by grind]
+    simp
+  exact this ▸ Finset.prod_le_prod (fun _ _ ↦ by grind [zero_le_one]) fun _ _ ↦ by grind
+
+-- #find_home! le_prod_max_one  -- [Mathlib.Algebra.Order.BigOperators.Ring.Finset]
+
+variable {R S : Type*} [Semiring R] [CommSemiring S] [LinearOrder S] [IsOrderedRing S]
+
+/-- The "local" version of the height bound for arbitrary sums for general (possibly archimedean)
+absolute values. -/
+lemma max_abv_sum_one_le [CharZero S] (v : AbsoluteValue R S) {ι : Type*} {s : Finset ι}
+    (hs : s.Nonempty) (x : ι → R) :
+    max (v (∑ i ∈ s, x i)) 1 ≤ #s * ∏ i ∈ s, max (v (x i)) 1 := by
+  refine sup_le ?_ ?_
+  · rw [← nsmul_eq_mul, ← sum_const]
+    grw [v.sum_le s x]
+    gcongr with i hi
+    exact le_prod_max_one hi fun i ↦ v (x i)
+  · nth_rewrite 1 [← mul_one 1]
+    gcongr
+    · simp [hs]
+    · exact s.one_le_prod fun _ ↦ le_max_right ..
+-- #min_imports says
+-- import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+-- import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-- The "local" version of the height bound for arbitrary sums for nonarchimedean
+absolute values. -/
+lemma max_abv_sum_one_le_of_isNonarchimedean {v : AbsoluteValue R S} (hv : IsNonarchimedean v)
+   {ι : Type*} (s : Finset ι) (x : ι → R) :
+    max (v (∑ i ∈ s, x i)) 1 ≤ ∏ i ∈ s, max (v (x i)) 1 := by
+  rcases s.eq_empty_or_nonempty with rfl | hs
+  · simp
+  refine sup_le ?_ <| s.one_le_prod fun _ ↦ le_max_right ..
+  grw [hv.apply_sum_le_sup_of_isNonarchimedean hs]
+  exact sup'_le hs (fun i ↦ v (x i)) fun i hi ↦ le_prod_max_one hi fun i ↦ v (x i)
+-- plus import Mathlib.Algebra.Order.Ring.IsNonarchimedean
+
+end Finset
+
+namespace Height
 
 variable {K : Type*} [Field K]
 
@@ -102,41 +151,9 @@ private lemma max_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNo
   refine sup_le ?_ <| one_le_mul_max_max ..
   exact (hv x y).trans <| sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..) -/
 
-private lemma le_prod_max_one {ι : Type*} {s : Finset ι} {i : ι} (hi : i ∈ s) (f : ι → ℝ) :
-    f i ≤ ∏ i ∈ s, max (f i) 1 := by
-  classical
-  rcases lt_or_ge (f i) 0 with hf | hf
-  · exact (hf.trans_le (by positivity)).le
-  have : f i = ∏ j ∈ s, if i = j then f i else 1 := by
-    rw [Finset.prod_eq_single_of_mem i hi fun _ _ _ ↦ by grind]
-    simp
-  exact this ▸ Finset.prod_le_prod (fun _ _ ↦ by grind) fun _ _ ↦ by grind
-
--- The "local" version of the height bound for arbitrary sums for archimedean `v`.
-private lemma max_abv_sum_one_le (v : AbsoluteValue K ℝ) {ι : Type*} {s : Finset ι} (hs : s.Nonempty)
-    (x : ι → K) :
-    max (v (∑ i ∈ s, x i)) 1 ≤ s.card * ∏ i ∈ s, max (v (x i)) 1 := by
-  refine sup_le ?_ ?_
-  · rw [← nsmul_eq_mul, ← Finset.sum_const]
-    grw [v.sum_le s x]
-    gcongr with i hi
-    exact le_prod_max_one hi (fun i ↦ v (x i))
-  · nth_rewrite 1 [← mul_one 1]
-    gcongr
-    · simp [hs]
-    · exact s.one_le_prod fun _ ↦ le_max_right ..
-
--- The "local" version of the height bound for arbitrary sums for nonarchimedean `v`.
-private lemma max_abv_sum_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
-    {ι : Type*} {s : Finset ι} (hs : s.Nonempty) (x : ι → K) :
-    max (v (∑ i ∈ s, x i)) 1 ≤ ∏ i ∈ s, max (v (x i)) 1 := by
-  refine sup_le ?_ <| s.one_le_prod fun _ ↦ le_max_right ..
-  grw [hv.apply_sum_le_sup_of_isNonarchimedean hs]
-  exact Finset.sup'_le hs (fun i ↦ v (x i)) fun i hi ↦ le_prod_max_one hi (fun i ↦ v (x i))
-
-private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
+/- private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
     max a b = iSup ![a, b] :=
-  eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
+  eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two] -/
 
 variable [AdmissibleAbsValues K]
 
@@ -239,7 +256,7 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.
         refine Set.Finite.subset ?_ <|
           s.mulSupport_prod fun i (v : nonarchAbsVal) ↦ max (v.val (x i)) 1
         exact s.finite_toSet.biUnion fun _ _ ↦ mulSupport_max_nonarchAbsVal_finite _
-      · exact fun v ↦ max_abv_sum_one_le_of_nonarch (isNonarchimedean _ v.prop) hs x
+      · exact fun v ↦ max_abv_sum_one_le_of_isNonarchimedean (isNonarchimedean _ v.prop) _ x
     _ = _ := by
       rw [finprod_prod_comm _ _ fun i _ ↦ mulSupport_max_nonarchAbsVal_finite (x i),
         prod_map_mul, prod_map_prod, map_const', prod_replicate, prod_mul_distrib]
