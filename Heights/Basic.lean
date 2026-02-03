@@ -537,7 +537,7 @@ meta def evalProjMulHeight : PositivityExt where eval {u α} _ _ e := do
   match u, α, e with
   | 0, ~q(ℝ), ~q(@mulHeight $K $KF $KA $ι $ιF $a) =>
     assertInstancesCommute
-    pure (.positive q(@mulHeight_pos $K $KF $KA $ι $ιF $a))
+    pure (.positive q(mulHeight_pos $a))
   | _, _, _ => throwError "not Projectivization.mulHeight"
 
 /-- Extension for the `positivity` tactic: `Projectivization.logHeight` is always nonnegative. -/
@@ -546,7 +546,7 @@ meta def evalProjLogHeight : PositivityExt where eval {u α} _ _ e := do
   match u, α, e with
   | 0, ~q(ℝ), ~q(@logHeight $K $KF $KA $ι $ιF $a) =>
     assertInstancesCommute
-    pure (.nonnegative q(@zero_le_logHeight $K $KF $KA $ι $ιF $a))
+    pure (.nonnegative q(zero_le_logHeight $a))
   | _, _, _ => throwError "not Projectivization.logHeight"
 
 end Mathlib.Meta.Positivity
