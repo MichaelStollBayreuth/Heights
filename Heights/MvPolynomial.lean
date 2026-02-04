@@ -9,6 +9,23 @@ We prove upper and lower bounds for the height of `fun i ↦ eval P i x`, where 
 homogeneous polynomials over the field `K` of the same degree `N` and `x : ι → K` with `ι` finite.
 -/
 
+-- Auxiliary stuff
+
+namespace Finsupp
+
+-- @Finsupp.sum : {α : Type u_2} → {M : Type u_1} → {N : Type} → [inst : Zero M] →
+--    [AddCommMonoid N] → (α →₀ M) → (α → M → N) → N
+
+lemma single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
+    [IsOrderedAddMonoid N] (f : α →₀ M) {g : M → N} (hg : g 0 = 0) (h : ∀ m, 0 ≤ g m) (a : α) :
+    g (f a) ≤ f.sum fun _ m ↦ g m := by
+  rcases eq_or_ne (f a) 0 with H | H
+  · rw [H, hg]
+    exact sum_nonneg' fun a ↦ h _
+  · exact Finset.single_le_sum (fun a _ ↦ h (f a)) <| mem_support_iff.mpr H
+
+end Finsupp
+
 namespace Height
 
 open MvPolynomial
@@ -76,16 +93,36 @@ lemma mulHeightBound_eq (p : ι' → MvPolynomial ι K) :
         ∏ᶠ v : nonarchAbsVal, ⨆ j, ⨆ s : (p j).support, v.val (coeff s (p j)) :=
   rfl
 
--- @Finsupp.sum : {α : Type u_2} → {M : Type u_1} → {N : Type} → [inst : Zero M] →
---    [AddCommMonoid N] → (α →₀ M) → (α → M → N) → N
-
-lemma _root_.Finsupp.single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
-    [IsOrderedAddMonoid N] (f : α →₀ M) {g : M → N} (hg : g 0 = 0) (h : ∀ m, 0 ≤ g m) (a : α) :
-    g (f a) ≤ f.sum fun _ m ↦ g m := by
-  rcases eq_or_ne (f a) 0 with H | H
-  · rw [H, hg]
-    exact Finsupp.sum_nonneg' fun a ↦ h _
-  · exact Finset.single_le_sum (fun a _ ↦ h (f a)) <| Finsupp.mem_support_iff.mpr H
+private lemma mulHeight_constantCoeff_le_mulHeightBound {N : ℕ} {p : ι' → MvPolynomial ι K}
+    (hp : ∀ (i : ι'), (p i).IsHomogeneous N) (h : (fun j ↦ constantCoeff (p j)) ≠ 0) :
+    (mulHeight fun j ↦ constantCoeff (p j)) ≤ mulHeightBound p := by
+  simp only [mulHeight_eq h, mulHeightBound_eq]
+  gcongr
+  · exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
+  · refine Multiset.prod_nonneg fun a ha ↦ ?_
+    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
+    exact Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg' fun s ↦ by positivity
+  · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v hv ↦ ?_) fun v hv ↦ ?_
+    · exact Real.iSup_nonneg fun j ↦ by positivity
+    · refine ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
+      exact Finsupp.single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
+  · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ ?_
+    · simp only [iSup_eq_iSup_subtype h (map_zero _) (AbsoluteValue.nonneg _)]
+      -- change Function.HasFiniteMulSupport _
+      -- fun_prop (disch := assumption)
+      obtain ⟨i, hi⟩ : ∃ j, constantCoeff (p j) ≠ 0 := Function.ne_iff.mp h
+      have : Nonempty {j // constantCoeff (p j) ≠ 0} := .intro ⟨i, hi⟩
+      exact Function.finite_mulSupport_iSup fun i ↦ mulSupport_finite i.prop
+    · exact Real.iSup_nonneg fun j ↦ by positivity
+    · -- change Function.HasFiniteMulSupport _
+      -- fun_prop (disch := assumption)
+      sorry
+    · refine fun v ↦ ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
+      rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
+      rcases eq_or_ne (coeff 0 (p j)) 0 with h₀ | h₀
+      · rw [h₀, map_zero]
+        exact Real.iSup_nonneg fun i ↦ v.val.nonneg _
+      · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
 
 theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
     (x : ι → K) :
@@ -94,32 +131,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   · simp only [eval_zero, mulHeight_zero, one_pow, mul_one]
     rcases eq_or_ne (fun j ↦ constantCoeff (p j)) 0 with h | h
     · simp [h]
-    · refine le_max_of_le_left ?_
-      simp only [mulHeight_eq h, mulHeightBound_eq]
-      gcongr
-      · exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
-      · refine Multiset.prod_nonneg fun a ha ↦ ?_
-        obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
-        exact Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg' fun s ↦ by positivity
-      · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v hv ↦ ?_) fun v hv ↦ ?_
-        · exact Real.iSup_nonneg fun j ↦ by positivity
-        · refine ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
-          exact Finsupp.single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
-      · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ ?_
-        · -- change Function.HasFiniteMulSupport _
-          -- fun_prop (disch := assumption)
-          have : Nonempty ι' := (Function.ne_iff.mp h).nonempty
-          refine Function.finite_mulSupport_iSup fun i ↦ ?_
-          refine mulSupport_finite ?_
-          sorry
-        · exact Real.iSup_nonneg fun j ↦ by positivity
-        · -- change Function.HasFiniteMulSupport _
-          -- fun_prop (disch := assumption)
-          sorry
-        · refine fun v ↦ ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
-          rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
-          -- refine le_ciSup (α := ℝ) ?_ 0
-          sorry
+    · exact le_max_of_le_left <| mulHeight_constantCoeff_le_mulHeightBound hp h
   simp only [mulHeight_eq hx, mulHeightBound_eq]
   sorry
 

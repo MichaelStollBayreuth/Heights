@@ -164,7 +164,7 @@ lemma AdmissibleAbsValues.hasFiniteMulSupport {x : K} (hx : x ≠ 0) :
     (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite :=
   mulSupport_finite hx
 
-private lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
+lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
     [ConditionallyCompleteLattice M] {x : ι → K} (hx : x ≠ 0) {v : K → M}
     (hv₀ : v 0 = 0) (hv : ∀ k, 0 ≤ v k) :
     ⨆ i, v (x i) =  ⨆ i : {j // x j ≠ 0}, v (x i) := by
