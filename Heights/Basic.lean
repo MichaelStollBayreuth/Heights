@@ -180,7 +180,7 @@ lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
 
 -- Finiteness of the multiplicative support for some relevant functions.
 -- @[fun_prop]
-private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
+lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
     (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).mulSupport.Finite := by
   simp only [iSup_eq_iSup_subtype hx (map_zero _) (AbsoluteValue.nonneg _)]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| ne_iff.mp hx
@@ -201,7 +201,7 @@ private lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x :
   --   mulSupport_iSup _
 
 -- @[fun_prop]
-private lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
+lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
     (fun v : nonarchAbsVal ↦ max (v.val x) 1).mulSupport.Finite := by
   rcases eq_or_ne x 0 with rfl | hx
   · simp
