@@ -1,4 +1,5 @@
-import Heights.Instances
+import Heights.NumberField
+import Mathlib.LinearAlgebra.Projectivization.Cardinality
 
 /-!
 ### Heights over ℚ

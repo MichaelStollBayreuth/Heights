@@ -1,4 +1,4 @@
-import Mathlib.NumberTheory.Height.Instances
+import Mathlib.NumberTheory.Height.NumberField
 import Heights.Basic
 /-!
 # Instances of AdmissibleAbsValues
