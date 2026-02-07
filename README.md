@@ -102,16 +102,16 @@ We define the following variants.
 * `mulHeight x` and `logHeight x` for `x : ι → K` with `ι` finite. This is the height
   of a tuple of elements of `K` representing a point in projective space.
   It is invariant under scaling by nonzero elements of `K`.
-* `mulHeight_finsupp x` and `logHeight_finsupp x` for `x : α →₀ K`. This is the same
+* `Finsupp.mulHeight x` and `Finsupp.logHeight x` for `x : α →₀ K`. This is the same
   as the height of `x` restricted to any finite subtype containing the support of `x`.
 * `Projectivization.mulHeight` and `Projectivization.logHeight` on
-  `Projectivization K (ι → K)` (with a `Fintype ι`). This is the height of a point
+  `Projectivization K (ι → K)` (assuming `Finite ι`). This is the height of a point
   on projective space (with fixed basis).
 
 ## Main results
 
 We set up an instance of `AdmissibleAbsValues` for number fields
-(see [__Instances.lean__](Heights/Instances.lean)).
+(see [__NumberFields.lean__](Heights/NumberFields.lean)).
 
 Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
 we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
@@ -132,3 +132,9 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
   "`G/n•G` finite ⇒ `G` finitely generated", assuming there is a suitable kind
   of height function on the additive commutative group `G`. See (the additivized version of)
   `CommGroup.fg_of_descent`.
+
+## Work in progress
+
+* In [__MvPolynomial.lean__](Heights/MvPolynomial.lean) we develop a proof for general
+  upper and lower bounds on the `mulHeight` of the image of a tuple under a tuple
+  of homogeneous polynomial maps of the same degree.
