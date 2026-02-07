@@ -48,9 +48,9 @@ namespace Height
 
 open MvPolynomial
 
-variable {K : Type*} [Field K] variable {ι : Type*} [Finite ι]
+variable {K : Type*} [Field K] {ι : Type*}
 
-private lemma mvPolynomial_bound (v : AbsoluteValue K ℝ) {p : MvPolynomial ι K} {N : ℕ}
+private lemma mvPolynomial_bound [Finite ι] (v : AbsoluteValue K ℝ) {p : MvPolynomial ι K} {N : ℕ}
     (hp : p.IsHomogeneous N) (x : ι → K) :
     v (p.eval x) ≤ p.sum (fun _ c ↦ v c) * (⨆ i, v (x i)) ^ N := by
   rw [eval_eq, sum_def, Finset.sum_mul]
@@ -62,8 +62,8 @@ private lemma mvPolynomial_bound (v : AbsoluteValue K ℝ) {p : MvPolynomial ι 
   gcongr with i
   exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
 
-private lemma mvPolynomial_bound_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
-    {p : MvPolynomial ι K} {N : ℕ} (hp : p.IsHomogeneous N) (x : ι → K) :
+private lemma mvPolynomial_bound_nonarch [Finite ι] {v : AbsoluteValue K ℝ}
+    (hv : IsNonarchimedean v) {p : MvPolynomial ι K} {N : ℕ} (hp : p.IsHomogeneous N) (x : ι → K) :
     v (p.eval x) ≤ (⨆ s : p.support, v (coeff s p)) * (⨆ i, v (x i)) ^ N := by
   rcases eq_or_ne p 0 with rfl | hp₀
   · simp_all
@@ -80,7 +80,7 @@ private lemma mvPolynomial_bound_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonar
     gcongr with i
     exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
 
-variable {ι' : Type*} [Finite ι']
+variable {ι' : Type*}
 
 variable [AdmissibleAbsValues K]
 
@@ -92,14 +92,14 @@ def mulHeightBound (p : ι' → MvPolynomial ι K) : ℝ :=
   (archAbsVal.map fun v ↦ ⨆ j, (p j).sum (fun _ c ↦ v c)).prod *
     ∏ᶠ v : nonarchAbsVal, ⨆ j, max (⨆ s : (p j).support, v.val (coeff s (p j))) 1
 
-omit [Finite ι] [Finite ι'] in
 lemma mulHeightBound_eq (p : ι' → MvPolynomial ι K) :
     mulHeightBound p =
      (archAbsVal.map fun v ↦ ⨆ j, (p j).sum (fun _ c ↦ v c)).prod *
         ∏ᶠ v : nonarchAbsVal, ⨆ j, max (⨆ s : (p j).support, v.val (coeff s (p j))) 1 :=
   rfl
 
-omit [Finite ι] in
+variable [Finite ι']
+
 private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomial ι K}
     (h : (fun j ↦ constantCoeff (p j)) ≠ 0) :
     (mulHeight fun j ↦ constantCoeff (p j)) ≤ mulHeightBound p := by
@@ -135,6 +135,8 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
       · grind
       · refine le_sup_of_le_left ?_
         exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
+
+variable [Finite ι]
 
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
 to a multiplicative height).
