@@ -24,25 +24,31 @@ lemma single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
     exact sum_nonneg' fun a ↦ h _
   · exact Finset.single_le_sum (fun a _ ↦ h (f a)) <| mem_support_iff.mpr H
 
+-- #find_home! single_le_sum -- [Mathlib.Data.Finsupp.Order]
+
 end Finsupp
 
-namespace Height
+namespace MvPolynomial
 
-open MvPolynomial
-
-variable {K : Type*} [Field K]
-
-variable {ι : Type*}
+variable {R : Type*} [CommSemiring R] {ι : Type*}
 
 -- possibly useful more generally?
-private lemma sum_deg_support_eq_degree {p : MvPolynomial ι K} {N : ℕ} (hp : p.IsHomogeneous N)
-    {s : ι →₀ ℕ} (hs : s ∈ p.support) :
+lemma IsHomogeneous.degree_eq_sum_deg_support {p : MvPolynomial ι R} {N : ℕ}
+    (hp : p.IsHomogeneous N) {s : ι →₀ ℕ} (hs : s ∈ p.support) :
     N = ∑ i ∈ s.support, s i := by
   rw [IsHomogeneous, IsWeightedHomogeneous] at hp
   rw [← hp <| mem_support_iff.mp hs, ← Finsupp.degree_apply, Finsupp.degree_eq_weight_one,
     Pi.one_def]
 
-variable [Finite ι]
+-- #find_home! sum_deg_support_eq_degree -- [Mathlib.RingTheory.MvPolynomial.Homogeneous]
+
+end MvPolynomial
+
+namespace Height
+
+open MvPolynomial
+
+variable {K : Type*} [Field K] variable {ι : Type*} [Finite ι]
 
 private lemma mvPolynomial_bound (v : AbsoluteValue K ℝ) {p : MvPolynomial ι K} {N : ℕ}
     (hp : p.IsHomogeneous N) (x : ι → K) :
@@ -52,7 +58,7 @@ private lemma mvPolynomial_bound (v : AbsoluteValue K ℝ) {p : MvPolynomial ι 
   simp_rw [v.map_mul, v.map_prod, v.map_pow]
   refine Finset.sum_le_sum fun s hs ↦ ?_
   gcongr
-  rw [sum_deg_support_eq_degree hp hs, ← Finset.prod_pow_eq_pow_sum]
+  rw [hp.degree_eq_sum_deg_support hs, ← Finset.prod_pow_eq_pow_sum]
   gcongr with i
   exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
 
@@ -70,7 +76,7 @@ private lemma mvPolynomial_bound_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonar
   gcongr
   · exact Real.iSup_nonneg fun _ ↦ v.nonneg _
   · exact le_ciSup_of_le (Finite.bddAbove_range _) (⟨s, hs₁⟩ : p.support) le_rfl
-  · rw [sum_deg_support_eq_degree hp hs₁, ← Finset.prod_pow_eq_pow_sum]
+  · rw [hp.degree_eq_sum_deg_support hs₁, ← Finset.prod_pow_eq_pow_sum]
     gcongr with i
     exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
 
@@ -130,6 +136,12 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
       · refine le_sup_of_le_left ?_
         exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
 
+/-- Let `K` be a field with an admissible family of absolute values (giving rise
+to a multiplicative height).
+Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
+the finite type `ι` and of the same degree `N`. Then for any `x : ι →  K`,
+the multiplicative height of `fun j : ι' ↦ eval x (p j)` is bounded by a constant
+(which is made explicit) times `mulHeight x ^ N`. -/
 theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
     (x : ι → K) :
     mulHeight (fun j ↦ (p j).eval x) ≤ max (mulHeightBound p) 1 * mulHeight x ^ N := by
