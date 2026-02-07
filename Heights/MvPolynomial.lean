@@ -228,4 +228,18 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
       exact Real.iSup_nonneg fun j ↦ by positivity
     · exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
 
+open Real in
+/-- Let `K` be a field with an admissible family of absolute values (giving rise
+to a logarithmic height).
+Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
+the finite type `ι` and of the same degree `N`. Then for any `x : ι →  K`,
+the logarithmic height of `fun j : ι' ↦ eval x (p j)` is bounded by a constant
+(which is made explicit) plus `N * logHeight x`. -/
+theorem logHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
+    (x : ι → K) :
+    logHeight (fun j ↦ (p j).eval x) ≤ log (max (mulHeightBound p) 1) + N * logHeight x := by
+  simp_rw [logHeight_eq_log_mulHeight]
+  pull (disch := positivity) log
+  exact (log_le_log <| by positivity) <| mulHeight_eval_le hp x
+
 end Height
