@@ -1,4 +1,5 @@
 import Heights.BasicNoTypes
+import Mathlib.NumberTheory.NumberField.ProductFormula
 
 /-!
 # Instances of AdmissibleAbsValues
@@ -25,13 +26,13 @@ open Height
 
 variable {K : Type*} [Field K] [NumberField K]
 
-/-- A predicate singling out finite places among the absolute values on a number field `K`. -/
+/- /-- A predicate singling out finite places among the absolute values on a number field `K`. -/
 def IsFinitePlace (w : AbsoluteValue K ℝ) : Prop :=
   ∃ v : IsDedekindDomain.HeightOneSpectrum (𝓞 K), place (FinitePlace.embedding v) = w
 
 /-- A predicate singling out infinite places among the absolute values on a number field `K`. -/
 def IsInfinitePlace (w : AbsoluteValue K ℝ) : Prop :=
-  ∃ (φ : K →+* ℂ), place φ = w
+  ∃ (φ : K →+* ℂ), place φ = w -/
 
 variable (K) in
 /-- The infinite places of a number field `K` as a `Finset` of absolute values on `K`. -/
@@ -44,14 +45,14 @@ lemma mem_finsetInfinitePlace {v : AbsoluteValue K ℝ} :
     v ∈ finsetInfinitePlace K ↔ IsInfinitePlace v := by
   simp [finsetInfinitePlace, IsInfinitePlace]
 
-omit [NumberField K] in
+/- omit [NumberField K] in
 lemma InfinitePlace.isInfinitePlace (v : InfinitePlace K) : IsInfinitePlace v.val := by
   simp [IsInfinitePlace, v.prop]
 
 omit [NumberField K] in
 lemma isInfinitePlace_iff (v : AbsoluteValue K ℝ) :
     IsInfinitePlace v ↔ ∃ w : InfinitePlace K, w.val = v :=
-  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩
+  ⟨fun H ↦ ⟨⟨v, H⟩, rfl⟩, fun ⟨w, hw⟩ ↦ hw ▸ w.isInfinitePlace⟩ -/
 
 variable [∀ v : AbsoluteValue K ℝ, Decidable (IsInfinitePlace v)]
 

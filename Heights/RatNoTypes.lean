@@ -1,4 +1,5 @@
 import Heights.InstancesNoTypes
+import Mathlib.NumberTheory.NumberField.InfinitePlace.TotallyRealComplex
 
 /-!
 ### Heights over ℚ

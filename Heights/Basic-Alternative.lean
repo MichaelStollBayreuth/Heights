@@ -1,4 +1,5 @@
 import Heights.Auxiliary
+import Mathlib.LinearAlgebra.Projectivization.Basic
 
 /-!
 # Basic theory of heights

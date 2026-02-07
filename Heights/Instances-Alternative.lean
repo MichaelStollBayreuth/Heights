@@ -1,4 +1,5 @@
 import Heights.«Basic-Alternative»
+import Mathlib.NumberTheory.NumberField.ProductFormula
 
 /-!
 # Instances of AdmissibleAbsValues

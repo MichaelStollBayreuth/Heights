@@ -132,6 +132,9 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
   "`G/n•G` finite ⇒ `G` finitely generated", assuming there is a suitable kind
   of height function on the additive commutative group `G`. See (the additivized version of)
   `CommGroup.fg_of_descent`.
+* In [__WeakAbsoluteValue.lean__](Heights/WeakAbsoluteValue.lean) we provide a proof of the
+  fact that a "weak" `ℝ`-valued absolute value `v` (i.e., satisfying only the weaker triangle
+  inequality `v (x + y) ≤ 2 * max (v x) (v y)`) is in fact an absolute value.
 
 ## Work in progress
 

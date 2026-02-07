@@ -1,4 +1,7 @@
 import Heights.Auxiliary
+import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+import Mathlib.LinearAlgebra.Projectivization.Basic
+
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 /-!
