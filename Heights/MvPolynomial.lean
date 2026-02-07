@@ -84,17 +84,18 @@ open AdmissibleAbsValues
 noncomputable
 def mulHeightBound (p : ι' → MvPolynomial ι K) : ℝ :=
   (archAbsVal.map fun v ↦ ⨆ j, (p j).sum (fun _ c ↦ v c)).prod *
-    ∏ᶠ v : nonarchAbsVal, ⨆ j, ⨆ s : (p j).support, v.val (coeff s (p j))
+    ∏ᶠ v : nonarchAbsVal, ⨆ j, max (⨆ s : (p j).support, v.val (coeff s (p j))) 1
 
 omit [Finite ι] [Finite ι'] in
 lemma mulHeightBound_eq (p : ι' → MvPolynomial ι K) :
     mulHeightBound p =
      (archAbsVal.map fun v ↦ ⨆ j, (p j).sum (fun _ c ↦ v c)).prod *
-        ∏ᶠ v : nonarchAbsVal, ⨆ j, ⨆ s : (p j).support, v.val (coeff s (p j)) :=
+        ∏ᶠ v : nonarchAbsVal, ⨆ j, max (⨆ s : (p j).support, v.val (coeff s (p j))) 1 :=
   rfl
 
-private lemma mulHeight_constantCoeff_le_mulHeightBound {N : ℕ} {p : ι' → MvPolynomial ι K}
-    (hp : ∀ (i : ι'), (p i).IsHomogeneous N) (h : (fun j ↦ constantCoeff (p j)) ≠ 0) :
+omit [Finite ι] in
+private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomial ι K}
+    (h : (fun j ↦ constantCoeff (p j)) ≠ 0) :
     (mulHeight fun j ↦ constantCoeff (p j)) ≤ mulHeightBound p := by
   simp only [mulHeight_eq h, mulHeightBound_eq]
   gcongr
@@ -116,13 +117,18 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {N : ℕ} {p : ι' → M
     · exact Real.iSup_nonneg fun j ↦ by positivity
     · -- change Function.HasFiniteMulSupport _
       -- fun_prop (disch := assumption)
-      sorry
+      have : Nonempty ι' := (Function.ne_iff.mp h).nonempty
+      refine Function.finite_mulSupport_iSup fun j ↦ ?_
+      rcases isEmpty_or_nonempty (p j).support with hs₀ | hs₀
+      · simp
+      refine Function.finite_mulSupport_max ?_ Function.finite_mulSupport_one
+      exact Function.finite_mulSupport_iSup fun ⟨s, hs⟩ ↦ mulSupport_finite <| mem_support_iff.mp hs
     · refine fun v ↦ ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
       rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
       rcases eq_or_ne (coeff 0 (p j)) 0 with h₀ | h₀
-      · rw [h₀, map_zero]
-        exact Real.iSup_nonneg fun i ↦ v.val.nonneg _
-      · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
+      · grind
+      · refine le_sup_of_le_left ?_
+        exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
 
 theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
     (x : ι → K) :
@@ -131,7 +137,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   · simp only [eval_zero, mulHeight_zero, one_pow, mul_one]
     rcases eq_or_ne (fun j ↦ constantCoeff (p j)) 0 with h | h
     · simp [h]
-    · exact le_max_of_le_left <| mulHeight_constantCoeff_le_mulHeightBound hp h
+    · exact le_max_of_le_left <| mulHeight_constantCoeff_le_mulHeightBound h
   simp only [mulHeight_eq hx, mulHeightBound_eq]
   sorry
 
