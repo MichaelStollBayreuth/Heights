@@ -185,6 +185,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
     finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
   have H₄ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) :=
     finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
+  -- The following two statements are helpful to discharge the goals left by `gcongr`.
   have HH₁ (v : AbsoluteValue K ℝ) : 0 ≤ (⨆ i, v (x i)) ^ N := pow_nonneg (iSup_abv_nonneg v) N
   have HH₂ (f : ι' → ℝ) (j : ι') : f j ≤ ⨆ j, f j := le_ciSup (Finite.bddAbove_range _) _
   simp only [mulHeight_eq hx, mulHeight_eq h₀, mulHeightBound_eq]
