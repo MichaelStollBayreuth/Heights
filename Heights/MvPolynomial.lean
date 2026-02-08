@@ -80,6 +80,9 @@ private lemma mvPolynomial_bound_nonarch [Finite ι] {v : AbsoluteValue K ℝ}
     gcongr with i
     exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
 
+private lemma iSup_abv_nonneg (v : AbsoluteValue K ℝ) {α : Type*}  {x : α → K} : 0 ≤ ⨆ a, v (x a) :=
+  Real.iSup_nonneg fun j ↦ by positivity
+
 variable {ι' : Type*}
 
 variable [AdmissibleAbsValues K]
@@ -105,22 +108,20 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
     (mulHeight fun j ↦ constantCoeff (p j)) ≤ mulHeightBound p := by
   simp only [mulHeight_eq h, mulHeightBound_eq]
   gcongr
-  · exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
+  · exact finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
   · refine Multiset.prod_nonneg fun a ha ↦ ?_
     obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
     exact Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg' fun s ↦ by positivity
-  · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v hv ↦ ?_) fun v hv ↦ ?_
-    · exact Real.iSup_nonneg fun j ↦ by positivity
-    · refine ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
-      exact Finsupp.single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
-  · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ ?_
+  · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_abv_nonneg v) fun v hv ↦ ?_
+    refine ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
+    exact Finsupp.single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
+  · refine finprod_le_finprod ?_ (fun v ↦ iSup_abv_nonneg v.val) ?_ ?_
     · simp only [iSup_eq_iSup_subtype h (map_zero _) (AbsoluteValue.nonneg _)]
       -- change Function.HasFiniteMulSupport _
       -- fun_prop (disch := assumption)
       obtain ⟨i, hi⟩ : ∃ j, constantCoeff (p j) ≠ 0 := Function.ne_iff.mp h
       have : Nonempty {j // constantCoeff (p j) ≠ 0} := .intro ⟨i, hi⟩
       exact Function.finite_mulSupport_iSup fun i ↦ mulSupport_finite i.prop
-    · exact Real.iSup_nonneg fun j ↦ by positivity
     · -- change Function.HasFiniteMulSupport _
       -- fun_prop (disch := assumption)
       have : Nonempty ι' := (Function.ne_iff.mp h).nonempty
@@ -158,7 +159,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
     gcongr
     · grind
     · exact one_le_mulHeight x
-  have H₁ : (Function.mulSupport fun v : nonarchAbsVal ↦
+  have F₁ : (Function.mulSupport fun v : nonarchAbsVal ↦
               ⨆ j, max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1).Finite := by
     have : Nonempty ι' := (Function.ne_iff.mp h₀).nonempty
     refine Function.finite_mulSupport_iSup fun j ↦ ?_
@@ -170,63 +171,48 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
       _root_.not_imp_self] at H
     let s := hs.some
     grind
-  have H₂ : (Function.mulSupport fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).Finite :=
-    mulSupport_iSup_nonarchAbsVal_finite hx
-  have H₃ : (Function.mulSupport fun v : nonarchAbsVal ↦ (⨆ i, v.val (x i)) ^ N).Finite :=
-    Function.finite_mulSupport_pow H₂ N
+  have F₂ := mulSupport_iSup_nonarchAbsVal_finite hx
+  have F₃ := Function.finite_mulSupport_pow F₂ N
+  have H₀ (v : AbsoluteValue K ℝ) : 0 ≤ ⨆ j, Finsupp.sum (p j) fun x c ↦ v c :=
+    Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg fun _ _ ↦ by positivity
+  have H₁ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ j, Finsupp.sum (p j) fun x c ↦ v c)).prod := by
+    refine Multiset.prod_nonneg fun a ha ↦ ?_
+    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
+    exact H₀ v
+  have H₂ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod := by
+    refine Multiset.prod_nonneg fun a ha ↦ ?_
+    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
+    exact iSup_abv_nonneg v
+  have H₃ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val ((eval x) (p i)) :=
+    finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
+  have H₄ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) :=
+    finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
   simp only [mulHeight_eq hx, mulHeight_eq h₀, mulHeightBound_eq]
   grw [← le_max_left]
   rw [mul_pow, mul_mul_mul_comm]
   gcongr
-  · -- `0 ≤ ∏ᶠ (v : ↑nonarchAbsVal), ⨆ i, ↑v ((eval x) (p i))`
-    exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
-  · -- `0 ≤ (archAbsVal.map (fun v ↦ ⨆ j, Finsupp.sum (p j) fun x c ↦ v c)).prod *`
-    --        `(archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod ^ N`
-    refine mul_nonneg ?_ ?_
-    · refine Multiset.prod_nonneg fun a ha ↦ ?_
-      obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
-      exact Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg fun _ _ ↦ by positivity
-    · refine pow_nonneg (Multiset.prod_nonneg fun a ha ↦ ?_) _
-      obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
-      exact Real.iSup_nonneg fun j ↦ by positivity
-  · -- `(archAbsVal.map (fun v ↦ ⨆ i, v ((eval x) (p i)))).prod ≤`
-    --   `(archAbsVal.map (fun v ↦ ⨆ j, Finsupp.sum (p j) fun x c ↦ v c)).prod *`
-    --   `(archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod ^ N`
+  · -- archimedean part: reduce to "local" statement `mvPolynomial_bound`
     rw [← Multiset.prod_map_pow, ← Multiset.prod_map_mul]
-    refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ ?_) fun v _ ↦ ?_
-    · exact Real.iSup_nonneg fun j ↦ by positivity
-    · refine Real.iSup_le (fun j ↦ ?_) ?_
-      · grw [mvPolynomial_bound v (hp j) x]
-        gcongr
-        · exact pow_nonneg (Real.iSup_nonneg fun _ ↦ by positivity) N
-        · exact le_ciSup (f := fun j ↦ Finsupp.sum (p j) fun _ c ↦ v c) (Finite.bddAbove_range _) _
-      · refine mul_nonneg ?_ <| pow_nonneg ?_ _
-        · exact Real.iSup_nonneg fun j ↦ Finsupp.sum_nonneg fun _ _ ↦ by positivity
-        · exact Real.iSup_nonneg fun j ↦ by positivity
-  · -- `∏ᶠ (v : ↑nonarchAbsVal), ⨆ i, ↑v ((eval x) (p i)) ≤`
-    --   `(∏ᶠ (v : ↑nonarchAbsVal), ⨆ j, max (⨆ s, ↑v (coeff (↑s) (p j))) 1) *`
-    --   `(∏ᶠ (v : ↑nonarchAbsVal), ⨆ i, ↑v (x i)) ^ N`
-    rw [finprod_pow H₂, ← finprod_mul_distrib H₁ H₃]
-    · -- main goal
-      refine finprod_le_finprod ?_ (fun v ↦ Real.iSup_nonneg fun j ↦ by positivity)
-        (Function.finite_mulSupport_mul H₁ H₃) (fun v ↦ ?_)
-      · exact mulSupport_iSup_nonarchAbsVal_finite h₀
-      · refine Real.iSup_le (fun j ↦ ?_) ?_
-        · grw [mvPolynomial_bound_nonarch (isNonarchimedean _ v.prop) (hp j) x]
-          gcongr
-          · exact pow_nonneg (Real.iSup_nonneg fun _ ↦ by positivity) N
-          · grw [le_max_left (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1]
-            exact le_ciSup (f := fun j ↦ max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1)
-              (Finite.bddAbove_range _) _
-        · refine mul_nonneg ?_ <| pow_nonneg ?_ _
-          · exact Real.iSup_nonneg fun j ↦ by positivity
-          · exact Real.iSup_nonneg fun j ↦ by positivity
-  · -- `0 ≤ ((archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod * ∏ᶠ (v : ↑nonarchAbsVal), ⨆ i, ↑v (x i)) ^ N`
-    refine pow_nonneg (mul_nonneg ?_ ?_) _
-    · refine Multiset.prod_nonneg fun a ha ↦ ?_
-      obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
+    refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_abv_nonneg v) fun v _ ↦ ?_
+    refine Real.iSup_le (fun j ↦ ?_) ?_
+    · grw [mvPolynomial_bound v (hp j) x]
+      gcongr
+      · exact pow_nonneg (iSup_abv_nonneg v) N
+      · exact le_ciSup (f := fun j ↦ Finsupp.sum (p j) fun _ c ↦ v c) (Finite.bddAbove_range _) _
+    · exact mul_nonneg (H₀ v) <| pow_nonneg (iSup_abv_nonneg v) N
+  · -- nonarchimedean part: reduce to "local" statement `mvPolynomial_bound_nonarch`
+    rw [finprod_pow F₂, ← finprod_mul_distrib F₁ F₃]
+    refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
+      (fun v ↦ iSup_abv_nonneg v.val) (Function.finite_mulSupport_mul F₁ F₃)
+      fun v ↦ Real.iSup_le (fun j ↦ ?_) ?_
+    · grw [mvPolynomial_bound_nonarch (isNonarchimedean _ v.prop) (hp j) x]
+      gcongr
+      · exact pow_nonneg (iSup_abv_nonneg v.val) N
+      · grw [le_max_left (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1]
+        exact le_ciSup (f := fun j ↦ max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1)
+          (Finite.bddAbove_range _) _
+    · refine mul_nonneg ?_ <| pow_nonneg (iSup_abv_nonneg v.val) N
       exact Real.iSup_nonneg fun j ↦ by positivity
-    · exact finprod_nonneg fun v ↦ Real.iSup_nonneg fun j ↦ by positivity
 
 open Real in
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
