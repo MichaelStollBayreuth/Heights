@@ -176,8 +176,9 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   have F₃ := Function.finite_mulSupport_pow F₂ N
   have H₀ (v : AbsoluteValue K ℝ) : 0 ≤ ⨆ j, Finsupp.sum (p j) fun _ c ↦ v c :=
     iSup_nonneg (fun j ↦ sum_nonneg' <| fun s ↦ by positivity)
+  -- The following four statements are used in the `gcongr`s below.
   have H₁ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ j, Finsupp.sum (p j) fun _ c ↦ v c)).prod :=
-    prod_map_nonneg fun v _ ↦ iSup_nonneg fun j ↦ sum_nonneg' fun s ↦ by positivity
+    prod_map_nonneg fun v _ ↦ H₀ v
   have H₂ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod :=
     prod_map_nonneg fun v _ ↦ iSup_abv_nonneg v
   have H₃ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val ((eval x) (p i)) :=
