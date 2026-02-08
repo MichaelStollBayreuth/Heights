@@ -117,15 +117,16 @@ lemma mulHeightBound_eq (p : ι' → MvPolynomial ι K) :
 
 variable [Finite ι']
 
+open Function in
 private lemma finite_mulSupport_iSup_max_iSup_one (h : Nonempty ι') (p : ι' → MvPolynomial ι K) :
     (fun v : nonarchAbsVal ↦
       ⨆ j, max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1).mulSupport.Finite := by
   -- fun_prop (disch := assumption)
-  refine Function.finite_mulSupport_iSup fun j ↦ ?_
+  refine finite_mulSupport_iSup fun j ↦ ?_
   rcases isEmpty_or_nonempty (p j).support with hs₀ | hs₀
   · simp
-  refine Function.finite_mulSupport_max ?_ Function.finite_mulSupport_one
-  exact Function.finite_mulSupport_iSup fun ⟨s, hs⟩ ↦ mulSupport_finite <| mem_support_iff.mp hs
+  refine finite_mulSupport_max ?_ finite_mulSupport_one
+  exact finite_mulSupport_iSup fun ⟨s, hs⟩ ↦ mulSupport_finite <| mem_support_iff.mp hs
 
 open Real Multiset Finsupp in
 -- set_option Elab.async false in
@@ -154,7 +155,7 @@ variable [Finite ι]
 
 open Real Finsupp Multiset in
 -- set_option Elab.async false in
--- #count_heartbeats in -- 18235
+-- #count_heartbeats in -- 17798
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
 to a multiplicative height).
 Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
