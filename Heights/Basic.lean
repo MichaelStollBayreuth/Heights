@@ -83,6 +83,15 @@ section aux
     (1 : ℝ) = 1 * 1 := (mul_one 1).symm
     _ ≤ _ := by gcongr <;> grind -/
 
+namespace AbsoluteValue
+
+variable {K : Type*} [Semiring K]
+
+lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
+  Real.iSup_nonneg fun j ↦ by positivity
+
+end AbsoluteValue
+
 namespace Finset
 
 lemma le_prod_max_one {ι M : Type*} [CommMonoidWithZero M] [LinearOrder M] [ZeroLEOneClass M]
@@ -235,10 +244,6 @@ lemma Real.ciSup_mul_le {ι : Type*} [Finite ι] {x y : ι → ℝ} (hx : 0 ≤ 
   · simp
   exact ciSup_le fun i ↦ mul_le_mul (le_ciSup x i) (le_ciSup y i) (hy i) <| iSup_nonneg hx
 
-lemma Pi.nonneg_iff {ι α : Type*} [LE α] [Zero α] (f : ι → α) :
-    0 ≤ f ↔ ∀ i, 0 ≤ f i := by
-  rfl
-
 end aux
 
 namespace Height
@@ -327,12 +332,8 @@ lemma logHeight₁_add_le (x y : K) :
 ### Height bound for products
 -/
 
-omit [AdmissibleAbsValues K] in
-private lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
-  Real.iSup_nonneg fun j ↦ by positivity
-
 @[simp]
-lemma mulHeight_of_isEmpty {ι : Type*} [IsEmpty ι] (x : ι → K) :
+lemma mulHeight_eq_one_of_isEmpty {ι : Type*} [IsEmpty ι] (x : ι → K) :
     mulHeight x = 1 := by
   rw [show x = 0 from Subsingleton.elim ..]
   exact mulHeight_zero
@@ -358,15 +359,15 @@ lemma mulHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
     refine Multiset.prod_nonneg fun a ha ↦ ?_
     simp only [Multiset.mem_map] at ha
     obtain ⟨v, -, rfl⟩ := ha
-    refine mul_nonneg ?_ ?_ <;> exact iSup_abv_nonneg v
+    refine mul_nonneg ?_ ?_ <;> exact v.iSup_abv_nonneg
   have H₂ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) * v.val (y i) := by
     refine finprod_nonneg fun v ↦ iSup_nonneg fun i ↦ mul_nonneg ?_ ?_ <;> exact v.val.nonneg _
   gcongr
   · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_nonneg fun i ↦ by positivity)
-      fun v hv ↦ Real.ciSup_mul_le ?_ ?_ <;> exact (Pi.nonneg_iff _).mpr fun _ ↦ by positivity
+      fun v hv ↦ Real.ciSup_mul_le ?_ ?_ <;> exact fun _ ↦ by positivity
   · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ (Pi.le_def.mpr fun v ↦ ?_)
     · simpa only [← map_mul] using mulSupport_iSup_nonarchAbsVal_finite hxy
-    · simpa only [← map_mul] using iSup_abv_nonneg v.val
+    · simpa only [← map_mul] using v.val.iSup_abv_nonneg
     · refine Function.finite_mulSupport_mul ?_ ?_ <;> exact mulSupport_iSup_nonarchAbsVal_finite ‹_›
     · refine Real.ciSup_mul_le ?_ ?_ <;> exact fun i ↦ by positivity
 
