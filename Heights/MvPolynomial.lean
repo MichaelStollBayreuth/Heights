@@ -1,6 +1,7 @@
 import Heights.Basic
 import Mathlib.RingTheory.MvPolynomial.Homogeneous
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
+import Mathlib.Algebra.Polynomial.Homogenize
 
 /-!
 # Height bounds for polynomial maps
@@ -8,6 +9,8 @@ import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 We prove upper and lower bounds for the height of `fun i ↦ eval P i x`, where `P` is a family of
 homogeneous polynomials over the field `K` of the same degree `N` and `x : ι → K` with `ι` finite.
 -/
+
+section aux
 
 -- Auxiliary stuff
 
@@ -58,6 +61,51 @@ lemma IsHomogeneous.degree_eq_sum_deg_support {p : MvPolynomial ι R} {N : ℕ}
 
 end MvPolynomial
 
+namespace Polynomial
+
+/-- Given a polynomial `p : R[X]`, this is the family `![p₀, p₁]` of homogeneous bivariate
+polynomials of degree `p.natDegree` such that `p(x) = p₀(x,1)/p₁(x,1)`. -/
+noncomputable
+def to_tuple_mvPolynomial {R : Type*} [CommSemiring R] (p : R[X]) :
+    Fin 2 → MvPolynomial (Fin 2) R :=
+  ![p.homogenize p.natDegree, (MvPolynomial.X 1) ^ p.natDegree]
+
+-- #find_home! to_tuple_mvPolynomial -- [Mathlib.Algebra.Polynomial.Homogenize]
+
+lemma isHomogenous_toTupleMvPolynomial {R : Type*} [CommSemiring R] (p : R[X]) :
+    ∀ i, (p.to_tuple_mvPolynomial i).IsHomogeneous p.natDegree := by
+  intro i
+  fin_cases i
+  · simp [to_tuple_mvPolynomial]
+  · simpa [to_tuple_mvPolynomial] using MvPolynomial.isHomogeneous_X_pow 1 p.natDegree
+
+lemma eval_eq_div_eval_toTupleMvPolynomial {R : Type*} [Field R] (p : R[X]) (x : R) :
+    p.eval x =
+      (p.to_tuple_mvPolynomial 0).eval ![x, 1] / (p.to_tuple_mvPolynomial 1).eval ![x, 1] := by
+  simp [to_tuple_mvPolynomial, eval_homogenize]
+
+end Polynomial
+
+namespace Finite
+
+-- Add versions of `le_ciSup_of_le` and `ciSup_mono` for finite index types;
+-- see `Finite.le_ciSup`in  Mathlib.Order.ConditionallyCompleteLattice.Finset.
+
+variable {α ι : Type*} [Finite ι] [ConditionallyCompleteLattice α]
+
+lemma le_ciSup_of_le {a : α} {f : ι → α} (c : ι) (h : a ≤ f c) : a ≤ iSup f :=
+  _root_.le_ciSup_of_le (bddAbove_range f) c h
+
+lemma ciSup_mono {f g : ι → α} (H : ∀ (x : ι), f x ≤ g x) : iSup f ≤ iSup g :=
+  _root_.ciSup_mono (bddAbove_range g) H
+
+-- #find_home! le_ciSup_of_le -- [Mathlib.Data.Fintype.Order]
+-- #find_home! ciSup_mono -- [Mathlib.Data.Fintype.Order]
+
+end Finite
+
+end aux
+
 namespace Height
 
 open MvPolynomial
@@ -77,7 +125,7 @@ private lemma mvPolynomial_bound [Finite ι] (v : AbsoluteValue K ℝ) {p : MvPo
   gcongr
   rw [hp.degree_eq_sum_deg_support hs, ← Finset.prod_pow_eq_pow_sum]
   gcongr with i
-  exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
+  exact Finite.le_ciSup (fun j ↦ v (x j)) i
 
 private lemma mvPolynomial_bound_nonarch [Finite ι] {v : AbsoluteValue K ℝ}
     (hv : IsNonarchimedean v) {p : MvPolynomial ι K} {N : ℕ} (hp : p.IsHomogeneous N) (x : ι → K) :
@@ -92,10 +140,10 @@ private lemma mvPolynomial_bound_nonarch [Finite ι] {v : AbsoluteValue K ℝ}
   simp_rw [v.map_mul, v.map_prod, v.map_pow]
   gcongr
   · exact iSup_abv_nonneg v
-  · exact le_ciSup_of_le (Finite.bddAbove_range _) (⟨s, hs₁⟩ : p.support) le_rfl
+  · exact Finite.le_ciSup_of_le (⟨s, hs₁⟩ : p.support) le_rfl
   · rw [hp.degree_eq_sum_deg_support hs₁, ← Finset.prod_pow_eq_pow_sum]
     gcongr with i
-    exact le_ciSup (Finite.bddAbove_range fun i ↦ v (x i)) i
+    exact Finite.le_ciSup (fun j ↦ v (x j)) i
 
 variable {ι' : Type*}
 
@@ -137,19 +185,18 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
   simp only [mulHeight_eq h, mulHeightBound_eq]
   gcongr
   · exact finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
-  · exact prod_map_nonneg fun v _ ↦ iSup_nonneg fun j ↦ sum_nonneg fun s _ ↦ by positivity
-  · have (v : AbsoluteValue K ℝ) (j : ι') : v (constantCoeff (p j)) ≤ sum (p j) fun _ c ↦ v c :=
-      single_le_sum _ v.map_zero (fun x ↦ by positivity) _
-    exact prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_abv_nonneg v)
-      fun v _ ↦ ciSup_mono (Finite.bddAbove_range _) (this v)
+  · exact prod_map_nonneg fun v _ ↦ iSup_nonneg fun _ ↦ sum_nonneg fun _ _ ↦ by positivity
+  · have H (v : AbsoluteValue K ℝ) (j : ι') : v (constantCoeff (p j)) ≤ sum (p j) fun _ c ↦ v c :=
+      single_le_sum _ v.map_zero (fun _ ↦ by positivity) _
+    exact prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_abv_nonneg v) fun v _ ↦ Finite.ciSup_mono (H v)
   · refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h)
       (fun v ↦ iSup_abv_nonneg v.val) ?_ ?_
     · exact finite_mulSupport_iSup_max_iSup_one (Function.ne_iff.mp h).nonempty p
-    · refine fun v ↦ ciSup_mono (Finite.bddAbove_range _) fun j ↦ ?_
+    · refine fun v ↦ Finite.ciSup_mono fun j ↦ ?_
       rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
       rcases eq_or_ne (coeff 0 (p j)) 0 with h₀ | h₀
       · simp [h₀]
-      · exact le_sup_of_le_left <| le_ciSup_of_le (Finite.bddAbove_range _) ⟨0, by simp [h₀]⟩ le_rfl
+      · exact le_sup_of_le_left <| Finite.le_ciSup_of_le ⟨0, by simp [h₀]⟩ le_rfl
 
 variable [Finite ι]
 
@@ -186,9 +233,9 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
     finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
   have H₄ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) :=
     finprod_nonneg fun v ↦ iSup_abv_nonneg v.val
-  -- The following two statements are helpful to discharge the goals left by `gcongr`.
+  -- The following two statements are helpful for discharging the goals left by `gcongr`.
   have HH₁ (v : AbsoluteValue K ℝ) : 0 ≤ (⨆ i, v (x i)) ^ N := pow_nonneg (iSup_abv_nonneg v) N
-  have HH₂ (f : ι' → ℝ) (j : ι') : f j ≤ ⨆ j, f j := le_ciSup (Finite.bddAbove_range _) _
+  have HH₂ (f : ι' → ℝ) (j : ι') : f j ≤ ⨆ j, f j := Finite.le_ciSup ..
   simp only [mulHeight_eq hx, mulHeight_eq h₀, mulHeightBound_eq]
   grw [← le_max_left]
   rw [mul_pow, mul_mul_mul_comm]
@@ -211,7 +258,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
       · exact HH₁ v.val
       · grw [le_max_left (iSup ..) 1]
         exact HH₂ (fun j ↦ max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1) j
-    · exact mul_nonneg (iSup_nonneg fun j ↦ by positivity) <| by simp only [HH₁]
+    · exact mul_nonneg (iSup_nonneg fun _ ↦ by positivity) <| by simp only [HH₁]
 
 open Real in
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
@@ -226,5 +273,30 @@ theorem logHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   simp_rw [logHeight_eq_log_mulHeight]
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight_eval_le hp x
+
+open Polynomial
+
+/-- The constant in the upper height bound for `p.eval x`. -/
+noncomputable
+def _root_.Polynomial.mulHeight₁Bound (p : K[X]) : ℝ :=
+  max (mulHeightBound p.to_tuple_mvPolynomial) 1
+
+/-- The multiplicative height of the value of a polynomial `p : K[X]` at `x : K` is bounded
+by `p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree`. -/
+theorem mulHeight₁_eval_le (p : K[X]) (x : K) :
+    mulHeight₁ (p.eval x) ≤ p.mulHeight₁Bound * mulHeight₁ x ^ p.natDegree := by
+  rw [p.eval_eq_div_eval_toTupleMvPolynomial, mulHeight₁_div_eq_mulHeight, mulHeight₁_eq_mulHeight]
+  convert mulHeight_eval_le p.isHomogenous_toTupleMvPolynomial _ with i
+  fin_cases i <;> simp
+
+open Real in
+/-- The logarithmic height of the value of a polynomial `p : K[X]` at `x : K` is bounded
+by `log p.mulHeight₁Bound + p.natDegree * logHeight₁ x`. -/
+lemma logHeight₁_eval_le (p : K[X]) (x : K) :
+    logHeight₁ (p.eval x) ≤ log p.mulHeight₁Bound + p.natDegree * logHeight₁ x := by
+  simp_rw [logHeight₁_eq_log_mulHeight₁]
+  have : p.mulHeight₁Bound ≠ 0 := by have : 1 ≤ mulHeight₁Bound p := le_max_right ..; grind
+  pull (disch := first | assumption | positivity) log
+  exact (log_le_log <| by positivity) <| mulHeight₁_eval_le p x
 
 end Height

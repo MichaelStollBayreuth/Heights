@@ -226,6 +226,19 @@ lemma Real.log_finprod {α : Type*} {f : α → ℝ} (h : ∀ a, 0 < f a) :
   · exact log_prod fun a _ ↦ (h a).ne'
   · simp
 
+-- #find_home! Real.log_finprod -- [Mathlib.Analysis.SpecialFunctions.Log.Basic]
+
+open Finite in
+lemma Real.ciSup_mul_le {ι : Type*} [Finite ι] {x y : ι → ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
+    ⨆ i, x i * y i ≤ (⨆ i, x i) * ⨆ i, y i := by
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · simp
+  exact ciSup_le fun i ↦ mul_le_mul (le_ciSup x i) (le_ciSup y i) (hy i) <| iSup_nonneg hx
+
+lemma Pi.nonneg_iff {ι α : Type*} [LE α] [Zero α] (f : ι → α) :
+    0 ≤ f ↔ ∀ i, 0 ≤ f i := by
+  rfl
+
 end aux
 
 namespace Height
@@ -310,12 +323,98 @@ lemma logHeight₁_add_le (x y : K) :
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight₁_add_le ..
 
+/-!
+### Height bound for products
+-/
+
+omit [AdmissibleAbsValues K] in
+private lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
+  Real.iSup_nonneg fun j ↦ by positivity
+
+@[simp]
+lemma mulHeight_of_isEmpty {ι : Type*} [IsEmpty ι] (x : ι → K) :
+    mulHeight x = 1 := by
+  rw [show x = 0 from Subsingleton.elim ..]
+  exact mulHeight_zero
+
+/-- The multiplicative height of a pointwise product of tuples is bounded by the product
+of their multiplicative heights. -/
+lemma mulHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
+    mulHeight (x * y) ≤ mulHeight x * mulHeight y := by
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · simp
+  rcases eq_or_ne x 0 with rfl | hx
+  · simpa using one_le_mulHeight y
+  rcases eq_or_ne y 0 with rfl | hy
+  · simpa using one_le_mulHeight x
+  rcases eq_or_ne (x * y) 0 with hxy | hxy
+  · rw [hxy, mulHeight_zero, ← one_mul 1]
+    gcongr <;> exact one_le_mulHeight _
+  rw [mulHeight_eq hx, mulHeight_eq hy, mulHeight_eq hxy, mul_mul_mul_comm, ← Multiset.prod_map_mul,
+    ← finprod_mul_distrib (mulSupport_iSup_nonarchAbsVal_finite hx)
+        (mulSupport_iSup_nonarchAbsVal_finite hy)]
+  simp only [Pi.mul_apply, map_mul]
+  have H₁ : 0 ≤ (archAbsVal.map fun v ↦ (⨆ i, v (x i)) * ⨆ i, v (y i)).prod := by
+    refine Multiset.prod_nonneg fun a ha ↦ ?_
+    simp only [Multiset.mem_map] at ha
+    obtain ⟨v, -, rfl⟩ := ha
+    refine mul_nonneg ?_ ?_ <;> exact iSup_abv_nonneg v
+  have H₂ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) * v.val (y i) := by
+    refine finprod_nonneg fun v ↦ iSup_nonneg fun i ↦ mul_nonneg ?_ ?_ <;> exact v.val.nonneg _
+  gcongr
+  · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_nonneg fun i ↦ by positivity)
+      fun v hv ↦ Real.ciSup_mul_le ?_ ?_ <;> exact (Pi.nonneg_iff _).mpr fun _ ↦ by positivity
+  · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ (Pi.le_def.mpr fun v ↦ ?_)
+    · simpa only [← map_mul] using mulSupport_iSup_nonarchAbsVal_finite hxy
+    · simpa only [← map_mul] using iSup_abv_nonneg v.val
+    · refine Function.finite_mulSupport_mul ?_ ?_ <;> exact mulSupport_iSup_nonarchAbsVal_finite ‹_›
+    · refine Real.ciSup_mul_le ?_ ?_ <;> exact fun i ↦ by positivity
+
+/-- The logarithmic height of a pointwise product of tuples is bounded by the sum
+of their logarithmic heights. -/
+lemma logHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
+    logHeight (x * y) ≤ logHeight x + logHeight y := by
+  simp only [logHeight_eq_log_mulHeight]
+  pull (disch := positivity) log
+  exact log_le_log (by positivity) <| mulHeight_mul_le ..
+
+/-- The multiplicative height of `x * y` is at most the product of the multiplicative heights
+of `x` and `y`. -/
+lemma mulHeight₁_mul_le (x y : K) : mulHeight₁ (x * y) ≤ mulHeight₁ x * mulHeight₁ y := by
+  simp only [mulHeight₁_eq_mulHeight]
+  rw [show ![x * y, 1] = ![x, 1] * ![y, 1] by ext i; fin_cases i <;> simp]
+  exact mulHeight_mul_le ![x, 1] ![y, 1]
+
+/-- The logarithmic height of `x * y` is at most the sum of the logarithmic heights
+of `x` and `y`. -/
+lemma logHeight₁_mul_le (x y : K) : logHeight₁ (x * y) ≤ logHeight₁ x + logHeight₁ y := by
+  simp only [logHeight₁_eq_log_mulHeight₁]
+  pull (disch := positivity) log
+  exact log_le_log (by positivity) <| mulHeight₁_mul_le ..
+
+/-- The multiplicative height of the pointwise negative of a tuple
+equals its multiplicative height. -/
+@[simp]
+lemma mulHeight_neg {ι : Type*} [Finite ι] (x : ι → K) : mulHeight (-x) = mulHeight x := by
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp
+  simp [mulHeight_eq hx, mulHeight_eq <| neg_ne_zero.mpr hx]
+
+/-- The logarithmic height of the pointwise negative of a tuple
+equals its logarithmic height. -/
+@[simp]
+lemma logHeight_neg {ι : Type*} [Finite ι] (x : ι → K) : logHeight (-x) = logHeight x := by
+  simp [logHeight_eq_log_mulHeight]
+
 end Height
+
+#exit
 
 /-!
 ### Height bounds for values of polynomials
 
-(This is probably better done as a special case of results on polynomial maps on tuples.)
+This is better done as a special case of results on polynomial maps on tuples.
+See MvPolynomial.lean.
 -/
 
 namespace Polynomial
