@@ -342,26 +342,17 @@ private lemma iSup_fun_eq_max (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := 
   exact (max_eq_iSup ..).symm
 
 lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1] = 1 := by
-  simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd]
+  simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
   conv_rhs => rw [← one_mul 1]
   congr
   · convert Multiset.prod_map_one with v
-    rw [iSup_fun_eq_max]
-    suffices max 0 (Finsupp.sum (1 : MvPolynomial (Fin 2) K) fun _ c ↦ v c) = 1 by simpa using this
-    rw [max_eq_right <| Finsupp.sum_nonneg' fun s ↦ by positivity, MvPolynomial.sum_def,
-      support_one_eq]
-    simp
+    simp [MvPolynomial.sum_def, support_one_eq]
   · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
-    rw [iSup_fun_eq_max]
-    suffices ⨆ s : (1 : MvPolynomial (Fin 2) K).support, v.val (MvPolynomial.coeff s.val 1) ≤ 1 by
-      simpa using this
-    have : Nonempty (1 : MvPolynomial (Fin 2) K).support := by
-      simp [MvPolynomial.support_one_eq]
-    refine ciSup_le fun s ↦ ?_
-    have : s = (0 : Fin 2 →₀ ℕ) := by grind [MvPolynomial.support_one_eq]
-    simp [this]
+    rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, MvPolynomial.support_one_eq]
+    simp
 
 open Finset MvPolynomial in
+/-- A formula for `mulHeight₁Bound p` in terms of the coefficients of `p`. -/
 lemma mulHeight₁Bound_eq (p : K[X]) :
     p.mulHeight₁Bound =
       (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1).prod *
