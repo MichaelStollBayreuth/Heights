@@ -347,9 +347,8 @@ lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1
   congr
   · convert Multiset.prod_map_one with v
     rw [iSup_fun_eq_max]
-    suffices max 0 (Finsupp.sum (1 : MvPolynomial (Fin 2) K) fun x c ↦ v c) = 1 by
-      simpa using this
-    rw [max_eq_right <|  Finsupp.sum_nonneg' fun s ↦ by positivity, MvPolynomial.sum_def,
+    suffices max 0 (Finsupp.sum (1 : MvPolynomial (Fin 2) K) fun _ c ↦ v c) = 1 by simpa using this
+    rw [max_eq_right <| Finsupp.sum_nonneg' fun s ↦ by positivity, MvPolynomial.sum_def,
       support_one_eq]
     simp
   · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
@@ -372,41 +371,31 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
   · simpa [mulHeight₁Bound, to_tuple_mvPolynomial] using mulHeightBound_zero_one.le
   have hsupp₀ : Nonempty (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support :=
     Nonempty.to_subtype <| support_nonempty.mpr <| by simp
-  have hsupp₁ : Nonempty ↥(p.homogenize p.natDegree).support :=
+  have hsupp₁ : Nonempty (p.homogenize p.natDegree).support :=
     Nonempty.to_subtype <| support_nonempty.mpr <| mt (eq_zero_of_homogenize_eq_zero le_rfl) hp
-  simp [mulHeight₁Bound, mulHeightBound_eq]
+  simp only [mulHeight₁Bound, mulHeightBound_eq]
   rw [max_eq_left ?h]
   case h => -- side goal
-    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod_map fun a ha ↦ ?_) ?_
-    · exact Finite.le_ciSup_of_le 1 <| by
-        simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
-    · exact one_le_finprod fun v ↦ Finite.le_ciSup_of_le 1 <| le_max_right ..
+    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod_map fun a ha ↦ ?_) <|
+      one_le_finprod fun v ↦ Finite.le_ciSup_of_le 1 <| le_max_right ..
+    exact Finite.le_ciSup_of_le 1 <| by
+      simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
   congr <;> ext v
-  · rw [iSup_fun_eq_max]
-    congr 1
-    · simp [to_tuple_mvPolynomial, finsuppSum_homogenize_eq]
-    · simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
-  · have (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := by
-      convert (max_eq_iSup ..).symm
-      ext i; fin_cases i <;> simp
-    rw [← Finite.ciSup_sup, this]
-    simp [to_tuple_mvPolynomial, coeff_homogenize, MvPolynomial.X_pow_eq_monomial,
-      p.sum_eq_natDegree_of_mem_support_homogenize]
-    have : (⨆ s : (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
+  · simp [iSup_fun_eq_max, to_tuple_mvPolynomial, finsuppSum_homogenize_eq,
+      MvPolynomial.X_pow_eq_monomial]
+  · have H : (⨆ s : (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
         if (fun₀ | 1 => p.natDegree : Fin 2 →₀ ℕ) = s then 1 else 0) = (1 : ℝ) := by
-      refine le_antisymm ?_ ?_
-      · refine ciSup_le fun s ↦ ?_; grind
-      · refine Finite.le_ciSup_of_le
-          ⟨fun₀ | 1 => p.natDegree, by simp [MvPolynomial.coeff_X_pow]⟩ <| by simp
-    rw [this, sup_right_idem]
-    congr
+      rw [MvPolynomial.support_X_pow (R := K) (1 : Fin 2) p.natDegree]
+      simp [ciSup_unique]
+    suffices ⨆ s : (p.homogenize p.natDegree).support, v.val (p.coeff (s.val 0)) =
+        (range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n) by
+      simpa [← Finite.ciSup_sup, iSup_fun_eq_max, to_tuple_mvPolynomial, coeff_homogenize,
+        MvPolynomial.X_pow_eq_monomial, p.sum_eq_natDegree_of_mem_support_homogenize, H]
+        using congrArg (max · 1) this
     rw [sup'_eq_csSup_image, sSup_image']
-    refine le_antisymm ?_ ?_
-    · refine ciSup_le fun s ↦ Finite.le_ciSup_of_le ⟨s.val 0, ?_⟩ le_rfl
-      grind only [= mem_coe, = mem_range, p.sum_eq_natDegree_of_mem_support_homogenize s.prop]
-    · have : Nonempty (↑↑(range (p.natDegree + 1)) : Type) := by
-        simp only [mem_range, Order.lt_add_one_iff, nonempty_subtype]
-        exact ⟨_, le_rfl⟩
+    refine le_antisymm (ciSup_le fun s ↦ Finite.le_ciSup_of_le ⟨s.val 0, ?_⟩ le_rfl) ?_
+    · grind only [= mem_coe, = mem_range, p.sum_eq_natDegree_of_mem_support_homogenize s.prop]
+    · have := (nonempty_range_add_one (n := p.natDegree)).to_subtype
       refine ciSup_le fun n ↦ ?_
       rcases eq_or_ne (p.coeff n) 0 with h | h
       · simpa [h] using v.val.iSup_abv_nonneg
