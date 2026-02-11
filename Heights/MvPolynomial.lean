@@ -376,10 +376,9 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
   simp only [mulHeight₁Bound, mulHeightBound_eq]
   rw [max_eq_left ?h]
   case h => -- side goal
-    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod_map fun a ha ↦ ?_) <|
+    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod_map fun _ _ ↦ ?_) <|
       one_le_finprod fun v ↦ Finite.le_ciSup_of_le 1 <| le_max_right ..
-    exact Finite.le_ciSup_of_le 1 <| by
-      simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
+    exact Finite.le_ciSup_of_le 1 <| by simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
   congr <;> ext v
   · simp [iSup_fun_eq_max, to_tuple_mvPolynomial, finsuppSum_homogenize_eq,
       MvPolynomial.X_pow_eq_monomial]
