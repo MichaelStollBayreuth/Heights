@@ -281,7 +281,7 @@ lemma mulHeight₁_sum_le {α : Type*} [DecidableEq α] {s : Finset α} (hs : s.
       exact prod_map_le_prod_map₀ _ _ (fun _ _ ↦ by positivity) fun _ _ ↦ max_abv_sum_one_le _ hs x
     _ ≤ _ * ∏ᶠ (v : ↑nonarchAbsVal), ∏ i ∈ s, max (v.val (x i)) 1 := by
       refine mul_le_mul_of_nonneg_left ?_ <| prod_nonneg fun _ h ↦ by
-        obtain ⟨v, -, rfl⟩ := mem_map.mp h
+        obtain ⟨v, -, rfl⟩ := mem_map.mp h -- use `Multiset.prod_map_nonneg` when available!
         positivity
       refine finprod_le_finprod (mulSupport_max_nonarchAbsVal_finite _) (fun v ↦ by grind) ?_ ?_
       · -- change HasFiniteMulSupport _
@@ -357,7 +357,7 @@ lemma mulHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
   simp only [Pi.mul_apply, map_mul]
   have H₁ : 0 ≤ (archAbsVal.map fun v ↦ (⨆ i, v (x i)) * ⨆ i, v (y i)).prod := by
     refine Multiset.prod_nonneg fun a ha ↦ ?_
-    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
+    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha -- use `Multiset.prod_map_nonneg` when available!
     refine mul_nonneg ?_ ?_ <;> exact v.iSup_abv_nonneg
   have H₂ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) * v.val (y i) := by
     refine finprod_nonneg fun v ↦ iSup_nonneg fun i ↦ mul_nonneg ?_ ?_ <;> exact v.val.nonneg _

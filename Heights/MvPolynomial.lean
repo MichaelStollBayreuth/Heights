@@ -48,6 +48,14 @@ lemma prod_map_nonneg {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 0 ≤ f
 
 -- #find_home! prod_map_nonneg -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
 
+lemma one_le_prod_map {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 1 ≤ f a) :
+    1 ≤ (s.map f).prod := by
+  refine one_le_prod fun r hr ↦ ?_
+  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
+  exact h a ha
+
+-- #find_home! one_le_prod_map -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
+
 end Multiset
 
 namespace MvPolynomial
@@ -175,7 +183,7 @@ private lemma mvPolynomial_bound [Finite ι] (v : AbsoluteValue K ℝ) {p : MvPo
   gcongr with i
   exact Finite.le_ciSup (fun j ↦ v (x j)) i
 
-private lemma mvPolynomial_bound_nonarch [Finite ι] {v : AbsoluteValue K ℝ}
+private lemma mvPolynomial_bound_of_IsNonarchimedean [Finite ι] {v : AbsoluteValue K ℝ}
     (hv : IsNonarchimedean v) {p : MvPolynomial ι K} {N : ℕ} (hp : p.IsHomogeneous N) (x : ι → K) :
     v (p.eval x) ≤ (⨆ s : p.support, v (coeff s p)) * (⨆ i, v (x i)) ^ N := by
   rcases eq_or_ne p 0 with rfl | hp₀
@@ -301,7 +309,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
     refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
       (fun v ↦ v.val.iSup_abv_nonneg) (Function.finite_mulSupport_mul F₁ F₃)
       fun v ↦ Real.iSup_le (fun j ↦ ?_) ?_
-    · grw [mvPolynomial_bound_nonarch (isNonarchimedean _ v.prop) (hp j) x]
+    · grw [mvPolynomial_bound_of_IsNonarchimedean (isNonarchimedean _ v.prop) (hp j) x]
       gcongr
       · exact HH₁ v.val
       · grw [le_max_left (iSup ..) 1]
@@ -354,7 +362,7 @@ lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1
     have : s = (0 : Fin 2 →₀ ℕ) := by grind [MvPolynomial.support_one_eq]
     simp [this]
 
-open Finset in
+open Finset MvPolynomial in
 lemma mulHeight₁Bound_eq (p : K[X]) :
     p.mulHeight₁Bound =
       (archAbsVal.map fun v ↦ max (p.sum fun _ c ↦ v c) 1).prod *
@@ -362,22 +370,15 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
       max ((range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n)) 1 := by
   rcases eq_or_ne p 0 with rfl | hp
   · simpa [mulHeight₁Bound, to_tuple_mvPolynomial] using mulHeightBound_zero_one.le
-  have hsupp₀ : Nonempty (MvPolynomial.X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support := by
-    simp only [MvPolynomial.mem_support_iff, nonempty_subtype]
-    refine ⟨fun₀ | 1 => p.natDegree, ?_⟩
-    rw [MvPolynomial.X_pow_eq_monomial, MvPolynomial.coeff_monomial]
-    simp
-  have hsupp₁ : Nonempty ↥(p.homogenize p.natDegree).support := by
-    refine Finset.Nonempty.to_subtype ?_
-    rw [MvPolynomial.support_nonempty]
-    contrapose! hp
-    exact eq_zero_of_homogenize_eq_zero le_rfl hp
+  have hsupp₀ : Nonempty (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support :=
+    Nonempty.to_subtype <| support_nonempty.mpr <| by simp
+  have hsupp₁ : Nonempty ↥(p.homogenize p.natDegree).support :=
+    Nonempty.to_subtype <| support_nonempty.mpr <| mt (eq_zero_of_homogenize_eq_zero le_rfl) hp
   simp [mulHeight₁Bound, mulHeightBound_eq]
   rw [max_eq_left ?h]
   case h => -- side goal
-    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod fun a ha ↦ ?_) ?_
-    · obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
-      exact Finite.le_ciSup_of_le 1 <| by
+    refine one_le_mul_of_one_le_of_one_le (Multiset.one_le_prod_map fun a ha ↦ ?_) ?_
+    · exact Finite.le_ciSup_of_le 1 <| by
         simp [to_tuple_mvPolynomial, MvPolynomial.X_pow_eq_monomial]
     · exact one_le_finprod fun v ↦ Finite.le_ciSup_of_le 1 <| le_max_right ..
   congr <;> ext v
@@ -391,7 +392,7 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
     rw [← Finite.ciSup_sup, this]
     simp [to_tuple_mvPolynomial, coeff_homogenize, MvPolynomial.X_pow_eq_monomial,
       p.sum_eq_natDegree_of_mem_support_homogenize]
-    have : (⨆ s : (MvPolynomial.X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
+    have : (⨆ s : (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
         if (fun₀ | 1 => p.natDegree : Fin 2 →₀ ℕ) = s then 1 else 0) = (1 : ℝ) := by
       refine le_antisymm ?_ ?_
       · refine ciSup_le fun s ↦ ?_; grind
