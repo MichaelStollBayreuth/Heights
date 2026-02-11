@@ -19,6 +19,10 @@ private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : 
     max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
+private lemma iSup_fun_eq_max (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := by
+  rw [show f = ![f 0, f 1] from List.ofFn_inj.mp rfl]
+  exact (max_eq_iSup ..).symm
+
 namespace Finsupp
 
 -- @Finsupp.sum : {α : Type u_2} → {M : Type u_1} → {N : Type} → [inst : Zero M] →
@@ -330,28 +334,32 @@ theorem logHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight_eval_le hp x
 
-open Polynomial
+end Height
+
+namespace Polynomial
+
+open Height
+
+variable {K : Type*} [Field K] [AdmissibleAbsValues K]
+
+open AdmissibleAbsValues
 
 /-- The constant in the upper height bound for `p.eval x`. -/
 noncomputable
-def _root_.Polynomial.mulHeight₁Bound (p : K[X]) : ℝ :=
+def mulHeight₁Bound (p : K[X]) : ℝ :=
   max (mulHeightBound p.to_tuple_mvPolynomial) 1
-
-private lemma iSup_fun_eq_max (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := by
-  rw [show f = ![f 0, f 1] from List.ofFn_inj.mp rfl]
-  exact (max_eq_iSup ..).symm
 
 lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1] = 1 := by
   simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
   conv_rhs => rw [← one_mul 1]
   congr
   · convert Multiset.prod_map_one with v
-    simp [MvPolynomial.sum_def, support_one_eq]
+    simp [MvPolynomial.sum_def, MvPolynomial.support_one_eq]
   · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
     rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, MvPolynomial.support_one_eq]
     simp
 
-open Finset MvPolynomial in
+open Finset in
 /-- A formula for `mulHeight₁Bound p` in terms of the coefficients of `p`. -/
 lemma mulHeight₁Bound_eq (p : K[X]) :
     p.mulHeight₁Bound =
@@ -360,10 +368,11 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
       max ((range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n)) 1 := by
   rcases eq_or_ne p 0 with rfl | hp
   · simpa [mulHeight₁Bound, to_tuple_mvPolynomial] using mulHeightBound_zero_one.le
-  have hsupp₀ : Nonempty (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support :=
-    Nonempty.to_subtype <| support_nonempty.mpr <| by simp
+  have hsupp₀ : Nonempty (MvPolynomial.X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support :=
+    Nonempty.to_subtype <| MvPolynomial.support_nonempty.mpr <| by simp
   have hsupp₁ : Nonempty (p.homogenize p.natDegree).support :=
-    Nonempty.to_subtype <| support_nonempty.mpr <| mt (eq_zero_of_homogenize_eq_zero le_rfl) hp
+    Nonempty.to_subtype <| MvPolynomial.support_nonempty.mpr <|
+      mt (eq_zero_of_homogenize_eq_zero le_rfl) hp
   simp only [mulHeight₁Bound, mulHeightBound_eq]
   rw [max_eq_left ?h]
   case h => -- side goal
@@ -374,7 +383,7 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
   congr <;> ext v
   · simp [iSup_fun_eq_max, to_tuple_mvPolynomial, finsuppSum_homogenize_eq,
       MvPolynomial.X_pow_eq_monomial]
-  · have H : (⨆ s : (X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
+  · have H : (⨆ s : (MvPolynomial.X (R := K) (σ := Fin 2) 1 ^ p.natDegree).support,
         if (fun₀ | 1 => p.natDegree : Fin 2 →₀ ℕ) = s then 1 else 0) = (1 : ℝ) := by
       rw [MvPolynomial.support_X_pow (R := K) (1 : Fin 2) p.natDegree]
       simp [ciSup_unique]
@@ -411,4 +420,4 @@ lemma logHeight₁_eval_le (p : K[X]) (x : K) :
   pull (disch := first | assumption | positivity) log
   exact (log_le_log <| by positivity) <| mulHeight₁_eval_le p x
 
-end Height
+end Polynomial
