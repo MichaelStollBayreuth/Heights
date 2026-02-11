@@ -357,8 +357,7 @@ lemma mulHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
   simp only [Pi.mul_apply, map_mul]
   have H₁ : 0 ≤ (archAbsVal.map fun v ↦ (⨆ i, v (x i)) * ⨆ i, v (y i)).prod := by
     refine Multiset.prod_nonneg fun a ha ↦ ?_
-    simp only [Multiset.mem_map] at ha
-    obtain ⟨v, -, rfl⟩ := ha
+    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha
     refine mul_nonneg ?_ ?_ <;> exact v.iSup_abv_nonneg
   have H₂ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) * v.val (y i) := by
     refine finprod_nonneg fun v ↦ iSup_nonneg fun i ↦ mul_nonneg ?_ ?_ <;> exact v.val.nonneg _
