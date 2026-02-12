@@ -495,7 +495,7 @@ variable [AdmissibleAbsValues K]
 open AdmissibleAbsValues
 
 open Multiset in
-/-- Let `A : ι' × ι → K`, which we can interpret as an `ι' × ι` matrix over `K`.
+/-- Let `A : ι' × ι → K`, which we can interpret as a linear map from `ι → K` to `ι' → K`.
 Let `x : ι → K` be a tuple. Then the multiplicative height of `A x` is bounded by
 `#ι ^ totalWeight K * mulHeight A * mulHeight x` (if `ι` is nonempty). -/
 theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι → K) :
@@ -537,7 +537,7 @@ theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι
     · exact linearMap_apply_bound_of_isNonarchimedean (isNonarchimedean _ v.prop) A x
 
 open Real in
-/-- Let `A : ι' × ι → K`, which we can interpret as an `ι' × ι` matrix over `K`.
+/-- Let `A : ι' × ι → K`, which we can interpret as a linear map from `ι → K` to `ι' → K`.
 Let `x : ι → K` be a tuple. Then the logarithmic height of `A x` is bounded by
 `totalWeight K * log #ι + logHeight A + logHeight x`.
 
