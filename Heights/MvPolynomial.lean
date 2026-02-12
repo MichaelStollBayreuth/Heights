@@ -516,8 +516,8 @@ theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι
       mulHeight_zero]
   rcases eq_or_ne x 0 with rfl | hx
   · rwa [show (fun j ↦ ∑ i, A (j, i) * (0 : ι → K) i) = 0 by simp [Pi.zero_def], mulHeight_zero]
-  rw [mulHeight_eq h, mulHeight_eq hA, mulHeight_eq hx,
-    mul_mul_mul_comm, ← mul_assoc, ← mul_assoc, mul_assoc (_ * _ * _)]
+  rw [mulHeight_eq h, mulHeight_eq hA, mulHeight_eq hx, mul_mul_mul_comm, ← mul_assoc, ← mul_assoc,
+    mul_assoc (_ * _ * _)]
   gcongr
   · exact finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
   · refine mul_nonneg (mul_nonneg (by simp) ?_) ?_ <;>
