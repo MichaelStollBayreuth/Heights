@@ -486,8 +486,8 @@ open AdmissibleAbsValues
 open Multiset in
 /-- Let `A : ι' × ι → K`, which we can interpret as an `ι' × ι` matrix over `K`.
 Let `x : ι → K` be a tuple. Then the multiplicative height of `A x` is bounded by
-`#ι ^ totalWeight K * mulHeight A * mulHeight x`. -/
-theorem linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι → K) :
+`#ι ^ totalWeight K * mulHeight A * mulHeight x` (if `ι` is nonempty). -/
+theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι → K) :
     mulHeight (fun j ↦ ∑ i, A (j, i) * x i) ≤
       Nat.card ι ^ totalWeight K * mulHeight A * mulHeight x := by
   have H₀ : 1 ≤ Nat.card ι ^ totalWeight K * mulHeight A * mulHeight x := by
@@ -525,5 +525,22 @@ theorem linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι → K) :
         (mulSupport_iSup_nonarchAbsVal_finite hx)
     · exact linearMap_apply_bound_of_isNonarchimedean (isNonarchimedean _ v.prop) A x
 
+open Real in
+/-- Let `A : ι' × ι → K`, which we can interpret as an `ι' × ι` matrix over `K`.
+Let `x : ι → K` be a tuple. Then the logarithmic height of `A x` is bounded by
+`totalWeight K * log #ι + logHeight A + logHeight x`.
+
+(Note that here we do not need to assume that `ι` is nonempty, due to the convenient
+junk value `log 0 = 0`.) -/
+theorem logHeight_linearMap_apply_le (A : ι' × ι → K) (x : ι → K) :
+    logHeight (fun j ↦ ∑ i, A (j, i) * x i) ≤
+      totalWeight K * log (Nat.card ι) + logHeight A + logHeight x := by
+  rcases isEmpty_or_nonempty ι with hι | hι
+  · suffices 0 ≤ logHeight A + logHeight x by simpa [← Pi.zero_def] using this
+    positivity
+  simp only [logHeight_eq_log_mulHeight]
+  have : (Nat.card ι : ℝ) ^ totalWeight K ≠ 0 := by simp
+  pull (disch := first | assumption | positivity) log
+  exact (log_le_log <| by positivity) <| mulHeight_linearMap_apply_le ..
 
 end Height

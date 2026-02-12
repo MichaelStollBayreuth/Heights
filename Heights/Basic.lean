@@ -168,6 +168,10 @@ variable [AdmissibleAbsValues K]
 
 open AdmissibleAbsValues Function
 
+@[simp]
+lemma logHeight_zero {ι : Type*} : logHeight (0 : ι → K) = 0 := by
+  simp [logHeight_eq_log_mulHeight]
+
 -- @[fun_prop]
 lemma AdmissibleAbsValues.hasFiniteMulSupport {x : K} (hx : x ≠ 0) :
     (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite :=
