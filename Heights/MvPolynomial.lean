@@ -1,8 +1,6 @@
 import Heights.Basic
-import Mathlib.RingTheory.MvPolynomial.Homogeneous
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Algebra.Polynomial.Homogenize
-import Mathlib.Tactic.DepRewrite
 
 /-!
 # Height bounds for polynomial maps
@@ -223,6 +221,16 @@ lemma mulHeightBound_eq (p : ι' → MvPolynomial ι K) :
         ∏ᶠ v : nonarchAbsVal, ⨆ j, max (⨆ s : (p j).support, v.val (coeff s (p j))) 1 :=
   rfl
 
+lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1] = 1 := by
+  simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
+  conv_rhs => rw [← one_mul 1]
+  congr
+  · convert Multiset.prod_map_one with v
+    simp [MvPolynomial.sum_def, MvPolynomial.support_one_eq]
+  · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
+    rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, MvPolynomial.support_one_eq]
+    simp
+
 variable [Finite ι']
 
 open Function in
@@ -348,16 +356,6 @@ open AdmissibleAbsValues
 noncomputable
 def mulHeight₁Bound (p : K[X]) : ℝ :=
   max (mulHeightBound p.to_tuple_mvPolynomial) 1
-
-lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1] = 1 := by
-  simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
-  conv_rhs => rw [← one_mul 1]
-  congr
-  · convert Multiset.prod_map_one with v
-    simp [MvPolynomial.sum_def, MvPolynomial.support_one_eq]
-  · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
-    rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, MvPolynomial.support_one_eq]
-    simp
 
 open Finset in
 /-- A formula for `mulHeight₁Bound p` in terms of the coefficients of `p`. -/
