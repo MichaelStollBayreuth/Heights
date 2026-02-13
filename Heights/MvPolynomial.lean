@@ -23,8 +23,7 @@ private lemma iSup_fun_eq_max (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := 
 
 namespace Finsupp
 
--- @Finsupp.sum : {α : Type u_2} → {M : Type u_1} → {N : Type} → [inst : Zero M] →
---    [AddCommMonoid N] → (α →₀ M) → (α → M → N) → N
+-- #35258
 
 lemma single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
     [IsOrderedAddMonoid N] (f : α →₀ M) {g : M → N} (hg : g 0 = 0) (h : ∀ m, 0 ≤ g m) (a : α) :
@@ -39,6 +38,8 @@ lemma single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
 end Finsupp
 
 namespace Multiset
+
+-- #34330
 
 variable {α R : Type*} [CommMonoidWithZero R] [PartialOrder R] [ZeroLEOneClass R] [PosMulMono R]
 
@@ -62,6 +63,8 @@ end Multiset
 
 namespace MvPolynomial
 
+-- #35259
+
 variable {R : Type*} [CommSemiring R] {ι : Type*}
 
 -- possibly useful more generally?
@@ -74,7 +77,7 @@ lemma IsHomogeneous.degree_eq_sum_deg_support {p : MvPolynomial ι R} {N : ℕ}
 
 -- #find_home! sum_deg_support_eq_degree -- [Mathlib.RingTheory.MvPolynomial.Homogeneous]
 
-lemma support_one_eq [Nontrivial R] : (1 : MvPolynomial ι R).support = {0} := by
+lemma support_one [Nontrivial R] : (1 : MvPolynomial ι R).support = {0} := by
   classical
   rw [show support (1 : MvPolynomial ι R) = if (1 : R) = 0 then ∅ else {0} from rfl]
   simp
@@ -85,6 +88,8 @@ end MvPolynomial
 
 namespace Polynomial
 
+-- also #35259
+
 variable {R : Type*} [CommSemiring R]
 
 lemma eq_zero_of_homogenize_eq_zero {p : R[X]} {N : ℕ} (hN : p.natDegree ≤ N)
@@ -94,10 +99,11 @@ lemma eq_zero_of_homogenize_eq_zero {p : R[X]} {N : ℕ} (hN : p.natDegree ≤ N
   simp only [coeff_zero]
   rcases le_or_gt n p.natDegree with H | H
   · have : p.coeff n = (p.homogenize N).coeff fun₀ | 0 => n | 1 => N - n := by
-      simp [coeff_homogenize]
-      lia
+      simp [coeff_homogenize, Nat.add_sub_of_le (H.trans hN)]
     simp [this, h]
   · exact coeff_eq_zero_of_natDegree_lt H
+
+-- #find_home! eq_zero_of_homogenize_eq_zero -- [Mathlib.Algebra.Polynomial.Homogenize]
 
 /-- Given a polynomial `p : R[X]`, this is the family `![p₀, p₁]` of homogeneous bivariate
 polynomials of degree `p.natDegree` such that `p(x) = p₀(x,1)/p₁(x,1)`. -/
@@ -143,8 +149,10 @@ end Polynomial
 
 namespace Finite
 
+-- #35260
+
 -- Add versions of `le_ciSup_of_le` and `ciSup_mono` for finite index types;
--- see `Finite.le_ciSup`in  Mathlib.Order.ConditionallyCompleteLattice.Finset.
+-- see `Finite.le_ciSup` in [Mathlib.Order.ConditionallyCompleteLattice.Finset].
 
 variable {α ι : Type*} [Finite ι] [ConditionallyCompleteLattice α]
 
@@ -162,6 +170,8 @@ lemma ciSup_sup [Nonempty ι] {f : ι → α} {a : α} :
   refine le_antisymm (sup_le ?_ ?_) <| ciSup_le fun i ↦ sup_le_sup_right (le_ciSup f i) a
   · exact ciSup_le fun i ↦ le_ciSup_of_le i le_sup_left
   · exact le_ciSup_of_le (Classical.arbitrary ι) le_sup_right
+
+-- #find_home! ciSup_sup -- [Mathlib.Order.ConditionallyCompleteLattice.Finset]
 
 end Finite
 
@@ -258,9 +268,9 @@ lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1
   conv_rhs => rw [← one_mul 1]
   congr
   · convert Multiset.prod_map_one with v
-    simp [MvPolynomial.sum_def, MvPolynomial.support_one_eq]
+    simp [MvPolynomial.sum_def, support_one]
   · refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
-    rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, MvPolynomial.support_one_eq]
+    rw [show ![(0 : MvPolynomial (Fin 2) K), 1] 1 = 1 from rfl, support_one]
     simp
 
 variable [Finite ι']
@@ -307,7 +317,7 @@ open Real Finsupp Multiset in
 to a multiplicative height).
 Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
 the finite type `ι` and of the same degree `N`. Then for any `x : ι →  K`,
-the multiplicative height of `fun j : ι' ↦ eval x (p j)` is bounded by a constant
+the multiplicative height of `fun j : ι' ↦ eval x (p j)` is bounded by a positive constant
 (which is made explicit) times `mulHeight x ^ N`. -/
 theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
     (x : ι → K) :
@@ -360,6 +370,19 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
         exact HH₂ (fun j ↦ max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1) j
     · exact mul_nonneg (iSup_nonneg fun _ ↦ by positivity) <| by simp only [HH₁]
 
+/-- Let `K` be a field with an admissible family of absolute values (giving rise
+to a multiplicative height).
+Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
+the finite type `ι` and of the same degree `N`. Then for any `x : ι →  K`,
+the multiplicative height of `fun j : ι' ↦ eval x (p j)` is bounded by a positive constant
+times `mulHeight x ^ N`.
+
+The difference to `mulHeight_eval_le` is that the constant is not made explicit. -/
+theorem mulHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
+    (x : ι → K) :
+    ∃ C > 0, mulHeight (fun j ↦ (p j).eval x) ≤ C * mulHeight x ^ N :=
+  ⟨_, by positivity, mulHeight_eval_le hp x⟩
+
 open Real in
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
 to a logarithmic height).
@@ -373,6 +396,19 @@ theorem logHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   simp_rw [logHeight_eq_log_mulHeight]
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight_eval_le hp x
+
+/-- Let `K` be a field with an admissible family of absolute values (giving rise
+to a logarithmic height).
+Let `p` be a family (indexed by `ι'`) of homogeneous polynomials in variables indexed by
+the finite type `ι` and of the same degree `N`. Then for any `x : ι →  K`,
+the logarithmic height of `fun j : ι' ↦ eval x (p j)` is bounded by a constant
+plus `N * logHeight x`.
+
+The difference to `logHeight_eval_le` is that the constant is not made explicit. -/
+theorem logHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
+    (x : ι → K) :
+    ∃ C, logHeight (fun j ↦ (p j).eval x) ≤ C + N * logHeight x :=
+  ⟨_, logHeight_eval_le hp x⟩
 
 end Height
 
@@ -604,13 +640,29 @@ theorem mulHeight_eval_ge [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial �
   grw [H, mulHeight_eval_le hq x]
   exact Eq.le (by ring)
 
+/-- If
+* `p : ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `N`,
+* `q : ι × ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `M`,
+* `x : ι → K` is such that for all `k : ι`,
+  `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
+then the multiplicative height of `fun j ↦ (p j).eval x` is bounded below by a positive
+constant depending only on `q` times the `N`th power of the mutiplicative height of `x`.
+
+The difference to `mulHeight_eval_ge` is that the constant is not made explicit. -/
+theorem mulHeight_eval_ge' [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
+    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
+    (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
+    ∃ C > 0, mulHeight (fun j ↦ (p j).eval x) ≥ C * mulHeight x ^ N :=
+  have : 0 < Nat.card ι' := Nat.card_pos
+  ⟨_, by positivity, mulHeight_eval_ge p hq h⟩
+
 open Real in
 /-- If
 * `p : ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `N`,
 * `q : ι × ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `M`,
 * `x : ι → K` is such that for all `k : ι`,
   `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
-then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by an (explicit) positive
+then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by an (explicit)
 constant depending only on `q` plus `N` times the logarithmic height of `x`. -/
 theorem logHeight_eval_ge [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
     {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
@@ -621,5 +673,20 @@ theorem logHeight_eval_ge [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial �
   have : (Nat.card ι' : ℝ) ^ totalWeight K ≠ 0 := by simp
   pull (disch := first | assumption | positivity) log
   exact (log_le_log <| by positivity) <| mulHeight_eval_ge p hq h
+
+/-- If
+* `p : ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `N`,
+* `q : ι × ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `M`,
+* `x : ι → K` is such that for all `k : ι`,
+  `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
+then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by a
+constant plus `N` times the logarithmic height of `x`.
+
+The difference to `logHeight_eval_ge` is that the constant is not made explicit. -/
+theorem logHeight_eval_ge' [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
+    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
+    (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
+    ∃ C, logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
+  ⟨_, logHeight_eval_ge p hq h⟩
 
 end Height
