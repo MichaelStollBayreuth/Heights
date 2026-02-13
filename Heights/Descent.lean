@@ -136,5 +136,5 @@ theorem CommGroup.fg_of_descent' {G : Type*} [CommGroup G] {h : G → ℝ} {C : 
     (H₄ : ∀ B, {x : G | h x ≤ B}.Finite) :
     Group.FG G := by
   have H₂' g x : h (x * g) ≤ 2 * h x + (2 * h g + C) := by grind
-  have H₃' x : 4 * h x - (h 1 + C) ≤ h (x ^ 2) := by grind [sq, div_self']
+  have H₃' x : 4 * h x - (h 1 + C) ≤ h (x ^ 2) := by grind [pow_two, div_self']
   exact fg_of_descent (b := 4) (by norm_num) (by norm_num) H₁ H₂' H₃' H₄

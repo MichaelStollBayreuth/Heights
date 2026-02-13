@@ -103,7 +103,7 @@ variable {R : Type*} [CommSemiring R] {v : R → ℝ} (hm : ∀ x y, v (x * y) =
 include hm in
 lemma abv_one_sq_eq : v 1 ^ 2 = v 1 :=
   calc
-  _ = v 1 * v 1 := by rw [sq]
+  _ = v 1 * v 1 := by rw [pow_two]
   _ = v (1 * 1) := (hm 1 1).symm
   _ = v 1 := by rw [mul_one]
 
