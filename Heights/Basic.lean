@@ -63,7 +63,7 @@ We define the following variants.
 
 ## TODO
 
-* Fix name `mulHeight.ne_zero` → `mulHeight_ne_zero`.
+* Fix names `mulHeight.ne_zero` → `mulHeight_ne_zero` and `zero_le_...` → `..._nonneg`.
 * `@[to_fun]` on `mulHeight_zero` (see below), plus `logHeight_zero`.
 * Refactor `mulHeight_comp_equiv` via a weaker form for arbitrary maps.
 * PR `logHeight₁_eq`.
@@ -312,6 +312,7 @@ lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0
       choose J hJ using fun b ↦ ne_iff.mp (hx (some b))
       exact ne_iff.mpr ⟨J, prod_ne_zero_iff.mpr fun b _ ↦ hJ b⟩
     rw [← mulHeight_comp_equiv <| Equiv.piOptionEquivProd (α := β) (β := ι), comp_def]
+    -- `rfl` also works here, but smells of defeq abuse.
     simp only [comp_apply, Equiv.piOptionEquivProd_apply]
 
 open Real in
