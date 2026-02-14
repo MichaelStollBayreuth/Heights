@@ -636,4 +636,68 @@ theorem logHeight_eval_ge' [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial 
     ∃ C, logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
   ⟨_, logHeight_eval_ge p hq h⟩
 
+/-!
+### Bounds for the height of ![x*y, x+y, 1]
+-/
+
+section sym2
+
+open Function in
+lemma mulHeight₁_mul_mulHeight₁ (x y : K) :
+    mulHeight₁ x * mulHeight₁ y = mulHeight ![x * y, x, y, 1] := by
+  have hx : ![x, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  have hy : ![y, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  simp only [mulHeight₁_eq_mulHeight, ← mulHeight_fun_mul_eq hx hy]
+  convert mulHeight_comp_equiv finProdFinEquiv _ with a
+  fin_cases a <;> simp [finProdFinEquiv]
+
+open MvPolynomial
+
+lemma mulHeight_sym2_le (x y : K) :
+    ∃ C > 0, mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
+  let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
+  have hom i : (p i).IsHomogeneous 1 := by
+    fin_cases i <;> simp [p, isHomogeneous_X, IsHomogeneous.add]
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_le' (p := p) (N := 1) hom ![x * y, x, y, 1]
+  refine ⟨C, hC₀, ?_⟩
+  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
+  convert hC with a
+  fin_cases a <;> simp [p]
+
+lemma mulHeight_sym2_ge (x y : K) :
+    ∃ C > 0, mulHeight ![x * y, x + y, 1] ≥ C * mulHeight₁ x * mulHeight₁ y := by
+  let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
+  let q : Fin 4 × Fin 3 → MvPolynomial (Fin 4) K :=
+    Function.uncurry ![![X 0, 0, 0], ![0, X 1, -X 0], ![0, X 2, -X 0], ![0, 0, X 3]]
+  have hom a : (q a).IsHomogeneous 1 := by
+    fin_cases a <;> simp [q] <;> grind only [!isHomogeneous_X, isHomogeneous_zero, IsHomogeneous.neg]
+  have H a : ∑ j, (eval ![x * y, x, y, 1]) (q (a, j)) * (eval ![x * y, x, y, 1]) (p j) =
+      ![x * y, x, y, 1] a ^ 2 := by
+    fin_cases a <;> simp [p, q, Fin.sum_univ_three] <;> ring
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_ge' (M := 1) (N := 1) p hom (x := ![x * y, x, y, 1]) H
+  refine ⟨C, hC₀, ?_⟩
+  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
+  convert hC with a
+  fin_cases a <;> simp [p]
+
+open Real in
+lemma logHeight_sym2_le (x y : K) :
+    ∃ C, logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
+  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_le x y
+  refine ⟨log c, ?_⟩
+  simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
+  pull (disch := positivity) log
+  exact log_le_log (by positivity) hc
+
+open Real in
+lemma logHeight_sym2_ge (x y : K) :
+    ∃ C, logHeight ![x * y, x + y, 1] ≥ C + logHeight₁ x + logHeight₁ y := by
+  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_ge x y
+  refine ⟨log c, ?_⟩
+  simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
+  pull (disch := positivity) log
+  exact log_le_log (by positivity) hc
+
+end sym2
+
 end Height

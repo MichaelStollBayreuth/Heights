@@ -369,7 +369,7 @@ lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0
     rw [← H, ← mulHeight_comp_equiv (e.piCongrLeft ι).symm]
     refine congrArg mulHeight <| funext fun I ↦ ?_
     simp only [comp_apply]
-    let : Fintype β := Fintype.ofEquiv β' e.symm
+    let : Fintype β := .ofEquiv β' e.symm
     refine prod_equiv e.symm (s := .univ) (t := .univ) (by simp) fun b _ ↦ ?_
     rw [e.piCongrLeft_symm_apply, e.apply_symm_apply]
   case option =>
