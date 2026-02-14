@@ -548,10 +548,9 @@ theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι
   rcases eq_or_ne (fun j ↦ ∑ i, A (j, i) * x i) 0 with h | h
   · simpa only [h, mulHeight_zero] using H₀
   rcases eq_or_ne A 0 with rfl | hA
-  · rwa [show (fun j ↦ ∑ i, (0 : ι' × ι → K) (j, i) * x i) = 0 by simp [Pi.zero_def],
-      mulHeight_zero]
+  · simpa using H₀
   rcases eq_or_ne x 0 with rfl | hx
-  · rwa [show (fun j ↦ ∑ i, A (j, i) * (0 : ι → K) i) = 0 by simp [Pi.zero_def], mulHeight_zero]
+  · simpa using H₀
   rw [mulHeight_eq h, mulHeight_eq hA, mulHeight_eq hx, mul_mul_mul_comm, ← mul_assoc, ← mul_assoc,
     mul_assoc (_ * _ * _)]
   gcongr
@@ -583,7 +582,7 @@ theorem logHeight_linearMap_apply_le (A : ι' × ι → K) (x : ι → K) :
     logHeight (fun j ↦ ∑ i, A (j, i) * x i) ≤
       totalWeight K * log (Nat.card ι) + logHeight A + logHeight x := by
   rcases isEmpty_or_nonempty ι with hι | hι
-  · suffices 0 ≤ logHeight A + logHeight x by simpa [← Pi.zero_def] using this
+  · suffices 0 ≤ logHeight A + logHeight x by simpa using this
     positivity
   simp only [logHeight_eq_log_mulHeight]
   have : (Nat.card ι : ℝ) ^ totalWeight K ≠ 0 := by simp

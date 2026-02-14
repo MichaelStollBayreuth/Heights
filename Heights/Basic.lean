@@ -10,6 +10,8 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 import Mathlib.LinearAlgebra.Projectivization.Basic
 
+import Mathlib.Algebra.Order.Group.CompleteLattice
+
 import Heights.FiniteSupport
 
 -- import Mathlib.Analysis.SpecialFunctions.Log.Basic
@@ -59,13 +61,22 @@ We define the following variants.
   points in projective space).
 * A bound for `mulHeight₁` and `logHeight₁` of sums of two or arbitrarily many elements.
 
+## TODO
+
+* Fix name `mulHeight.ne_zero` → `mulHeight_ne_zero`.
+* `@[to_fun]` on `mulHeight_zero` (see below), plus `logHeight_zero`.
+* Refactor `mulHeight_comp_equiv` via a weaker form for arbitrary maps.
+* PR `logHeight₁_eq`.
+* PR Segre results.
+* PR bounds for linear maps.
+* PR upper and lower bounds for polynomial maps.
+
 -/
+
+attribute [to_fun (attr := simp)] Height.mulHeight_zero
+attribute [to_fun (attr := simp)] Height.mulHeight_one
 
 noncomputable section
-
-/-!
-### Bounds for the height of sums of field elements
--/
 
 section aux
 
@@ -89,6 +100,24 @@ variable {K : Type*} [Semiring K]
 
 lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
   Real.iSup_nonneg fun j ↦ by positivity
+
+lemma iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv (v : AbsoluteValue K ℝ) {ι ι' : Type*}
+    [Finite ι] [Finite ι'] (x : ι → K) (y : ι' → K) :
+    ⨆ a : ι × ι', v (x a.1 * y a.2) = (⨆ i, v (x i)) * ⨆ j, v (y j) := by
+  rcases isEmpty_or_nonempty ι
+  · simp
+  rcases isEmpty_or_nonempty ι'
+  · simp
+  simp only [map_mul]
+  refine le_antisymm (ciSup_le fun a ↦ ?_) ?_
+  · gcongr
+    · exact iSup_abv_nonneg v
+    · exact Finite.le_ciSup (fun i ↦ v (x i)) a.1
+    · exact Finite.le_ciSup (fun j ↦ v (y j)) a.2
+  · obtain ⟨i, hi⟩ := exists_eq_ciSup_of_finite (f := fun i ↦ v (x i))
+    obtain ⟨j, hj⟩ := exists_eq_ciSup_of_finite (f := fun j ↦ v (y j))
+    rw [← hi, ← hj]
+    exact Finite.le_ciSup (fun a : ι × ι' ↦ v (x a.1) * v (y a.2)) ⟨i, j⟩
 
 end AbsoluteValue
 
@@ -143,33 +172,16 @@ end Finset
 
 namespace Height
 
-variable {K : Type*} [Field K]
-
-/- -- The "local" version of the height bound for `x + y` for archimedean `v`.
-private lemma max_abv_add_one_le (v : AbsoluteValue K ℝ) (x y : K) :
-    max (v (x + y)) 1 ≤ 2 * (max (v x) 1 * max (v y) 1) := by
-  refine sup_le ((v.add_le x y).trans ?_) <| (show (1 : ℝ) ≤ 2 * 1 by norm_num).trans ?_
-  · rw [two_mul]
-    exact add_le_add (le_mul_max_max_left ..) (le_mul_max_max_right ..)
-  · exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two -/
-
-/- -- The "local" version of the height bound for `x + y` for nonarchimedean `v`.
-private lemma max_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
-    (x y : K) :
-    max (v (x + y)) 1 ≤ (max (v x) 1 * max (v y) 1) := by
-  refine sup_le ?_ <| one_le_mul_max_max ..
-  exact (hv x y).trans <| sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..) -/
-
-/- private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
-    max a b = iSup ![a, b] :=
-  eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two] -/
-
-variable [AdmissibleAbsValues K]
+variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
 open AdmissibleAbsValues Function
 
-@[simp]
+@[to_fun (attr := simp)]
 lemma logHeight_zero {ι : Type*} : logHeight (0 : ι → K) = 0 := by
+  simp [logHeight_eq_log_mulHeight]
+
+@[to_fun (attr := simp)]
+lemma logHeight_one {ι : Type*} : logHeight (1 : ι → K) = 0 := by
   simp [logHeight_eq_log_mulHeight]
 
 -- @[fun_prop]
@@ -223,6 +235,126 @@ lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
   -- simp_rw [max_eq_iSup]
   -- convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
   -- fin_cases i <;> simp
+
+/-!
+### Heights and "Segre embedding"
+
+We show that the multiplicative height of `fun (i, j) ↦ x i * y j` is the product of the
+multiplicative heights of `x` and `y` (and the analogous statement for logarithmic heights).
+-/
+
+section Segre
+
+section two
+
+variable {ι ι' : Type*} [Finite ι] [Finite ι']
+
+/-- The multiplicative height of the "multiplication table" `fun (i, j) ↦ x i * y j`
+is the product of the multiplicative heights of `x` and `y`. -/
+lemma mulHeight_fun_mul_eq {x : ι → K} (hx : x ≠ 0) {y : ι' → K} (hy : y ≠ 0) :
+    mulHeight (fun a : ι × ι' ↦ x a.1 * y a.2) = mulHeight x * mulHeight y := by
+  have hxy : (fun a : ι × ι' ↦ x a.1 * y a.2) ≠ 0 := by
+    obtain ⟨i, hi⟩ := ne_iff.mp hx
+    obtain ⟨j, hj⟩ := ne_iff.mp hy
+    exact ne_iff.mpr ⟨⟨i, j⟩, mul_ne_zero hi hj⟩
+  rw [mulHeight_eq hx, mulHeight_eq hy, mulHeight_eq hxy, mul_mul_mul_comm, ← Multiset.prod_map_mul,
+    ← finprod_mul_distrib
+        (mulSupport_iSup_nonarchAbsVal_finite hx) (mulSupport_iSup_nonarchAbsVal_finite hy)]
+  congr <;> ext1 v
+  · exact v.iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv ..
+  · exact v.val.iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv ..
+
+open Real in
+/-- The logarithmic height of the "multiplication table" `fun (i, j) ↦ x i * y j`
+is the sum of the logarithmic heights of `x` and `y`. -/
+lemma logHeight_fun_mul_eq {x : ι → K} (hx : x ≠ 0) {y : ι' → K} (hy : y ≠ 0) :
+    logHeight (fun a : ι × ι' ↦ x a.1 * y a.2) = logHeight x + logHeight y := by
+  simp only [logHeight_eq_log_mulHeight]
+  pull (disch := positivity) log
+  rw [mulHeight_fun_mul_eq hx hy]
+
+end two
+
+section many
+
+
+
+universe u v
+
+variable {α : Type u} [Fintype α] {ι : α → Type v} [∀ a, Finite (ι a)]
+
+open Finset in
+/-- Consider a finite family `x : (a : α) → ι a → K` of tuples. Then the multiplicative height
+of the "multiplication table" `fun (I : (a : α) → ι a ↦ ∏ a, x a (I a))` is the product
+of the multiplicative heights of all the `x a`. -/
+lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0) :
+    mulHeight (fun I : (a : α) → ι a ↦ ∏ a, x a (I a)) = ∏ a, mulHeight (x a) := by
+  revert x ι
+  refine @Fintype.induction_empty_option
+    (fun α _ ↦ ∀ (ι : α → Type v) [∀ a, Finite (ι a)] {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0),
+      mulHeight (fun I : (a : α) → ι a ↦ ∏ a, x a (I a)) = ∏ a, mulHeight (x a))
+    (fun β β' _ e H ι _ x hx ↦ ?equiv) ?empty (fun β hβ ih ι _ x hx ↦ ?option) α inferInstance
+  case empty => simp
+  case equiv =>
+    have (a : β) : Finite ((ι ∘ ⇑e) a) := inferInstanceAs <| Finite (ι (e a))
+    specialize H (ι ∘ ⇑e) (x := fun b ↦ x (e b)) (by simp [hx])
+    rw [prod_equiv e (t := .univ) (by simp) (g := fun b ↦ mulHeight (x b)) (fun _ _ ↦ rfl)] at H
+    rw [← H, ← mulHeight_comp_equiv (e.piCongrLeft ι).symm]
+    refine congrArg mulHeight <| funext fun I ↦ ?_
+    simp only [comp_apply]
+    let : Fintype β := Fintype.ofEquiv β' e.symm
+    refine prod_equiv e.symm (s := .univ) (t := .univ) (by simp) fun b _ ↦ ?_
+    rw [e.piCongrLeft_symm_apply, e.apply_symm_apply]
+  case option =>
+    simp only [Fintype.prod_option]
+    have (b : β) : Finite ((ι ∘ some) b) := by grind
+    rw [← ih (ι ∘ Option.some) (x := fun b i ↦ x (some b) i) (by grind),
+      ← mulHeight_fun_mul_eq (hx none) ?hprod]
+    case hprod =>
+      choose J hJ using fun b ↦ ne_iff.mp (hx (some b))
+      refine ne_iff.mpr ⟨J, prod_ne_zero_iff.mpr fun b _ ↦ hJ b⟩
+    rw [← mulHeight_comp_equiv <| Equiv.piOptionEquivProd (α := β) (β := ι)]
+    rfl
+
+open Real in
+/-- Consider a finite family `x : (a : α) → ι a → K` of tuples. Then the logarithmic height
+of the "multiplication table" `fun (I : (a : α) → ι a ↦ ∏ a, x a (I a))` is the sum
+of the logarithmic heights of all the `x a`. -/
+lemma logHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0) :
+    logHeight (fun I : (a : α) → ι a ↦ ∏ a, x a (I a)) = ∑ a, logHeight (x a) := by
+  simp only [logHeight_eq_log_mulHeight]
+  rw [← log_prod fun a _ ↦ mulHeight.ne_zero _]
+  exact congrArg log <| mulHeight_fun_prod_eq hx
+
+end many
+
+end Segre
+
+/-!
+### Bounds for the height of sums of field elements
+-/
+
+
+/- -- The "local" version of the height bound for `x + y` for archimedean `v`.
+private lemma max_abv_add_one_le (v : AbsoluteValue K ℝ) (x y : K) :
+    max (v (x + y)) 1 ≤ 2 * (max (v x) 1 * max (v y) 1) := by
+  refine sup_le ((v.add_le x y).trans ?_) <| (show (1 : ℝ) ≤ 2 * 1 by norm_num).trans ?_
+  · rw [two_mul]
+    exact add_le_add (le_mul_max_max_left ..) (le_mul_max_max_right ..)
+  · exact mul_le_mul_of_nonneg_left (one_le_mul_max_max ..) zero_le_two -/
+
+/- -- The "local" version of the height bound for `x + y` for nonarch)imedean `v`.
+private lemma max_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNonarchimedean v)
+    (x y : K) :
+    max (v (x + y)) 1 ≤ (max (v x) 1 * max (v y) 1) := by
+  refine sup_le ?_ <| one_le_mul_max_max ..
+  exact (hv x y).trans <| sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..) -/
+
+/- private lemma max_eq_iSup {α : Type*} [ConditionallyCompleteLattice α] (a b : α) :
+    max a b = iSup ![a, b] :=
+  eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two] -/
+
+
 
 end Height
 
