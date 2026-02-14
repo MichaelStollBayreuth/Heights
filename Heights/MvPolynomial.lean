@@ -37,30 +37,6 @@ lemma single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
 
 end Finsupp
 
-namespace Multiset
-
--- #34330
-
-variable {α R : Type*} [CommMonoidWithZero R] [PartialOrder R] [ZeroLEOneClass R] [PosMulMono R]
-
-lemma prod_map_nonneg {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 0 ≤ f a) :
-    0 ≤ (s.map f).prod := by
-  refine prod_nonneg fun r hr ↦ ?_
-  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
-  exact h a ha
-
--- #find_home! prod_map_nonneg -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
-
-lemma one_le_prod_map {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 1 ≤ f a) :
-    1 ≤ (s.map f).prod := by
-  refine one_le_prod fun r hr ↦ ?_
-  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
-  exact h a ha
-
--- #find_home! one_le_prod_map -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
-
-end Multiset
-
 namespace MvPolynomial
 
 -- #35259
@@ -146,34 +122,6 @@ lemma finsuppSum_homogenize_eq {M : Type*} [AddCommMonoid M] (p : R[X]) {f : R �
   · simp [coeff_homogenize, sum_eq_natDegree_of_mem_support_homogenize p hs]
 
 end Polynomial
-
-namespace Finite
-
--- #35260
-
--- Add versions of `le_ciSup_of_le` and `ciSup_mono` for finite index types;
--- see `Finite.le_ciSup` in [Mathlib.Order.ConditionallyCompleteLattice.Finset].
-
-variable {α ι : Type*} [Finite ι] [ConditionallyCompleteLattice α]
-
-lemma le_ciSup_of_le {a : α} {f : ι → α} (c : ι) (h : a ≤ f c) : a ≤ iSup f :=
-  _root_.le_ciSup_of_le (bddAbove_range f) c h
-
-lemma ciSup_mono {f g : ι → α} (H : ∀ (x : ι), f x ≤ g x) : iSup f ≤ iSup g :=
-  _root_.ciSup_mono (bddAbove_range g) H
-
--- #find_home! le_ciSup_of_le -- [Mathlib.Data.Fintype.Order]
--- #find_home! ciSup_mono -- [Mathlib.Data.Fintype.Order]
-
-lemma ciSup_sup [Nonempty ι] {f : ι → α} {a : α} :
-    (⨆ i, f i) ⊔ a = ⨆ i, f i ⊔ a := by
-  refine le_antisymm (sup_le ?_ ?_) <| ciSup_le fun i ↦ sup_le_sup_right (le_ciSup f i) a
-  · exact ciSup_le fun i ↦ le_ciSup_of_le i le_sup_left
-  · exact le_ciSup_of_le (Classical.arbitrary ι) le_sup_right
-
--- #find_home! ciSup_sup -- [Mathlib.Order.ConditionallyCompleteLattice.Finset]
-
-end Finite
 
 namespace IsNonarchimedean
 

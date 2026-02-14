@@ -94,6 +94,58 @@ section aux
     (1 : ℝ) = 1 * 1 := (mul_one 1).symm
     _ ≤ _ := by gcongr <;> grind -/
 
+namespace Multiset
+
+-- #34330
+
+variable {α R : Type*} [CommMonoidWithZero R] [PartialOrder R] [ZeroLEOneClass R] [PosMulMono R]
+
+lemma prod_map_nonneg {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 0 ≤ f a) :
+    0 ≤ (s.map f).prod := by
+  refine prod_nonneg fun r hr ↦ ?_
+  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
+  exact h a ha
+
+-- #find_home! prod_map_nonneg -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
+
+lemma one_le_prod_map {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 1 ≤ f a) :
+    1 ≤ (s.map f).prod := by
+  refine one_le_prod fun r hr ↦ ?_
+  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
+  exact h a ha
+
+-- #find_home! one_le_prod_map -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
+
+end Multiset
+
+namespace Finite
+
+-- #35260
+
+-- Add versions of `le_ciSup_of_le` and `ciSup_mono` for finite index types;
+-- see `Finite.le_ciSup` in [Mathlib.Order.ConditionallyCompleteLattice.Finset].
+
+variable {α ι : Type*} [Finite ι] [ConditionallyCompleteLattice α]
+
+lemma le_ciSup_of_le {a : α} {f : ι → α} (c : ι) (h : a ≤ f c) : a ≤ iSup f :=
+  _root_.le_ciSup_of_le (bddAbove_range f) c h
+
+lemma ciSup_mono {f g : ι → α} (H : ∀ (x : ι), f x ≤ g x) : iSup f ≤ iSup g :=
+  _root_.ciSup_mono (bddAbove_range g) H
+
+-- #find_home! le_ciSup_of_le -- [Mathlib.Data.Fintype.Order]
+-- #find_home! ciSup_mono -- [Mathlib.Data.Fintype.Order]
+
+lemma ciSup_sup [Nonempty ι] {f : ι → α} {a : α} :
+    (⨆ i, f i) ⊔ a = ⨆ i, f i ⊔ a := by
+  refine le_antisymm (sup_le ?_ ?_) <| ciSup_le fun i ↦ sup_le_sup_right (le_ciSup f i) a
+  · exact ciSup_le fun i ↦ le_ciSup_of_le i le_sup_left
+  · exact le_ciSup_of_le (Classical.arbitrary ι) le_sup_right
+
+-- #find_home! ciSup_sup -- [Mathlib.Order.ConditionallyCompleteLattice.Finset]
+
+end Finite
+
 namespace AbsoluteValue
 
 variable {K : Type*} [Semiring K]
@@ -235,6 +287,23 @@ lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
   -- simp_rw [max_eq_iSup]
   -- convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
   -- fin_cases i <;> simp
+
+lemma mulHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι') (x : ι' → K) :
+    mulHeight (x ∘ f) ≤ mulHeight x := by
+  rcases eq_or_ne (x ∘ f) 0 with h₀ | h₀
+  · simpa [h₀] using one_le_mulHeight _
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp
+  have : Nonempty ι := .intro (ne_iff.mp h₀).choose
+  rw [mulHeight_eq h₀, mulHeight_eq hx]
+  have H (v : AbsoluteValue K ℝ) : ⨆ i, v ((x ∘ f) i) ≤ ⨆ i, v (x i) :=
+    ciSup_le fun i ↦ Finite.le_ciSup_of_le (f i) le_rfl
+  gcongr
+  · exact finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
+  · exact Multiset.prod_map_nonneg fun v _ ↦ v.iSup_abv_nonneg
+  · exact Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ v.iSup_abv_nonneg) fun v _ ↦ H v
+  · exact finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
+      (fun v ↦ v.val.iSup_abv_nonneg) (mulSupport_iSup_nonarchAbsVal_finite hx) fun v ↦ H v.val
 
 /-!
 ### Heights and "Segre embedding"
