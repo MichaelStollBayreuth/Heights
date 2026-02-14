@@ -277,8 +277,6 @@ end two
 
 section many
 
-
-
 universe u v
 
 variable {α : Type u} [Fintype α] {ι : α → Type v} [∀ a, Finite (ι a)]
@@ -312,9 +310,9 @@ lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0
       ← mulHeight_fun_mul_eq (hx none) ?hprod]
     case hprod =>
       choose J hJ using fun b ↦ ne_iff.mp (hx (some b))
-      refine ne_iff.mpr ⟨J, prod_ne_zero_iff.mpr fun b _ ↦ hJ b⟩
-    rw [← mulHeight_comp_equiv <| Equiv.piOptionEquivProd (α := β) (β := ι)]
-    rfl
+      exact ne_iff.mpr ⟨J, prod_ne_zero_iff.mpr fun b _ ↦ hJ b⟩
+    rw [← mulHeight_comp_equiv <| Equiv.piOptionEquivProd (α := β) (β := ι), comp_def]
+    simp only [comp_apply, Equiv.piOptionEquivProd_apply]
 
 open Real in
 /-- Consider a finite family `x : (a : α) → ι a → K` of tuples. Then the logarithmic height
