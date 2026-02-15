@@ -610,8 +610,8 @@ open Real in
   `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
 then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by an (explicit)
 constant depending only on `q` plus `N` times the logarithmic height of `x`. -/
-theorem logHeight_eval_ge [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
-    (hq : ∀ a, (q a).IsHomogeneous M) (p : ι' → MvPolynomial ι K) {x : ι → K}
+theorem logHeight_eval_ge [Nonempty ι'] {M : ℕ} {q : ι × ι' → MvPolynomial ι K}
+    (hq : ∀ a, (q a).IsHomogeneous M) (p : ι' → MvPolynomial ι K) {x : ι → K} {N : ℕ}
     (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
     logHeight (fun j ↦ (p j).eval x) ≥
       -log (Nat.card ι' ^ totalWeight K * max (mulHeightBound q) 1) + N * logHeight x:= by
@@ -629,9 +629,9 @@ then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by a
 constant plus `N` times the logarithmic height of `x`.
 
 The difference to `logHeight_eval_ge` is that the constant is not made explicit. -/
-theorem logHeight_eval_ge' [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
+theorem logHeight_eval_ge' [Nonempty ι'] {M : ℕ} {q : ι × ι' → MvPolynomial ι K}
     (hq : ∀ a, (q a).IsHomogeneous M) :
-    ∃ C, ∀ (p : ι' → MvPolynomial ι K) {x : ι → K}
+    ∃ C, ∀ (p : ι' → MvPolynomial ι K) {x : ι → K} {N : ℕ}
       (_h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)),
       logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
   ⟨_, logHeight_eval_ge hq⟩

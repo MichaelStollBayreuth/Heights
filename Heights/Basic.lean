@@ -790,7 +790,7 @@ end Polynomial
 ### Heights on projective spaces
 -/
 
--- New file NumberTheory/Height/Projectivization.lean ?
+-- New file NumberTheory/Height/Projectivization.lean; see #34780
 
 namespace Projectivization
 
