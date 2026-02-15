@@ -305,6 +305,16 @@ lemma mulHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι
   · exact finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
       (fun v ↦ v.val.iSup_abv_nonneg) (mulSupport_iSup_nonarchAbsVal_finite hx) fun v ↦ H v.val
 
+lemma logHeight_comp_equiv {ι ι' : Type*} (e : ι ≃ ι') (x : ι' → K) :
+    logHeight (x ∘ ⇑e) = logHeight x := by
+  simp only [logHeight_eq_log_mulHeight, mulHeight_comp_equiv]
+
+open Real in
+lemma logHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι') (x : ι' → K) :
+    logHeight (x ∘ f) ≤ logHeight x := by
+  simp only [logHeight_eq_log_mulHeight]
+  exact log_le_log (by positivity) <| mulHeight_comp_le ..
+
 /-!
 ### Heights and "Segre embedding"
 

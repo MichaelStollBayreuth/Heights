@@ -108,7 +108,7 @@ lemma isHomogenous_add_sub_map_coeff (ij : Fin 3 × Fin 3) :
     refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     exact isHomogeneous_C_mul_X_pow ..
 
-variable  (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
+variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
 
 variable {a b}
 
@@ -126,6 +126,16 @@ lemma add_sub_map_coeff_condition (x : Fin 3 → K) (i : Fin 3) :
       Matrix.cons_val_zero, Matrix.cons_val_one, map_sub, map_add, map_mul, eval_C, map_pow,
       eval_X, map_neg, Fin.reduceFinMk, Matrix.cons_val, Fin.mk_one] <;>
     ring
+
+include hab in
+lemma add_sub_map_ne_zero {x : Fin 3 → K} (hx : x ≠ 0) :
+    (fun i ↦ (add_sub_map a b i).eval x) ≠ 0 := by
+  contrapose! hx
+  ext1 i
+  replace hx i : (add_sub_map a b i).eval x = 0 := by
+    rw [Pi.zero_def, _root_.funext_iff] at hx
+    exact hx i
+  simpa [hx] using (add_sub_map_coeff_condition hab x i).symm
 
 variable [AdmissibleAbsValues K]
 
@@ -152,3 +162,144 @@ theorem abs_logHeight_add_sub_map_sub_two_mul_logHeight_le :
 end EllipticCurve
 
 end Height
+
+namespace WeierstrassCurve.Projective
+
+open Height EllipticCurve
+
+variable {K : Type*} [Field K] [AdmissibleAbsValues K] {a b : K}
+
+/-- The map that sends a pair `P`, `Q` of representatives of projective points on `W`
+to a triple projectively equivalent to `![x(P) + x(Q), x(P) * x(Q), 1]`. -/
+noncomputable def sym2 (P Q : Fin 3 → K) : Fin 3 → K :=
+  ![P 0 * Q 2 + P 2 * Q 0, P 0 * Q 0, P 2 * Q 2]
+
+lemma sym2_ne_zero {W : Projective K} {P Q : W.Point} {P' Q' : Fin 3 → K}
+    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) : sym2 P' Q' ≠ 0 := by
+  sorry
+
+variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
+
+/-
+-- Working with the projective addition formulas looks like it is going to be very painful...
+include hab in
+lemma sym2_add_sub_eq_add_sub_map_sym2
+    {P Q : (WeierstrassCurve.mk 0 0 0 a b).toProjective.Point} {P' Q' : Fin 3 → K}
+    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) :
+    letI W := (WeierstrassCurve.mk 0 0 0 a b).toProjective
+    -- this is false; one has to scale both sides and use the curve equation
+    sym2 (W.add P' Q') (W.add P' (W.neg Q')) = fun i ↦ (add_sub_map a b i).eval <| sym2 P' Q' := by
+  let W := (WeierstrassCurve.mk 0 0 0 a b).toProjective
+  by_cases h : P' ≈ Q'
+  · sorry
+  · rw [add_of_not_equiv h]
+    by_cases h' : P' ≈ W.neg Q'
+    · sorry
+    · rw [add_of_not_equiv h']
+      simp [sym2, addXYZ_X, addXYZ_Z, addX, addZ, neg_X, neg_Y, neg_Z, negY, W]
+      ext1 i
+      fin_cases i
+      · simp only [Fin.isValue, Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta,
+          Matrix.cons_val_zero]
+        simp only [add_sub_map]
+        simp only [Fin.isValue, map_mul, map_pow, Matrix.cons_val_zero, MvPolynomial.eval_C,
+          map_add, MvPolynomial.eval_X, Matrix.cons_val_one, Matrix.cons_val]
+        -- rw [← sub_eq_zero]
+        have eP : W.Equation P' := by sorry
+        have eQ : W.Equation Q' := by sorry
+        simp [equation_iff, W] at eP eQ
+        conv => enter [1, 2]; rw [mul_comm]
+        rw [← add_mul]
+        conv => enter [1, 1]; ring_nf
+
+        --grobner
+        sorry
+      · sorry
+      · sorry
+      -- ring_nf
+ -/
+
+/- We need to be careful with `sym2` when one of the points is the origin! -/
+
+include hab in
+lemma sym2_add_sub_eq_add_sub_map_sym2 {W : Projective K}
+    (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toProjective) {P Q : W.Point} {P' Q' : Fin 3 → K}
+    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) :
+    ∃ t : K, t ≠ 0 ∧ t • sym2 (W.add P' Q') (W.add P' (W.neg Q')) =
+      fun i ↦ (add_sub_map a b i).eval <| sym2 P' Q' := by
+  sorry
+
+/-- The naïve logarithmic height of an affine point on `W`. -/
+noncomputable def _root_.WeierstrassCurve.Affine.Point.naiveHeight {W : Affine K} : W.Point → ℝ
+  | .zero => 0
+  | @Affine.Point.some _ _ _ x _ _ => logHeight₁ x
+
+/-- The naïve logarithmic height of a projective point on `W`. -/
+noncomputable def Point.naiveHeight {W : Projective K} (P : W.Point) :=
+  P.toAffineLift.naiveHeight
+
+lemma Point.naiveHeight_eq_logHeight {W : Projective K} {P : W.Point} {P' : Fin 3 → K}
+    (hP : P.point = ⟦P'⟧) :
+    P.naiveHeight = logHeight ![P' 0, P' 2] := by
+  sorry
+
+lemma logHeight_sym2 (W : Projective K) :
+    ∃ C, ∀ {P Q : W.Point} {P' Q' : Fin 3 → K} (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧),
+      |logHeight (sym2 P' Q') - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
+  obtain ⟨C₁, hC₁⟩ := logHeight_sym2'_le (K := K)
+  obtain ⟨C₂, hC₂⟩ := logHeight_sym2'_ge (K := K)
+  refine ⟨max C₁ (-C₂), fun {P Q P' Q'} hP hQ ↦ ?_⟩
+  rw [Point.naiveHeight_eq_logHeight hP, Point.naiveHeight_eq_logHeight hQ, sym2]
+  rcases eq_or_ne ![P' 0, P' 2] 0 with hx | hx
+  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_eq_zero_iff,
+      Matrix.zero_empty, and_true] at hx
+    simp [hx.1, hx.2]
+    -- not provable; need to use projection to ℙ¹ that gives ![1, 0] for the origin
+    sorry
+  rcases eq_or_ne ![Q' 0, Q' 2] 0 with hy | hy
+  · sorry
+  have H₁ := logHeight_fun_mul_eq hx hy
+  specialize hC₁ (P' 0) (P' 2) (Q' 0) (Q' 2)
+  specialize hC₂ (P' 0) (P' 2) (Q' 0) (Q' 2)
+  have : logHeight ![P' 0 * Q' 2 + P' 2 * Q' 0, P' 0 * Q' 0, P' 2 * Q' 2] =
+      logHeight ![P' 0 * Q' 0, P' 0 * Q' 2 + P' 2 * Q' 0, P' 2 * Q' 2] := by
+    let e := Equiv.swap (α := Fin 3) 0 1
+    convert logHeight_comp_equiv e _
+    ext1 i
+    fin_cases i <;> simp [e, Equiv.swap_apply_of_ne_of_ne]
+  rw [this]
+  grind only [= abs.eq_1, = max_def]
+
+include hab in
+/-- The "approximate parallelogram law" for the naïve height on an elliptic curve
+given by a short Weierstrass equation. -/
+theorem approx_parallelogram_law {W : Projective K}
+    (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toProjective) :
+    ∃ C, ∀ (P Q : W.Point),
+      |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
+  obtain ⟨C₁, hC₁⟩ := logHeight_sym2 W
+  obtain ⟨C₂, hC₂⟩ := abs_logHeight_add_sub_map_sub_two_mul_logHeight_le hab
+  refine ⟨3 * C₁ + C₂, fun P Q ↦ ?_⟩
+  let P' := P.point.out
+  let Q' := Q.point.out
+  have hP : P.point = ⟦P'⟧ := P.point.out_eq.symm
+  have hQ : Q.point = ⟦Q'⟧ := Q.point.out_eq.symm
+  have hadd : (P + Q).point = ⟦W.add P' Q'⟧ := by rw [Point.add_point, hP, hQ, addMap_eq]
+  have hsub : (P - Q).point = ⟦W.add P' (W.neg Q')⟧ := by
+    rw [sub_eq_add_neg, Point.add_point, Point.neg_point, hP, hQ, negMap_eq, addMap_eq]
+  obtain ⟨t, ht₀, ht⟩ := sym2_add_sub_eq_add_sub_map_sym2 hab hW hP hQ
+  replace ht := congrArg logHeight ht
+  rw [Height.logHeight_smul_eq_logHeight _ ht₀] at ht
+  have hPQ := hC₁ hP hQ
+  have haddsub := hC₁ hadd hsub
+  have hC := ht ▸ hC₂ (sym2 P' Q')
+  -- speed up `grind` below by reducing to the essentials
+  clear ht ht₀ t hsub hadd
+  generalize (P + Q).naiveHeight + (P - Q).naiveHeight = A at haddsub ⊢
+  generalize logHeight (sym2 (W.add P' Q') (W.add P' (W.neg Q'))) = B at hC haddsub ⊢
+  generalize logHeight (sym2 P' Q') = B' at hPQ hC ⊢
+  generalize P.naiveHeight + Q.naiveHeight = A' at hPQ ⊢
+  clear hQ hP Q' P' Q P hC₂ hC₁ hW W hab
+  grind only [= abs.eq_1, = max_def]
+
+end WeierstrassCurve.Projective
