@@ -326,10 +326,9 @@ the multiplicative height of `fun j : ι' ↦ eval x (p j)` is bounded by a posi
 times `mulHeight x ^ N`.
 
 The difference to `mulHeight_eval_le` is that the constant is not made explicit. -/
-theorem mulHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
-    (x : ι → K) :
-    ∃ C > 0, mulHeight (fun j ↦ (p j).eval x) ≤ C * mulHeight x ^ N :=
-  ⟨_, by positivity, mulHeight_eval_le hp x⟩
+theorem mulHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N) :
+    ∃ C > 0, ∀ (x : ι → K), mulHeight (fun j ↦ (p j).eval x) ≤ C * mulHeight x ^ N :=
+  ⟨_, by positivity, mulHeight_eval_le hp⟩
 
 open Real in
 /-- Let `K` be a field with an admissible family of absolute values (giving rise
@@ -353,10 +352,9 @@ the logarithmic height of `fun j : ι' ↦ eval x (p j)` is bounded by a constan
 plus `N * logHeight x`.
 
 The difference to `logHeight_eval_le` is that the constant is not made explicit. -/
-theorem logHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N)
-    (x : ι → K) :
-    ∃ C, logHeight (fun j ↦ (p j).eval x) ≤ C + N * logHeight x :=
-  ⟨_, logHeight_eval_le hp x⟩
+theorem logHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i, (p i).IsHomogeneous N) :
+    ∃ C, ∀ (x : ι → K), logHeight (fun j ↦ (p j).eval x) ≤ C + N * logHeight x :=
+  ⟨_, logHeight_eval_le hp⟩
 
 end Height
 
@@ -568,8 +566,8 @@ open AdmissibleAbsValues
   `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
 then the multiplicative height of `fun j ↦ (p j).eval x` is bounded below by an (explicit) positive
 constant depending only on `q` times the `N`th power of the mutiplicative height of `x`. -/
-theorem mulHeight_eval_ge [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
-    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
+theorem mulHeight_eval_ge [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
+    (hq : ∀ a, (q a).IsHomogeneous M) (p : ι' → MvPolynomial ι K) {x : ι → K}
     (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
     mulHeight (fun j ↦ (p j).eval x) ≥
       (Nat.card ι' ^ totalWeight K * max (mulHeightBound q) 1)⁻¹ * mulHeight x ^ N := by
@@ -596,12 +594,13 @@ then the multiplicative height of `fun j ↦ (p j).eval x` is bounded below by a
 constant depending only on `q` times the `N`th power of the mutiplicative height of `x`.
 
 The difference to `mulHeight_eval_ge` is that the constant is not made explicit. -/
-theorem mulHeight_eval_ge' [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
-    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
-    (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
-    ∃ C > 0, mulHeight (fun j ↦ (p j).eval x) ≥ C * mulHeight x ^ N :=
+theorem mulHeight_eval_ge' [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
+    (hq : ∀ a, (q a).IsHomogeneous M) :
+    ∃ C > 0, ∀ (p : ι' → MvPolynomial ι K) {x : ι → K}
+      (_h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)),
+      mulHeight (fun j ↦ (p j).eval x) ≥ C * mulHeight x ^ N :=
   have : 0 < Nat.card ι' := Nat.card_pos
-  ⟨_, by positivity, mulHeight_eval_ge p hq h⟩
+  ⟨_, by positivity, mulHeight_eval_ge hq⟩
 
 open Real in
 /-- If
@@ -611,15 +610,15 @@ open Real in
   `∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)`,
 then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by an (explicit)
 constant depending only on `q` plus `N` times the logarithmic height of `x`. -/
-theorem logHeight_eval_ge [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
-    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
+theorem logHeight_eval_ge [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
+    (hq : ∀ a, (q a).IsHomogeneous M) (p : ι' → MvPolynomial ι K) {x : ι → K}
     (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
     logHeight (fun j ↦ (p j).eval x) ≥
       -log (Nat.card ι' ^ totalWeight K * max (mulHeightBound q) 1) + N * logHeight x:= by
   simp only [logHeight_eq_log_mulHeight]
   have : (Nat.card ι' : ℝ) ^ totalWeight K ≠ 0 := by simp
   pull (disch := first | assumption | positivity) log
-  exact (log_le_log <| by positivity) <| mulHeight_eval_ge p hq h
+  exact (log_le_log <| by positivity) <| mulHeight_eval_ge hq p h
 
 /-- If
 * `p : ι' → MvPolynomial ι K` is a family of homogeneous polynomials of the same degree `N`,
@@ -630,11 +629,12 @@ then the logarithmic height of `fun j ↦ (p j).eval x` is bounded below by a
 constant plus `N` times the logarithmic height of `x`.
 
 The difference to `logHeight_eval_ge` is that the constant is not made explicit. -/
-theorem logHeight_eval_ge' [Nonempty ι'] {M N : ℕ} (p : ι' → MvPolynomial ι K)
-    {q : ι × ι' → MvPolynomial ι K} (hq : ∀ a, (q a).IsHomogeneous M) {x : ι → K}
-    (h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)) :
-    ∃ C, logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
-  ⟨_, logHeight_eval_ge p hq h⟩
+theorem logHeight_eval_ge' [Nonempty ι'] {M N : ℕ} {q : ι × ι' → MvPolynomial ι K}
+    (hq : ∀ a, (q a).IsHomogeneous M) :
+    ∃ C, ∀ (p : ι' → MvPolynomial ι K) {x : ι → K}
+      (_h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)),
+      logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
+  ⟨_, logHeight_eval_ge hq⟩
 
 /-!
 ### Bounds for the height of ![x*y, x+y, 1]
@@ -660,50 +660,50 @@ lemma mulHeight₁_mul_mulHeight₁ (x y : K) :
 
 open MvPolynomial
 
-lemma mulHeight_sym2_le (x y : K) :
-    ∃ C > 0, mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
+lemma mulHeight_sym2_le :
+    ∃ C > 0, ∀  (x y : K), mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
   let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
   have hom i : (p i).IsHomogeneous 1 := by
     fin_cases i <;> simp [p, isHomogeneous_X, IsHomogeneous.add]
-  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_le' (p := p) (N := 1) hom ![x * y, x, y, 1]
-  refine ⟨C, hC₀, ?_⟩
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_le' (p := p) (N := 1) hom
+  refine ⟨C, hC₀, fun x y ↦ ?_⟩
   rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
-  convert hC with a
+  convert hC ![x * y, x, y, 1] with a
   fin_cases a <;> simp [p]
 
-lemma mulHeight_sym2_ge (x y : K) :
-    ∃ C > 0, mulHeight ![x * y, x + y, 1] ≥ C * mulHeight₁ x * mulHeight₁ y := by
+lemma mulHeight_sym2_ge :
+    ∃ C > 0, ∀ (x y : K), mulHeight ![x * y, x + y, 1] ≥ C * mulHeight₁ x * mulHeight₁ y := by
   let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
   let q : Fin 4 × Fin 3 → MvPolynomial (Fin 4) K :=
     Function.uncurry ![![X 0, 0, 0], ![0, X 1, -X 0], ![0, X 2, -X 0], ![0, 0, X 3]]
   have hom a : (q a).IsHomogeneous 1 := by
     fin_cases a <;> simp [q] <;> grind only [!isHomogeneous_X, isHomogeneous_zero, IsHomogeneous.neg]
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_ge' (M := 1) (N := 1) hom
+  refine ⟨C, hC₀, fun x y ↦ ?_⟩
+  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
   have H a : ∑ j, (eval ![x * y, x, y, 1]) (q (a, j)) * (eval ![x * y, x, y, 1]) (p j) =
       ![x * y, x, y, 1] a ^ 2 := by
     fin_cases a <;> simp [p, q, Fin.sum_univ_three] <;> ring
-  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_ge' (M := 1) (N := 1) p hom (x := ![x * y, x, y, 1]) H
-  refine ⟨C, hC₀, ?_⟩
-  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
-  convert hC with a
+  convert hC p (x := ![x * y, x, y, 1]) H with a
   fin_cases a <;> simp [p]
 
 open Real in
-lemma logHeight_sym2_le (x y : K) :
-    ∃ C, logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
-  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_le x y
-  refine ⟨log c, ?_⟩
+lemma logHeight_sym2_le :
+    ∃ C, ∀ (x y : K), logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
+  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_le (K := K)
+  refine ⟨log c, fun x y ↦ ?_⟩
   simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
   pull (disch := positivity) log
-  exact log_le_log (by positivity) hc
+  exact log_le_log (by positivity) (hc x y)
 
 open Real in
-lemma logHeight_sym2_ge (x y : K) :
-    ∃ C, logHeight ![x * y, x + y, 1] ≥ C + logHeight₁ x + logHeight₁ y := by
-  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_ge x y
-  refine ⟨log c, ?_⟩
+lemma logHeight_sym2_ge :
+    ∃ C, ∀  (x y : K), logHeight ![x * y, x + y, 1] ≥ C + logHeight₁ x + logHeight₁ y := by
+  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_ge (K := K)
+  refine ⟨log c, fun x y ↦ ?_⟩
   simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
   pull (disch := positivity) log
-  exact log_le_log (by positivity) hc
+  exact log_le_log (by positivity) (hc x y)
 
 end sym2
 
