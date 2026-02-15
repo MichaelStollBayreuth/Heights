@@ -578,6 +578,26 @@ lemma logHeight₁_mul_le (x y : K) : logHeight₁ (x * y) ≤ logHeight₁ x + 
   pull (disch := positivity) log
   exact log_le_log (by positivity) <| mulHeight₁_mul_le ..
 
+/-- The multiplicative height of a product of field elements is bounded above by the product
+of their multiplicative heights. -/
+lemma mulHeight₁_prod_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
+    mulHeight₁ (∏ a ∈ s, x a) ≤ ∏ a ∈ s, mulHeight₁ (x a) := by
+  induction s using Finset.induction with
+  | empty => simp
+  | insert b s hb ih =>
+    simp only [Finset.prod_insert hb]
+    grw [← ih]
+    exact mulHeight₁_mul_le (x b) (∏ a ∈ s, x a)
+
+open Real in
+/-- The logarithmic height of a product of field elements is bounded above by the sum
+of their logarithmic heights. -/
+lemma logHeight₁_prod_le {α : Type*} [DecidableEq α] (s : Finset α) (x : α → K) :
+    logHeight₁ (∏ a ∈ s, x a) ≤ ∑ a ∈ s, logHeight₁ (x a) := by
+  simp only [logHeight₁_eq_log_mulHeight₁]
+  rw [← log_prod (fun a _ ↦ by positivity)]
+  exact log_le_log (by positivity) <| mulHeight₁_prod_le s x
+
 /-- The multiplicative height of the pointwise negative of a tuple
 equals its multiplicative height. -/
 @[simp]
