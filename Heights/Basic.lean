@@ -552,27 +552,9 @@ lemma mulHeight_mul_le {ι : Type*} [Finite ι] (x y : ι → K) :
   · simpa using one_le_mulHeight y
   rcases eq_or_ne y 0 with rfl | hy
   · simpa using one_le_mulHeight x
-  rcases eq_or_ne (x * y) 0 with hxy | hxy
-  · rw [hxy, mulHeight_zero, ← one_mul 1]
-    gcongr <;> exact one_le_mulHeight _
-  rw [mulHeight_eq hx, mulHeight_eq hy, mulHeight_eq hxy, mul_mul_mul_comm, ← Multiset.prod_map_mul,
-    ← finprod_mul_distrib (mulSupport_iSup_nonarchAbsVal_finite hx)
-        (mulSupport_iSup_nonarchAbsVal_finite hy)]
-  simp only [Pi.mul_apply, map_mul]
-  have H₁ : 0 ≤ (archAbsVal.map fun v ↦ (⨆ i, v (x i)) * ⨆ i, v (y i)).prod := by
-    refine Multiset.prod_nonneg fun a ha ↦ ?_
-    obtain ⟨v, -, rfl⟩ := Multiset.mem_map.mp ha -- use `Multiset.prod_map_nonneg` when available!
-    refine mul_nonneg ?_ ?_ <;> exact v.iSup_abv_nonneg
-  have H₂ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) * v.val (y i) := by
-    refine finprod_nonneg fun v ↦ iSup_nonneg fun i ↦ mul_nonneg ?_ ?_ <;> exact v.val.nonneg _
-  gcongr
-  · refine Multiset.prod_map_le_prod_map₀ _ _ (fun v _ ↦ iSup_nonneg fun i ↦ by positivity)
-      fun v hv ↦ Real.ciSup_mul_le ?_ ?_ <;> exact fun _ ↦ by positivity
-  · refine finprod_le_finprod ?_ (fun v ↦ ?_) ?_ (Pi.le_def.mpr fun v ↦ ?_)
-    · simpa only [← map_mul] using mulSupport_iSup_nonarchAbsVal_finite hxy
-    · simpa only [← map_mul] using v.val.iSup_abv_nonneg
-    · refine Function.finite_mulSupport_mul ?_ ?_ <;> exact mulSupport_iSup_nonarchAbsVal_finite ‹_›
-    · refine Real.ciSup_mul_le ?_ ?_ <;> exact fun i ↦ by positivity
+  rw [← mulHeight_fun_mul_eq hx hy,
+    show x * y = (fun a ↦ x a.1 * y a.2) ∘ fun i ↦ (i, i) by ext1; simp]
+  exact mulHeight_comp_le ..
 
 /-- The logarithmic height of a pointwise product of tuples is bounded by the sum
 of their logarithmic heights. -/
