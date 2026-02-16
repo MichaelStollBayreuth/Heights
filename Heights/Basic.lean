@@ -94,29 +94,6 @@ section aux
     (1 : ℝ) = 1 * 1 := (mul_one 1).symm
     _ ≤ _ := by gcongr <;> grind -/
 
-namespace Multiset
-
--- #34330
-
-variable {α R : Type*} [CommMonoidWithZero R] [PartialOrder R] [ZeroLEOneClass R] [PosMulMono R]
-
-lemma prod_map_nonneg {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 0 ≤ f a) :
-    0 ≤ (s.map f).prod := by
-  refine prod_nonneg fun r hr ↦ ?_
-  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
-  exact h a ha
-
--- #find_home! prod_map_nonneg -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
-
-lemma one_le_prod_map {s : Multiset α} {f : α → R} (h : ∀ a ∈ s, 1 ≤ f a) :
-    1 ≤ (s.map f).prod := by
-  refine one_le_prod fun r hr ↦ ?_
-  obtain ⟨a, ha, rfl⟩ := mem_map.mp hr
-  exact h a ha
-
--- #find_home! one_le_prod_map -- [Mathlib.Algebra.Order.BigOperators.GroupWithZero.Multiset]
-
-end Multiset
 
 namespace Finite
 
@@ -173,54 +150,6 @@ lemma iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv (v : AbsoluteValue K ℝ) {ι ι
 
 end AbsoluteValue
 
-namespace Finset
-
-lemma le_prod_max_one {ι M : Type*} [CommMonoidWithZero M] [LinearOrder M] [ZeroLEOneClass M]
-    [PosMulMono M] {s : Finset ι} {i : ι} (hi : i ∈ s) (f : ι → M) :
-    f i ≤ ∏ i ∈ s, max (f i) 1 := by
-  classical
-  rcases lt_or_ge (f i) 0 with hf | hf
-  · exact (hf.trans_le <| Finset.prod_nonneg fun _ _ ↦ le_sup_of_le_right zero_le_one).le
-  have : f i = ∏ j ∈ s, if i = j then f i else 1 := by
-    rw [Finset.prod_eq_single_of_mem i hi fun _ _ _ ↦ by grind]
-    simp
-  exact this ▸ Finset.prod_le_prod (fun _ _ ↦ by grind [zero_le_one]) fun _ _ ↦ by grind
-
--- #find_home! le_prod_max_one  -- [Mathlib.Algebra.Order.BigOperators.Ring.Finset]
-
-variable {R S : Type*} [Semiring R] [CommSemiring S] [LinearOrder S] [IsOrderedRing S]
-
-/-- The "local" version of the height bound for arbitrary sums for general (possibly archimedean)
-absolute values. -/
-lemma max_abv_sum_one_le [CharZero S] (v : AbsoluteValue R S) {ι : Type*} {s : Finset ι}
-    (hs : s.Nonempty) (x : ι → R) :
-    max (v (∑ i ∈ s, x i)) 1 ≤ #s * ∏ i ∈ s, max (v (x i)) 1 := by
-  refine sup_le ?_ ?_
-  · rw [← nsmul_eq_mul, ← sum_const]
-    grw [v.sum_le s x]
-    gcongr with i hi
-    exact le_prod_max_one hi fun i ↦ v (x i)
-  · nth_rewrite 1 [← mul_one 1]
-    gcongr
-    · simp [hs]
-    · exact s.one_le_prod fun _ ↦ le_max_right ..
--- #min_imports says
--- import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
--- import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-
-/-- The "local" version of the height bound for arbitrary sums for nonarchimedean
-absolute values. -/
-lemma max_abv_sum_one_le_of_isNonarchimedean {v : AbsoluteValue R S} (hv : IsNonarchimedean v)
-   {ι : Type*} (s : Finset ι) (x : ι → R) :
-    max (v (∑ i ∈ s, x i)) 1 ≤ ∏ i ∈ s, max (v (x i)) 1 := by
-  rcases s.eq_empty_or_nonempty with rfl | hs
-  · simp
-  refine sup_le ?_ <| s.one_le_prod fun _ ↦ le_max_right ..
-  grw [hv.apply_sum_le_sup_of_isNonarchimedean hs]
-  exact sup'_le hs (fun i ↦ v (x i)) fun i hi ↦ le_prod_max_one hi fun i ↦ v (x i)
--- plus import Mathlib.Algebra.Order.Ring.IsNonarchimedean
-
-end Finset
 
 namespace Height
 
@@ -482,6 +411,7 @@ lemma logHeight₁_eq (x : K) :
     Multiset.map_map, log_finprod (fun _ ↦ by positivity)]
   congr 2 <;> simp [max_comm, posLog_eq_log_max_one]
 
+/-
 open Finset Multiset in
 /-- The multiplicative height of a nonempty finite sum of field elements is at most
 `n ^ (totalWeight K)` times the product of the individual multiplicative
@@ -541,6 +471,7 @@ lemma logHeight₁_add_le (x y : K) :
   simp only [logHeight₁_eq_log_mulHeight₁]
   pull (disch := positivity) log
   exact (log_le_log <| by positivity) <| mulHeight₁_add_le ..
+ -/
 
 /-!
 ### Height bound for products
