@@ -322,7 +322,7 @@ of the logarithmic heights of all the `x a`. -/
 lemma logHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0) :
     logHeight (fun I : (a : α) → ι a ↦ ∏ a, x a (I a)) = ∑ a, logHeight (x a) := by
   simp only [logHeight_eq_log_mulHeight]
-  rw [← log_prod fun a _ ↦ mulHeight.ne_zero _]
+  rw [← log_prod fun a _ ↦ mulHeight_ne_zero _]
   exact congrArg log <| mulHeight_fun_prod_eq hx
 
 end many
