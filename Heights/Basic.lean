@@ -63,8 +63,6 @@ We define the following variants.
 
 ## TODO
 
-* Fix names `mulHeight.ne_zero` → `mulHeight_ne_zero` and `zero_le_...` → `..._nonneg`. ==> #35407
-* `@[to_fun]` on `mulHeight_zero` (see below), plus `logHeight_zero`. ==> #35407
 * Add `{mul|log}Height_comp_le`.
 * PR `logHeight₁_eq`.
 * PR Segre results.
@@ -72,9 +70,6 @@ We define the following variants.
 * PR upper and lower bounds for polynomial maps.
 
 -/
-
-attribute [to_fun (attr := simp)] Height.mulHeight_zero -- #35407
-attribute [to_fun (attr := simp)] Height.mulHeight_one  -- #35407
 
 noncomputable section
 
@@ -159,16 +154,6 @@ namespace Height
 variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
 open AdmissibleAbsValues Function
-
--- #35407 for the next two
-@[to_fun (attr := simp)]
-lemma logHeight_zero {ι : Type*} : logHeight (0 : ι → K) = 0 := by
-  simp [logHeight_eq_log_mulHeight]
-
-@[to_fun (attr := simp)]
-lemma logHeight_one {ι : Type*} : logHeight (1 : ι → K) = 0 := by
-  simp [logHeight_eq_log_mulHeight]
---
 
 -- @[fun_prop]
 /- lemma AdmissibleAbsValues.hasFiniteMulSupport {x : K} (hx : x ≠ 0) :
