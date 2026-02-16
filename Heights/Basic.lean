@@ -64,8 +64,8 @@ We define the following variants.
 ## TODO
 
 * Add `{mul|log}Height_comp_le`.
-* PR `logHeight₁_eq`.
-* PR Segre results.
+* PR `logHeight₁_eq`. => #35408
+* PR Segre results.   => #35408
 * PR bounds for linear maps.
 * PR upper and lower bounds for polynomial maps.
 
