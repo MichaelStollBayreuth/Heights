@@ -166,143 +166,305 @@ namespace WeierstrassCurve.Affine
 
 open Height EllipticCurve
 
-variable {K : Type*} [Field K] [AdmissibleAbsValues K] {a b : K} {W : Affine K}
+variable {K : Type*} [Field K] {a b : K} {W : Affine K}
 
-/-- The map that sends an affine point `P` on `W` to a representative of its image on ℙ¹
+lemma Point.exists_x_y_of_ne_zero {P : W.Point} (hP : P ≠ 0) :
+    ∃ (x y : K) (h : W.Nonsingular x y), P = .some h := by
+  match P with
+  | @WeierstrassCurve.Affine.Point.some _ _ _ x y h => exact ⟨x, y, h, rfl⟩
+
+def Point.x_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
+  | @WeierstrassCurve.Affine.Point.some _ _ _ x _ _, _ => x
+
+def Point.y_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
+  | @WeierstrassCurve.Affine.Point.some _ _ _ _ y _, _ => y
+
+lemma Point.x_eq_iff {P Q : W.Point} (hP : P ≠ 0) (hQ : Q ≠ 0) :
+    x_of_ne_zero hP = x_of_ne_zero hQ ↔ Q = P ∨ Q = -P := by
+  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
+  · obtain ⟨xP, yP, hP', rfl⟩ := exists_x_y_of_ne_zero hP
+    obtain ⟨xQ, yQ, hQ', rfl⟩ := exists_x_y_of_ne_zero hQ
+    simp_rw [neg_some, some.injEq]
+    rw [← and_or_left]
+    exact ⟨H.symm, Y_eq_of_X_eq hQ'.1 hP'.1 H.symm⟩
+  · rcases H with rfl | H
+    · rfl
+    · obtain ⟨xP, yP, hP', rfl⟩ := exists_x_y_of_ne_zero hP
+      rw [neg_some] at H
+      obtain ⟨xQ, yQ, hQ', rfl⟩ := exists_x_y_of_ne_zero hQ
+      rw [some.injEq] at H
+      exact H.1.symm
+
+/-- This map sends an affine point `P` on `W` to a representative of its image on ℙ¹
 under the x-coordinate map. We take `![1, 0]` for the point at infinity and `[x, 1]`,
 where `x` is the x-coordinate of `P` for a finite point. -/
-noncomputable def Point.x_rep : W.Point → Fin 2 → K
-  | .zero => ![1, 0]
+noncomputable def Point.xRep : W.Point → Fin 2 → K
+  | 0 => ![1, 0]
   | @WeierstrassCurve.Affine.Point.some _ _ _ x _ _ => ![x, 1]
+
+@[simp]
+lemma Point.xRep_zero : (0 : W.Point).xRep = ![1, 0] :=
+  rfl
+
+@[simp]
+lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (.some h : W.Point).xRep = ![x, 1] :=
+  rfl
+
+lemma Point.xRep_ne_zero (P : W.Point) : P.xRep ≠ 0 := by
+  match P with
+  | 0 => simp
+  | .some _ => simp
+
+lemma Point.xRep_neg (P : W.Point) : (-P).xRep = P.xRep := by
+  match P with
+  | 0 => simp
+  | .some _ => simp
+
+/-- This map sends a pair `P`, `Q` of affine points on `W`
+to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`. -/
+noncomputable def Point.sym2x (P Q : W.Point) : Fin 3 → K :=
+  letI Px := P.xRep
+  letI Qx := Q.xRep
+  ![Px 0 * Qx 0, Px 0 * Qx 1 + Px 1 * Qx 0, Px 1 * Qx 1]
+
+@[simp]
+lemma Point.sym2x_zero_zero : (0 : W.Point).sym2x 0 = ![1, 0, 0] := by
+  simp [sym2x]
+
+@[simp]
+lemma Point.sym2x_zero_some {x y : K} (h : W.Nonsingular x y) :
+    (0 : W.Point).sym2x (.some h) = ![x, 1, 0] := by
+  simp [sym2x]
+
+@[simp]
+lemma Point.sym2x_some_zero {x y : K} (h : W.Nonsingular x y) :
+    (.some h : W.Point).sym2x 0 = ![x, 1, 0] := by
+  simp [sym2x]
+
+@[simp]
+lemma Point.sym2x_some_some {x y x' y' : K} (h : W.Nonsingular x y) (h' : W.Nonsingular x' y') :
+    (.some h : W.Point).sym2x (.some h') = ![x * x', x + x', 1] := by
+  simp [sym2x]
+
+lemma Point.sym2x_ne_zero (P Q : W.Point) : P.sym2x Q ≠ 0 := by
+  match P, Q with
+  | 0, 0 => simp
+  | 0, .some _ => simp
+  | .some _, 0 => simp
+  | .some _, .some h => simp
+
+lemma Point.sym2x_symm (P Q : W.Point) : P.sym2x Q = Q.sym2x P := by
+  match P, Q with
+  | 0, 0 => simp
+  | 0, .some _ => simp
+  | .some _, 0 => simp
+  | .some _, .some h => simp [mul_comm, add_comm]
+
+lemma Point.sym2x_neg_left (P Q : W.Point) : (-P).sym2x Q = P.sym2x Q := by
+  simp only [sym2x, Fin.isValue, P.xRep_neg]
+
+lemma Point.sym2x_neg_right (P Q : W.Point) : P.sym2x (-Q) = P.sym2x Q := by
+  simp only [sym2x, Fin.isValue, Q.xRep_neg]
+
+variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0) (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toAffine)
+
+open MvPolynomial
+
+private
+lemma Point.sym2x_etc_P_zero [DecidableEq K] (P : W.Point) :
+    sym2x P P = fun i ↦ (add_sub_map a b i).eval <| P.sym2x 0 := by
+  match P with
+  | 0 =>
+    simp only [sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, add_sub_map, Fin.isValue, C_mul,
+      C_pow]
+    ext1 i
+    fin_cases i <;> simp
+  | .some _ =>
+    simp only [sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd, sym2x_some_zero, add_sub_map,
+      Fin.isValue, C_mul, C_pow]
+    ext1 i
+    fin_cases i <;> simp [pow_two, two_mul]
+
+include hW in
+private
+lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
+    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (add_sub_map a b i).eval <| P.sym2x P := by
+  rcases eq_or_ne P 0 with rfl | hP
+  · refine ⟨1, one_ne_zero, ?_⟩
+    simp only [add_zero, sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, add_sub_map,
+      Fin.isValue, C_mul, C_pow]
+    ext1 i
+    fin_cases i <;> simp
+  obtain ⟨x, y, h, rfl⟩ := exists_x_y_of_ne_zero hP
+  have Heq := (W.equation_iff x y).mp h.1
+  simp only [hW, zero_mul, add_zero] at Heq
+  by_cases! H : y = W.negY x y
+  · have H' : 4 * (x ^ 3 + a * x + b) = 0 := by
+      simp only [negY, hW, zero_mul, sub_zero] at H
+      rw [← Heq]
+      grind only
+    have H'' : x ^ 4 - 2 * a * x ^ 2 - 8 * b * x + a ^ 2 ≠ 0 := by
+      have := h.2
+      simp only [polynomialX, hW, _root_.map_zero, zero_mul, mul_zero, add_zero, map_add, map_mul,
+        map_pow, zero_sub, neg_add_rev, Polynomial.evalEval_add, Polynomial.evalEval_neg,
+        Polynomial.evalEval_C, Polynomial.eval_C, Polynomial.evalEval_mul, Polynomial.evalEval_pow,
+        Polynomial.eval_X, polynomialY, Polynomial.evalEval_X] at this
+      rcases this with H₁ | H₁
+      · contrapose! H₁
+        rw [← sq_eq_zero_iff]
+        linear_combination 2 * x * H' + H₁
+      · grind only
+    refine ⟨_, H'', ?_⟩
+    rw [add_self_of_Y_eq H]
+    simp only [sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.smul_cons, smul_eq_mul,
+      mul_one, mul_zero, Matrix.smul_empty, sym2x_some_some, add_sub_map, Fin.isValue, C_mul, C_pow]
+    ext1 i
+    fin_cases i
+    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue,
+        Matrix.cons_val_zero, map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val,
+        mul_one, Matrix.cons_val_one, one_pow, add_left_inj]
+      ring
+    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
+        Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow,
+        one_pow]
+      linear_combination -H'
+    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.reduceFinMk, Matrix.cons_val, Fin.isValue,
+        map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul, eval_C,
+        mul_one]
+      ring
+  · have H' : 4 * (x ^ 3 + a * x + b) ≠ 0 := by
+      simp only [negY, hW, zero_mul, sub_zero] at H
+      rw [← Heq]
+      grind only
+    refine ⟨_, H', ?_⟩
+    rw [add_self_of_Y_ne H]
+    simp only [addX, addY, negY, negAddY, neg_add_rev, sym2x_some_zero, Nat.succ_eq_add_one,
+      Nat.reduceAdd, sym2x_some_some, add_sub_map, Fin.isValue, C_mul, C_pow]
+    have Hsl : W.slope x x y y ^ 2 + W.a₁ * W.slope x x y y - W.a₂ =
+        (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) := by
+      rw [slope_of_Y_ne_eq_evalEval rfl H]
+      suffices (3 * x ^ 2 + a) ^ 2 / (2 * y) ^ 2 = (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b))
+        by simp [polynomialX, polynomialY, hW, Polynomial.evalEval_C, div_pow, this]
+      congr
+      rw [← Heq]
+      ring
+    rw [Hsl]
+    ext1 i
+    fin_cases i
+    · simp only [Fin.zero_eta, Fin.isValue, Pi.smul_apply, Matrix.cons_val_zero, smul_eq_mul,
+        map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
+        Matrix.cons_val_one, one_pow]
+      rw [mul_sub, mul_sub, mul_div_cancel₀ _ H']
+      ring
+    · simp only [Fin.mk_one, Fin.isValue, Pi.smul_apply, Matrix.cons_val_one, Matrix.cons_val_zero,
+        smul_eq_mul, mul_one, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, map_pow, one_pow]
+      ring
+    · simp only [Fin.reduceFinMk, Pi.smul_apply, Fin.isValue, Matrix.cons_val, smul_eq_mul,
+        mul_zero, map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul,
+        eval_C, mul_one]
+      ring
+
+include hW in
+lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
+    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (add_sub_map a b i).eval <| P.sym2x Q := by
+  rcases eq_or_ne Q 0 with rfl | hQ₀
+  · exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
+  rcases eq_or_ne P 0 with rfl | hP₀
+  · refine ⟨1, one_ne_zero, ?_⟩
+    simpa [sym2x_neg_right, sym2x_symm _ Q] using Q.sym2x_etc_P_zero
+  rcases eq_or_ne P Q with rfl | hPQ
+  · simpa using P.sym2x_etc_P_P hW
+  rcases eq_or_ne Q (-P) with rfl | hPQ'
+  · simpa [sym2x_neg_right, sym2x_symm 0] using P.sym2x_etc_P_P hW
+  obtain ⟨xP, yP, hP, rfl⟩ := P.exists_x_y_of_ne_zero hP₀
+  obtain ⟨xQ, yQ, hQ, rfl⟩ := Q.exists_x_y_of_ne_zero hQ₀
+  have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [(x_eq_iff hP₀ hQ₀).mp Heq]
+  have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
+  refine ⟨_, hxPQ', ?_⟩
+  rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some _), neg_some hQ,
+    add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
+  simp only [addX, slope, hxPQ, ↓reduceIte, hW, zero_mul, add_zero, sub_zero, addY, negY, negAddY,
+    neg_add_rev, sub_neg_eq_add, sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd,
+    Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty]
+  simp only [add_sub_map, Fin.isValue, C_mul, C_pow]
+  have HeqP := (W.equation_iff xP yP).mp hP.1
+  have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
+  simp only [hW, zero_mul, add_zero] at HeqP HeqQ
+  ext1 i
+  fin_cases i
+  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero,
+      map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
+      Matrix.cons_val_one, one_pow]
+    rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _)]
+    conv_lhs => enter [2, 1]; rw [mul_sub, mul_sub, mul_div_cancel₀ _ hxPQ']
+    rw [mul_left_comm]
+    conv_lhs => enter [2]; rw [mul_sub, mul_sub, mul_div_cancel₀ _ hxPQ']
+    conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
+    rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
+    ring
+  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
+      Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow,
+      one_pow]
+    simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ']
+    conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
+    rw [HeqP, HeqQ]
+    ring
+  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.reduceFinMk, Matrix.cons_val, Fin.isValue,
+      map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul, eval_C, mul_one]
+    ring
+
+/-!
+### The naïve height
+-/
+
+variable [AdmissibleAbsValues K]
 
 /-- The naïve logarithmic height of an affine point on `W`. -/
 noncomputable def Point.naiveHeight (P : W.Point) : ℝ :=
-  logHeight P.x_rep
+  logHeight P.xRep
 
-lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P.x_rep :=
+lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P.xRep :=
   rfl
 
-/-- The map that sends a pair `P`, `Q` of affine points on `W`
-to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`. -/
-noncomputable def sym2 (P Q : W.Point) : Fin 3 → K :=
-  letI Px := P.x_rep
-  letI Qx := Q.x_rep
-  ![Px 0 * Qx 0, Px 0 * Qx 1 + Px 1 * Qx 0, Px 1 * Qx 1]
-
-#exit
-lemma sym2_ne_zero {W : Projective K} {P Q : W.Point} {P' Q' : Fin 3 → K}
-    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) : sym2 P' Q' ≠ 0 := by
-  sorry
-
-variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
-
-/-
--- Working with the projective addition formulas looks like it is going to be very painful...
-include hab in
-lemma sym2_add_sub_eq_add_sub_map_sym2
-    {P Q : (WeierstrassCurve.mk 0 0 0 a b).toProjective.Point} {P' Q' : Fin 3 → K}
-    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) :
-    letI W := (WeierstrassCurve.mk 0 0 0 a b).toProjective
-    -- this is false; one has to scale both sides and use the curve equation
-    sym2 (W.add P' Q') (W.add P' (W.neg Q')) = fun i ↦ (add_sub_map a b i).eval <| sym2 P' Q' := by
-  let W := (WeierstrassCurve.mk 0 0 0 a b).toProjective
-  by_cases h : P' ≈ Q'
-  · sorry
-  · rw [add_of_not_equiv h]
-    by_cases h' : P' ≈ W.neg Q'
-    · sorry
-    · rw [add_of_not_equiv h']
-      simp [sym2, addXYZ_X, addXYZ_Z, addX, addZ, neg_X, neg_Y, neg_Z, negY, W]
-      ext1 i
-      fin_cases i
-      · simp only [Fin.isValue, Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta,
-          Matrix.cons_val_zero]
-        simp only [add_sub_map]
-        simp only [Fin.isValue, map_mul, map_pow, Matrix.cons_val_zero, MvPolynomial.eval_C,
-          map_add, MvPolynomial.eval_X, Matrix.cons_val_one, Matrix.cons_val]
-        -- rw [← sub_eq_zero]
-        have eP : W.Equation P' := by sorry
-        have eQ : W.Equation Q' := by sorry
-        simp [equation_iff, W] at eP eQ
-        conv => enter [1, 2]; rw [mul_comm]
-        rw [← add_mul]
-        conv => enter [1, 1]; ring_nf
-
-        --grobner
-        sorry
-      · sorry
-      · sorry
-      -- ring_nf
- -/
-
-/- We need to be careful with `sym2` when one of the points is the origin! -/
-
-include hab in
-lemma sym2_add_sub_eq_add_sub_map_sym2 {W : Projective K}
-    (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toProjective) {P Q : W.Point} {P' Q' : Fin 3 → K}
-    (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2 (W.add P' Q') (W.add P' (W.neg Q')) =
-      fun i ↦ (add_sub_map a b i).eval <| sym2 P' Q' := by
-  sorry
-
-
-lemma logHeight_sym2 (W : Projective K) :
-    ∃ C, ∀ {P Q : W.Point} {P' Q' : Fin 3 → K} (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧),
-      |logHeight (sym2 P' Q') - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
+variable (W) in
+lemma logHeight_sym2 :
+    ∃ C, ∀ P Q : W.Point, |logHeight (P.sym2x Q) - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := logHeight_sym2'_le (K := K)
   obtain ⟨C₂, hC₂⟩ := logHeight_sym2'_ge (K := K)
-  refine ⟨max C₁ (-C₂), fun {P Q P' Q'} hP hQ ↦ ?_⟩
-  rw [Point.naiveHeight_eq_logHeight hP, Point.naiveHeight_eq_logHeight hQ, sym2]
-  rcases eq_or_ne ![P' 0, P' 2] 0 with hx | hx
-  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_eq_zero_iff,
-      Matrix.zero_empty, and_true] at hx
-    simp [hx.1, hx.2]
-    -- not provable; need to use projection to ℙ¹ that gives ![1, 0] for the origin
-    sorry
-  rcases eq_or_ne ![Q' 0, Q' 2] 0 with hy | hy
-  · sorry
-  have H₁ := logHeight_fun_mul_eq hx hy
-  specialize hC₁ (P' 0) (P' 2) (Q' 0) (Q' 2)
-  specialize hC₂ (P' 0) (P' 2) (Q' 0) (Q' 2)
-  have : logHeight ![P' 0 * Q' 2 + P' 2 * Q' 0, P' 0 * Q' 0, P' 2 * Q' 2] =
-      logHeight ![P' 0 * Q' 0, P' 0 * Q' 2 + P' 2 * Q' 0, P' 2 * Q' 2] := by
-    let e := Equiv.swap (α := Fin 3) 0 1
-    convert logHeight_comp_equiv e _
+  refine ⟨max C₁ (-C₂), fun P Q ↦ ?_⟩
+  rw [P.naiveHeight_eq_logHeight, Q.naiveHeight_eq_logHeight, Point.sym2x]
+  have H₁ := logHeight_fun_mul_eq P.xRep_ne_zero Q.xRep_ne_zero
+  specialize hC₁ (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1)
+  have H (v : Fin 2 → K) : ![v 0, v 1] = v := by
     ext1 i
-    fin_cases i <;> simp [e, Equiv.swap_apply_of_ne_of_ne]
-  rw [this]
+    fin_cases i <;> simp
+  have h₀ (P : W.Point) : ![P.xRep 0, P.xRep 1] ≠ 0 := H P.xRep ▸ P.xRep_ne_zero
+  specialize hC₂ (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1) (h₀ P) (h₀ Q)
+  rw [H P.xRep, H Q.xRep] at *
   grind only [= abs.eq_1, = max_def]
 
-include hab in
+-- set_option Elab.async false in
+-- #count_heartbeats in -- 8840 / 17416
+include hab hW in
 /-- The "approximate parallelogram law" for the naïve height on an elliptic curve
 given by a short Weierstrass equation. -/
-theorem approx_parallelogram_law {W : Projective K}
-    (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toProjective) :
+theorem approx_parallelogram_law [DecidableEq K] :
     ∃ C, ∀ (P Q : W.Point),
       |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := logHeight_sym2 W
   obtain ⟨C₂, hC₂⟩ := abs_logHeight_add_sub_map_sub_two_mul_logHeight_le hab
   refine ⟨3 * C₁ + C₂, fun P Q ↦ ?_⟩
-  let P' := P.point.out
-  let Q' := Q.point.out
-  have hP : P.point = ⟦P'⟧ := P.point.out_eq.symm
-  have hQ : Q.point = ⟦Q'⟧ := Q.point.out_eq.symm
-  have hadd : (P + Q).point = ⟦W.add P' Q'⟧ := by rw [Point.add_point, hP, hQ, addMap_eq]
-  have hsub : (P - Q).point = ⟦W.add P' (W.neg Q')⟧ := by
-    rw [sub_eq_add_neg, Point.add_point, Point.neg_point, hP, hQ, negMap_eq, addMap_eq]
-  obtain ⟨t, ht₀, ht⟩ := sym2_add_sub_eq_add_sub_map_sym2 hab hW hP hQ
+  obtain ⟨t, ht₀, ht⟩ := Point.sym2x_add_sub_eq_add_sub_map_sym2x hW P Q
   replace ht := congrArg logHeight ht
   rw [Height.logHeight_smul_eq_logHeight _ ht₀] at ht
-  have hPQ := hC₁ hP hQ
-  have haddsub := hC₁ hadd hsub
-  have hC := ht ▸ hC₂ (sym2 P' Q')
+  have hPQ := hC₁ P Q
+  have haddsub := hC₁ (P + Q) (P - Q)
+  have hC := ht ▸ hC₂ (P.sym2x Q)
   -- speed up `grind` below by reducing to the essentials
-  clear ht ht₀ t hsub hadd
   generalize (P + Q).naiveHeight + (P - Q).naiveHeight = A at haddsub ⊢
-  generalize logHeight (sym2 (W.add P' Q') (W.add P' (W.neg Q'))) = B at hC haddsub ⊢
-  generalize logHeight (sym2 P' Q') = B' at hPQ hC ⊢
+  generalize logHeight ((P + Q).sym2x (P - Q)) = B at hC haddsub
+  generalize logHeight (P.sym2x Q) = B' at hPQ hC
   generalize P.naiveHeight + Q.naiveHeight = A' at hPQ ⊢
-  clear hQ hP Q' P' Q P hC₂ hC₁ hW W hab
   grind only [= abs.eq_1, = max_def]
 
-end WeierstrassCurve.Projective
+end WeierstrassCurve.Affine
