@@ -63,9 +63,9 @@ We define the following variants.
 
 ## TODO
 
-* Fix names `mulHeight.ne_zero` → `mulHeight_ne_zero` and `zero_le_...` → `..._nonneg`.
-* `@[to_fun]` on `mulHeight_zero` (see below), plus `logHeight_zero`.
-* Refactor `mulHeight_comp_equiv` via a weaker form for arbitrary maps.
+* Fix names `mulHeight.ne_zero` → `mulHeight_ne_zero` and `zero_le_...` → `..._nonneg`. ==> #35407
+* `@[to_fun]` on `mulHeight_zero` (see below), plus `logHeight_zero`. ==> #35407
+* Add `{mul|log}Height_comp_le`.
 * PR `logHeight₁_eq`.
 * PR Segre results.
 * PR bounds for linear maps.
@@ -73,8 +73,8 @@ We define the following variants.
 
 -/
 
-attribute [to_fun (attr := simp)] Height.mulHeight_zero
-attribute [to_fun (attr := simp)] Height.mulHeight_one
+attribute [to_fun (attr := simp)] Height.mulHeight_zero -- #35407
+attribute [to_fun (attr := simp)] Height.mulHeight_one  -- #35407
 
 noncomputable section
 
@@ -123,13 +123,16 @@ lemma ciSup_sup [Nonempty ι] {f : ι → α} {a : α} :
 
 end Finite
 
-namespace AbsoluteValue
+namespace AbsoluteValue -- _7
 
 variable {K : Type*} [Semiring K]
 
 lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
   Real.iSup_nonneg fun j ↦ by positivity
 
+-- #find_home! iSup_abv_nonneg --[Mathlib.Data.Real.Archimedean]
+
+-- for the "Segre" part
 lemma iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv (v : AbsoluteValue K ℝ) {ι ι' : Type*}
     [Finite ι] [Finite ι'] (x : ι → K) (y : ι' → K) :
     ⨆ a : ι × ι', v (x a.1 * y a.2) = (⨆ i, v (x i)) * ⨆ j, v (y j) := by
@@ -157,6 +160,7 @@ variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
 open AdmissibleAbsValues Function
 
+-- #35407 for the next two
 @[to_fun (attr := simp)]
 lemma logHeight_zero {ι : Type*} : logHeight (0 : ι → K) = 0 := by
   simp [logHeight_eq_log_mulHeight]
@@ -164,11 +168,12 @@ lemma logHeight_zero {ι : Type*} : logHeight (0 : ι → K) = 0 := by
 @[to_fun (attr := simp)]
 lemma logHeight_one {ι : Type*} : logHeight (1 : ι → K) = 0 := by
   simp [logHeight_eq_log_mulHeight]
+--
 
 -- @[fun_prop]
-lemma AdmissibleAbsValues.hasFiniteMulSupport {x : K} (hx : x ≠ 0) :
+/- lemma AdmissibleAbsValues.hasFiniteMulSupport {x : K} (hx : x ≠ 0) :
     (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite :=
-  mulSupport_finite hx
+  mulSupport_finite hx -/
 
 lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
     [ConditionallyCompleteLattice M] {x : ι → K} (hx : x ≠ 0) {v : K → M}
@@ -250,6 +255,8 @@ lemma logHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι
 We show that the multiplicative height of `fun (i, j) ↦ x i * y j` is the product of the
 multiplicative heights of `x` and `y` (and the analogous statement for logarithmic heights).
 -/
+
+-- #35408
 
 section Segre
 
