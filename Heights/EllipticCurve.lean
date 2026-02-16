@@ -21,56 +21,53 @@ variable {K : Type*} [Field K] (a b : K)
 open MvPolynomial
 
 /-- The polynomial map on coordinate vectors giving
-`(x(P) + x(Q) : x(P) * x(Q) : 1) ↦ (x(P+Q) + x(P-Q) : x(P+Q) * x(P-Q) : 1)`
+`(x(P) * x(Q) : x(P) + x(Q) : 1) ↦ (x(P+Q) * x(P-Q) : x(P+Q) + x(P-Q) : 1)`
 for points `P`, `Q` on the elliptic curve `y² = x³ + a*x + b`. -/
 noncomputable def add_sub_map : Fin 3 → MvPolynomial (Fin 3) K :=
   letI s := X 0
   letI t := X 1
   letI u := X 2
-  ![C 2 * (s * t + C a * s * u + C (2 * b) * u ^ 2),
-    t ^ 2 - C (2 * a) * t * u - C (4 * b) * s * u + C (a ^ 2) * u ^ 2,
-    s ^ 2 - C 4 * t * u]
+  ![s ^ 2 - C (2 * a) * s * u - C (4 * b) * t * u + C (a ^ 2) * u ^ 2,
+    C 2 * t * s + C (2 * a) * t * u + C (4 * b) * u ^ 2,
+    t ^ 2 - C 4 * s * u]
 
 /-- The coefficient polynomials in linear combinations of the polynomials on `F`
-that result in the fourth powers of the variables, multiplied by `8*a^3 + 54*b^2`. -/
+that result in the fourth powers of the variables, multiplied by `32*a^3 + 216*b^2`. -/
 noncomputable def add_sub_map_coeff : Fin 3 × Fin 3 → MvPolynomial (Fin 3) K :=
   letI s := X (σ := Fin 3) 0
   letI t := X (σ := Fin 3) 1
   letI u := X (σ := Fin 3) 2
-  ![![C (16 * a ^ 2) * s * t + C (16 * a ^ 3 + 384 * b ^ 2) * s * u - C (64 * a * b) * t * u -
-        C (96 * a ^ 2 * b) * u ^ 2,
-      C (128 * a * b) * s * u - C (128 * a ^ 2) * t * u + C (384 * b ^ 2) * u ^ 2,
-      C (32 * a ^ 3 + 216 * b ^ 2) * s ^ 2 - C (32 * a ^ 2) * t ^ 2 +
-        C (64 * a ^ 3 + 96 * b ^ 2) * t * u + C (-32 * a ^ 4 - 256 * a * b ^ 2) * u ^ 2],
-    ![C (5 * a ^ 4 + 32 * a * b ^ 2 ) * s * t + C (-3 * a ^ 5 - 24 * a ^ 2 * b ^ 2) * s * u +
-        C (2 * a ^ 2 * b) * t ^ 2 + C (52 * a ^ 3 * b + 384 * b ^ 3) * t * u,
-      C (-4 * a ^ 2 * b) * s * t + C (12 * a ^ 3 * b + 96 * b ^ 3) * s * u +
-        C (32 * a ^ 3 + 216 * b ^ 2) * t ^ 2 + C (24 * a ^ 4 + 176 * a * b ^ 2) * t * u,
-      C (-10 * a ^ 4 - 64 * a * b ^ 2) * t ^ 2 + C (-4 * a ^ 5 - 32 * a ^ 2 * b ^ 2) * t * u +
+  ![![C (-4 * a ^ 2 * b) * t * s + C (12 * a ^ 3 * b + 96 * b ^ 3) * t * u +
+        C (32 * a ^ 3 + 216 * b ^ 2) * s ^ 2 + C (24 * a ^ 4 + 176 * a * b ^ 2) * s * u,
+      C (5 * a ^ 4 + 32 * a * b ^ 2 ) * t * s + C (-3 * a ^ 5 - 24 * a ^ 2 * b ^ 2) * t * u +
+        C (2 * a ^ 2 * b) * s ^ 2 + C (52 * a ^ 3 * b + 384 * b ^ 3) * s * u,
+      C (-10 * a ^ 4 - 64 * a * b ^ 2) * s ^ 2 + C (-4 * a ^ 5 - 32 * a ^ 2 * b ^ 2) * s * u +
         C (6 * a ^ 6 + 96 * a ^ 3 * b ^ 2 + 384 * b ^ 4) * u ^ 2],
-    ![C (-3) * s * t  + C (5 * a) * s * u + C (54 * b) * u ^ 2,
-      C 24 * t * u + C (32 * a) * u ^ 2,
-      C 6 * t ^ 2 - C (4 * a) * t * u - C (10 * a ^ 2) * u ^ 2]].uncurry
+    ![C (128 * a * b) * t * u - C (128 * a ^ 2) * s * u + C (384 * b ^ 2) * u ^ 2,
+      C (16 * a ^ 2) * t * s + C (16 * a ^ 3 + 384 * b ^ 2) * t * u - C (64 * a * b) * s * u -
+        C (96 * a ^ 2 * b) * u ^ 2,
+      C (32 * a ^ 3 + 216 * b ^ 2) * t ^ 2 - C (32 * a ^ 2) * s ^ 2 +
+        C (64 * a ^ 3 + 96 * b ^ 2) * s * u + C (-32 * a ^ 4 - 256 * a * b ^ 2) * u ^ 2],
+    ![C 24 * s * u + C (32 * a) * u ^ 2,
+      C (-3) * t * s  + C (5 * a) * t * u + C (54 * b) * u ^ 2,
+      C 6 * s ^ 2 - C (4 * a) * s * u - C (10 * a ^ 2) * u ^ 2]].uncurry
 
-private lemma _root_.MvPolynomial.IsHomogeneous.mul' {σ R : Type*} [CommSemiring R]
-    {φ ψ : MvPolynomial σ R} {m n k : ℕ} (hφ : φ.IsHomogeneous m) (hψ : ψ.IsHomogeneous n)
-    (hk : k = m + n) :
-    (φ * ψ).IsHomogeneous k :=
-  hk ▸ .mul hφ hψ
-
+-- set_option Elab.async false in
+-- #count_heartbeats in -- 1514
 lemma isHomogeneous_add_sub_map (i : Fin 3) : (add_sub_map a b i).IsHomogeneous 2 := by
   simp only [add_sub_map]
   fin_cases i <;>
     simp only [Fin.isValue, Fin.mk_one, Fin.zero_eta, Fin.reduceFinMk, Matrix.cons_val,
       Matrix.cons_val_one, Matrix.cons_val_zero]
-  · refine .C_mul (.add (.add ?_ ?_) (isHomogeneous_C_mul_X_pow ..)) 2
-    · exact .mul (m := 1) (n := 1) (isHomogeneous_X ..) (isHomogeneous_X ..)
-    · exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add (.sub (.sub (isHomogeneous_X_pow ..) ?_) ?_) (isHomogeneous_C_mul_X_pow ..)
-     <;> exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+  · refine .add (.sub (.sub (isHomogeneous_X_pow ..) ?_) ?_) (isHomogeneous_C_mul_X_pow ..) <;>
+      exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+  · refine .add (.add ?_ ?_) (isHomogeneous_C_mul_X_pow ..) <;>
+      exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
   · exact .sub (isHomogeneous_X_pow ..) <|
       .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
 
+-- set_option Elab.async false in
+-- #count_heartbeats in -- 10007
 lemma isHomogenous_add_sub_map_coeff (ij : Fin 3 × Fin 3) :
     (add_sub_map_coeff a b ij).IsHomogeneous 2 := by
   simp only [add_sub_map_coeff]
@@ -78,16 +75,6 @@ lemma isHomogenous_add_sub_map_coeff (ij : Fin 3 × Fin 3) :
     simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Function.uncurry_apply_pair,
       Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_fin_one, neg_mul, Fin.mk_one,
       Matrix.cons_val_one, Fin.reduceFinMk, Matrix.cons_val, Fin.zero_eta]
-  · refine .sub ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .sub (isHomogeneous_C_mul_X_pow ..) (isHomogeneous_C_mul_X_pow ..)
   · refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
     refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
@@ -100,9 +87,19 @@ lemma isHomogenous_add_sub_map_coeff (ij : Fin 3 × Fin 3) :
     refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     exact isHomogeneous_C_mul_X_pow ..
   · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
+    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+  · refine .sub ?_ (isHomogeneous_C_mul_X_pow ..)
+    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
   · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
+    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+    exact .sub (isHomogeneous_C_mul_X_pow ..) (isHomogeneous_C_mul_X_pow ..)
+  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
+    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
+    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
     exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
   · refine .sub ?_ (isHomogeneous_C_mul_X_pow ..)
     refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
@@ -113,7 +110,7 @@ variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
 variable {a b}
 
 -- set_option Elab.async false in
--- #count_heartbeats in -- 80607
+-- #count_heartbeats in -- 81414
 include hab in
 lemma add_sub_map_coeff_condition (x : Fin 3 → K) (i : Fin 3) :
     ∑ j : Fin 3, (C ((32 * a ^ 3 + 216 * b ^ 2)⁻¹) * add_sub_map_coeff a b (i, j)).eval x *
@@ -141,7 +138,7 @@ variable [AdmissibleAbsValues K]
 
 include hab in
 /-- If `a b : K` and  `D := 32*a^3 + 216*b^2` is nonzero, then the map `F : ℙ² → ℙ²` given by
-`(s : t : u) ↦ (2*(s*t + a*s*u + 2*b*u²) : t^2 - 2*a*t*u - 4*b*s*u + a²*u² : s² - 4*t*u)`
+`(s : t : u) ↦ (s^2 - 2*a*s*u - 4*b*t*u + a²*u² : 2*s*t + 2*a*t*u + 4*b*u² : t² - 4*s*u)`
 is a morphism. This implies that `|logHeight (F x) - 2 * logHeight x| ≤ C` for a constant `C`,
 where `x = ![s, t, u]` and `F` acts on the coordinate vector. -/
 theorem abs_logHeight_add_sub_map_sub_two_mul_logHeight_le :
@@ -163,17 +160,36 @@ end EllipticCurve
 
 end Height
 
-namespace WeierstrassCurve.Projective
+/- We work with affine points; this seems to be quite a bit less painful... -/
+
+namespace WeierstrassCurve.Affine
 
 open Height EllipticCurve
 
-variable {K : Type*} [Field K] [AdmissibleAbsValues K] {a b : K}
+variable {K : Type*} [Field K] [AdmissibleAbsValues K] {a b : K} {W : Affine K}
 
-/-- The map that sends a pair `P`, `Q` of representatives of projective points on `W`
-to a triple projectively equivalent to `![x(P) + x(Q), x(P) * x(Q), 1]`. -/
-noncomputable def sym2 (P Q : Fin 3 → K) : Fin 3 → K :=
-  ![P 0 * Q 2 + P 2 * Q 0, P 0 * Q 0, P 2 * Q 2]
+/-- The map that sends an affine point `P` on `W` to a representative of its image on ℙ¹
+under the x-coordinate map. We take `![1, 0]` for the point at infinity and `[x, 1]`,
+where `x` is the x-coordinate of `P` for a finite point. -/
+noncomputable def Point.x_rep : W.Point → Fin 2 → K
+  | .zero => ![1, 0]
+  | @WeierstrassCurve.Affine.Point.some _ _ _ x _ _ => ![x, 1]
 
+/-- The naïve logarithmic height of an affine point on `W`. -/
+noncomputable def Point.naiveHeight (P : W.Point) : ℝ :=
+  logHeight P.x_rep
+
+lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P.x_rep :=
+  rfl
+
+/-- The map that sends a pair `P`, `Q` of affine points on `W`
+to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`. -/
+noncomputable def sym2 (P Q : W.Point) : Fin 3 → K :=
+  letI Px := P.x_rep
+  letI Qx := Q.x_rep
+  ![Px 0 * Qx 0, Px 0 * Qx 1 + Px 1 * Qx 0, Px 1 * Qx 1]
+
+#exit
 lemma sym2_ne_zero {W : Projective K} {P Q : W.Point} {P' Q' : Fin 3 → K}
     (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧) : sym2 P' Q' ≠ 0 := by
   sorry
@@ -229,19 +245,6 @@ lemma sym2_add_sub_eq_add_sub_map_sym2 {W : Projective K}
       fun i ↦ (add_sub_map a b i).eval <| sym2 P' Q' := by
   sorry
 
-/-- The naïve logarithmic height of an affine point on `W`. -/
-noncomputable def _root_.WeierstrassCurve.Affine.Point.naiveHeight {W : Affine K} : W.Point → ℝ
-  | .zero => 0
-  | @Affine.Point.some _ _ _ x _ _ => logHeight₁ x
-
-/-- The naïve logarithmic height of a projective point on `W`. -/
-noncomputable def Point.naiveHeight {W : Projective K} (P : W.Point) :=
-  P.toAffineLift.naiveHeight
-
-lemma Point.naiveHeight_eq_logHeight {W : Projective K} {P : W.Point} {P' : Fin 3 → K}
-    (hP : P.point = ⟦P'⟧) :
-    P.naiveHeight = logHeight ![P' 0, P' 2] := by
-  sorry
 
 lemma logHeight_sym2 (W : Projective K) :
     ∃ C, ∀ {P Q : W.Point} {P' Q' : Fin 3 → K} (hP : P.point = ⟦P'⟧) (hQ : Q.point = ⟦Q'⟧),
