@@ -429,17 +429,15 @@ lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P
 variable (W) in
 lemma logHeight_sym2 :
     ∃ C, ∀ P Q : W.Point, |logHeight (P.sym2x Q) - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
-  obtain ⟨C₁, hC₁⟩ := logHeight_sym2'_le (K := K)
-  obtain ⟨C₂, hC₂⟩ := logHeight_sym2'_ge (K := K)
-  refine ⟨max C₁ (-C₂), fun P Q ↦ ?_⟩
+  obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le' K
+  refine ⟨C, fun P Q ↦ ?_⟩
   rw [P.naiveHeight_eq_logHeight, Q.naiveHeight_eq_logHeight, Point.sym2x]
   have H₁ := logHeight_fun_mul_eq P.xRep_ne_zero Q.xRep_ne_zero
-  specialize hC₁ (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1)
   have H (v : Fin 2 → K) : ![v 0, v 1] = v := by
     ext1 i
     fin_cases i <;> simp
   have h₀ (P : W.Point) : ![P.xRep 0, P.xRep 1] ≠ 0 := H P.xRep ▸ P.xRep_ne_zero
-  specialize hC₂ (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1) (h₀ P) (h₀ Q)
+  specialize hC (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1) (h₀ P) (h₀ Q)
   rw [H P.xRep, H Q.xRep] at *
   grind only [= abs.eq_1, = max_def]
 

@@ -709,6 +709,8 @@ lemma mulHeight_sym2_ge :
 
 open Real
 
+variable (K)
+
 lemma logHeight_sym2_le :
     ∃ C, ∀ (x y : K), logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
   obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_le (K := K)
@@ -724,6 +726,14 @@ lemma logHeight_sym2_ge :
   simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
   pull (disch := positivity) log
   exact log_le_log (by positivity) (hc x y)
+
+lemma abs_logHeight_sym2_sub_le :
+    ∃ C, ∀ (x y : K), |logHeight ![x * y, x + y, 1] - (logHeight₁ x + logHeight₁ y)| ≤ C := by
+  obtain ⟨C₁, hC₁⟩ := logHeight_sym2_le K
+  obtain ⟨C₂, hC₂⟩ := logHeight_sym2_ge K
+  exact ⟨max C₁ (-C₂), by grind⟩
+
+variable {K}
 
 @[simp]
 lemma logHeight_zero_right (x : K) : logHeight ![x, 0] = 0 := by
@@ -764,55 +774,32 @@ lemma logHeight_x_y_zero (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] :=
     fin_cases j <;> simp [e]
   rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq]
 
-lemma logHeight_sym2'_le :
-    ∃ C, ∀ a b c d : K, logHeight ![a * c, a * d + b * c, b * d] ≤
-      C + logHeight ![a, b] + logHeight ![c, d] := by
-  obtain ⟨C, hC⟩ := logHeight_sym2_le (K := K)
-  refine ⟨C, fun a b c d ↦ ?_⟩
-  have hC₀ : 0 ≤ C := by simpa using (logHeight_nonneg _).trans (hC 0 0)
-  rcases eq_or_ne b 0 with rfl | hb
-  · grw [← hC₀]
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, zero_mul, add_zero]
-    rcases eq_or_ne a 0 with rfl | ha
-    · simpa using logHeight_nonneg _
-    rw [← logHeight_smul_eq_logHeight (c := 1 / a) _ (by simp [ha])]
-    simp [field, ha]
-  rcases eq_or_ne d 0 with rfl | hd
-  · grw [← hC₀]
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, mul_zero, zero_add]
-    rcases eq_or_ne c 0 with rfl | hc
-    · simpa using logHeight_nonneg _
-    rw [← logHeight_smul_eq_logHeight (c := 1 / c) _ (by simp [hc])]
-    simp [field, mul_comm _ c, hc]
-  simp only [← logHeight₁_div_eq_logHeight]
-  have H : logHeight ![a * c, a * d + b * c, b * d] = logHeight ![a / b * (c / d), a / b + c / d, 1] := by
-    rw [← logHeight_smul_eq_logHeight (c := 1 / (b * d)) _ (by simp [hb, hd])]
-    congr
-    ext1 i
-    fin_cases i <;> simp <;> field
-  rw [H]
-  exact hC ..
+omit [AdmissibleAbsValues K] in
+private lemma ne_zero_of_tuple_ne_zero {a : K} (ha : ![a, 0] ≠ 0) : a ≠ 0 := by
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp ha
+  fin_cases i
+  · simpa using hi
+  · simp at hi
 
-lemma logHeight_sym2'_ge :
+variable (K) in
+lemma abs_logHeight_sym2_sub_le' :
     ∃ C, ∀ a b c d : K, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
-      logHeight ![a * c, a * d + b * c, b * d] ≥ C + logHeight ![a, b] + logHeight ![c, d] := by
-  obtain ⟨C, hC⟩ := logHeight_sym2_ge (K := K)
+      |logHeight ![a * c, a * d + b * c, b * d] - (logHeight ![a, b] + logHeight ![c, d])| ≤ C := by
+  obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le K
   refine ⟨C, fun a b c d hab hcd ↦ ?_⟩
-  have hC₀ : C ≤ 0 := by simpa using hC 0 0
+  have hC₀ : 0 ≤ C := by simpa using hC 0 0
   rcases eq_or_ne b 0 with rfl | hb
-  · grw [hC₀]
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, zero_mul, add_zero]
-    rcases eq_or_ne a 0 with rfl | ha
-    · simp at hab
-    rw [← logHeight_smul_eq_logHeight (c := 1 / a) _ (by simp [ha]), logHeight_zero_right]
-    simp [field, ha]
+  · have ha : a ≠ 0 := ne_zero_of_tuple_ne_zero hab
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, zero_mul, add_zero, logHeight_x_y_zero,
+      logHeight_zero_right, zero_add]
+    rw [← logHeight_smul_eq_logHeight (c := 1 / a) _ (by simp [ha])]
+    simpa [field, ha] using hC₀
   rcases eq_or_ne d 0 with rfl | hd
-  · grw [hC₀]
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, mul_zero, zero_add]
-    rcases eq_or_ne c 0 with rfl | hc
-    · simp at hcd
-    rw [← logHeight_smul_eq_logHeight (c := 1 / c) _ (by simp [hc]), logHeight_zero_right]
-    simp [field, mul_comm _ c, hc]
+  · have hc : c ≠ 0 := ne_zero_of_tuple_ne_zero hcd
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, mul_zero, zero_add, logHeight_x_y_zero,
+      logHeight_zero_right, add_zero, mul_comm _  c]
+    rw [← logHeight_smul_eq_logHeight (c := 1 / c) _ (by simp [hc])]
+    simpa [field, hc] using hC₀
   simp only [← logHeight₁_div_eq_logHeight]
   have H : logHeight ![a * c, a * d + b * c, b * d] = logHeight ![a / b * (c / d), a / b + c / d, 1] := by
     rw [← logHeight_smul_eq_logHeight (c := 1 / (b * d)) _ (by simp [hb, hd])]
