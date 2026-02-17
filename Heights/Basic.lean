@@ -63,9 +63,10 @@ We define the following variants.
 
 ## TODO
 
-* Add `{mul|log}Height_comp_le`.
-* PR `logHeight₁_eq`. => #35408
+* Add `{mul|log}Height_comp_le`.. => #35408
 * PR Segre results.   => #35408
+* PR `logHeight₁_eq`
+* PR `{mul|log}Height_sumElim_zero_eq`
 * PR bounds for linear maps.
 * PR upper and lower bounds for polynomial maps.
 
@@ -233,6 +234,29 @@ lemma logHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι
     logHeight (x ∘ f) ≤ logHeight x := by
   simp only [logHeight_eq_log_mulHeight]
   exact log_le_log (by positivity) <| mulHeight_comp_le ..
+
+lemma mulHeight_sumElim_zero_eq {ι : Type*} (ι' : Type*) [Finite ι] [Finite ι'] (x : ι → K) :
+    mulHeight (Sum.elim x (0 : ι' → K)) = mulHeight x := by
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp
+  obtain ⟨i, hi⟩ := ne_iff.mp hx
+  have : Nonempty ι := .intro i
+  have hx' : Sum.elim x (0 : ι' → K) ≠ 0 := ne_iff.mpr ⟨.inl i, by simpa using hi⟩
+  rw [mulHeight_eq hx, mulHeight_eq hx']
+  have H (v : AbsoluteValue K ℝ) :  ⨆ j, v (Sum.elim x (0 : ι' → K) j) = ⨆ i, v (x i) := by
+    refine le_antisymm ?_ <| ciSup_le fun i ↦ Finite.le_ciSup_of_le (.inl i) le_rfl
+    refine ciSup_le fun j ↦ ?_
+    cases j with
+    | inl i => exact Finite.le_ciSup_of_le i le_rfl
+    | inr _ => simpa using v.iSup_abv_nonneg
+  congr <;> ext1 v
+  · exact H v
+  · exact H v.val
+
+open Real in
+lemma logHeight_sumElim_zero_eq {ι : Type*} (ι' : Type*) [Finite ι] [Finite ι'] (x : ι → K) :
+    logHeight (Sum.elim x (0 : ι' → K)) = logHeight x := by
+  simp only [logHeight_eq_log_mulHeight, mulHeight_sumElim_zero_eq]
 
 /-!
 ### Heights and "Segre embedding"
@@ -469,11 +493,28 @@ lemma logHeight₁_add_le (x y : K) :
 ### Height bound for products
 -/
 
-@[simp]
+/- @[simp]
 lemma mulHeight_eq_one_of_isEmpty {ι : Type*} [IsEmpty ι] (x : ι → K) :
     mulHeight x = 1 := by
   rw [show x = 0 from Subsingleton.elim ..]
-  exact mulHeight_zero
+  exact mulHeight_zero -/
+
+@[simp]
+lemma mulHeight_eq_one_of_subsingleton {ι : Type*} [Subsingleton ι] (x : ι → K) :
+    mulHeight x = 1 := by
+  rcases eq_or_ne x 0 with rfl | hx
+  · simp
+  obtain ⟨i, hi⟩ := Function.ne_iff.mp hx
+  have : Nonempty ι := .intro i
+  rw [← mulHeight_smul_eq_mulHeight x (inv_ne_zero hi)]
+  convert mulHeight_one
+  ext1 j
+  simpa [Subsingleton.elim j i] using inv_mul_cancel₀ hi
+
+@[simp]
+lemma logHeight_eq_zero_of_subsingleton {ι : Type*} [Subsingleton ι] (x : ι → K) :
+    logHeight x = 0 := by
+  simp [logHeight_eq_log_mulHeight]
 
 /-- The multiplicative height of a pointwise product of tuples is bounded by the product
 of their multiplicative heights. -/

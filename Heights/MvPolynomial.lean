@@ -510,7 +510,7 @@ theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι
     · exact one_le_mulHeight _
     · exact one_le_mulHeight _
   rcases isEmpty_or_nonempty ι' with hι' | hι'
-  · simpa only [mulHeight_eq_one_of_isEmpty, mul_one] using H₀
+  · simpa only [mulHeight_eq_one_of_subsingleton, mul_one] using H₀
   rcases eq_or_ne (fun j ↦ ∑ i, A (j, i) * x i) 0 with h | h
   · simpa only [h, mulHeight_zero] using H₀
   rcases eq_or_ne A 0 with rfl | hA
@@ -548,7 +548,7 @@ theorem logHeight_linearMap_apply_le (A : ι' × ι → K) (x : ι → K) :
     logHeight (fun j ↦ ∑ i, A (j, i) * x i) ≤
       totalWeight K * log (Nat.card ι) + logHeight A + logHeight x := by
   rcases isEmpty_or_nonempty ι with hι | hι
-  · suffices 0 ≤ logHeight A + logHeight x by simpa using this
+  · suffices 0 ≤ logHeight A + logHeight x by simp
     positivity
   simp only [logHeight_eq_log_mulHeight]
   have : (Nat.card ι : ℝ) ^ totalWeight K ≠ 0 := by simp
@@ -727,15 +727,42 @@ lemma logHeight_sym2_ge :
 
 @[simp]
 lemma logHeight_zero_right (x : K) : logHeight ![x, 0] = 0 := by
-  sorry
+  let e : Unit ⊕ Unit ≃ Fin 2 := {
+    toFun | .inl () => 0 | .inr () => 1
+    invFun | 0 => .inl () | 1 => .inr ()
+    left_inv := by grind
+    right_inv := by grind
+  }
+  have he : ![x, 0] ∘ e = Sum.elim (fun | () => x) (0 : Unit → K) := by
+    ext1 j
+    fin_cases j <;> simp [e]
+  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq, logHeight_eq_zero_of_subsingleton]
 
 @[simp]
-lemma logHeight_zero_zero_leftt (x : K) : logHeight ![0, 0, x] = 0 := by
-  sorry
+lemma logHeight_zero_zero_left (x : K) : logHeight ![0, 0, x] = 0 := by
+  let e : Unit ⊕ Fin 2 ≃ Fin 3 := {
+    toFun | .inr 0 => 0 | .inr 1 => 1 | .inl () => 2
+    invFun | 0 => .inr 0 | 1 => .inr 1 | 2 => .inl ()
+    left_inv := by grind
+    right_inv := by grind
+  }
+  have he : ![0, 0, x] ∘ e = Sum.elim (fun | () => x) (0 : Fin 2 → K) := by
+    ext1 j
+    fin_cases j <;> simp [e]
+  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq, logHeight_eq_zero_of_subsingleton]
 
 @[simp]
 lemma logHeight_x_y_zero (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
-  sorry
+  let e : Fin 2 ⊕ Unit ≃ Fin 3 := {
+    toFun | .inl 0 => 0 | .inl 1 => 1 | .inr () => 2
+    invFun | 0 => .inl 0 | 1 => .inl 1 | 2 => .inr ()
+    left_inv := by grind
+    right_inv := by grind
+  }
+  have he : ![x, y, 0] ∘ e = Sum.elim ![x, y] (0 : Unit → K) := by
+    ext1 j
+    fin_cases j <;> simp [e]
+  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq]
 
 lemma logHeight_sym2'_le :
     ∃ C, ∀ a b c d : K, logHeight ![a * c, a * d + b * c, b * d] ≤
