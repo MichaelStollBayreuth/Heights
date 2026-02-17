@@ -427,7 +427,7 @@ lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P
   rfl
 
 variable (W) in
-lemma logHeight_sym2 :
+lemma abs_logHeight_sym2x_sub_le :
     ∃ C, ∀ P Q : W.Point, |logHeight (P.sym2x Q) - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le' K
   refine ⟨C, fun P Q ↦ ?_⟩
@@ -449,7 +449,7 @@ given by a short Weierstrass equation. -/
 theorem approx_parallelogram_law [DecidableEq K] :
     ∃ C, ∀ (P Q : W.Point),
       |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
-  obtain ⟨C₁, hC₁⟩ := logHeight_sym2 W
+  obtain ⟨C₁, hC₁⟩ := abs_logHeight_sym2x_sub_le W
   obtain ⟨C₂, hC₂⟩ := abs_logHeight_add_sub_map_sub_two_mul_logHeight_le hab
   refine ⟨3 * C₁ + C₂, fun P Q ↦ ?_⟩
   obtain ⟨t, ht₀, ht⟩ := Point.sym2x_add_sub_eq_add_sub_map_sym2x hW P Q
