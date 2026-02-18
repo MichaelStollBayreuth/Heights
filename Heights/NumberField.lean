@@ -106,9 +106,10 @@ lemma iSup_abv_eq_multiplicity (v : FinitePlace K) {x : ι → 𝓞 K} (hx : x �
 
 omit [NumberField K] in
 lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
-    n ≤ ⨆ i, v.val (![(n : K), x] i) := by
-  refine Finite.le_ciSup_of_le 0 ?_
-  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_zero]
+    n ≤ ⨆ i, v.val (![(x : K), n] i) := by
+  refine Finite.le_ciSup_of_le 1 ?_
+  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_one,
+    Matrix.cons_val_fin_one]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
 lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
@@ -120,20 +121,20 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
   sorry
 
 lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
-    {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B}.Finite := by
-  have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B)
+    {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
+  have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B)
       (v : InfinitePlace K) : v.val x ≤ B / n ^ (totalWeight K - 1) := by
     classical
     have hn₁ : 1 ≤ n := by lia
     have hvm := v.mult_pos
     rw [← Finset.prod_erase_mul _ _ (mem_univ v), show v.mult = v.mult - 1 + 1 by lia, pow_succ,
       ← mul_assoc] at h
-    have : v.val x ≤ ⨆ i, v.val (![(n : K), x] i) := Finite.le_ciSup_of_le 1 le_rfl
+    have : v.val x ≤ ⨆ i, v.val (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
     grw [this]
     nth_rw 1 [le_div_iff₀' (mod_cast Nat.pow_pos hn₁)]
     refine (mul_le_mul_of_nonneg_right ?_ v.val.iSup_abv_nonneg).trans h
     have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^v.mult)
-        (g := fun v ↦ (⨆ i, v.val (![(n : K), x] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
+        (g := fun v ↦ (⨆ i, v.val (![(x : K), n] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
     case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
     grw [← this, ← v.le_iSup_abv_nat]
     · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) by norm_cast)).mp ?_
@@ -163,24 +164,28 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
   rwa [Set.BijOn.finite_iff_finite H₂]
 
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
-    {a : 𝓞 K | mulHeight ![(n : K), a] ≤ B}.Finite := by
+    {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
   sorry
 
 variable (K) in
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
     {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
-  have H₁ {n : ℕ} {x : K} {a : 𝓞 K} (h : n * x = a) : mulHeight₁ x = mulHeight ![(n : K), a] := by
-    sorry
   let f (a : 𝓞 K) : K := a / n
-  have H₂ : Set.BijOn f {a | mulHeight ![(n : K), a] ≤ B}
+  have H : Set.BijOn f {a | mulHeight ![(a : K), n] ≤ B}
       {x | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B} := by
-    refine Set.BijOn.mk (fun a ha ↦ ?_) ?_ ?_
+    refine Set.BijOn.mk (fun a ha ↦ ?_) (fun a _ b _ h ↦ ?_) fun x ⟨hx₁, hx₂⟩ ↦ ?_
     · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq, f] at ha ⊢
       rw [mul_div_cancel₀ (a : K) (mod_cast hn), mulHeight₁_div_eq_mulHeight (a : K) n]
-      sorry
-    · sorry
-    · sorry
-  exact H₂.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn hB
+      exact ⟨a.isIntegral_coe, ha⟩
+    · simp [f] at h
+      rw [div_left_inj' (mod_cast hn)] at h
+      exact_mod_cast h
+    · simp only [Set.mem_setOf_eq, Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_image]
+      obtain ⟨a, ha⟩ : ∃ a : 𝓞 K, n * x = a := ⟨⟨n * x, hx₁⟩, rfl⟩
+      refine ⟨a, ?_, ?_⟩
+      · rwa [← ha, ← mulHeight₁_div_eq_mulHeight (↑n * x) ↑n, mul_div_cancel_left₀ x (mod_cast hn)]
+      · simpa only [f, ← ha] using mul_div_cancel_left₀ x (mod_cast hn)
+  exact H.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn hB
 
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
