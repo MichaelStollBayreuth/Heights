@@ -53,6 +53,10 @@ lemma totalWeight_eq_sum_mult : totalWeight K = ∑ v : InfinitePlace K, v.mult 
   · simp
 
 variable (K) in
+lemma totalWeight_eq_finrank : totalWeight K = Module.finrank ℚ K := by
+  rw [totalWeight_eq_sum_mult, InfinitePlace.sum_mult_eq]
+
+variable (K) in
 lemma totalWeight_pos : 0 < totalWeight K := by
   simp [totalWeight, archAbsVal, multisetInfinitePlace]
   have : Inhabited (InfinitePlace K) := Classical.inhabited_of_nonempty'
@@ -117,7 +121,30 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
   sorry
 
 lemma exists_nat_le_mulHeight₁ (x : K) :
-    ∃ n : ℕ, 0 ≠ n ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
+    ∃ n : ℕ, n ≠ 0 ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
+  suffices ∃ n : ℕ, n ≠ 0 ∧
+      ∃ a : 𝓞 K, n * x = a ∧ (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (totalWeight K - 1) by
+    obtain ⟨n, hn, a, ha₁, ha₂⟩ := this
+    refine ⟨n, hn, ?_, ha₁ ▸ a.isIntegral_coe⟩
+    have han : ![a, n] ≠ 0 := by simp [hn]
+    have hv (v : FinitePlace K) (i : Fin 2) : v.val (![a, n] i : K) = v (![(a : K), n] i) := by
+      fin_cases i <;> rfl
+    have := absNorm_mul_finprod_nonarchAbsVal_eq_one han
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.range_cons, Matrix.range_empty,
+      Set.union_empty, Set.union_singleton, ha₂, hv] at this
+    push_cast at this
+    have hx : mulHeight₁ x = mulHeight ![(a : K), n] := by
+      rw [← mulHeight₁_div_eq_mulHeight (a : K) n, ← ha₁, mul_div_cancel_left₀ x (mod_cast hn)]
+    rw [hx, mulHeight_eq (by simp [hn])]
+    have hw : (0 : ℝ) < n ^ (totalWeight K - 1) := by positivity
+    refine le_of_mul_le_mul_left ?_ hw
+    rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind [totalWeight_pos],
+      mul_left_comm, this, mul_one, totalWeight_eq_sum_mult]
+    rw [← prod_pow_eq_pow_sum univ]
+    refine prod_le_prod (fun _ _ ↦ by positivity) fun v _ ↦ ?_
+    gcongr
+    exact InfinitePlace.le_iSup_abv_nat v n a
+  rw [totalWeight_eq_finrank]
   sorry
 
 lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
@@ -171,8 +198,8 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
   have H₁ (a : 𝓞 K) :
       (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ v : FinitePlace K, ⨆ i, v (![(a : K), n] i) := by
     let z : Fin 2 → 𝓞 K := ![a, n]
-    have hz : ![a, n] ≠ 0 := by simp [hn]
-    have := absNorm_mul_finprod_nonarchAbsVal_eq_one hz
+    have han : ![a, n] ≠ 0 := by simp [hn]
+    have := absNorm_mul_finprod_nonarchAbsVal_eq_one han
     have Hnorm : (0 : ℝ) < (Ideal.absNorm (Ideal.span (Set.range ![a, n]))) := by
       norm_cast
       refine Ideal.absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
@@ -191,7 +218,7 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     have H₃ : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
     rw [H₃, LinearMap.det_smul, LinearMap.det_id] at this
     simp only [mul_one, Int.natAbs_pow, Int.natAbs_natCast] at this
-    rw [RingOfIntegers.rank, ← InfinitePlace.sum_mult_eq, ← totalWeight_eq_sum_mult] at this
+    rw [RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
     rw [← this]
     exact Nat.le_of_dvd (this ▸ mod_cast Hw) <|
       Ideal.absNorm_dvd_absNorm_of_le <| Ideal.span_mono <| by simp +contextual
@@ -248,7 +275,7 @@ theorem finite_setOf_mulHeight₁_le (B : ℝ) : {x : K | mulHeight₁ x ≤ B}.
     grind
   rw [H₁]
   exact Set.finite_iUnion fun n ↦
-    mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le  K (Nat.zero_ne_add_one ↑n).symm hB
+    mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le  K (Nat.zero_ne_add_one ↑n).symm B
 
 open Real in
 variable (K) in
