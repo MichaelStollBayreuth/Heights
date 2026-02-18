@@ -111,6 +111,10 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
   simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_zero]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
+lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
+    (Ideal.span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v.val (x i) = 1 := by
+  sorry
+
 lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, 0 ≠ n ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
   sorry
@@ -158,10 +162,25 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
       rfl
   rwa [Set.BijOn.finite_iff_finite H₂]
 
+lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
+    {a : 𝓞 K | mulHeight ![(n : K), a] ≤ B}.Finite := by
+  sorry
+
 variable (K) in
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
     {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
-  sorry
+  have H₁ {n : ℕ} {x : K} {a : 𝓞 K} (h : n * x = a) : mulHeight₁ x = mulHeight ![(n : K), a] := by
+    sorry
+  let f (a : 𝓞 K) : K := a / n
+  have H₂ : Set.BijOn f {a | mulHeight ![(n : K), a] ≤ B}
+      {x | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B} := by
+    refine Set.BijOn.mk (fun a ha ↦ ?_) ?_ ?_
+    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq, f] at ha ⊢
+      rw [mul_div_cancel₀ (a : K) (mod_cast hn), mulHeight₁_div_eq_mulHeight (a : K) n]
+      sorry
+    · sorry
+    · sorry
+  exact H₂.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn hB
 
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
