@@ -111,6 +111,10 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
   simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_zero]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
+lemma exists_nat_le_mulHeight₁ (x : K) :
+    ∃ n : ℕ, 0 ≠ n ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
+  sorry
+
 lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B}.Finite := by
   have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B)
@@ -153,6 +157,45 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
       rw [InfinitePlace.norm_embedding_eq v a]
       rfl
   rwa [Set.BijOn.finite_iff_finite H₂]
+
+variable (K) in
+lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
+    {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
+  sorry
+
+variable (K) in
+/-- A number field `K` satisfies the **Northcott property**:
+The set of elements of bounded multiplicative height is finite. -/
+theorem finite_setOf_mulHeight₁_le (B : ℝ) : {x : K | mulHeight₁ x ≤ B}.Finite := by
+  rcases lt_or_ge B 0 with hB | hB
+  · convert Set.finite_empty
+    refine Set.eq_empty_of_forall_notMem fun x ↦ ?_
+    simp only [Set.mem_setOf_eq, not_le]
+    grw [hB]
+    positivity
+  have H₁ : {x : K | mulHeight₁ x ≤ B} =
+      ⋃ n : Fin (⌊B⌋₊), {x : K | IsIntegral ℤ ((n + 1) * x) ∧ mulHeight₁ x ≤ B} := by
+    ext1 x
+    simp only [Set.mem_setOf_eq, Set.mem_iUnion, exists_and_right, iff_and_self]
+    obtain ⟨n, hn₀, hn₁, hn⟩ := exists_nat_le_mulHeight₁ x
+    refine fun h ↦ ⟨⟨n - 1, by grind [Nat.le_floor <| hn₁.trans h]⟩, ?_⟩
+    rw [← Nat.cast_add_one]
+    convert hn
+    grind
+  rw [H₁]
+  exact Set.finite_iUnion fun n ↦
+    mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le  K (Nat.zero_ne_add_one ↑n).symm hB
+
+open Real in
+variable (K) in
+/-- A number field `K` satisfies the **Northcott property**:
+The set of elements of bounded logarithmic height is finite. -/
+theorem finite_setOf_logHeight₁_le (B : ℝ) : {x : K | logHeight₁ x ≤ B}.Finite := by
+  have := finite_setOf_mulHeight₁_le K (exp B)
+  simp only [logHeight₁_eq_log_mulHeight₁]
+  rw [← log_exp B]
+  convert this using 3 with x
+  refine log_le_log_iff ?_ ?_ <;> positivity
 
 end Northcott
 
