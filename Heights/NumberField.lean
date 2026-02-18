@@ -164,7 +164,7 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
       rfl
   rwa [Set.BijOn.finite_iff_finite H₂]
 
-lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
+lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
   have H₀ (a : 𝓞 K) : ![(a : K), n] ≠ 0 := by simp [hn]
   have Hw : (0 : ℝ) < n ^ totalWeight K := pow_pos (by norm_cast; lia) _
@@ -208,7 +208,7 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 �
   exact (finite_setOf_prod_archAbsVal_nat_le hn _).subset H₂
 
 variable (K) in
-lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
+lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
   let f (a : 𝓞 K) : K := a / n
   have H : Set.BijOn f {a | mulHeight ![(a : K), n] ≤ B}
@@ -225,7 +225,7 @@ lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 
       refine ⟨a, ?_, ?_⟩
       · rwa [← ha, ← mulHeight₁_div_eq_mulHeight (↑n * x) ↑n, mul_div_cancel_left₀ x (mod_cast hn)]
       · simpa only [f, ← ha] using mul_div_cancel_left₀ x (mod_cast hn)
-  exact H.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn hB
+  exact H.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn B
 
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
