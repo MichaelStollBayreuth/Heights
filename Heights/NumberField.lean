@@ -104,16 +104,19 @@ lemma iSup_abv_eq_multiplicity (v : FinitePlace K) {x : ι → 𝓞 K} (hx : x �
   sorry
 -/
 
+omit [NumberField K] in
+lemma le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
+    n ≤ ⨆ i, v.val (![(n : K), x] i) := by
+  refine Finite.le_ciSup_of_le 0 ?_
+  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_zero]
+  rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
+
 lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B}.Finite := by
   have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(n : K), x] i)) ^ v.mult ≤ B)
       (v : InfinitePlace K) : v.val x ≤ B / n ^ (totalWeight K - 1) := by
     classical
     have hn₁ : 1 ≤ n := by lia
-    have h' (v : InfinitePlace K) : n ≤ ⨆ i, v.val (![(n : K), x] i) := by
-      refine Finite.le_ciSup_of_le 0 ?_
-      simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_zero]
-      rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
     have hvm := v.mult_pos
     rw [← Finset.prod_erase_mul _ _ (mem_univ v), show v.mult = v.mult - 1 + 1 by lia, pow_succ,
       ← mul_assoc] at h
@@ -123,8 +126,8 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
     refine (mul_le_mul_of_nonneg_right ?_ v.val.iSup_abv_nonneg).trans h
     have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^v.mult)
         (g := fun v ↦ (⨆ i, v.val (![(n : K), x] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
-    case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [h']
-    grw [← this, ← h']
+    case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [le_iSup_abv_nat v]
+    grw [← this, ← le_iSup_abv_nat]
     · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) by norm_cast)).mp ?_
       rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind [totalWeight_pos],
         mul_assoc, ← pow_succ, show v.mult - 1 + 1 = v.mult by lia,
