@@ -120,6 +120,14 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
     (Ideal.span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v.val (x i) = 1 := by
   sorry
 
+lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
+    ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
+      (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
+  -- Maybe state this right away for `n = absNorm D`, where `D` is the "denominator ideal"
+  -- of `x` (which, however, is not yet defined in Mathlib).
+  -- An alternative definition of `n` is as the index of `𝓞 K` in `𝓞 K + 𝓞 K • x`.
+  sorry
+
 lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
   suffices ∃ n : ℕ, n ≠ 0 ∧
@@ -145,7 +153,7 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
     gcongr
     exact InfinitePlace.le_iSup_abv_nat v n a
   rw [totalWeight_eq_finrank]
-  sorry
+  exact exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow x
 
 lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
