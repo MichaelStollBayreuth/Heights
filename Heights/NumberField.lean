@@ -120,10 +120,11 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, 0 ≠ n ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
   sorry
 
-lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
+lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
   have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B)
-      (v : InfinitePlace K) : v.val x ≤ B / n ^ (totalWeight K - 1) := by
+      (v : InfinitePlace K) :
+      v.val x ≤ B / n ^ (totalWeight K - 1) := by
     classical
     have hn₁ : 1 ≤ n := by lia
     have hvm := v.mult_pos
@@ -165,7 +166,46 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} :
 
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
-  sorry
+  have H₀ (a : 𝓞 K) : ![(a : K), n] ≠ 0 := by simp [hn]
+  have Hw : (0 : ℝ) < n ^ totalWeight K := pow_pos (by norm_cast; lia) _
+  have H₁ (a : 𝓞 K) :
+      (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ v : FinitePlace K, ⨆ i, v (![(a : K), n] i) := by
+    let z : Fin 2 → 𝓞 K := ![a, n]
+    have hz : ![a, n] ≠ 0 := by simp [hn]
+    have := absNorm_mul_finprod_nonarchAbsVal_eq_one hz
+    have Hnorm : (0 : ℝ) < (Ideal.absNorm (Ideal.span (Set.range ![a, n]))) := by
+      norm_cast
+      refine Ideal.absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
+      rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
+      exact ⟨n, by simpa using Ideal.mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
+    rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this
+    have HH (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
+      have (x : K) : v.val x = v x := rfl
+      fin_cases i <;> simp [this]
+    simp only [HH] at this
+    rw [← this]
+    nth_rw 1 [inv_le_inv₀ Hw Hnorm]
+    norm_cast
+    have := Ideal.absNorm_span_singleton (n : 𝓞 K)
+    rw [Algebra.norm_apply ℤ (n : 𝓞 K)] at this
+    have H₃ : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
+    rw [H₃, LinearMap.det_smul, LinearMap.det_id] at this
+    simp only [mul_one, Int.natAbs_pow, Int.natAbs_natCast] at this
+    rw [RingOfIntegers.rank, ← InfinitePlace.sum_mult_eq, ← totalWeight_eq_sum_mult] at this
+    rw [← this]
+    exact Nat.le_of_dvd (this ▸ mod_cast Hw) <|
+      Ideal.absNorm_dvd_absNorm_of_le <| Ideal.span_mono <| by simp +contextual
+  have H₂ : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
+      {a : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(a : K), n] i)) ^ v.mult ≤
+        n ^ totalWeight K * B} := by
+    intro a ha
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq] at ha ⊢
+    rw [mulHeight_eq (H₀ a)] at ha
+    grw [← H₁] at ha
+    · exact (div_le_iff₀' Hw).mp ha
+    · -- nonnegativity side goal from `grw`
+      exact Finset.prod_nonneg fun v _ ↦ pow_nonneg v.val.iSup_abv_nonneg _
+  exact (finite_setOf_prod_archAbsVal_nat_le hn _).subset H₂
 
 variable (K) in
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) {B : ℝ} (hB : 0 ≤ B) :
