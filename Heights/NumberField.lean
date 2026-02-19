@@ -69,6 +69,12 @@ lemma finprod {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α
   convert prod_normalizedFactors hx
   simp [← Multiset.prod_map_eq_finprod]
 
+lemma finprod_of_subsgingleton_units {α : Type*} [CommMonoidWithZero α]
+    [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
+    {x : α} (hx : x ≠ 0) :
+    ∏ᶠ p : α, p ^ (normalizedFactors x).count p = x :=
+  associated_iff_eq.mp <| finprod hx
+
 end UniqueFactorizationMonoid
 
 end API
