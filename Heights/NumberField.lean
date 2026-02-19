@@ -63,17 +63,17 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
   case h => exact finiteMultiplicity_of_emultiplicity_eq_natCast this
   exact_mod_cast this
 
-lemma finprod {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
+lemma finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
     [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
     Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
   convert prod_normalizedFactors hx
   simp [← Multiset.prod_map_eq_finprod]
 
-lemma finprod_of_subsgingleton_units {α : Type*} [CommMonoidWithZero α]
+lemma finprod_pow_count_of_subsgingleton_units {α : Type*} [CommMonoidWithZero α]
     [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
     {x : α} (hx : x ≠ 0) :
     ∏ᶠ p : α, p ^ (normalizedFactors x).count p = x :=
-  associated_iff_eq.mp <| finprod hx
+  associated_iff_eq.mp <| finprod_pow_count hx
 
 end UniqueFactorizationMonoid
 
