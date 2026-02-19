@@ -23,9 +23,7 @@ namespace NumberField
 
 open Height Finset Multiset
 
-variable {K : Type*} [Field K]
-
-variable  [NumberField K]
+variable {K : Type*} [Field K] [NumberField K]
 
 open AdmissibleAbsValues
 
@@ -57,6 +55,7 @@ lemma totalWeight_eq_finrank : totalWeight K = Module.finrank ℚ K := by
   rw [totalWeight_eq_sum_mult, InfinitePlace.sum_mult_eq]
 
 variable (K) in
+@[grind! .]
 lemma totalWeight_pos : 0 < totalWeight K := by
   simp [totalWeight, archAbsVal, multisetInfinitePlace]
   have : Inhabited (InfinitePlace K) := Classical.inhabited_of_nonempty'
@@ -72,13 +71,46 @@ lemma logHeight₁_eq (x : K) :
   simp only [← nsmul_eq_mul, FinitePlace.coe_apply, InfinitePlace.coe_apply, Height.logHeight₁_eq,
     sum_archAbsVal_eq, sum_nonarchAbsVal_eq fun v ↦ log⁺ (v x)]
 
+end NumberField
+
+/-!
+### Positivity extension for totalWeight on number fields
+-/
+
+namespace Mathlib.Meta.Positivity
+
+open Lean.Meta Qq Projectivization
+
+/-- Extension for the `positivity` tactic: `Height.totalWeight` is positive for number fields. -/
+@[positivity Height.totalWeight _]
+meta def evalHeightTotalWeight : PositivityExt where eval {u α} _ _ e := do
+  match u, α, e with
+  | 0, ~q(ℕ), ~q(@Height.totalWeight $K $KF $KA) =>
+    -- Check whether there is a `NumberField` instance for `$K` around.
+    match ← trySynthInstanceQ q(NumberField $K) with
+    | .some _instFinite =>
+      assertInstancesCommute
+      return .positive q(NumberField.totalWeight_pos $K)
+    | _ => throwError "field in Height.totalWeight not known to be a number field"
+  | _, _, _ => throwError "not Height.totalWeight"
+
+end Mathlib.Meta.Positivity
+
+open Height in
+example (K : Type*) [Field K] [NumberField K] (n : ℕ) : 0 < totalWeight K ^ n :=
+  by positivity
+
 -- Towards Northcott
 
 section Northcott
 
-variable {ι : Type*} [Finite ι]
+namespace NumberField
 
-open IsDedekindDomain RingOfIntegers.HeightOneSpectrum
+open Height Finset Multiset
+
+variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
+
+open AdmissibleAbsValues IsDedekindDomain RingOfIntegers.HeightOneSpectrum
 
 /-
 lemma FinitePlace.apply_eq_adicAbv_maximalIdeal_apply (v : FinitePlace K) (x : K) :
@@ -146,8 +178,8 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
     rw [hx, mulHeight_eq (by simp [hn])]
     have hw : (0 : ℝ) < n ^ (totalWeight K - 1) := by positivity
     refine le_of_mul_le_mul_left ?_ hw
-    rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind [totalWeight_pos],
-      mul_left_comm, this, mul_one, totalWeight_eq_sum_mult]
+    rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_left_comm, this,
+      mul_one, totalWeight_eq_sum_mult]
     rw [← prod_pow_eq_pow_sum univ]
     refine prod_le_prod (fun _ _ ↦ by positivity) fun v _ ↦ ?_
     gcongr
@@ -174,9 +206,9 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
     grw [← this, ← v.le_iSup_abv_nat]
     · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) by norm_cast)).mp ?_
-      rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind [totalWeight_pos],
-        mul_assoc, ← pow_succ, show v.mult - 1 + 1 = v.mult by lia,
-        Finset.prod_erase_mul _ _ (mem_univ v), prod_pow_eq_pow_sum univ InfinitePlace.mult]
+      rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_assoc, ← pow_succ,
+        show v.mult - 1 + 1 = v.mult by lia, Finset.prod_erase_mul _ _ (mem_univ v),
+        prod_pow_eq_pow_sum univ InfinitePlace.mult]
       exact (congrArg (fun a ↦ (n : ℝ) ^ a) <| totalWeight_eq_sum_mult K).le
     · exact pow_nonneg v.val.iSup_abv_nonneg _
   set B' := B / n ^ (totalWeight K - 1)
@@ -199,20 +231,21 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
       rfl
   rwa [Set.BijOn.finite_iff_finite H₂]
 
+open Ideal in
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
   have H₀ (a : 𝓞 K) : ![(a : K), n] ≠ 0 := by simp [hn]
-  have Hw : (0 : ℝ) < n ^ totalWeight K := pow_pos (by norm_cast; lia) _
+  have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
   have H₁ (a : 𝓞 K) :
       (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ v : FinitePlace K, ⨆ i, v (![(a : K), n] i) := by
     let z : Fin 2 → 𝓞 K := ![a, n]
     have han : ![a, n] ≠ 0 := by simp [hn]
     have := absNorm_mul_finprod_nonarchAbsVal_eq_one han
-    have Hnorm : (0 : ℝ) < (Ideal.absNorm (Ideal.span (Set.range ![a, n]))) := by
+    have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
       norm_cast
-      refine Ideal.absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
+      refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
       rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
-      exact ⟨n, by simpa using Ideal.mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
+      exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
     rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this
     have HH (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
       have (x : K) : v.val x = v x := rfl
@@ -221,15 +254,14 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     rw [← this]
     nth_rw 1 [inv_le_inv₀ Hw Hnorm]
     norm_cast
-    have := Ideal.absNorm_span_singleton (n : 𝓞 K)
+    have := absNorm_span_singleton (n : 𝓞 K)
     rw [Algebra.norm_apply ℤ (n : 𝓞 K)] at this
     have H₃ : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
     rw [H₃, LinearMap.det_smul, LinearMap.det_id] at this
     simp only [mul_one, Int.natAbs_pow, Int.natAbs_natCast] at this
     rw [RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
-    rw [← this]
-    exact Nat.le_of_dvd (this ▸ mod_cast Hw) <|
-      Ideal.absNorm_dvd_absNorm_of_le <| Ideal.span_mono <| by simp +contextual
+    rw_mod_cast [← this] at Hw ⊢
+    exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
   have H₂ : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
       {a : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(a : K), n] i)) ^ v.mult ≤
         n ^ totalWeight K * B} := by
@@ -296,6 +328,6 @@ theorem finite_setOf_logHeight₁_le (B : ℝ) : {x : K | logHeight₁ x ≤ B}.
   convert this using 3 with x
   refine log_le_log_iff ?_ ?_ <;> positivity
 
-end Northcott
-
 end NumberField
+
+end Northcott
