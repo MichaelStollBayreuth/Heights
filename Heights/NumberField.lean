@@ -15,6 +15,64 @@ We provide instances of `Height.AdmissibleAbsValues` for
 
 -/
 
+section API
+
+/-!
+### API for Mathlib
+-/
+
+namespace Multiset
+
+@[to_additive]
+lemma prod_map_eq_finprod {α M : Type*} [DecidableEq α] [CommMonoid M] (s : Multiset α)
+    (f : α → M) :
+    (s.map f).prod = ∏ᶠ a, f a ^ s.count a := by
+  induction s using Multiset.induction with
+  | empty => simp
+  | cons a s ih =>
+    simp only [map_cons, prod_cons, count_cons, ih]
+    rw [show f a = f a ^ if a = a then 1 else 0 by simp,
+      ← finprod_eq_single (fun b ↦ f b ^ if b = a then 1 else 0) a (by simp +contextual),
+      ← finprod_mul_distrib ?hf ?hg]
+    case hf =>
+      simpa only [pow_ite, pow_one, pow_zero, Function.mulSupport]
+        using Set.Finite.subset (Set.finite_singleton a) (by grind)
+    case hg =>
+      simp only [Function.mulSupport]
+      have : {a | s.count a ≠ 0}.Finite := by simp
+      refine Set.Finite.subset this fun b hb ↦ ?_
+      simp only [ne_eq, Set.mem_setOf_eq, count_eq_zero, Decidable.not_not] at hb ⊢
+      contrapose! hb
+      rw [count_eq_zero_of_notMem hb, pow_zero]
+    congr
+    ext1 b
+    split_ifs with rfl
+    · simp [← pow_succ']
+    · simp
+
+end Multiset
+
+namespace UniqueFactorizationMonoid
+
+lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
+    [UniqueFactorizationMonoid R] [NormalizationMonoid R] [DecidableEq R] {a b : R}
+    (ha : Irreducible a) (hb : b ≠ 0) :
+    multiplicity a b = (normalizedFactors b).count (normalize a) := by
+  have := emultiplicity_eq_count_normalizedFactors ha hb
+  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity ?h] at this
+  case h => exact finiteMultiplicity_of_emultiplicity_eq_natCast this
+  exact_mod_cast this
+
+lemma finprod {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
+    [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
+    Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
+  convert prod_normalizedFactors hx
+  simp [← Multiset.prod_map_eq_finprod]
+
+end UniqueFactorizationMonoid
+
+end API
+
 /-!
 ### Instance for number fields
 -/
