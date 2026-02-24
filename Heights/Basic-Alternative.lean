@@ -104,8 +104,10 @@ open AdmissibleAbsValues
 
 lemma one_le_triangleIneqBound (v : aav.Vals) : 1 ≤ triangleIneqBound v := by
   have := weak_triangle_inequality v 1 0
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simpa only [ge_iff_le, add_zero, map_one, map_zero, zero_le, sup_of_le_left, mul_one] using this
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 variable (K) in
 lemma one_le_heightSumBound : 1 ≤ heightSumBound K :=
   one_le_finprod' one_le_triangleIneqBound
@@ -122,14 +124,17 @@ lemma heightSumBound_ne_zero : (heightSumBound K : ℝ) ≠ 0 :=
 /-- The multiplicative height of an element of `K`. -/
 def mulHeight₁ (x : K) : ℝ≥0 := ∏ᶠ v, max (absValue v x) 1
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 @[simp]
 lemma mulHeight₁_zero : mulHeight₁ (0 : K) = 1 := by
   simp only [mulHeight₁, map_zero, zero_le, sup_of_le_right, finprod_one]
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 @[simp]
 lemma mulHeight₁_one : mulHeight₁ (1 : K) = 1 := by
   simp only [mulHeight₁, map_one, max_self, finprod_one]
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 lemma one_le_mulHeight₁ (x : K) : 1 ≤ mulHeight₁ x :=
   one_le_finprod' fun _ ↦ le_max_right ..
 
@@ -166,7 +171,8 @@ lemma iSup_absValue_eq (x : ι → K) (v : aav.Vals) :
   apply le_antisymm
   · refine ciSup_le' fun i ↦ ?_
     rcases eq_or_ne (x i) 0 with h | h
-    · simp only [h, map_zero, ne_eq, zero_le]
+    · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+      simp only [h, map_zero, ne_eq, zero_le]
     · rw [show i = (⟨i, h⟩ : {j // x j ≠ 0}) from rfl]
       exact le_ciSup (f := fun i : {j // x j ≠ 0} ↦ absValue v (x i)) (Finite.bddAbove_range _) _
   · exact ciSup_le' fun ⟨i, hi⟩ ↦
@@ -259,6 +265,7 @@ lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) 
   congr 1
   ext1 v
   refine eq_of_forall_ge_iff fun c ↦ ?_
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   rw [ciSup_le_iff <| Finite.bddAbove_range _]
   have hn : 0 < (n : ℝ)⁻¹ := inv_pos_of_pos <| Nat.cast_pos'.mpr hn₀
   conv => enter [1, i]; rw [← rpow_natCast, ← inv_inv (n : ℝ), rpow_inv_le_iff hn]
@@ -329,6 +336,7 @@ lemma mulHeight₁_add_le (x y : K) :
       mulSupport_max_absValue_finite x
   rw [← finprod_mul_distrib mulSupport_ineqBounds_finite (mulSupport_max_absValue_finite x),
     ← finprod_mul_distrib hf₁ (mulSupport_max_absValue_finite y)]
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   refine finprod_mono (mulSupport_max_absValue_finite (x + y)) hf₂ fun v ↦ sup_le ?_ ?_
   · rw [mul_assoc]
     refine (weak_triangle_inequality v x y).trans ?_

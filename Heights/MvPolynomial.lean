@@ -21,128 +21,6 @@ private lemma iSup_fun_eq_max (f : Fin 2 → ℝ) : iSup f = max (f 0) (f 1) := 
   rw [show f = ![f 0, f 1] from List.ofFn_inj.mp rfl]
   exact (max_eq_iSup ..).symm
 
-namespace Finsupp
-
--- #35258
-
-theorem single_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N]
-    [PartialOrder N] [IsOrderedAddMonoid N] (f : α →₀ M) {g : α → M → N}
-    (h : 0 ≤ (g · ·)) (a : α) :
-    ((single a (f a)).sum g) ≤ f.sum g := by
-  rcases eq_or_ne (f a) 0 with H | H
-  · rw [H, single_zero, sum_zero_index]
-    exact sum_nonneg' (fun i ↦ h i (f i))
-  · rw [sum, support_single_ne_zero _ H, Finset.sum_singleton, single_eq_same]
-    apply Finset.single_le_sum (fun i hi ↦ h i (f i))
-    simpa [mem_support_iff, ne_eq] using H
-
-lemma single_eval_le_sum {α M N : Type*} [Zero M] [AddCommMonoid N] [PartialOrder N]
-    [IsOrderedAddMonoid N] (f : α →₀ M) {g : M → N} (hg : g 0 = 0) (h : 0 ≤ (g ·)) (a : α) :
-    g (f a) ≤ f.sum fun _ m ↦ g m := by
-  simp only [← sum_single_index (h := fun (_ : α) m ↦ g m) (a := a) (b := f a) hg]
-  apply single_le_sum _ (fun _ m ↦ h m)
-
--- #find_home! single_le_sum -- [Mathlib.Data.Finsupp.Order]
-
-end Finsupp
-
-namespace MvPolynomial
-
--- #35259
-
-variable {R : Type*} [CommSemiring R] {ι : Type*}
-
--- possibly useful more generally?
-lemma IsHomogeneous.degree_eq_sum_deg_support {p : MvPolynomial ι R} {N : ℕ}
-    (hp : p.IsHomogeneous N) {s : ι →₀ ℕ} (hs : s ∈ p.support) :
-    N = ∑ i ∈ s.support, s i := by
-  rw [IsHomogeneous, IsWeightedHomogeneous] at hp
-  rw [← hp <| mem_support_iff.mp hs, ← Finsupp.degree_apply, Finsupp.degree_eq_weight_one,
-    Pi.one_def]
-
--- #find_home! sum_deg_support_eq_degree -- [Mathlib.RingTheory.MvPolynomial.Homogeneous]
-
-lemma support_one [Nontrivial R] : (1 : MvPolynomial ι R).support = {0} := by
-  classical
-  rw [show support (1 : MvPolynomial ι R) = if (1 : R) = 0 then ∅ else {0} from rfl]
-  simp
-
--- #find_home! support_one_eq -- [Mathlib.Algebra.MvPolynomial.Basic]
-
-end MvPolynomial
-
-namespace Polynomial
-
--- also #35259
-
-variable {R : Type*} [CommSemiring R]
-
-lemma eq_zero_of_homogenize_eq_zero {p : R[X]} {N : ℕ} (hN : p.natDegree ≤ N)
-    (h : p.homogenize N = 0) :
-    p = 0 := by
-  ext n
-  simp only [coeff_zero]
-  rcases le_or_gt n p.natDegree with H | H
-  · have : p.coeff n = (p.homogenize N).coeff fun₀ | 0 => n | 1 => N - n := by
-      simp [coeff_homogenize, Nat.add_sub_of_le (H.trans hN)]
-    simp [this, h]
-  · exact coeff_eq_zero_of_natDegree_lt H
-
--- #find_home! eq_zero_of_homogenize_eq_zero -- [Mathlib.Algebra.Polynomial.Homogenize]
-
-/-- Given a polynomial `p : R[X]`, this is the family `![p₀, p₁]` of homogeneous bivariate
-polynomials of degree `p.natDegree` such that `p(x) = p₀(x,1)/p₁(x,1)` and `p₁` is a monomial. -/
-noncomputable
-def toTupleMvPolynomial (p : R[X]) : Fin 2 → MvPolynomial (Fin 2) R :=
-  ![p.homogenize p.natDegree, (MvPolynomial.X 1) ^ p.natDegree]
-
-lemma toTupleMvPolynomial_zero_eq (p : R[X]) :
-    p.toTupleMvPolynomial 0 = p.homogenize p.natDegree :=
-  rfl
-
-lemma toTupleMvPolynomial_one_eq (p : R[X]) :
-    p.toTupleMvPolynomial 1 = (MvPolynomial.X 1) ^ p.natDegree :=
-  rfl
-
-lemma isHomogenous_toTupleMvPolynomial (p : R[X]) :
-    ∀ i, (p.toTupleMvPolynomial i).IsHomogeneous p.natDegree := by
-  intro i
-  fin_cases i
-  · simp [toTupleMvPolynomial]
-  · simpa [toTupleMvPolynomial] using MvPolynomial.isHomogeneous_X_pow 1 p.natDegree
-
-lemma eval_X_toTupleMvPolynomial_zero_eq (p : R[X]) :
-    MvPolynomial.aeval ![X, 1] (p.toTupleMvPolynomial 0) =
-      p * MvPolynomial.aeval ![X, 1] (p.toTupleMvPolynomial 1) := by
-  simp [toTupleMvPolynomial]
-
-lemma eval_eq_div_eval_toTupleMvPolynomial {R : Type*} [Field R] (p : R[X]) (x : R) :
-    p.eval x =
-      (p.toTupleMvPolynomial 0).eval ![x, 1] / (p.toTupleMvPolynomial 1).eval ![x, 1] := by
-  simp [toTupleMvPolynomial, eval_homogenize]
-
-lemma sum_eq_natDegree_of_mem_support_homogenize (p : R[X]) {s : Fin 2 →₀ ℕ}
-    (hs : s ∈ (p.homogenize p.natDegree).support) :
-    s 0 + s 1 = p.natDegree := by
-  simp [(isHomogeneous_homogenize p).degree_eq_sum_deg_support hs, ← Finsupp.degree_apply,
-        Finsupp.degree_eq_sum]
-
-lemma finsuppSum_homogenize_eq {M : Type*} [AddCommMonoid M] (p : R[X]) {f : R → M} :
-    (Finsupp.sum (p.homogenize p.natDegree) fun _ c ↦ f c) = p.sum fun _ c ↦ f c := by
-  rw [MvPolynomial.sum_def, sum_def p]
-  refine Finset.sum_nbij' (fun s ↦ s 0) (fun n ↦ fun₀ | 0 => n | 1 => p.natDegree - n)
-    (fun s hs ↦ ?_) (fun n hn ↦ ?_) (fun s hs ↦ ?_) (fun n hn ↦ by simp)
-    fun s hs ↦ ?_
-  · simpa [coeff_homogenize, sum_eq_natDegree_of_mem_support_homogenize p hs] using hs
-  · simpa [coeff_homogenize, mem_support_iff.mp hn]
-      using Nat.add_sub_of_le <| le_natDegree_of_mem_supp n hn
-  · -- speeds up `grind` quite a bit
-    grind only [= Finsupp.update_apply, = Finsupp.single_apply,
-      sum_eq_natDegree_of_mem_support_homogenize p hs]
-  · simp [coeff_homogenize, sum_eq_natDegree_of_mem_support_homogenize p hs]
-
-end Polynomial
-
 namespace IsNonarchimedean
 
 variable {R α : Type*} [CommRing R]
@@ -274,7 +152,8 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
       rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
       rcases eq_or_ne (coeff 0 (p j)) 0 with h₀ | h₀
       · simp [h₀]
-      · exact le_sup_of_le_left <| Finite.le_ciSup_of_le ⟨0, by simp [h₀]⟩ le_rfl
+      · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+        exact le_sup_of_le_left <| Finite.le_ciSup_of_le ⟨0, by simp [h₀]⟩ le_rfl
 
 variable [Finite ι]
 
@@ -420,6 +299,7 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
       simp [ciSup_unique]
     suffices ⨆ s : (p.homogenize p.natDegree).support, v.val (p.coeff (s.val 0)) =
         (range (p.natDegree + 1)).sup' nonempty_range_add_one fun n ↦ v.val (p.coeff n) by
+      set_option backward.isDefEq.respectTransparency false in -- temporary measure
       simpa [← Finite.ciSup_sup, iSup_fun_eq_max, toTupleMvPolynomial, coeff_homogenize,
         MvPolynomial.X_pow_eq_monomial, p.sum_eq_natDegree_of_mem_support_homogenize, H]
         using congrArg (max · 1) this
@@ -431,6 +311,7 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
       rcases eq_or_ne (p.coeff n) 0 with h | h
       · simpa [h] using v.val.iSup_abv_nonneg
       · refine Finite.le_ciSup_of_le ⟨fun₀ | 0 => n | 1 => p.natDegree - n, ?_⟩ <| by simp
+        set_option backward.isDefEq.respectTransparency false in -- temporary measure
         simpa [coeff_homogenize, h] using Nat.add_sub_of_le <| le_natDegree_of_ne_zero h
 
 /-- The multiplicative height of the value of a polynomial `p : K[X]` at `x : K` is bounded

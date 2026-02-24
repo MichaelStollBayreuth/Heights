@@ -54,6 +54,7 @@ open WithAbs in
 lemma isometry_comap {F' : Type*} [Field F'] (v : AbsoluteValue F' ℝ) (f : F →+* F') :
     Isometry ((equiv v).symm.toRingHom.comp (f.comp (equiv (v.comap f)).toRingHom)) := by
   refine AddMonoidHomClass.isometry_of_norm _ fun x ↦ ?_
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simp [norm_eq_abv]
 
 lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.comap f).IsNontrivial) :
@@ -242,10 +243,12 @@ lemma continuous_algebraMap {v' : AbsoluteValue F' ℝ} (h : v'.restrict F = v) 
     Continuous <| algebraMap (WithAbs v) (WithAbs v') := by
   rw [continuous_iff_continuous_dist]
   conv => enter [1, x]; simp only [← equiv_symm_apply_algebraMap v']
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simp_rw [dist_eq_norm_sub, norm_eq_abv, map_sub, RingEquiv.apply_symm_apply, ← map_sub,
     apply_algebraMap, h, ← norm_eq_abv, ← dist_eq_norm_sub]
   exact continuous_dist
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 instance continuousSMul {v' : AbsoluteValue F' ℝ} [Fact <| v'.restrict F = v] :
     ContinuousSMul (WithAbs v) (WithAbs v') where
   continuous_smul := (continuous_algebraMap_iff_smul _ _).mp <| continuous_algebraMap Fact.out
@@ -286,7 +289,7 @@ lemma isHomeomorph_equiv_realAbs : IsHomeomorph (WithAbs.equiv (R := ℝ) .abs) 
 instance : CompleteSpace (WithAbs (R := ℝ) .abs) := by
   let f := WithAbs.equiv (R := ℝ) .abs
   have H₁ : IsHomeomorph f := isHomeomorph_equiv_realAbs
-  have H₂ : IsHomeomorph f.symm := H₁ -- not sure why this works...
+  have H₂ : IsHomeomorph f.symm := H₁.ringEquiv_symm
   refine (UniformEquiv.completeSpace_iff ?_).mp (inferInstance : CompleteSpace ℝ)
   refine UniformEquiv.mk f.symm ?_ ?_
   · exact uniformContinuous_of_continuousAt_zero f.symm.toRingHom H₂.continuous.continuousAt
@@ -305,6 +308,7 @@ private lemma isEquiv_of_restrict_eq {v₁ v₂ : AbsoluteValue F' ℝ} (h : v.I
     (h₁ : v₁.restrict F = v) (h₂ : v₂.restrict F = v) :
     v₁ ≈ v₂ := by
   rw [isEquiv_def', isEquiv_iff_isHomeomorph]
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   let e : WithAbs v₁ ≃ₗ[WithAbs v] WithAbs v₂ := {
     toFun := WithAbs.equivWithAbs v₁ v₂
     map_add' x y := rfl
@@ -349,6 +353,7 @@ def Completion.absoluteValue (v : AbsoluteValue F ℝ) : AbsoluteValue v.Complet
 lemma Completion.absoluteValue_eq_norm (v : AbsoluteValue F ℝ) (x : v.Completion) :
     absoluteValue v x = ‖x‖ := rfl
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 noncomputable
 instance Completion.instAlgebra (v : AbsoluteValue F ℝ) : Algebra (WithAbs v) v.Completion :=
   UniformSpace.Completion.algebra' _
@@ -379,6 +384,7 @@ lemma comap_eq_of_isometry {F' : Type*} [Field F'] {v' : AbsoluteValue F' ℝ}
     v'.comap ((equiv v').toRingHom.comp (f.comp (equiv v).symm.toRingHom)) = v := by
   ext1 x
   rw [comap_apply]
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simp only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply]
   rw [← norm_eq_abv, (AddMonoidHomClass.isometry_iff_norm _).mp h, norm_eq_abv]
   simp
@@ -392,7 +398,8 @@ lemma comap_completion_eq_of_isometry {F' : Type*} [Field F'] (v' : AbsoluteValu
   simpa only [RingEquiv.toRingHom_eq_coe, RingHom.coe_comp, RingHom.coe_coe, Function.comp_apply,
     norm_eq_abv, RingEquiv.apply_symm_apply, ← Completion.absoluteValue_eq_norm] using this
 
--- without these, instance search times out below (necessary after bump to v4.26.0)
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
+-- without these, instance search times out below (necessary after bump to v4.26.0, still true with v4.29.0-rc2)
 attribute [local instance 2000] RingEquivClass.toRingHomClass RingHomClass.toAddMonoidHomClass in
 lemma isometry_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
     Isometry ((equiv ((Completion.absoluteValue v).comap f)).trans f) := by
@@ -402,6 +409,7 @@ lemma isometry_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
   simpa only [RingEquiv.coe_trans, RingEquiv.toRingHom_eq_coe, RingHom.coe_comp,
     RingHom.coe_coe] using H
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 lemma isHomeomorph_equiv_comap {F' : Type*} [Field F'] (f : F' ≃+* v.Completion) :
     IsHomeomorph ((equiv ((Completion.absoluteValue v).comap f)).trans f) :=
   (isometry_equiv_comap f).isHomeomorph_ofEquiv
@@ -416,6 +424,7 @@ lemma algebra_of_archimedean (h : ¬ IsNonarchimedean v) :
     ∃ e : ℝ →+* F, v.comap e ≈ .abs := by
   -- We have the canonical ring homomorphism `e₀ : ℚ → F`.
   have : CharZero (WithAbs v) := charZero_of_archimedean h
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   let e₀ := Rat.castHom (WithAbs v)
   -- We pull back `v` from `F` to `ℚ` to obtain `v₀`.
   let v₀ := v.comap e₀
@@ -486,6 +495,7 @@ noncomputable
 def normedAlgebraOfAbsoluteValue (hv : v.restrict ℝ = .abs) : NormedAlgebra ℝ (WithAbs v) where
   __ := ‹Algebra ℝ (WithAbs v)› -- WithAbs.instAlgebra_right v --
   norm_smul_le r x := by
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     rw [Algebra.smul_def, norm_mul]
     refine le_of_eq ?_
     congr
@@ -502,6 +512,7 @@ lemma algebraEquiv_eq_algebraMap (e : ℝ ≃ₐ[ℝ] F) : e = algebraMap ℝ F 
 
 open AbsoluteValue WithAbs
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 /-- A version of the **Gelfand-Mazur Theorem** over the reals:
 A field `F` that is an `ℝ`-algebra and has an absolute value `v` whose pull-back to `ℝ` is
 the standard absolute value is either isomorphic to `ℝ` (via the algebra map)
@@ -516,22 +527,23 @@ theorem nonempty_algEquiv_or_of_restrict_eq (hv : v.restrict ℝ = .abs) :
   · left
     let e := Classical.choice hℝ
     refine ⟨e.symm, ?_⟩
-    have he : (e.symm : ℝ →+* WithAbs v) = algebraMap ℝ (WithAbs v) :=
+    have he : (e.symm :  ℝ →+* WithAbs v) = algebraMap ℝ (WithAbs v) :=
       algebraEquiv_eq_algebraMap e.symm
     rw [RingEquiv.toRingHom_eq_coe, he, ← hv]
     rfl
   · right
     let e := Classical.choice hℂ
     refine ⟨e.symm, ?_⟩
-    let inst' : Algebra ℂ (WithAbs v) := RingHom.toAlgebra e.symm
-    have he : e.symm = algebraMap ℂ (WithAbs v) := rfl
+    let e' : ℂ →+* WithAbs v := e.symm
+    let inst' : Algebra ℂ (WithAbs v) := RingHom.toAlgebra e'
+    have he : e' = algebraMap ℂ (WithAbs v) := rfl
     have instST : IsScalarTower ℝ ℂ (WithAbs v) := by
       refine IsScalarTower.of_algebraMap_eq' ?_
       rw [← he]
       ext1 x
       change algebraMap ℝ (WithAbs v) x = e.symm (algebraMap ℝ ℂ x)
       simp only [Algebra.algebraMap_eq_smul_one, map_smul, map_one]
-    let vℂ : AbsoluteValue ℂ ℝ := v.comap ((equiv v).toRingHom.comp e.symm)
+    let vℂ : AbsoluteValue ℂ ℝ := v.comap ((equiv v).toRingHom.comp e')
     have hvℂ : vℂ.restrict ℝ = .abs := by
       simp only [vℂ, ← hv, restrict, ← comap_comp]
       congr
@@ -567,6 +579,7 @@ variable {F : Type*} [Field F] {v : AbsoluteValue F ℝ}
 
 open AbsoluteValue WithAbs
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 /-- **Ostrowski's Theorem** (a different one from `Rat.AbsoluteValue.equiv_real_or_padic`):
 A field `F` that is complete with respect to an archimedean absolute value `v`
 is either isomorphic to `ℝ` or to `ℂ`; in both cases, `v` pulls back to an absolute value

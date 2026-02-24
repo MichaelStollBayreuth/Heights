@@ -57,6 +57,7 @@ theorem Group.fg_of_descent {G : Type*} [Group G] {f : G →* G} (hf : ∀ U : S
   -- Assume this is false.
   by_contra! H
   -- Then we can find an element `x : G` not in `U` and of minimal height.
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   obtain ⟨x₀, hx₀⟩ : ∃ x₀, x₀ ∉ U := SetLike.exists_not_mem_of_ne_top U H rfl
   let T : Set G := {x | h x ≤ h x₀} ∩ {x | x ∉ U}
   have hx₀T : x₀ ∈ T := by simp [T, hx₀]

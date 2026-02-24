@@ -3,6 +3,7 @@ import Mathlib.Algebra.Group.Support
 import Mathlib.Data.Fintype.Order
 import Mathlib.Algebra.Order.Group.Indicator
 import Mathlib.NumberTheory.Height.Basic
+import Mathlib.NumberTheory.Height.Projectivization
 import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Tactic.Positivity.Core
@@ -319,6 +320,7 @@ lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0
   case empty => simp
   case equiv =>
     have (a : β) : Finite ((ι ∘ ⇑e) a) := inferInstanceAs <| Finite (ι (e a))
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     specialize H (ι ∘ ⇑e) (x := fun b ↦ x (e b)) (by simp [hx])
     rw [prod_equiv e (t := .univ) (by simp) (g := fun b ↦ mulHeight (x b)) (fun _ _ ↦ rfl)] at H
     rw [← H, ← mulHeight_comp_equiv (e.piCongrLeft ι).symm]
@@ -330,6 +332,7 @@ lemma mulHeight_fun_prod_eq {x : (a : α) → ι a → K} (hx : ∀ a, x a ≠ 0
   case option =>
     simp only [Fintype.prod_option]
     have (b : β) : Finite ((ι ∘ some) b) := by grind
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     rw [← ih (ι ∘ Option.some) (x := fun b i ↦ x (some b) i) (by grind),
       ← mulHeight_fun_mul_eq (hx none) ?hprod]
     case hprod =>
@@ -587,89 +590,6 @@ lemma logHeight_neg {ι : Type*} [Finite ι] (x : ι → K) : logHeight (-x) = l
   simp [logHeight_eq_log_mulHeight]
 
 end Height
-
-/-!
-### Heights on projective spaces
--/
-
--- New file NumberTheory/Height/Projectivization.lean; see #34780
-
-namespace Projectivization
-
-open Height AdmissibleAbsValues Real
-
-variable {K : Type*} [Field K] [AdmissibleAbsValues K] {ι : Type*} [Finite ι]
-
-private
-lemma mulHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
-    mulHeight a.val = mulHeight b.val :=
-  have ht : t ≠ 0 := by
-    contrapose! h
-    simpa [h] using a.prop
-  h ▸ mulHeight_smul_eq_mulHeight _ ht
-
-private
-lemma logHeight_aux (a b : { v : ι → K // v ≠ 0 }) (t : K) (h : a.val = t • b.val) :
-    logHeight a.val = logHeight b.val :=
-  congrArg log <| mod_cast mulHeight_aux a b t h
-
-/-- The multiplicative height of a point on a finite-dimensional projective space over `K`
-with a given basis. -/
-def mulHeight (x : Projectivization K (ι → K)) : ℝ :=
-  x.lift (fun r ↦ Height.mulHeight r.val) mulHeight_aux
-
-/-- The logarithmic height of a point on a finite-dimensional projective space over `K`
-with a given basis. -/
-def logHeight (x : Projectivization K (ι → K)) : ℝ :=
-  x.lift (fun r ↦ Height.logHeight r.val) logHeight_aux
-
-lemma mulHeight_mk {x : ι → K} (hx : x ≠ 0) : mulHeight (mk K x hx) = Height.mulHeight x := rfl
-
-lemma logHeight_mk {x : ι → K} (hx : x ≠ 0) : logHeight (mk K x hx) = Height.logHeight x := rfl
-
-lemma logHeight_eq_log_mulHeight (x : Projectivization K (ι → K)) :
-    logHeight x = log (mulHeight x) := by
-  rw [← x.mk_rep, mulHeight_mk, logHeight_mk, Height.logHeight]
-
-lemma one_le_mulHeight (x : Projectivization K (ι → K)) : 1 ≤ mulHeight x := by
-  rw [← x.mk_rep, mulHeight_mk]
-  exact Height.one_le_mulHeight _
-
-lemma mulHeight_pos (x : Projectivization K (ι → K)) : 0 < mulHeight x :=
-  zero_lt_one.trans_le <| one_le_mulHeight x
-
-lemma mulHeight_ne_zero (x : Projectivization K (ι → K)) : mulHeight x ≠ 0 :=
-  (mulHeight_pos x).ne'
-
-lemma zero_le_logHeight (x : Projectivization K (ι → K)) : 0 ≤ logHeight x := by
-  rw [logHeight_eq_log_mulHeight]
-  exact log_nonneg <| x.one_le_mulHeight
-
-end Projectivization
-
-namespace Mathlib.Meta.Positivity
-
-open Lean.Meta Qq Projectivization
-
-/-- Extension for the `positivity` tactic: `Projectivization.mulHeight` is always positive. -/
-@[positivity Projectivization.mulHeight _]
-meta def evalProjMulHeight : PositivityExt where eval {u α} _ _ e := do
-  match u, α, e with
-  | 0, ~q(ℝ), ~q(@mulHeight $K $KF $KA $ι $ιF $a) =>
-    assertInstancesCommute
-    pure (.positive q(mulHeight_pos $a))
-  | _, _, _ => throwError "not Projectivization.mulHeight"
-
-/-- Extension for the `positivity` tactic: `Projectivization.logHeight` is always nonnegative. -/
-@[positivity Projectivization.logHeight _]
-meta def evalProjLogHeight : PositivityExt where eval {u α} _ _ e := do
-  match u, α, e with
-  | 0, ~q(ℝ), ~q(@logHeight $K $KF $KA $ι $ιF $a) =>
-    assertInstancesCommute
-    pure (.nonnegative q(zero_le_logHeight $a))
-  | _, _, _ => throwError "not Projectivization.logHeight"
-
-end Mathlib.Meta.Positivity
 
 #exit
 

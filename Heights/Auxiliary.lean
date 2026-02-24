@@ -90,6 +90,7 @@ lemma Real.iSup_pow_of_nonneg [Fintype α] [Nonempty α] {f : α → ℝ} (hf : 
   conv => enter [1, 1, 1, a]; rw [← H]
   conv => enter [2, 1, a]; rw [← H]
   norm_cast
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact Monotone.map_ciSup_of_continuousAt ((continuous_pow n).continuousAt)
     (pow_left_mono n) (Finite.bddAbove_range _)
 
@@ -276,10 +277,12 @@ variable {F S : Type*} [Field F]
 
 -- these two require heavier imports (so are not part of #20642)
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 instance fd_left [AddCommGroup S] [Module F S] [FiniteDimensional F S] {v : AbsoluteValue F ℝ} :
     FiniteDimensional (WithAbs v) S :=
   inferInstanceAs <| FiniteDimensional F S
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 instance fd_right [Ring S] [Module F S] [FiniteDimensional F S] (v : AbsoluteValue S ℝ) :
     FiniteDimensional F (WithAbs v) :=
   inferInstanceAs <| FiniteDimensional F S
@@ -302,6 +305,7 @@ lemma equiv_apply_algebraMap {R S : Type*} [CommRing R] [Ring S] [Algebra R S]
     equiv v' (algebraMap (WithAbs v) (WithAbs v') x) = algebraMap R S (equiv v x) :=
   rfl -/
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 lemma norm_equiv_eq {v v' : AbsoluteValue F ℝ} (h : v = v') (x : WithAbs v) :
     ‖(algebraMap (WithAbs v') v'.Completion).comp (equiv v).toRingHom x‖ = v x := by
   simp [h]
@@ -372,6 +376,7 @@ open WithAbs
 
 variable {F : Type*} [Field F] {v v' : AbsoluteValue F ℝ} (h : v = v')
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 noncomputable
 def ringHom_of_eq : v.Completion →+* v'.Completion :=
   (AddMonoidHomClass.isometry_of_norm _ (WithAbs.norm_equiv_eq h)).extensionHom
@@ -383,12 +388,14 @@ open UniformSpace.Completion in
 lemma ringHom_of_eq_comp_symm :
     (ringHom_of_eq h).comp (ringHom_of_eq h.symm) = RingHom.id _ := by
   apply RingHom.coe_inj
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   rw [RingHom.coe_comp, coeFun_ringHom_of_eq, coeFun_ringHom_of_eq, RingHom.coe_id,
     map_comp (uniformContinuous_equivWithAbs_of_eq h)
       (uniformContinuous_equivWithAbs_of_eq h.symm),
     equivWithAbs, equivWithAbs, RingEquiv.trans_symm_comp_trans_symm]
   simp
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 noncomputable
 def ringEquiv_of_eq : v.Completion ≃+* v'.Completion :=
   UniformSpace.Completion.mapRingEquiv (equivWithAbs v v')
@@ -534,6 +541,7 @@ lemma real_of_archimedean {v : AbsoluteValue ℚ ℝ} (h : ¬ IsNonarchimedean v
 lemma norm_algebraMap_comp_eq_real (x : WithAbs real) :
     ‖(algebraMap ℚ ℝ).comp (WithAbs.equiv real) x‖ = real x := rfl
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 open Completion in
 noncomputable
 def ringHom_completion_real : real.Completion →+* ℝ :=
@@ -554,13 +562,13 @@ def ringEquiv_completion_real : real.Completion ≃+* ℝ :=
 
 lemma isometry_ringEquiv_completion_real : Isometry ringEquiv_completion_real := by
   refine AddMonoidHomClass.isometry_of_norm ringEquiv_completion_real fun x ↦ ?_
-  simp only [ringEquiv_completion_real, RingEquiv.coe_ofBijective, ringHom_completion_real]
+  simp only [ringEquiv_completion_real, ringHom_completion_real]
   refine (AddMonoidHomClass.isometry_iff_norm _).mp ?_ x
   exact AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real |>.completion_extension
 
 open Completion Topology in
 lemma isHomeomorph_ringEquiv_completion_real : IsHomeomorph ringEquiv_completion_real := by
-  simp only [ringEquiv_completion_real, RingEquiv.coe_ofBijective]
+  simp only [ringEquiv_completion_real]
   have := (AddMonoidHomClass.isometry_of_norm _ norm_algebraMap_comp_eq_real)
             |>.completion_extension.isClosedEmbedding
   exact isHomeomorph_iff_isEmbedding_surjective.mpr

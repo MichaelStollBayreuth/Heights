@@ -130,7 +130,8 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
     DiscreteTopology (WithAbs v) ↔ ¬ v.IsNontrivial := by
   rw [discreteTopology_iff_isOpen_singleton_zero, Metric.isOpen_singleton_iff]
   refine ⟨fun ⟨ε, hε₀, hε₁⟩ ↦ ?_, fun H ↦ ⟨1 / 2, one_half_pos, fun y hy ↦ ?_⟩⟩
-  · simp only [dist_zero_right, norm_eq_abv] at hε₁
+  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+    simp only [dist_zero_right, norm_eq_abv] at hε₁
     rw [not_isNontrivial_iff]
     intro x hx₀
     by_contra! h
@@ -143,7 +144,8 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
     · replace h := inv_lt_one_of_one_lt₀ h
       rw [← map_inv₀] at h
       exact H (inv_ne_zero hx₀) h
-  · rw [dist_zero_right, norm_eq_abv] at hy
+  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+    rw [dist_zero_right, norm_eq_abv] at hy
     rcases eq_or_ne y 0 with rfl | hy₀
     · rfl
     · have : WithAbs.equiv v y ≠ 0 := hy₀
@@ -213,6 +215,7 @@ lemma homeomorph_of_isEquiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁
     ⇑(homeomorph_of_isEquiv h) = ⇑(equivWithAbs v₁ v₂) :=
   rfl
 
+set_option backward.isDefEq.respectTransparency false in -- temporary measure
 /-- The induced ring homomorphism between two completions with respect to equivalent
 absolute values. -/
 noncomputable
@@ -226,6 +229,7 @@ absolute values. -/
 noncomputable
 def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion ≃+* v₂.Completion := by
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   refine UniformSpace.Completion.mapRingEquiv (equivWithAbs v₁ v₂) ?_ ?_
   · rw [← homeomorph_of_isEquiv_toFun_eq h]
     exact Homeomorph.continuous (homeomorph_of_isEquiv h)
@@ -255,12 +259,14 @@ lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v
   · rw [show ⇑(ringEquiv_completion_of_isEquiv h) = ⇑(ringEquiv_completion_of_isEquiv h).toRingHom
          from rfl]
     rw [congrArg DFunLike.coe (ringEquiv_completion_coeFun_eq ..), ringHom_completion_of_isEquiv]
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     exact continuous_mapRingHom (continuous_equivWithAbs h)
   · simp [Function.LeftInverse]
   · simp [Function.RightInverse, Function.LeftInverse]
   · rw [show ⇑(ringEquiv_completion_of_isEquiv h).symm =
           ⇑(ringEquiv_completion_of_isEquiv h).symm.toRingHom from rfl]
     rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     exact continuous_mapRingHom (continuous_equivWithAbs (Setoid.symm h))
 
 lemma uniformContinuous_equivWithAbs_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :

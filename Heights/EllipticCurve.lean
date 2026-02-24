@@ -392,7 +392,8 @@ lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
   simp only [hW, zero_mul, add_zero] at HeqP HeqQ
   ext1 i
   fin_cases i
-  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero,
+  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero,
       map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
       Matrix.cons_val_one, one_pow]
     rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _)]
@@ -402,7 +403,8 @@ lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
     conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
     rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
     ring
-  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
+  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
       Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow,
       one_pow]
     simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ']

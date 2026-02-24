@@ -43,6 +43,7 @@ noncomputable def finsetInfinitePlace : Finset (AbsoluteValue K ℝ) := by
 @[simp]
 lemma mem_finsetInfinitePlace {v : AbsoluteValue K ℝ} :
     v ∈ finsetInfinitePlace K ↔ IsInfinitePlace v := by
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simp [finsetInfinitePlace, IsInfinitePlace]
 
 /- omit [NumberField K] in

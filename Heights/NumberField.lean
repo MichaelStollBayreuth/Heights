@@ -176,8 +176,8 @@ variable (K) in
 lemma totalWeight_pos : 0 < totalWeight K := by
   simp [totalWeight, archAbsVal, multisetInfinitePlace]
   have : Inhabited (InfinitePlace K) := Classical.inhabited_of_nonempty'
-  exact Fintype.sum_pos <| NE.ne.pos <|
-    Function.ne_iff.mpr ⟨default, (default : InfinitePlace K).mult_ne_zero⟩
+  exact Fintype.sum_pos
+    (Function.ne_iff.mpr ⟨default, (default : InfinitePlace K).mult_ne_zero⟩).pos
 
 open Real in
 -- For the next PR
@@ -374,6 +374,7 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     have := absNorm_span_singleton (n : 𝓞 K)
     rw [Algebra.norm_apply ℤ (n : 𝓞 K)] at this
     have H₃ : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     rw [H₃, LinearMap.det_smul, LinearMap.det_id] at this
     simp only [mul_one, Int.natAbs_pow, Int.natAbs_natCast] at this
     rw [RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
