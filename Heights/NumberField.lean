@@ -1,4 +1,5 @@
 import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp
 import Heights.Basic
 /-!
 # Instances of AdmissibleAbsValues
@@ -76,6 +77,58 @@ lemma finprod_pow_count_of_subsgingleton_units {α : Type*} [CommMonoidWithZero 
   associated_iff_eq.mp <| finprod_pow_count hx
 
 end UniqueFactorizationMonoid
+
+namespace IsDedekindDomain.HeightOneSpectrum
+
+/--
+info: IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count.{u_1} {R : Type u_1} [CommRing R]
+  [IsDedekindDomain R] (v : HeightOneSpectrum R) [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ 0) :
+  v.maxPowDividing I = v.asIdeal ^ Multiset.count v.asIdeal (UniqueFactorizationMonoid.normalizedFactors I)
+-/
+#guard_msgs in
+#check IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count
+
+/--
+info: Ideal.finprod_heightOneSpectrum_factorization.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] {I : Ideal R}
+  (hI : I ≠ 0) : ∏ᶠ (v : HeightOneSpectrum R), v.maxPowDividing I = I
+-/
+#guard_msgs in
+#check Ideal.finprod_heightOneSpectrum_factorization
+
+/--
+info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] (v : HeightOneSpectrum R) (I : Ideal R)
+  (hI : I ≠ 0) :
+  (Associates.mk v.asIdeal).count (Associates.mk (∏ᶠ (v : HeightOneSpectrum R), v.maxPowDividing I)).factors =
+    (Associates.mk v.asIdeal).count (Associates.mk I).factors
+-/
+#guard_msgs in
+#check Ideal.finprod_count
+
+/--
+info: IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm.{u_1} {K : Type u_1} [Field K] [NumberField K]
+  (v : HeightOneSpectrum (NumberField.RingOfIntegers K)) {x : NumberField.RingOfIntegers (WithVal (valuation K v))}
+  (h_x_nezero : x ≠ 0) :
+  ‖(NumberField.FinitePlace.embedding v) ↑x‖ * ↑(Ideal.absNorm (v.maxPowDividing (Ideal.span {x}))) = 1
+-/
+#guard_msgs in
+#check IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm
+
+/--
+info: sup_eq_prod_inf_factors.{u_4} {T : Type u_4} [CommRing T] [IsDedekindDomain T] {I J : Ideal T} [DecidableEq (Ideal T)]
+  (hI : I ≠ ⊥) (hJ : J ≠ ⊥) :
+  I ⊔ J = (UniqueFactorizationMonoid.normalizedFactors I ∩ UniqueFactorizationMonoid.normalizedFactors J).prod
+-/
+#guard_msgs in
+#check sup_eq_prod_inf_factors
+
+/--
+info: factorization_eq_count.{u_1} {α : Type u_1} [CommMonoidWithZero α] [UniqueFactorizationMonoid α] [NormalizationMonoid α]
+  [DecidableEq α] {n p : α} : (factorization n) p = Multiset.count p (UniqueFactorizationMonoid.normalizedFactors n)
+-/
+#guard_msgs in
+#check factorization_eq_count
+
+end IsDedekindDomain.HeightOneSpectrum
 
 end API
 
