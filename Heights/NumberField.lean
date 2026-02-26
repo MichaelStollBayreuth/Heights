@@ -2,18 +2,10 @@ import Mathlib.NumberTheory.Height.NumberField
 import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp
 import Heights.Basic
 /-!
-# Instances of AdmissibleAbsValues
+# Heights over number fields
 
-We provide instances of `Height.AdmissibleAbsValues` for
-
-* algebraic number fields.
-
-## TODO
-
-* Fields of rational functions in `n` variables.
-
-* Finite extensions of fields with `Height.AdmissibleAbsValues`.
-
+We provide an instance of `Height.AdmissibleAbsValues` for algebraic number fields
+and prove some properties.
 -/
 
 section API
@@ -21,6 +13,85 @@ section API
 /-!
 ### API for Mathlib
 -/
+
+namespace Finite
+
+variable {α β ι : Type*} [ConditionallyCompleteLinearOrder α] [ConditionallyCompleteLinearOrder β]
+  [Finite ι] [Nonempty ι]
+
+lemma map_iSup_of_monotoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : MonotoneOn g s)
+    (hs : ∀ i, f i ∈ s) :
+    g (⨆ i, f i) = ⨆ i, g (f i) := by
+  obtain ⟨j, hj⟩ : ∃ j, f j = ⨆ i, f i := exists_eq_ciSup_of_finite
+  rw [← hj]
+  exact le_antisymm (le_ciSup_of_le j le_rfl) <|
+    ciSup_le fun i ↦ hg (hs i) (hs j) (hj ▸ le_ciSup f i)
+
+lemma map_iInf_of_monotoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : MonotoneOn g s)
+    (hs : ∀ i, f i ∈ s) :
+    g (⨅ i, f i) = ⨅ i, g (f i) :=
+  map_iSup_of_monotoneOn (α := αᵒᵈ) (β := βᵒᵈ) (fun _ hi _ hj h ↦ hg hj hi h) hs
+
+lemma map_iSup_of_antitoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : AntitoneOn g s)
+    (hs : ∀ i, f i ∈ s) :
+    g (⨆ i, f i) = ⨅ i, g (f i) :=
+  map_iSup_of_monotoneOn (β := βᵒᵈ) hg hs
+
+lemma map_iInf_of_antitoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : AntitoneOn g s)
+    (hs : ∀ i, f i ∈ s) :
+    g (⨅ i, f i) = ⨆ i, g (f i) :=
+  map_iInf_of_monotoneOn (β := βᵒᵈ) hg hs
+
+lemma map_iSup_of_monotone (f : ι → α) {g : α → β} (hg : Monotone g) :
+    g (⨆ i, f i) = ⨆ i, g (f i) :=
+  map_iSup_of_monotoneOn (monotoneOn_univ.mpr hg) (fun i ↦ Set.mem_univ (f i))
+
+lemma map_iInf_of_monotone (f : ι → α) {g : α → β} (hg : Monotone g) :
+    g (⨅ i, f i) = ⨅ i, g (f i) :=
+  map_iSup_of_monotone (α := αᵒᵈ) (β := βᵒᵈ) f fun _ _ h ↦ hg h
+
+lemma map_iSup_of_antitone (f : ι → α) {g : α → β} (hg : Antitone g) :
+    g (⨆ i, f i) = ⨅ i, g (f i) :=
+  map_iSup_of_monotone (β := βᵒᵈ) f hg
+
+lemma map_iInf_of_antitone (f : ι → α) {g : α → β} (hg : Antitone g) :
+    g (⨅ i, f i) = ⨆ i, g (f i) :=
+  map_iInf_of_monotone (β := βᵒᵈ) f hg
+
+end Finite
+
+/-
+namespace Function
+
+variable {α R : Type*} [Semiring R]
+
+lemma mulSupport_pow_eq_support (f : α → ℕ) {b : R} (hb : orderOf b = 0) :
+    (fun a ↦ b ^ f a).mulSupport = f.support := by
+  ext1
+  simp [← orderOf_dvd_iff_pow_eq_one, hb]
+
+end Function
+-/
+
+namespace Nat
+
+lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ) :
+    ((∏ᶠ (x : ι), f x :) : R) = ∏ᶠ (x : ι), (f x : R) := by
+  rcases Set.finite_or_infinite (Function.mulSupport f) with hf | hf
+  · have hf' : (fun i ↦ (f i : R)).mulSupport = f.mulSupport := by
+      simp only [Function.mulSupport]
+      ext1
+      simp
+    rw [finprod_eq_prod _ hf, finprod_eq_prod _ (hf' ▸ hf), cast_prod f hf.toFinset]
+    congr
+    exact hf'.symm
+  · have hf' : (Function.mulSupport fun i ↦ (f i : R)).Infinite := by
+      rw [Function.mulSupport] at hf ⊢
+      convert hf with i
+      rw [cast_eq_one]
+    rw [finprod_of_infinite_mulSupport hf, finprod_of_infinite_mulSupport hf', cast_one]
+
+end Nat
 
 namespace Multiset
 
@@ -78,22 +149,45 @@ lemma finprod_pow_count_of_subsgingleton_units {α : Type*} [CommMonoidWithZero 
 
 end UniqueFactorizationMonoid
 
+namespace Finite
+
+variable {α β : Type*} [ConditionallyCompleteLinearOrderBot α] [Finite β]
+
+lemma ciSup_option (f : Option β → α) : ⨆ o, f o = f none ⊔ ⨆ b, f (some b) := by
+  refine le_antisymm (ciSup_le fun o ↦ ?_) ?_
+  · cases o with
+    | none => exact le_sup_left
+    | some val => exact le_sup_of_le_right <| le_ciSup_of_le val le_rfl
+  · rcases isEmpty_or_nonempty β with hβ | hβ
+    · rw [iSup_of_empty', csSup_empty, sup_bot_eq]
+      exact le_ciSup ..
+    exact sup_le (le_ciSup f none) <| ciSup_le fun b ↦ le_ciSup ..
+
+-- There appears to be no `ConditionallyCompleteLinearOrderTop`, so we restrict
+-- to our use case `β = ENat`.
+lemma ciInf_option (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b, f (some b) := by
+  -- exact ciSup_option (α := α ᵒᵈ) .. -- does not work
+  refine le_antisymm (le_min (ciInf_le ..) ?_) <| le_ciInf fun o ↦ ?_
+  · rcases isEmpty_or_nonempty β with hβ | hβ
+    · simp
+    exact le_ciInf fun b ↦ ciInf_le ..
+  · cases o with
+  | none => exact inf_le_left
+  | some val => exact inf_le_of_right_le <| ciInf_le ..
+
+end Finite
+
+namespace Ideal
+
+variable {R : Type*} [Semiring R]
+
+lemma span_eq_iSup {ι : Type*} (x : ι → R) :
+    Ideal.span (Set.range x) = ⨆ i, Ideal.span {x i} := by
+  rw [← Ideal.span_iUnion, Set.iUnion_singleton_eq_range]
+
+end Ideal
+
 namespace IsDedekindDomain.HeightOneSpectrum
-
-/--
-info: IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count.{u_1} {R : Type u_1} [CommRing R]
-  [IsDedekindDomain R] (v : HeightOneSpectrum R) [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ 0) :
-  v.maxPowDividing I = v.asIdeal ^ Multiset.count v.asIdeal (UniqueFactorizationMonoid.normalizedFactors I)
--/
-#guard_msgs in
-#check IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count
-
-/--
-info: Ideal.finprod_heightOneSpectrum_factorization.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] {I : Ideal R}
-  (hI : I ≠ 0) : ∏ᶠ (v : HeightOneSpectrum R), v.maxPowDividing I = I
--/
-#guard_msgs in
-#check Ideal.finprod_heightOneSpectrum_factorization
 
 /--
 info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] (v : HeightOneSpectrum R) (I : Ideal R)
@@ -119,7 +213,7 @@ info: sup_eq_prod_inf_factors.{u_4} {T : Type u_4} [CommRing T] [IsDedekindDomai
   I ⊔ J = (UniqueFactorizationMonoid.normalizedFactors I ∩ UniqueFactorizationMonoid.normalizedFactors J).prod
 -/
 #guard_msgs in
-#check sup_eq_prod_inf_factors
+#check sup_eq_prod_inf_factors -- should not be in the root name space?
 
 /--
 info: factorization_eq_count.{u_1} {α : Type u_1} [CommMonoidWithZero α] [UniqueFactorizationMonoid α] [NormalizationMonoid α]
@@ -128,12 +222,227 @@ info: factorization_eq_count.{u_1} {α : Type u_1} [CommMonoidWithZero α] [Uniq
 #guard_msgs in
 #check factorization_eq_count
 
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+
+/-!
+### Conversion between various multplicities
+-/
+
+lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ ⊥)
+    (p : HeightOneSpectrum R) :
+    Multiset.count p.asIdeal (UniqueFactorizationMonoid.normalizedFactors I) =
+      multiplicity p.asIdeal I := by
+  have := UniqueFactorizationMonoid.emultiplicity_eq_count_normalizedFactors (irreducible p) hI
+  apply_fun ((↑) : ℕ → ℕ∞) using CharZero.cast_injective
+  convert this.symm
+  · -- `p.asIdeal = normalize p.asIdeal`
+    exact (normalize_eq p.asIdeal).symm
+  · -- `↑(multiplicity p.asIdeal I) = emultiplicity p.asIdeal I`
+    refine Eq.symm (FiniteMultiplicity.emultiplicity_eq_multiplicity ?_)
+    exact finiteMultiplicity_of_emultiplicity_eq_natCast this
+
+lemma maxPowDividing_eq_pow {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
+    p.maxPowDividing I = p.asIdeal ^ multiplicity p.asIdeal I := by
+  classical
+  rw [maxPowDividing_eq_pow_multiset_count _ hI, count_normalizedFactors_eq_multiplicity hI]
+
+/-!
+---
+-/
+
+lemma _root_.Ideal.finprod_heightOneSpectrum_pow_multiplicity {I : Ideal R} (hI : I ≠ ⊥) :
+    ∏ᶠ p : HeightOneSpectrum R, p.asIdeal ^ multiplicity p.asIdeal I = I := by
+  nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_factorization hI]
+  simp only [maxPowDividing_eq_pow hI]
+
+lemma multiplicity_le_of_ideal_ge (p : HeightOneSpectrum R) {I J : Ideal R} (h : J ≤ I)
+    (hJ : J ≠ ⊥) :
+    multiplicity p.asIdeal I ≤ multiplicity p.asIdeal J := by
+  classical
+  rw [← count_normalizedFactors_eq_multiplicity hJ,
+    ← count_normalizedFactors_eq_multiplicity <| ne_bot_of_le_ne_bot hJ h]
+  exact count_le_of_ideal_ge h hJ _
+
+open UniqueFactorizationMonoid Multiset in
+lemma multiplicity_sup (p : HeightOneSpectrum R) {I J : Ideal R} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) :
+    multiplicity p.asIdeal (I ⊔ J) = multiplicity p.asIdeal I ⊓ multiplicity p.asIdeal J := by
+  classical
+  rw [sup_eq_prod_inf_factors hI hJ, ← count_normalizedFactors_eq_multiplicity ?h,
+    ← count_normalizedFactors_eq_multiplicity hI, ← count_normalizedFactors_eq_multiplicity hJ]
+  -- extracted from the proof of `sup_eq_prod_inf_factors`
+  --   ==> refactor that (Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas)
+  case h =>
+    exact prod_ne_zero_of_prime _
+      fun _ h ↦ prime_of_normalized_factor _ (mem_inter.mp h).1
+  have H : normalizedFactors (normalizedFactors I ∩ normalizedFactors J).prod =
+      normalizedFactors I ∩ normalizedFactors J := by
+    refine normalizedFactors_prod_of_prime fun p hp ↦ ?_
+    rw [mem_inter] at hp
+    exact prime_of_normalized_factor p hp.left
+  rw [H]
+  exact count_inter ..
+
+lemma emultiplicity_sup (p : HeightOneSpectrum R) (I J : Ideal R) :
+    emultiplicity p.asIdeal (I ⊔ J) = emultiplicity p.asIdeal I ⊓ emultiplicity p.asIdeal J := by
+  rcases eq_or_ne I ⊥ with rfl | hI
+  · rw [bot_eq_zero, emultiplicity_zero]
+    simp
+  rcases eq_or_ne J ⊥ with rfl | hJ
+  · rw [bot_eq_zero, emultiplicity_zero]
+    simp
+  have : I ⊔ J ≠ ⊥ := by grind
+  have H {I' : Ideal R} (h : I' ≠ ⊥) : FiniteMultiplicity p.asIdeal I' :=
+    FiniteMultiplicity.of_prime_left (prime p) h
+  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity <| H this,
+    FiniteMultiplicity.emultiplicity_eq_multiplicity <| H hI,
+    FiniteMultiplicity.emultiplicity_eq_multiplicity <| H hJ, multiplicity_sup _ hI hJ]
+  norm_cast
+
+-- set_option backward.isDefEq.respectTransparency false in -- temporary measure
+lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I : ι → Ideal R) :
+    emultiplicity p.asIdeal (⨆ i, I i) = ⨅ i, emultiplicity p.asIdeal (I i) := by
+  induction ι using Finite.induction_empty_option with
+  | h_empty =>
+    rw [iSup_of_empty, iInf_of_empty]
+    exact emultiplicity_zero _
+  | of_equiv e ih =>
+    specialize @ih (I ∘ e)
+    rw [← sSup_range, ← sInf_range] at ih ⊢
+    rw [EquivLike.range_comp I e] at ih
+    rw [ih, ← EquivLike.range_comp (fun i ↦ emultiplicity p.asIdeal (I i)) e]
+    rfl
+  | h_option ih =>
+    rw [iSup_option, emultiplicity_sup p .., ih, Finite.ciInf_option]
+
+lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpectrum R)
+    {I : ι → Ideal R} (hI : ∀ i, I i ≠ ⊥) :
+    multiplicity p.asIdeal (⨆ i, I i) = ⨅ i, multiplicity p.asIdeal (I i) := by
+  have H i : FiniteMultiplicity p.asIdeal (I i) :=
+    FiniteMultiplicity.of_prime_left (prime p) <| hI i
+  have H' : FiniteMultiplicity p.asIdeal (⨆ i, I i) := by
+    refine FiniteMultiplicity.of_prime_left (prime p) ?_
+    contrapose! hI
+    rw [← bot_eq_zero, iSup_eq_bot] at hI
+    exact ⟨Classical.ofNonempty, hI _⟩
+  have := emultiplicity_ciSup p I
+  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity H'] at this
+  conv_rhs at this => enter [1, i]; rw [FiniteMultiplicity.emultiplicity_eq_multiplicity (H i)]
+  exact_mod_cast this
+
+/--
+info: multiplicity_mul.{u_1} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {p a b : α} (hp : Prime p)
+  (hfin : FiniteMultiplicity p (a * b)) : multiplicity p (a * b) = multiplicity p a + multiplicity p b
+-/
+#guard_msgs in
+#check multiplicity_mul
+
+/--
+info: emultiplicity_mul.{u_1} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {p a b : α} (hp : Prime p) :
+  emultiplicity p (a * b) = emultiplicity p a + emultiplicity p b
+-/
+#guard_msgs in
+#check emultiplicity_mul
+
+/--
+info: Finset.emultiplicity_prod.{u_1, u_3} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {β : Type u_3} {p : α}
+  (hp : Prime p) (s : Finset β) (f : β → α) : emultiplicity p (∏ x ∈ s, f x) = ∑ x ∈ s, emultiplicity p (f x)
+-/
+#guard_msgs in
+#check Finset.emultiplicity_prod
+
+/-
+I've been researching Mathlib for a bit today to figure out how to best set up a proof of the first
+of the two lemmas in the initial post. I learned that there are at least seven ways of expressing
+the multiplicity of a prime ideal `p` in the factorization of  another (nonzero) ideal `I` in a Dedkind domain:
+* `factorization I p`
+* `emultiplicity p I` (but this is an `ENat`)
+* `multiplicity p I`
+* `(UniqueFactorizationMonoid.normalizedFactors I).count p`
+* `(UniqueFactorizationMonoid.normalizedFactors I).count (normalize p)`
+* `(UniqueFactorizationMonoid.factors I).count p`
+* `(UniqueFactorizationMonoid.factors I).count (normalize p)`
+
+The APIs for these are a bit disparate. There are lemmas relating some of these: docs#factorization_eq_count
+and docs#UniqueFactorizationMonoid.emultiplicity_eq_count_normalizedFactors (and, of course, one can relate
+docs#emultiplicity with docs#multiplicity and docs#UniqueFactorizationMonoid.normalizedFactors with
+docs#UniqueFactorizationMonoid.factors).
+-/
+
+
 end IsDedekindDomain.HeightOneSpectrum
+
+namespace NumberField
+
+open IsDedekindDomain.HeightOneSpectrum
+
+variable {K : Type*} [Field K] [NumberField K]
+
+/--
+info: IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count.{u_1} {R : Type u_1} [CommRing R]
+  [IsDedekindDomain R] (v : IsDedekindDomain.HeightOneSpectrum R) [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ 0) :
+  v.maxPowDividing I = v.asIdeal ^ Multiset.count v.asIdeal (UniqueFactorizationMonoid.normalizedFactors I)
+-/
+#guard_msgs in
+#check IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count
+
+/--
+info: Ideal.finprod_heightOneSpectrum_factorization.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] {I : Ideal R}
+  (hI : I ≠ 0) : ∏ᶠ (v : IsDedekindDomain.HeightOneSpectrum R), v.maxPowDividing I = I
+-/
+#guard_msgs in
+#check Ideal.finprod_heightOneSpectrum_factorization
+
+
+/- noncomputable
+abbrev FinitePlace.asIdeal (v : FinitePlace K) : Ideal (𝓞 K) := v.maximalIdeal.asIdeal
+ -/
+
+lemma finite_setOf_multipicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
+    {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0}.Finite := by
+  simp only [ne_eq, multiplicity_eq_zero, not_not]
+  let e := FinitePlace.equivHeightOneSpectrum (K := K)
+  have he (v : FinitePlace K) : e v = v.maximalIdeal := rfl
+  have he' (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) : (e.symm v).maximalIdeal = v := by
+    simp [e, ← he]
+  let e' : ({v : FinitePlace K | v.maximalIdeal.asIdeal ∣ I}) ≃
+      ({v : IsDedekindDomain.HeightOneSpectrum (𝓞 K) | v.asIdeal ∣ I}) := {
+    toFun v := ⟨e v.val, Set.mem_setOf.mpr v.prop⟩
+    invFun v := ⟨e.symm v.val, Set.mem_setOf.mpr <| by simp only [he']; exact v.prop⟩
+    left_inv v := by grind
+    right_inv v := by grind
+  }
+  exact (Equiv.set_finite_iff e').mpr <| I.finite_factors hI
+
+noncomputable
+example : FinitePlace K ≃ IsDedekindDomain.HeightOneSpectrum (𝓞 K) := by exact
+  FinitePlace.equivHeightOneSpectrum
+
+lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
+    ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
+  classical
+  nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_factorization hI]
+  rw [← finprod_comp_equiv (FinitePlace.equivHeightOneSpectrum (K := K))]
+  congr
+  ext1 v
+  rw [show FinitePlace.equivHeightOneSpectrum v = v.maximalIdeal from rfl,
+    v.maximalIdeal.maxPowDividing_eq_pow_multiset_count]
+  rwa [count_normalizedFactors_eq_multiplicity hI]
+
+lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 0) :
+    v x * v.maximalIdeal.asIdeal.absNorm ^ multiplicity v.maximalIdeal.asIdeal (Ideal.span {x}) = 1 := by
+  have hnz : Ideal.span {x} ≠ ⊥ := mt Submodule.span_singleton_eq_bot.mp hx
+  convert v.maximalIdeal.embedding_mul_absNorm hx using 2
+  · exact (norm_embedding_eq v ↑x).symm
+  · norm_cast
+    rw [v.maximalIdeal.maxPowDividing_eq_pow (by exact hnz), map_pow]
+    rfl
+
+end NumberField
 
 end API
 
 /-!
-### Instance for number fields
+### Properties of heights on number fields
 -/
 
 namespace NumberField
@@ -265,9 +574,82 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
     Matrix.cons_val_fin_one]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
-lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
+open IsDedekindDomain.HeightOneSpectrum in
+lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {ι : Type*} [Finite ι] {x : ι → 𝓞 K} (hx : x ≠ 0) :
     (Ideal.span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v.val (x i) = 1 := by
-  sorry
+  classical
+  set ι' := { j // (x j : K) ≠ 0 } with hι'_eq
+  have hxnz {i} (h : x i ≠ 0) : (x i : K) ≠ 0 := by norm_cast
+  have hnebot (v : FinitePlace K) : v.maximalIdeal.asIdeal ≠ ⊥ :=
+    fun h ↦ RingOfIntegers.not_isField K <|
+      Ring.isField_iff_maximal_bot.mpr (h ▸ isMaximal v.maximalIdeal)
+  have hnpos (v : FinitePlace K) : 1 ≤ v.maximalIdeal.asIdeal.absNorm := by
+    refine Nat.one_le_iff_ne_zero.mpr ?_
+    rw [Ne, Ideal.absNorm_eq_zero_iff]
+    exact hnebot v
+  obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
+  simp only [Pi.zero_def] at hi₀
+  have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i₀, hxnz hi₀⟩
+  have Hv (v : AbsoluteValue K ℝ) := Height.iSup_abv_eq_iSup_subtype v hx₀
+  have HI : Ideal.span (Set.range x) = Ideal.span (Set.range fun i : ι' ↦ x i.val) := by
+    rw [← Ideal.span_sdiff_singleton_zero (s := Set.range x)]
+    congr
+    ext1 a
+    simp only [Set.mem_diff, Set.mem_range, Set.mem_singleton_iff]
+    exact ⟨fun ⟨⟨i, hi⟩, ha⟩ ↦ ⟨⟨i, hxnz (hi ▸ ha)⟩, hi⟩, fun ⟨j, hj⟩ ↦ ⟨⟨j.val, hj⟩, by grind⟩⟩
+  -- restrict to the subtype of `ι` where `x` is non-zero
+  simp only [Hv, HI]
+  have hι' : Nonempty ι' := .intro ⟨i₀, hxnz hi₀⟩
+  have hx' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by
+    simpa only [ne_eq, iSup_eq_bot, Ideal.span_singleton_eq_bot, not_forall]
+      using ⟨⟨i₀, hxnz hi₀⟩, hi₀⟩
+  have H : (fun v : FinitePlace K ↦ v.maximalIdeal.asIdeal ^
+      multiplicity v.maximalIdeal.asIdeal (⨆ i : ι', Ideal.span {x i.val})).mulSupport.Finite := by
+    set I := ⨆ i : ι', Ideal.span {x i.val}
+    have hs : (fun v : FinitePlace K ↦
+                v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I).mulSupport =
+        {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0} := by
+      ext1 v
+      simp [Ideal.IsPrime.ne_top']
+    simpa only [hs] using finite_setOf_multipicity_ne_zero hx'
+  rw [Ideal.span_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx', map_finprod _ H,
+    Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
+  case hf =>
+    rwa [← Function.comp_def (fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)),
+      Function.mulSupport_comp_eq _ fun {I} ↦ ?hnorm]
+    case hnorm =>
+      norm_cast
+      rw [Ideal.absNorm_eq_one_iff, Ideal.one_eq_top]
+  case hg =>
+    exact Function.finite_mulSupport_iSup fun j ↦ FinitePlace.mulSupport_finite j.prop
+  refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
+  rw [multiplicity_ciSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
+    Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
+    Finite.map_iInf_of_monotone _ Nat.mono_cast,
+    Finite.map_iInf_of_antitoneOn (s := {r : ℝ | 0 < r}) (g := (·⁻¹)) ?hinv fun j ↦ ?hs]
+  case hj =>
+    simp only [ne_eq, Ideal.span_singleton_eq_bot]
+    apply_fun ((↑) : 𝓞 K → K)
+    exact j.prop
+  case hn => simp [Ideal.absNorm_eq_zero_iff, hnebot]
+  case hinv =>
+    refine antitoneOn_iff_forall_lt.mpr fun a ha b hb h ↦ ?_
+    simp only [Set.mem_setOf_eq] at ha hb
+    rw [inv_le_inv₀ hb ha]
+    exact h.le
+  case hs =>
+    simp only [ne_eq, Set.mem_setOf_eq]
+    norm_cast
+    exact Nat.pow_pos (hnpos v)
+  refine iSup_congr fun i ↦ ?_
+  rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, ← FinitePlace.coe_apply v ↑(x ↑i), Nat.cast_pow]
+  case hne => simp [(show 0 < _ from hnpos v).ne']
+  have hi₀ : x i.val ≠ 0 := by
+    apply_fun ((↑) : 𝓞 K → K)
+    exact i.prop
+  exact FinitePlace.apply_mul_absNorm_pow_eq_one v hi₀
+
+
 
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧

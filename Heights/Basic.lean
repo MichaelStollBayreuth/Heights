@@ -104,8 +104,14 @@ variable {α ι : Type*} [Finite ι] [ConditionallyCompleteLattice α]
 lemma le_ciSup_of_le {a : α} {f : ι → α} (c : ι) (h : a ≤ f c) : a ≤ iSup f :=
   _root_.le_ciSup_of_le (bddAbove_range f) c h
 
+lemma ciInf_le_of_le {a : α} {f : ι → α} (c : ι) (h : f c ≤ a) : iInf f ≤ a :=
+  _root_.ciInf_le_of_le (bddBelow_range f) c h
+
 lemma ciSup_mono {f g : ι → α} (H : ∀ (x : ι), f x ≤ g x) : iSup f ≤ iSup g :=
   _root_.ciSup_mono (bddAbove_range g) H
+
+lemma ciInf_mono {f g : ι → α} (H : ∀ (x : ι), f x ≤ g x) : iInf f ≤ iInf g :=
+  _root_.ciInf_mono (bddBelow_range f) H
 
 -- #find_home! le_ciSup_of_le -- [Mathlib.Data.Fintype.Order]
 -- #find_home! ciSup_mono -- [Mathlib.Data.Fintype.Order]
@@ -117,6 +123,10 @@ lemma ciSup_sup [Nonempty ι] {f : ι → α} {a : α} :
   · exact le_ciSup_of_le (Classical.arbitrary ι) le_sup_right
 
 -- #find_home! ciSup_sup -- [Mathlib.Order.ConditionallyCompleteLattice.Finset]
+
+lemma ciInf_inf [Nonempty ι] {f : ι → α} {a : α} :
+    (⨅ i, f i) ⊓ a = ⨅ i, f i ⊓ a :=
+  ciSup_sup (α := αᵒᵈ) ..
 
 end Finite
 
@@ -153,7 +163,7 @@ end AbsoluteValue
 
 namespace Height
 
-variable {K : Type*} [Field K] [AdmissibleAbsValues K]
+variable {K : Type*} [Field K]
 
 open AdmissibleAbsValues Function
 
@@ -176,11 +186,18 @@ lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
     exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨i, hi⟩ (hv ..)
   · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨j, h⟩ le_rfl
 
+lemma iSup_abv_eq_iSup_subtype {ι : Type*} [Finite ι] (v : AbsoluteValue K ℝ) {x : ι → K}
+    (hx : x ≠ 0) :
+    ⨆ i, v (x i) =  ⨆ i : {j // x j ≠ 0}, v (x i) :=
+  iSup_eq_iSup_subtype hx v.map_zero v.nonneg
+
+variable [AdmissibleAbsValues K]
+
 -- Finiteness of the multiplicative support for some relevant functions.
 -- @[fun_prop]
 lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
     (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).mulSupport.Finite := by
-  simp only [iSup_eq_iSup_subtype hx (map_zero _) (AbsoluteValue.nonneg _)]
+  simp only [iSup_abv_eq_iSup_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| ne_iff.mp hx
   -- suffices (fun v : nonarchAbsVal ↦ ⨆ i : {j // x j ≠ 0}, v.val (x i)).mulSupport.Finite by
   --   convert this with v
