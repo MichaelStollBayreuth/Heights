@@ -1,6 +1,7 @@
 import Mathlib
 import Heights.MvPolynomial
 import Heights.Descent
+import Heights.NumberField
 
 /-!
 # The approximate parallelogram law on elliptic curves
@@ -215,10 +216,32 @@ lemma Point.xRep_ne_zero (P : W.Point) : P.xRep ≠ 0 := by
   | 0 => simp
   | .some _ => simp
 
+@[simp]
 lemma Point.xRep_neg (P : W.Point) : (-P).xRep = P.xRep := by
   match P with
   | 0 => simp
   | .some _ => simp
+
+lemma Point.eq_or_eq_neg_of_xRep_eq_xRep {P Q : W.Point} (h : P.xRep = Q.xRep) :
+    P = Q ∨ P = -Q := by
+  match P, Q with
+  | .zero, .zero => exact .inl rfl
+  | .zero, .some _ => simp [xRep] at h
+  | .some _, .zero => simp [xRep] at h
+  | @some _ _ _ x₁ y₁ h₁, @some _ _ _ x₂ y₂ h₂ =>
+    simp only [xRep, Matrix.vecCons_inj, and_true] at h
+    rcases Y_eq_of_X_eq h₁.1 h₂.1 h with H | H
+    · refine .inl ?_
+      subst h H
+      rfl
+    · refine .inr ?_
+      subst h H
+      rfl
+
+lemma Point.xRep_eq_xRep_iff {P Q : W.Point} :
+    P.xRep = Q.xRep ↔ P = Q ∨ P = -Q := by
+  refine ⟨eq_or_eq_neg_of_xRep_eq_xRep, fun H ↦ ?_⟩
+  rcases H with rfl | rfl <;> simp
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
 to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`. -/
@@ -419,6 +442,8 @@ lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
 ### The naïve height
 -/
 
+section AAV
+
 variable [AdmissibleAbsValues K]
 
 /-- The naïve logarithmic height of an affine point on `W`. -/
@@ -427,6 +452,14 @@ noncomputable def Point.naiveHeight (P : W.Point) : ℝ :=
 
 lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P.xRep :=
   rfl
+
+lemma Point.naiveHeight_eq_logHeight₁_of_ne_zero {P : W.Point} :
+    P.naiveHeight = logHeight₁ (P.xRep 0) := by
+  cases P with
+  | zero =>
+    simp [naiveHeight, xRep]
+  | some h =>
+    simpa [naiveHeight] using (logHeight₁_eq_logHeight _).symm
 
 variable (W) in
 lemma abs_logHeight_sym2x_sub_le :
@@ -466,5 +499,64 @@ theorem approx_parallelogram_law [DecidableEq K] :
   generalize logHeight (P.sym2x Q) = B' at hPQ hC
   generalize P.naiveHeight + Q.naiveHeight = A' at hPQ ⊢
   grind only [= abs.eq_1, = max_def]
+
+end AAV
+
+section NumberField
+
+open NumberField
+
+variable [NumberField K]
+
+variable (W) in
+lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Finite := by
+  let s := fun x : K ↦ {P : W.Point | P.xRep = ![x, 1] ∧ P.naiveHeight ≤ B}
+  have hs x : (s x).Finite := by
+    rcases Set.eq_empty_or_nonempty (s x) with h | h
+    · exact h ▸ Set.finite_empty
+    choose Q hQ using h
+    simp [s] at hQ ⊢
+    simp only [← hQ.1, Point.xRep_eq_xRep_iff, Set.setOf_and]
+    exact Set.Finite.inter_of_left (by simp [Set.setOf_or]) _
+  have h : {P : W.Point | P.naiveHeight ≤ B} ⊆ {0} ∪ ⋃ x : K, s x := by
+    intro P hP
+    simp only [Set.mem_setOf_eq] at hP
+    simp only [Set.singleton_union, Set.mem_insert_iff, Set.mem_iUnion]
+    match HP : P with
+    | .zero => exact .inl rfl
+    | .some _ =>
+      refine .inr ⟨P.xRep 0, ?_⟩
+      simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Set.mem_setOf_eq, Point.xRep_some,
+        Matrix.vecCons_inj, and_true, s]
+      refine ⟨?_, hP⟩
+      simp [Point.xRep, HP]
+  let S : Set K := {x | logHeight₁ x ≤ B}
+  have hS : ∀ x ∉ S, s x = ∅ := by
+    intro x hx
+    simp only [Set.mem_setOf_eq, not_le, S] at hx
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, s]
+    rw [Set.eq_empty_iff_forall_notMem]
+    intro P
+    simp only [Set.mem_setOf_eq, not_and, not_le]
+    rw [Point.naiveHeight_eq_logHeight₁_of_ne_zero]
+    simp +contextual [hx]
+  refine (Set.Finite.union (by simp) ?_).subset h
+  exact Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) hS
+
+variable [DecidableEq K]
+
+include hab hW in
+/-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
+`E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
+number field `K`.-/
+theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex) :
+    AddGroup.FG W.Point := by
+  have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
+    rw [Point.naiveHeight_eq_logHeight P]
+    positivity
+  obtain ⟨C, hC⟩ := approx_parallelogram_law hab hW
+  exact AddCommGroup.fg_of_descent' weakMW H₂ hC (finite_naiveHeight_le W)
+
+end NumberField
 
 end WeierstrassCurve.Affine
