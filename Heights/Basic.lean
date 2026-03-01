@@ -65,9 +65,11 @@ We define the following variants.
 ## TODO
 
 * Add `{mul|log}Height_comp_le`.. => #35408
-* PR Segre results.   => #35408
-* PR `logHeight₁_eq`  => #35919
-* PR `{mul|log}Height_sumElim_zero_eq`
+* PR Segre results => #35408
+* PR bounds for products => #35923
+* PR `logHeight₁_eq` => #35919
+* PR `{mul|log}Height_sumElim_zero_eq` => #35922
+* PR `totalWeight` lemmas + positivity extension for number fields => #35924
 * PR bounds for linear maps.
 * PR upper and lower bounds for polynomial maps.
 
