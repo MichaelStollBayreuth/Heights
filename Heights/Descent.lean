@@ -1,4 +1,3 @@
-import Mathlib.Algebra.Module.NatInt
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Set.Finite.Lemmas
 import Mathlib.GroupTheory.Finiteness

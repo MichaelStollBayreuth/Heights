@@ -642,6 +642,7 @@ variable {K : Type*} [Field K] [NumberField K]
 
 open AdmissibleAbsValues
 
+-- #35919
 lemma sum_archAbsVal_eq {M : Type*} [AddCommMonoid M] (f : AbsoluteValue K ℝ → M) :
     (archAbsVal.map f).sum = ∑ v : InfinitePlace K, v.mult • f v.val := by
   classical
@@ -653,10 +654,12 @@ lemma sum_archAbsVal_eq {M : Type*} [AddCommMonoid M] (f : AbsoluteValue K ℝ �
       simp only [archAbsVal, mem_toFinset, mem_multisetInfinitePlace] at hw ⊢
       simp [count_multisetInfinitePlace_eq_mult ⟨w, hw⟩]
 
+-- #35919
 lemma sum_nonarchAbsVal_eq {M : Type*} [AddCommMonoid M] (f : AbsoluteValue K ℝ → M) :
     (∑ᶠ v : nonarchAbsVal, f v.val) = ∑ᶠ v : FinitePlace K, f v.val :=
   rfl
 
+-- #35924
 variable (K) in
 lemma totalWeight_eq_sum_mult : totalWeight K = ∑ v : InfinitePlace K, v.mult := by
   simp only [totalWeight]
@@ -665,6 +668,7 @@ lemma totalWeight_eq_sum_mult : totalWeight K = ∑ v : InfinitePlace K, v.mult 
       Fin.sum_const, Multiset.length_toList, smul_eq_mul, mul_one]
   · simp
 
+-- #35924
 variable (K) in
 lemma totalWeight_eq_finrank : totalWeight K = Module.finrank ℚ K := by
   rw [totalWeight_eq_sum_mult, InfinitePlace.sum_mult_eq]
@@ -678,7 +682,7 @@ lemma totalWeight_pos : 0 < totalWeight K := by
     (Function.ne_iff.mpr ⟨default, (default : InfinitePlace K).mult_ne_zero⟩).pos
 
 open Real in
--- For the next PR
+-- #35919
 /-- This is the familiar definition of the logarithmic height on a number field. -/
 lemma logHeight₁_eq (x : K) :
     logHeight₁ x =
@@ -688,13 +692,15 @@ lemma logHeight₁_eq (x : K) :
 
 end NumberField
 
+-- #35924
+
 /-!
 ### Positivity extension for totalWeight on number fields
 -/
 
 namespace Mathlib.Meta.Positivity
 
-open Lean.Meta Qq Projectivization
+open Lean.Meta Qq
 
 /-- Extension for the `positivity` tactic: `Height.totalWeight` is positive for number fields. -/
 @[positivity Height.totalWeight _]
@@ -710,6 +716,8 @@ meta def evalHeightTotalWeight : PositivityExt where eval {u α} _ _ e := do
   | _, _, _ => throwError "not Height.totalWeight"
 
 end Mathlib.Meta.Positivity
+
+-- end #35924
 
 open Height in
 example (K : Type*) [Field K] [NumberField K] (n : ℕ) : 0 < totalWeight K ^ n :=

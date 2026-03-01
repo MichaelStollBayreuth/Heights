@@ -66,7 +66,7 @@ We define the following variants.
 
 * Add `{mul|log}Height_comp_le`.. => #35408
 * PR Segre results.   => #35408
-* PR `logHeight₁_eq`
+* PR `logHeight₁_eq`  => #35919
 * PR `{mul|log}Height_sumElim_zero_eq`
 * PR bounds for linear maps.
 * PR upper and lower bounds for polynomial maps.
@@ -134,11 +134,13 @@ namespace AbsoluteValue -- _7
 
 variable {K : Type*} [Semiring K]
 
+-- #35408
 lemma iSup_abv_nonneg {ι : Type*} (v : AbsoluteValue K ℝ) {x : ι → K} : 0 ≤ ⨆ i, v (x i) :=
   Real.iSup_nonneg fun j ↦ by positivity
 
 -- #find_home! iSup_abv_nonneg --[Mathlib.Data.Real.Archimedean]
 
+-- #35408
 -- for the "Segre" part
 lemma iSup_abv_fun_mul_eq_iSup_abv_mul_iSup_abv (v : AbsoluteValue K ℝ) {ι ι' : Type*}
     [Finite ι] [Finite ι'] (x : ι → K) (y : ι' → K) :
@@ -226,6 +228,7 @@ lemma mulSupport_max_nonarchAbsVal_finite (x : K) :
   -- convert mulSupport_iSup_nonarchAbsVal_finite (x := ![x, 1]) <| by simp with v i
   -- fin_cases i <;> simp
 
+-- #35408
 lemma mulHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι') (x : ι' → K) :
     mulHeight (x ∘ f) ≤ mulHeight x := by
   rcases eq_or_ne (x ∘ f) 0 with h₀ | h₀
@@ -243,16 +246,19 @@ lemma mulHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι
   · exact finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
       (fun v ↦ v.val.iSup_abv_nonneg) (mulSupport_iSup_nonarchAbsVal_finite hx) fun v ↦ H v.val
 
+-- #35408
 lemma logHeight_comp_equiv {ι ι' : Type*} (e : ι ≃ ι') (x : ι' → K) :
     logHeight (x ∘ ⇑e) = logHeight x := by
   simp only [logHeight_eq_log_mulHeight, mulHeight_comp_equiv]
 
+-- #35408
 open Real in
 lemma logHeight_comp_le {ι ι' : Type*} [Finite ι] [Finite ι'] (f : ι → ι') (x : ι' → K) :
     logHeight (x ∘ f) ≤ logHeight x := by
   simp only [logHeight_eq_log_mulHeight]
   exact log_le_log (by positivity) <| mulHeight_comp_le ..
 
+-- #35922
 lemma mulHeight_sumElim_zero_eq {ι : Type*} (ι' : Type*) [Finite ι] [Finite ι'] (x : ι → K) :
     mulHeight (Sum.elim x (0 : ι' → K)) = mulHeight x := by
   rcases eq_or_ne x 0 with rfl | hx
@@ -271,6 +277,7 @@ lemma mulHeight_sumElim_zero_eq {ι : Type*} (ι' : Type*) [Finite ι] [Finite �
   · exact H v
   · exact H v.val
 
+-- #35922
 open Real in
 lemma logHeight_sumElim_zero_eq {ι : Type*} (ι' : Type*) [Finite ι] [Finite ι'] (x : ι → K) :
     logHeight (Sum.elim x (0 : ι' → K)) = logHeight x := by
@@ -401,7 +408,7 @@ private lemma max_abv_add_one_le_of_nonarch {v : AbsoluteValue K ℝ} (hv : IsNo
 
 end Height
 
--- For the next PR
+-- #35919
 lemma Real.log_finprod {α : Type*} {f : α → ℝ} (h : ∀ a, 0 < f a) :
     log (∏ᶠ a, f a) = ∑ᶠ a, log (f a) := by
   classical
@@ -431,7 +438,7 @@ open AdmissibleAbsValues Real
 
 variable {K : Type*} [Field K] [AdmissibleAbsValues K]
 
--- For the next PR
+-- #35919
 lemma logHeight₁_eq (x : K) :
     logHeight₁ x =
       (archAbsVal.map fun v ↦ log⁺ (v x)).sum + ∑ᶠ v : nonarchAbsVal, log⁺ (v.val x) := by
@@ -519,6 +526,7 @@ lemma mulHeight_eq_one_of_isEmpty {ι : Type*} [IsEmpty ι] (x : ι → K) :
   rw [show x = 0 from Subsingleton.elim ..]
   exact mulHeight_zero -/
 
+-- #35922
 @[simp]
 lemma mulHeight_eq_one_of_subsingleton {ι : Type*} [Subsingleton ι] (x : ι → K) :
     mulHeight x = 1 := by
@@ -531,10 +539,13 @@ lemma mulHeight_eq_one_of_subsingleton {ι : Type*} [Subsingleton ι] (x : ι �
   ext1 j
   simpa [Subsingleton.elim j i] using inv_mul_cancel₀ hi
 
+-- #35922
 @[simp]
 lemma logHeight_eq_zero_of_subsingleton {ι : Type*} [Subsingleton ι] (x : ι → K) :
     logHeight x = 0 := by
   simp [logHeight_eq_log_mulHeight]
+
+-- from here: #35923
 
 /-- The multiplicative height of a pointwise product of tuples is bounded by the product
 of their multiplicative heights. -/
@@ -605,6 +616,8 @@ equals its logarithmic height. -/
 @[simp]
 lemma logHeight_neg {ι : Type*} [Finite ι] (x : ι → K) : logHeight (-x) = logHeight x := by
   simp [logHeight_eq_log_mulHeight]
+
+-- end #35923
 
 end Height
 
