@@ -553,6 +553,7 @@ theorem logHeight_eval_ge' [Nonempty ι'] {M : ℕ} {q : ι × ι' → MvPolynom
 
 -- end #35940
 
+-- #35941
 /-!
 ### Bounds for the height of ![x*y, x+y, 1]
 
@@ -592,7 +593,7 @@ lemma mulHeight_sym2_ge :
     ∃ C > 0, ∀ (x y : K), mulHeight ![x * y, x + y, 1] ≥ C * mulHeight₁ x * mulHeight₁ y := by
   let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
   let q : Fin 4 × Fin 3 → MvPolynomial (Fin 4) K :=
-    Function.uncurry ![![X 0, 0, 0], ![0, X 1, -X 0], ![0, X 2, -X 0], ![0, 0, X 3]]
+    ![![X 0, 0, 0], ![0, X 1, -X 0], ![0, X 2, -X 0], ![0, 0, X 3]].uncurry
   have hom a : (q a).IsHomogeneous 1 := by
     fin_cases a <;> simp [q] <;> grind only [!isHomogeneous_X, isHomogeneous_zero, IsHomogeneous.neg]
   obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_ge' (M := 1) (N := 1) hom
@@ -707,5 +708,6 @@ lemma abs_logHeight_sym2_sub_le' :
   exact hC ..
 
 end sym2
+-- end #35941
 
 end Height
