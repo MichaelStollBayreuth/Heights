@@ -27,7 +27,8 @@ namespace IsNonarchimedean
 
 variable {R α : Type*} [CommRing R]
 
-/- The ultrametric triangle inequality for finite sums. -/ -- -> Basic?
+-- #35925
+/-- The ultrametric triangle inequality for finite sums. -/
 lemma apply_sum_le {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {l : α → R} {s : Finset α} :
     v (∑ i ∈ s, l i) ≤ ⨆ i : s, v (l i) := by
   classical
@@ -45,6 +46,8 @@ lemma apply_sum_le {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {l : α �
 end IsNonarchimedean
 
 end aux
+
+-- #35925
 
 /-!
 ### Upper bound for the height of the image under a linear map
@@ -149,6 +152,10 @@ theorem logHeight_linearMap_apply_le (A : ι' × ι → K) (x : ι → K) :
   exact (log_le_log <| by positivity) <| mulHeight_linearMap_apply_le ..
 
 end Height
+
+-- end #35925
+
+-- #35927
 
 /-!
 ### Upper bound for the height of the image under a polynomial map
@@ -363,6 +370,9 @@ theorem logHeight_eval_le' {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i
 
 end Height
 
+-- end #35927
+
+
 namespace Polynomial
 
 open Height
@@ -439,6 +449,8 @@ lemma logHeight₁_eval_le (p : K[X]) (x : K) :
   exact (log_le_log <| by positivity) <| mulHeight₁_eval_le p x
 
 end Polynomial
+
+-- #35940
 
 /-!
 ### Lower bound for the height of the image under a polynomial map
@@ -538,6 +550,8 @@ theorem logHeight_eval_ge' [Nonempty ι'] {M : ℕ} {q : ι × ι' → MvPolynom
       (_h : ∀ k, ∑ j, (q (k, j)).eval x * (p j).eval x = (x k) ^ (M + N)),
       logHeight (fun j ↦ (p j).eval x) ≥ C + N * logHeight x :=
   ⟨_, logHeight_eval_ge hq⟩
+
+-- end #35940
 
 /-!
 ### Bounds for the height of ![x*y, x+y, 1]
