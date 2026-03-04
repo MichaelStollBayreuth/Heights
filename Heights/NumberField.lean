@@ -79,6 +79,16 @@ lemma relIndex_ne_zero_of_map_linearMapMulLeft_le (A B : Submodule R K) {n : ℕ
 
 end Submodule
 
+namespace Ideal
+
+variable {R : Type*} [Semiring R]
+
+lemma span_eq_iSup {ι : Type*} (x : ι → R) :
+    Ideal.span (Set.range x) = ⨆ i, Ideal.span {x i} := by
+  rw [← Ideal.span_iUnion, Set.iUnion_singleton_eq_range]
+
+end Ideal
+
 /-
 namespace Function
 
@@ -96,14 +106,13 @@ namespace Nat
 
 lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ) :
     ((∏ᶠ (x : ι), f x :) : R) = ∏ᶠ (x : ι), (f x : R) := by
-  have h : (fun i ↦ (f i : R)).mulSupport = f.mulSupport := by ext1; simp
-  have H : (fun i ↦ (f i : R)).HasFiniteMulSupport ↔ f.HasFiniteMulSupport := by
-    simp only [Function.HasFiniteMulSupport, h]
   by_cases hf : f.HasFiniteMulSupport
-  · rw [finprod_eq_prod _ hf, finprod_eq_prod _ (H.mpr hf), cast_prod f hf.toFinset]
-    simp [h]
-  · rw [finprod_of_not_hasFiniteMulSupport hf, finprod_of_infinite_mulSupport (mt H.mp hf),
-      cast_one]
+  · exact map_finprod (Nat.castRingHom R) hf
+  · have H : ¬ (fun i ↦ (f i : R)).HasFiniteMulSupport := by
+      simp only [Function.HasFiniteMulSupport] at hf ⊢
+      convert hf
+      ext1; simp
+    rw [finprod_of_not_hasFiniteMulSupport hf, finprod_of_not_hasFiniteMulSupport H, cast_one]
 
 end Nat
 
@@ -113,28 +122,10 @@ namespace Multiset
 lemma prod_map_eq_finprod {α M : Type*} [DecidableEq α] [CommMonoid M] (s : Multiset α)
     (f : α → M) :
     (s.map f).prod = ∏ᶠ a, f a ^ s.count a := by
-  induction s using Multiset.induction with
-  | empty => simp
-  | cons a s ih =>
-    simp only [map_cons, prod_cons, count_cons, ih]
-    rw [show f a = f a ^ if a = a then 1 else 0 by simp,
-      ← finprod_eq_single (fun b ↦ f b ^ if b = a then 1 else 0) a (by simp +contextual),
-      ← finprod_mul_distrib ?hf ?hg]
-    case hf =>
-      simpa only [pow_ite, pow_one, pow_zero, Function.HasFiniteMulSupport, Function.mulSupport]
-        using Set.Finite.subset (Set.finite_singleton a) (by grind)
-    case hg =>
-      simp only [Function.HasFiniteMulSupport, Function.mulSupport]
-      have : {a | s.count a ≠ 0}.Finite := by simp
-      refine Set.Finite.subset this fun b hb ↦ ?_
-      simp only [ne_eq, Set.mem_setOf_eq, count_eq_zero, Decidable.not_not] at hb ⊢
-      contrapose! hb
-      rw [count_eq_zero_of_notMem hb, pow_zero]
-    congr
-    ext1 b
-    split_ifs with rfl
-    · simp [← pow_succ']
-    · simp
+  rw [Finset.prod_multiset_map_count, eq_comm]
+  refine finprod_eq_prod_of_mulSupport_subset _ <| Function.mulSupport_subset_iff'.mpr fun a h ↦ ?_
+  simp only [SetLike.mem_coe, mem_toFinset] at h
+  simp [count_eq_zero_of_notMem h]
 
 end Multiset
 
@@ -153,10 +144,10 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
 lemma finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
     [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
     Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
-  convert prod_normalizedFactors hx
-  simp [← Multiset.prod_map_eq_finprod]
+  rw [← Multiset.prod_map_eq_finprod, Multiset.map_id']
+  exact prod_normalizedFactors hx
 
-lemma finprod_pow_count_of_subsgingleton_units {α : Type*} [CommMonoidWithZero α]
+lemma finprod_pow_count_of_subsingleton_units {α : Type*} [CommMonoidWithZero α]
     [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
     {x : α} (hx : x ≠ 0) :
     ∏ᶠ p : α, p ^ (normalizedFactors x).count p = x :=
@@ -195,30 +186,16 @@ end Finite
 namespace AddSubgroup
 
 noncomputable
-def tupleModRangeNsmulAddMonoidHom (n : ℕ) (ι : Type*) :
-    (ι → ℤ) ⧸ (nsmulAddMonoidHom n).range ≃+ (ι → ℤ ⧸ (nsmulAddMonoidHom n).range) := by
-  let φ : (ι → ℤ) →+ (ι → ℤ ⧸ (nsmulAddMonoidHom n).range) := {
-    toFun x := fun i ↦ x i
+def tupleModRangeNsmulAddMonoidHom {A : Type*} [AddCommGroup A] (n : ℕ) (ι : Type*) :
+    (ι → A) ⧸ (nsmulAddMonoidHom n).range ≃+ (ι → A ⧸ (nsmulAddMonoidHom n).range) :=
+  let φ : (ι → A) →+ (ι → A ⧸ (nsmulAddMonoidHom n).range) := {
+    toFun x := (x ·)
     map_zero' := by simp [Pi.zero_def]
     map_add' x y := by simp [Pi.add_def]
   }
-  refine QuotientAddGroup.liftEquiv (φ := φ) _ (fun y ↦ ?_) ?_
-  · exact ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩
-  · ext x
-    simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply, nsmul_eq_mul, AddMonoidHom.mem_ker,
-      AddMonoidHom.coe_mk, ZeroHom.coe_mk, φ]
-    refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-    · obtain ⟨z, rfl⟩ := H
-      ext i
-      simp only [Pi.mul_apply, Pi.natCast_apply, QuotientAddGroup.mk_nat_mul, Pi.zero_apply,
-        ← QuotientAddGroup.mk_nsmul, QuotientAddGroup.eq_zero_iff]
-      simp
-    · simp_rw [funext_iff, Pi.zero_apply, QuotientAddGroup.eq_zero_iff] at H
-      simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply, Int.nsmul_eq_mul] at H
-      choose y hy using H
-      refine ⟨y, ?_⟩
-      ext i
-      rw [← hy, Pi.mul_apply, Pi.natCast_apply]
+  QuotientAddGroup.liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
+    ext1 x
+    simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ n • a = x i)).symm
 
 variable {M : Type*} [AddCommGroup M]
 
@@ -276,30 +253,19 @@ lemma finrank_eq_of_index_ne_zero [Module.Finite ℤ M] [IsTorsionFree ℤ M] {A
   · rw [← finrank_top ℤ M]
     exact Submodule.finrank_mono (s := A.toIntSubmodule) le_top
   · set n := A.index
-    have H : (nsmulAddMonoidHom (α := M) n).range ≤ A := by
-      intro m hm
-      simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply] at hm
-      obtain ⟨x, rfl⟩ := hm
-      exact AddSubgroup.nsmul_index_mem ..
-    have : finrank ℤ M = finrank ℤ (nsmulAddMonoidHom (α := M) n).range := by
-      let f := (nsmulAddMonoidHom (α := M) n).toIntLinearMap
-      have : (nsmulAddMonoidHom (α := M) n).range = f.range.toAddSubgroup := by
-        ext x
-        simp [f]
-      rw [this]
-      refine Eq.symm <| LinearMap.finrank_range_of_inj ?_
-      refine LinearMap.ker_eq_bot.mp ?_
-      simp only [AddMonoidHom.coe_toIntLinearMap_ker, f]
-      rw [OrderIso.apply_eq_iff_eq_symm_apply toIntSubmodule]
-      simp only [toIntSubmodule_symm, Submodule.bot_toAddSubgroup]
-      ext x
-      simp only [AddMonoidHom.mem_ker, nsmulAddMonoidHom_apply, mem_bot]
-      rw [← natCast_zsmul]
-      exact smul_eq_zero_iff_right (mod_cast h)
+    let F := DistribSMul.toLinearMap ℤ M n
+    have : finrank ℤ M = finrank ℤ F.range.toAddSubgroup := by
+      refine (LinearMap.finrank_range_of_inj <| LinearMap.ker_eq_bot.mp ?_).symm
+      simp only [Submodule.eq_bot_iff, F]
+      intro x hx
+      simp only [LinearMap.mem_ker, DistribSMul.toLinearMap_apply, ← natCast_zsmul] at hx
+      exact (smul_eq_zero_iff_right <| mod_cast h).mp hx
     rw [this]
-    refine Submodule.finrank_mono (s := (nsmulAddMonoidHom (α := M) n).range.toIntSubmodule)
-      (t := A.toIntSubmodule) ?_
-    rwa [OrderIso.le_iff_le toIntSubmodule]
+    refine Submodule.finrank_mono <| (OrderIso.symm_apply_le toIntSubmodule).mp fun m hm ↦ ?_
+    suffices ∃ y, n • y = m by
+      obtain ⟨x, rfl⟩ := this
+      exact A.nsmul_index_mem x
+    simpa [F] using hm
 
 lemma finrank_eq_of_relIndex_ne_zero {A B : AddSubgroup M} [Module.Finite ℤ B] [IsTorsionFree ℤ B]
     (h : A ≤ B) (hi : A.relIndex B ≠ 0) :
@@ -309,16 +275,6 @@ lemma finrank_eq_of_relIndex_ne_zero {A B : AddSubgroup M} [Module.Finite ℤ B]
   exact (addSubgroupOfEquivOfLe h).symm.toIntLinearEquiv.finrank_eq
 
 end AddSubgroup
-
-namespace Ideal
-
-variable {R : Type*} [Semiring R]
-
-lemma span_eq_iSup {ι : Type*} (x : ι → R) :
-    Ideal.span (Set.range x) = ⨆ i, Ideal.span {x i} := by
-  rw [← Ideal.span_iUnion, Set.iUnion_singleton_eq_range]
-
-end Ideal
 
 namespace IsDedekindDomain.HeightOneSpectrum
 
@@ -331,53 +287,35 @@ info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R]
 #guard_msgs in
 #check Ideal.finprod_count
 
-/--
-info: IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm.{u_1} {K : Type u_1} [Field K] [NumberField K]
-  (v : HeightOneSpectrum (NumberField.RingOfIntegers K)) {x : NumberField.RingOfIntegers K} (h_x_nezero : x ≠ 0) :
-  ‖(NumberField.FinitePlace.embedding v) ↑x‖ * ↑(Ideal.absNorm (v.maxPowDividing (Ideal.span {x}))) = 1
--/
-#guard_msgs in
-#check IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm
-
-/--
-info: sup_eq_prod_inf_factors.{u_4} {T : Type u_4} [CommRing T] [IsDedekindDomain T] {I J : Ideal T} (hI : I ≠ ⊥)
-  (hJ : J ≠ ⊥) :
-  I ⊔ J = (UniqueFactorizationMonoid.normalizedFactors I ∩ UniqueFactorizationMonoid.normalizedFactors J).prod
--/
-#guard_msgs in
-#check sup_eq_prod_inf_factors -- should not be in the root name space?
-
-/--
-info: factorization_eq_count.{u_1} {α : Type u_1} [CommMonoidWithZero α] [UniqueFactorizationMonoid α] [NormalizationMonoid α]
-  [DecidableEq α] {n p : α} : (factorization n) p = Multiset.count p (UniqueFactorizationMonoid.normalizedFactors n)
--/
-#guard_msgs in
-#check factorization_eq_count
-
 variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 
 /-!
 ### Conversion between various multplicities
 -/
 
+open UniqueFactorizationMonoid in
+@[simp]
 lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ ⊥)
     (p : HeightOneSpectrum R) :
-    Multiset.count p.asIdeal (UniqueFactorizationMonoid.normalizedFactors I) =
-      multiplicity p.asIdeal I := by
-  have := UniqueFactorizationMonoid.emultiplicity_eq_count_normalizedFactors (irreducible p) hI
+    Multiset.count p.asIdeal (normalizedFactors I) = multiplicity p.asIdeal I := by
+  have := emultiplicity_eq_count_normalizedFactors (irreducible p) hI
+  rw [normalize_eq p.asIdeal] at this
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
   apply_fun ((↑) : ℕ → ℕ∞) using CharZero.cast_injective
-  convert this.symm
-  · -- `p.asIdeal = normalize p.asIdeal`
-    exact (normalize_eq p.asIdeal).symm
-  · -- `↑(multiplicity p.asIdeal I) = emultiplicity p.asIdeal I`
-    refine Eq.symm (FiniteMultiplicity.emultiplicity_eq_multiplicity ?_)
-    exact finiteMultiplicity_of_emultiplicity_eq_natCast this
+  rw [← this]
+  exact (finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity
 
-lemma maxPowDividing_eq_pow {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
+@[simp]
+lemma maxPowDividing_eq_pow_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
     p.maxPowDividing I = p.asIdeal ^ multiplicity p.asIdeal I := by
   classical
   rw [maxPowDividing_eq_pow_multiset_count _ hI, count_normalizedFactors_eq_multiplicity hI]
+
+@[simp]
+lemma factorization_eq_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
+    factorization I p.asIdeal = multiplicity p.asIdeal I := by
+  rw [factorization_eq_count, count_normalizedFactors_eq_multiplicity hI]
+
 
 /-!
 ---
@@ -385,8 +323,8 @@ lemma maxPowDividing_eq_pow {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectru
 
 lemma _root_.Ideal.finprod_heightOneSpectrum_pow_multiplicity {I : Ideal R} (hI : I ≠ ⊥) :
     ∏ᶠ p : HeightOneSpectrum R, p.asIdeal ^ multiplicity p.asIdeal I = I := by
-  nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_factorization hI]
-  simp only [maxPowDividing_eq_pow hI]
+  simpa only [← maxPowDividing_eq_pow_multiplicity hI]
+    using Ideal.finprod_heightOneSpectrum_factorization hI
 
 lemma multiplicity_le_of_ideal_ge (p : HeightOneSpectrum R) {I J : Ideal R} (h : J ≤ I)
     (hJ : J ≠ ⊥) :
@@ -403,6 +341,7 @@ lemma multiplicity_sup (p : HeightOneSpectrum R) {I J : Ideal R} (hI : I ≠ ⊥
   rw [sup_eq_prod_inf_factors hI hJ, ← count_normalizedFactors_eq_multiplicity ?h,
     ← count_normalizedFactors_eq_multiplicity hI, ← count_normalizedFactors_eq_multiplicity hJ]
   -- extracted from the proof of `sup_eq_prod_inf_factors`
+  -- (which should really not be in the root namespace!)
   --   ==> refactor that (Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas)
   case h =>
     exact prod_ne_zero_of_prime _
@@ -426,9 +365,8 @@ lemma emultiplicity_sup (p : HeightOneSpectrum R) (I J : Ideal R) :
   have : I ⊔ J ≠ ⊥ := by grind
   have H {I' : Ideal R} (h : I' ≠ ⊥) : FiniteMultiplicity p.asIdeal I' :=
     FiniteMultiplicity.of_prime_left (prime p) h
-  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity <| H this,
-    FiniteMultiplicity.emultiplicity_eq_multiplicity <| H hI,
-    FiniteMultiplicity.emultiplicity_eq_multiplicity <| H hJ, multiplicity_sup _ hI hJ]
+  rw [(H this).emultiplicity_eq_multiplicity, (H hI).emultiplicity_eq_multiplicity,
+    (H hJ).emultiplicity_eq_multiplicity, multiplicity_sup _ hI hJ]
   norm_cast
 
 -- set_option backward.isDefEq.respectTransparency false in -- temporary measure
@@ -458,8 +396,7 @@ lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSp
     rw [← bot_eq_zero, iSup_eq_bot] at hI
     exact ⟨Classical.ofNonempty, hI _⟩
   have := emultiplicity_ciSup p I
-  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity H'] at this
-  conv_rhs at this => enter [1, i]; rw [FiniteMultiplicity.emultiplicity_eq_multiplicity (H i)]
+  simp only [H'.emultiplicity_eq_multiplicity, (H _).emultiplicity_eq_multiplicity] at this
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact_mod_cast this
 
@@ -516,45 +453,14 @@ lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
   rw [Ne, Module.finrank_eq_zero_iff_of_free]
   exact not_subsingleton K
 
-/--
-info: IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count.{u_1} {R : Type u_1} [CommRing R]
-  [IsDedekindDomain R] (v : IsDedekindDomain.HeightOneSpectrum R) {I : Ideal R} (hI : I ≠ 0) :
-  v.maxPowDividing I = v.asIdeal ^ Multiset.count v.asIdeal (UniqueFactorizationMonoid.normalizedFactors I)
--/
-#guard_msgs in
-#check IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count
-
-/--
-info: Ideal.finprod_heightOneSpectrum_factorization.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] {I : Ideal R}
-  (hI : I ≠ 0) : ∏ᶠ (v : IsDedekindDomain.HeightOneSpectrum R), v.maxPowDividing I = I
--/
-#guard_msgs in
-#check Ideal.finprod_heightOneSpectrum_factorization
-
-
-/- noncomputable
-abbrev FinitePlace.asIdeal (v : FinitePlace K) : Ideal (𝓞 K) := v.maximalIdeal.asIdeal
- -/
-
-lemma finite_setOf_multipicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
+open FinitePlace in
+lemma finite_setOf_multiplicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0}.Finite := by
-  simp only [ne_eq, multiplicity_eq_zero, not_not]
-  let e := FinitePlace.equivHeightOneSpectrum (K := K)
-  have he (v : FinitePlace K) : e v = v.maximalIdeal := rfl
-  have he' (v : IsDedekindDomain.HeightOneSpectrum (𝓞 K)) : (e.symm v).maximalIdeal = v := by
-    simp [e, ← he]
-  let e' : ({v : FinitePlace K | v.maximalIdeal.asIdeal ∣ I}) ≃
-      ({v : IsDedekindDomain.HeightOneSpectrum (𝓞 K) | v.asIdeal ∣ I}) := {
-    toFun v := ⟨e v.val, Set.mem_setOf.mpr v.prop⟩
-    invFun v := ⟨e.symm v.val, Set.mem_setOf.mpr <| by simp only [he']; exact v.prop⟩
-    left_inv v := by grind
-    right_inv v := by grind
-  }
-  exact (Equiv.set_finite_iff e').mpr <| I.finite_factors hI
-
-noncomputable
-example : FinitePlace K ≃ IsDedekindDomain.HeightOneSpectrum (𝓞 K) := by exact
-  FinitePlace.equivHeightOneSpectrum
+  refine (Equiv.bijOn equivHeightOneSpectrum fun v ↦ ?_).finite_iff_finite.mpr <|
+    I.finite_factors hI
+  -- slow `simp` without `only`
+  simp only [equivHeightOneSpectrum, Equiv.coe_fn_mk, Set.mem_setOf_eq, ne_eq,
+    multiplicity_eq_zero, not_not]
 
 lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
@@ -574,7 +480,7 @@ lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} 
   convert v.maximalIdeal.embedding_mul_absNorm hx using 2
   · exact (norm_embedding_eq v ↑x).symm
   · norm_cast
-    rw [v.maximalIdeal.maxPowDividing_eq_pow (by exact hnz), map_pow]
+    rw [v.maximalIdeal.maxPowDividing_eq_pow_multiplicity (by exact hnz), map_pow]
 
 end NumberField
 
@@ -683,7 +589,7 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
         {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0} := by
       ext1 v
       simp [Ideal.IsPrime.ne_top']
-    simpa only [hs] using finite_setOf_multipicity_ne_zero hx'
+    simpa only [hs] using finite_setOf_multiplicity_ne_zero hx'
   rw [Ideal.span_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx', map_finprod _ H,
     Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
   case hf =>
