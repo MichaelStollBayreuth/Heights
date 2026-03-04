@@ -727,11 +727,27 @@ example (K : Type*) [Field K] [NumberField K] (n : ℕ) : 0 < totalWeight K ^ n 
 
 section Northcott
 
+namespace Ideal
+
+variable {R ι : Type*} [Semiring R]
+
+lemma span_range_eq_span_range_support (x : ι → R) :
+    span (Set.range x) = span (Set.range fun i : x.support ↦ x i.val) := by
+  rw [← Ideal.span_sdiff_singleton_zero (s := Set.range x), Function.support]
+  congr
+  ext1 a
+  simp only [Set.mem_diff, Set.mem_range, Set.mem_singleton_iff]
+  exact ⟨fun ⟨⟨i, hi⟩, ha⟩ ↦ ⟨⟨i, Set.mem_setOf.mpr (hi ▸ ha)⟩, hi⟩,
+    fun ⟨j, hj⟩ ↦ ⟨⟨j.val, hj⟩, by grind⟩⟩
+-- #find_home! span_range_eq_span_range_support -- [Mathlib.RingTheory.Ideal.Span]
+
+end Ideal
+
 namespace NumberField
 
 open Height Finset Multiset
 
-variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
+variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
 open AdmissibleAbsValues IsDedekindDomain RingOfIntegers.HeightOneSpectrum
 
@@ -763,7 +779,6 @@ lemma iSup_abv_eq_multiplicity (v : FinitePlace K) {x : ι → 𝓞 K} (hx : x �
   sorry
 -/
 
-omit [NumberField K] in
 lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
     n ≤ ⨆ i, v.val (![(x : K), n] i) := by
   refine Finite.le_ciSup_of_le 1 ?_
@@ -771,35 +786,34 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
     Matrix.cons_val_fin_one]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
+variable [NumberField K]
+
 open IsDedekindDomain.HeightOneSpectrum in
-lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {ι : Type*} [Finite ι] {x : ι → 𝓞 K} (hx : x ≠ 0) :
+lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
     (Ideal.span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v.val (x i) = 1 := by
   classical
-  set ι' := { j // (x j : K) ≠ 0 } with hι'_eq
-  have hxnz {i} (h : x i ≠ 0) : (x i : K) ≠ 0 := by norm_cast
-  have hnebot (v : FinitePlace K) : v.maximalIdeal.asIdeal ≠ ⊥ :=
-    fun h ↦ RingOfIntegers.not_isField K <|
-      Ring.isField_iff_maximal_bot.mpr (h ▸ isMaximal v.maximalIdeal)
-  have hnpos (v : FinitePlace K) : 1 ≤ v.maximalIdeal.asIdeal.absNorm := by
-    refine Nat.one_le_iff_ne_zero.mpr ?_
-    rw [Ne, Ideal.absNorm_eq_zero_iff]
-    exact hnebot v
+  set ι' := Set.Elem x.support with hι'_eq
+  have hnpos (v : FinitePlace K) : 1 ≤ v.maximalIdeal.asIdeal.absNorm :=
+    Nat.one_le_iff_ne_zero.mpr <| mt Ideal.absNorm_eq_zero_iff.mp v.maximalIdeal.ne_bot
   obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
   simp only [Pi.zero_def] at hi₀
-  have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i₀, hxnz hi₀⟩
-  have Hv (v : AbsoluteValue K ℝ) := Height.iSup_abv_eq_iSup_subtype v hx₀
-  have HI : Ideal.span (Set.range x) = Ideal.span (Set.range fun i : ι' ↦ x i.val) := by
-    rw [← Ideal.span_sdiff_singleton_zero (s := Set.range x)]
-    congr
-    ext1 a
-    simp only [Set.mem_diff, Set.mem_range, Set.mem_singleton_iff]
-    exact ⟨fun ⟨⟨i, hi⟩, ha⟩ ↦ ⟨⟨i, hxnz (hi ▸ ha)⟩, hi⟩, fun ⟨j, hj⟩ ↦ ⟨⟨j.val, hj⟩, by grind⟩⟩
+  have Hi₀ : (x i₀ : K) ≠ 0 := by norm_cast
+  have HI : Ideal.span (Set.range x) = Ideal.span (Set.range fun i : ι' ↦ x i.val) :=
+    Ideal.span_range_eq_span_range_support x
   -- restrict to the subtype of `ι` where `x` is non-zero
-  simp only [Hv, HI]
-  have hι' : Nonempty ι' := .intro ⟨i₀, hxnz hi₀⟩
-  have hx' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by
-    simpa only [ne_eq, iSup_eq_bot, Ideal.span_singleton_eq_bot, not_forall]
-      using ⟨⟨i₀, hxnz hi₀⟩, hi₀⟩
+  have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i₀, Hi₀⟩
+  have Hv (v : AbsoluteValue K ℝ) : ⨆ i : { j // (x j : K) ≠ 0 }, v (x i.val) =
+      ⨆ i : ι', v (x i.val) :=
+    let e : { j // (x j : K) ≠ 0 } ≃ ι' := {
+      toFun j := ⟨j.val, mod_cast j.prop⟩
+      invFun i := ⟨i.val, mod_cast i.prop⟩
+      left_inv j := by grind
+      right_inv i := by grind
+    }
+    Equiv.iSup_congr e fun j ↦ by simp [e]
+  simp only [Height.iSup_abv_eq_iSup_subtype _ hx₀, HI, Hv]
+  have hι' : Nonempty ι' := .intro ⟨i₀, hi₀⟩
+  have hx' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨⟨i₀, hi₀⟩, hi₀⟩
   have H : (fun v : FinitePlace K ↦ v.maximalIdeal.asIdeal ^
       multiplicity v.maximalIdeal.asIdeal (⨆ i : ι', Ideal.span {x i.val})).mulSupport.Finite := by
     set I := ⨆ i : ι', Ideal.span {x i.val}
@@ -818,33 +832,25 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {ι : Type*} [Finite ι] {x : ι 
       norm_cast
       rw [Ideal.absNorm_eq_one_iff, Ideal.one_eq_top]
   case hg =>
-    exact Function.finite_mulSupport_iSup fun j ↦ FinitePlace.mulSupport_finite j.prop
+    exact Function.finite_mulSupport_iSup fun j ↦ FinitePlace.mulSupport_finite (mod_cast j.prop)
   refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
   rw [multiplicity_ciSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
     Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
     Finite.map_iInf_of_monotone _ Nat.mono_cast,
     Finite.map_iInf_of_antitoneOn (s := {r : ℝ | 0 < r}) (g := (·⁻¹)) ?hinv fun j ↦ ?hs]
-  case hj =>
-    simp only [ne_eq, Ideal.span_singleton_eq_bot]
-    apply_fun ((↑) : 𝓞 K → K)
-    exact j.prop
-  case hn => simp [Ideal.absNorm_eq_zero_iff, hnebot]
+  case hj => simpa only [ne_eq, Ideal.span_singleton_eq_bot] using j.prop
+  case hn => simp [Ideal.absNorm_eq_zero_iff, ne_bot]
   case hinv =>
     refine antitoneOn_iff_forall_lt.mpr fun a ha b hb h ↦ ?_
     simp only [Set.mem_setOf_eq] at ha hb
     rw [inv_le_inv₀ hb ha]
     exact h.le
   case hs =>
-    simp only [ne_eq, Set.mem_setOf_eq]
-    norm_cast
-    exact Nat.pow_pos (hnpos v)
+    simpa only [Set.mem_setOf_eq] using mod_cast Nat.pow_pos (hnpos v)
   refine iSup_congr fun i ↦ ?_
   rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, ← FinitePlace.coe_apply v ↑(x ↑i), Nat.cast_pow]
   case hne => simp [(show 0 < _ from hnpos v).ne']
-  have hi₀ : x i.val ≠ 0 := by
-    apply_fun ((↑) : 𝓞 K → K)
-    exact i.prop
-  exact FinitePlace.apply_mul_absNorm_pow_eq_one v hi₀
+  exact FinitePlace.apply_mul_absNorm_pow_eq_one v i.prop
 
 example : Submodule (𝓞 K) K := Submodule.span (𝓞 K) {1}
 

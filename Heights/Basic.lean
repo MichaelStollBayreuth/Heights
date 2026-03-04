@@ -176,6 +176,7 @@ open AdmissibleAbsValues Function
     (fun v : nonarchAbsVal ↦ v.val x).mulSupport.Finite :=
   mulSupport_finite hx -/
 
+-- use `NonnegHomClass`
 lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
     [ConditionallyCompleteLattice M] {x : ι → K} (hx : x ≠ 0) {v : K → M}
     (hv₀ : v 0 = 0) (hv : ∀ k, 0 ≤ v k) :
