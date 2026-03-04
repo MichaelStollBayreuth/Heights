@@ -97,9 +97,9 @@ private
 lemma NumberField.FinitePlace.mulSupport_finite' {x : K} (hx : x ≠ 0) :
     (Function.mulSupport
       fun v : FinitePlace K ↦ (Real.nnabs.comp v.val.toMonoidWithZeroHom) x).Finite := by
-  convert mulSupport_finite hx
+  convert hasFiniteMulSupport hx
   rw [← Function.mulSupport_comp_eq (g := ((↑) : NNReal → ℝ)) NNReal.coe_eq_one, Function.comp_def]
-  simp only [nnabs_comp_apply]
+  simp only [Function.HasFiniteMulSupport, nnabs_comp_apply]
 
 omit [NumberField K] in
 private

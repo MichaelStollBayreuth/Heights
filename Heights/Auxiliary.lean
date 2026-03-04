@@ -204,6 +204,10 @@ lemma LinearMap.charpoly_eraseLead_natDegree_le {F R : Type*} [Field F] [AddComm
 
 end
 
+#exit
+
+-- Check `WithVal` refactor!
+
 section Mathlib.Analysis.Normed.Ring.WithAbs
 
 namespace WithAbs

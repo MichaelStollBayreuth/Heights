@@ -40,7 +40,7 @@ lemma apply_sum_le {v : AbsoluteValue R ℝ} (hv : IsNonarchimedean v) {l : α �
     refine max_le ?_ ?_
     · exact Finite.le_ciSup_of_le ⟨_, s.mem_insert_self a⟩ le_rfl
     · rcases isEmpty_or_nonempty s with hs | hs
-      · simpa using v.iSup_abv_nonneg
+      · simpa using Real.iSup_nonneg_of_nonnegHomClass ..
       exact ciSup_le fun i ↦ Finite.le_ciSup_of_le (⟨i.val, Finset.mem_insert_of_mem i.prop⟩) le_rfl
 
 end IsNonarchimedean
@@ -67,7 +67,7 @@ lemma linearMap_apply_bound [Nonempty ι'] (v : AbsoluteValue K ℝ) (A : ι' ×
   case h =>
     simp only
     gcongr
-    · exact v.iSup_abv_nonneg
+    · exact Real.iSup_nonneg_of_nonnegHomClass ..
     · exact Finite.le_ciSup_of_le (j, i) le_rfl
     · exact Finite.le_ciSup_of_le i le_rfl
   rw [Finset.sum_const, nsmul_eq_mul, mul_assoc, Finset.card_univ, Nat.card_eq_fintype_card]
@@ -84,7 +84,7 @@ lemma linearMap_apply_bound_of_isNonarchimedean [Nonempty ι] [Nonempty ι'] {v 
   rw [this fun i ↦ v (A (j, i)) * v (x i)]
   refine ciSup_le fun i ↦ ?_
   gcongr
-  · exact v.iSup_abv_nonneg
+  · exact Real.iSup_nonneg_of_nonnegHomClass ..
   · exact Finite.le_ciSup_of_le (j, i) le_rfl
   · exact Finite.le_ciSup_of_le i le_rfl
 
@@ -116,22 +116,21 @@ theorem mulHeight_linearMap_apply_le [Nonempty ι] (A : ι' × ι → K) (x : ι
   rw [mulHeight_eq h, mulHeight_eq hA, mulHeight_eq hx, mul_mul_mul_comm, ← mul_assoc, ← mul_assoc,
     mul_assoc (_ * _ * _)]
   gcongr
-  · exact finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
+  · exact finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   · refine mul_nonneg (mul_nonneg (by simp) ?_) ?_ <;>
-      exact prod_map_nonneg fun v _ ↦ v.iSup_abv_nonneg
+      exact prod_map_nonneg fun _ _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   · -- archimedean part: reduce to "local" statement `linearMap_apply_bound`
     rw [mul_assoc, ← prod_map_mul, ← prod_replicate, totalWeight, ← map_const', ← prod_map_mul]
-    refine prod_map_le_prod_map₀ _ _ (fun v _ ↦ v.iSup_abv_nonneg) fun v _ ↦ ?_
+    refine prod_map_le_prod_map₀ _ _ (fun _ _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..)
+      fun v _ ↦ ?_
     rw [mul_comm (iSup _), ← mul_assoc]
     exact linearMap_apply_bound v A x
   · -- nonarchimedean part: reduce to "local" statement `linearMap_apply_bound_of_isNonarchimedean`
     rw [← finprod_mul_distrib (mulSupport_iSup_nonarchAbsVal_finite hA)
       (mulSupport_iSup_nonarchAbsVal_finite hx)]
-    refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h)
-      (fun v ↦ v.val.iSup_abv_nonneg) ?_ fun v ↦ ?_
-    · exact Function.finite_mulSupport_mul (mulSupport_iSup_nonarchAbsVal_finite hA)
-        (mulSupport_iSup_nonarchAbsVal_finite hx)
-    · exact linearMap_apply_bound_of_isNonarchimedean (isNonarchimedean _ v.prop) A x
+    exact finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h)
+      (fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..) (by fun_prop (disch := assumption))
+      fun v ↦ linearMap_apply_bound_of_isNonarchimedean (isNonarchimedean _ v.prop) A x
 
 open Real in
 /-- Let `A : ι' × ι → K`, which we can interpret as a linear map from `ι → K` to `ι' → K`.
@@ -198,7 +197,7 @@ private lemma mvPolynomial_bound_of_IsNonarchimedean [Finite ι] {v : AbsoluteVa
   grw [hs₂]
   simp_rw [v.map_mul, v.map_prod, v.map_pow]
   gcongr
-  · exact v.iSup_abv_nonneg
+  · exact Real.iSup_nonneg_of_nonnegHomClass ..
   · exact Finite.le_ciSup_of_le (⟨s, hs₁⟩ : p.support) le_rfl
   · rw [hp.degree_eq_sum_deg_support hs₁, ← Finset.prod_pow_eq_pow_sum]
     gcongr with i
@@ -235,15 +234,13 @@ lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1
 variable [Finite ι']
 
 open Function in
-private lemma finite_mulSupport_iSup_max_iSup_one (h : Nonempty ι') (p : ι' → MvPolynomial ι K) :
+private lemma hasFiniteMulSupport_iSup_max_iSup_one (h : Nonempty ι') (p : ι' → MvPolynomial ι K) :
     (fun v : nonarchAbsVal ↦
-      ⨆ j, max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1).mulSupport.Finite := by
-  -- fun_prop (disch := assumption)
-  refine finite_mulSupport_iSup fun j ↦ ?_
-  rcases isEmpty_or_nonempty (p j).support with hs₀ | hs₀
-  · simp
-  refine finite_mulSupport_max ?_ finite_mulSupport_one
-  exact finite_mulSupport_iSup fun ⟨s, hs⟩ ↦ mulSupport_finite <| mem_support_iff.mp hs
+      ⨆ j, max (⨆ s : (p j).support, v.val (coeff s.val (p j))) 1).HasFiniteMulSupport := by
+  refine HasFiniteMulSupport.iSup fun j ↦ ?_
+  rcases isEmpty_or_nonempty (p j).support
+  · simpa using hasFiniteMulSupport_one
+  · fun_prop (disch := grind)
 
 open Real Multiset Finsupp in
 -- set_option Elab.async false in
@@ -253,14 +250,15 @@ private lemma mulHeight_constantCoeff_le_mulHeightBound {p : ι' → MvPolynomia
     mulHeight (fun j ↦ constantCoeff (p j)) ≤ mulHeightBound p := by
   simp only [mulHeight_eq h, mulHeightBound_eq]
   gcongr
-  · exact finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
+  · exact finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   · exact prod_map_nonneg fun v _ ↦ iSup_nonneg fun _ ↦ sum_nonneg fun _ _ ↦ by positivity
   · have H (v : AbsoluteValue K ℝ) (j : ι') : v (constantCoeff (p j)) ≤ sum (p j) fun _ c ↦ v c :=
       single_eval_le_sum _ v.map_zero (fun _ ↦ by positivity) _
-    exact prod_map_le_prod_map₀ _ _ (fun v _ ↦ v.iSup_abv_nonneg) fun v _ ↦ Finite.ciSup_mono (H v)
+    exact prod_map_le_prod_map₀ _ _ (fun _ _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..)
+      fun v _ ↦ Finite.ciSup_mono (H v)
   · refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h)
-      (fun v ↦ v.val.iSup_abv_nonneg) ?_ ?_
-    · exact finite_mulSupport_iSup_max_iSup_one (Function.ne_iff.mp h).nonempty p
+      (fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..) ?_ ?_
+    · exact hasFiniteMulSupport_iSup_max_iSup_one (Function.ne_iff.mp h).nonempty p
     · refine fun v ↦ Finite.ciSup_mono fun j ↦ ?_
       rw [show constantCoeff (p j) = coeff 0 (p j) from rfl]
       rcases eq_or_ne (coeff 0 (p j)) 0 with h₀ | h₀
@@ -289,22 +287,23 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   rcases eq_or_ne (fun j ↦ eval x (p j)) 0 with h₀ | h₀
   · grw [← le_max_right]
     simpa [h₀, mulHeight_zero] using one_le_pow₀ <| one_le_mulHeight x
-  have F₁ := finite_mulSupport_iSup_max_iSup_one (Function.ne_iff.mp h₀).nonempty p
+  have F₁ := hasFiniteMulSupport_iSup_max_iSup_one (Function.ne_iff.mp h₀).nonempty p
   have F₂ := mulSupport_iSup_nonarchAbsVal_finite hx
-  have F₃ := Function.finite_mulSupport_pow F₂ N
+  have F₃ := F₂.fun_pow N
   have H₀ (v : AbsoluteValue K ℝ) : 0 ≤ ⨆ j, Finsupp.sum (p j) fun _ c ↦ v c :=
     iSup_nonneg (fun j ↦ sum_nonneg' <| fun s ↦ by positivity)
   -- The following four statements are used in the `gcongr`s below.
   have H₁ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ j, Finsupp.sum (p j) fun _ c ↦ v c)).prod :=
     prod_map_nonneg fun v _ ↦ H₀ v
   have H₂ : 0 ≤ (archAbsVal.map (fun v ↦ ⨆ i, v (x i))).prod :=
-    prod_map_nonneg fun v _ ↦ v.iSup_abv_nonneg
+    prod_map_nonneg fun _ _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   have H₃ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val ((eval x) (p i)) :=
-    finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
+    finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   have H₄ : 0 ≤ ∏ᶠ v : nonarchAbsVal, ⨆ i, v.val (x i) :=
-    finprod_nonneg fun v ↦ v.val.iSup_abv_nonneg
+    finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
   -- The following two statements are helpful for discharging the goals left by `gcongr`.
-  have HH₁ (v : AbsoluteValue K ℝ) : 0 ≤ (⨆ i, v (x i)) ^ N := pow_nonneg v.iSup_abv_nonneg N
+  have HH₁ (v : AbsoluteValue K ℝ) : 0 ≤ (⨆ i, v (x i)) ^ N :=
+    pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) N
   have HH₂ (f : ι' → ℝ) (j : ι') : f j ≤ ⨆ j, f j := Finite.le_ciSup ..
   simp only [mulHeight_eq hx, mulHeight_eq h₀, mulHeightBound_eq]
   grw [← le_max_left]
@@ -312,7 +311,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   gcongr
   · -- archimedean part: reduce to "local" statement `mvPolynomial_bound`
     rw [← prod_map_pow, ← prod_map_mul]
-    refine prod_map_le_prod_map₀ _ _ (fun v _ ↦ v.iSup_abv_nonneg)
+    refine prod_map_le_prod_map₀ _ _ (fun _ _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..)
       fun v _ ↦ Real.iSup_le (fun j ↦ ?_) <| mul_nonneg (H₀ v) (HH₁ v)
     grw [mvPolynomial_bound v (hp j) x]
     gcongr
@@ -321,7 +320,7 @@ theorem mulHeight_eval_le {N : ℕ} {p : ι' → MvPolynomial ι K} (hp : ∀ i,
   · -- nonarchimedean part: reduce to "local" statement `mvPolynomial_bound_nonarch`
     rw [finprod_pow F₂, ← finprod_mul_distrib F₁ F₃]
     refine finprod_le_finprod (mulSupport_iSup_nonarchAbsVal_finite h₀)
-      (fun v ↦ v.val.iSup_abv_nonneg) (Function.finite_mulSupport_mul F₁ F₃)
+      (fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..) (F₁.fun_mul F₃)
       fun v ↦ Real.iSup_le (fun j ↦ ?_) ?_
     · grw [mvPolynomial_bound_of_IsNonarchimedean (isNonarchimedean _ v.prop) (hp j) x]
       gcongr
@@ -425,7 +424,7 @@ lemma mulHeight₁Bound_eq (p : K[X]) :
     · have := (nonempty_range_add_one (n := p.natDegree)).to_subtype
       refine ciSup_le fun n ↦ ?_
       rcases eq_or_ne (p.coeff n) 0 with h | h
-      · simpa [h] using v.val.iSup_abv_nonneg
+      · simpa [h] using Real.iSup_nonneg_of_nonnegHomClass ..
       · refine Finite.le_ciSup_of_le ⟨fun₀ | 0 => n | 1 => p.natDegree - n, ?_⟩ <| by simp
         set_option backward.isDefEq.respectTransparency false in -- temporary measure
         simpa [coeff_homogenize, h] using Nat.add_sub_of_le <| le_natDegree_of_ne_zero h

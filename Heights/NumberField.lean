@@ -79,52 +79,6 @@ lemma relIndex_ne_zero_of_map_linearMapMulLeft_le (A B : Submodule R K) {n : ℕ
 
 end Submodule
 
-namespace Finite
-
-variable {α β ι : Type*} [ConditionallyCompleteLinearOrder α] [ConditionallyCompleteLinearOrder β]
-  [Finite ι] [Nonempty ι]
-
-lemma map_iSup_of_monotoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : MonotoneOn g s)
-    (hs : ∀ i, f i ∈ s) :
-    g (⨆ i, f i) = ⨆ i, g (f i) := by
-  obtain ⟨j, hj⟩ : ∃ j, f j = ⨆ i, f i := exists_eq_ciSup_of_finite
-  rw [← hj]
-  exact le_antisymm (le_ciSup_of_le j le_rfl) <|
-    ciSup_le fun i ↦ hg (hs i) (hs j) (hj ▸ le_ciSup f i)
-
-lemma map_iInf_of_monotoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : MonotoneOn g s)
-    (hs : ∀ i, f i ∈ s) :
-    g (⨅ i, f i) = ⨅ i, g (f i) :=
-  map_iSup_of_monotoneOn (α := αᵒᵈ) (β := βᵒᵈ) (fun _ hi _ hj h ↦ hg hj hi h) hs
-
-lemma map_iSup_of_antitoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : AntitoneOn g s)
-    (hs : ∀ i, f i ∈ s) :
-    g (⨆ i, f i) = ⨅ i, g (f i) :=
-  map_iSup_of_monotoneOn (β := βᵒᵈ) hg hs
-
-lemma map_iInf_of_antitoneOn {s : Set α} {f : ι → α} {g : α → β} (hg : AntitoneOn g s)
-    (hs : ∀ i, f i ∈ s) :
-    g (⨅ i, f i) = ⨆ i, g (f i) :=
-  map_iInf_of_monotoneOn (β := βᵒᵈ) hg hs
-
-lemma map_iSup_of_monotone (f : ι → α) {g : α → β} (hg : Monotone g) :
-    g (⨆ i, f i) = ⨆ i, g (f i) :=
-  map_iSup_of_monotoneOn (monotoneOn_univ.mpr hg) (fun i ↦ Set.mem_univ (f i))
-
-lemma map_iInf_of_monotone (f : ι → α) {g : α → β} (hg : Monotone g) :
-    g (⨅ i, f i) = ⨅ i, g (f i) :=
-  map_iSup_of_monotone (α := αᵒᵈ) (β := βᵒᵈ) f fun _ _ h ↦ hg h
-
-lemma map_iSup_of_antitone (f : ι → α) {g : α → β} (hg : Antitone g) :
-    g (⨆ i, f i) = ⨅ i, g (f i) :=
-  map_iSup_of_monotone (β := βᵒᵈ) f hg
-
-lemma map_iInf_of_antitone (f : ι → α) {g : α → β} (hg : Antitone g) :
-    g (⨅ i, f i) = ⨆ i, g (f i) :=
-  map_iInf_of_monotone (β := βᵒᵈ) f hg
-
-end Finite
-
 /-
 namespace Function
 
@@ -142,19 +96,14 @@ namespace Nat
 
 lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ) :
     ((∏ᶠ (x : ι), f x :) : R) = ∏ᶠ (x : ι), (f x : R) := by
-  rcases Set.finite_or_infinite (Function.mulSupport f) with hf | hf
-  · have hf' : (fun i ↦ (f i : R)).mulSupport = f.mulSupport := by
-      simp only [Function.mulSupport]
-      ext1
-      simp
-    rw [finprod_eq_prod _ hf, finprod_eq_prod _ (hf' ▸ hf), cast_prod f hf.toFinset]
-    congr
-    exact hf'.symm
-  · have hf' : (Function.mulSupport fun i ↦ (f i : R)).Infinite := by
-      rw [Function.mulSupport] at hf ⊢
-      convert hf with i
-      rw [cast_eq_one]
-    rw [finprod_of_infinite_mulSupport hf, finprod_of_infinite_mulSupport hf', cast_one]
+  have h : (fun i ↦ (f i : R)).mulSupport = f.mulSupport := by ext1; simp
+  have H : (fun i ↦ (f i : R)).HasFiniteMulSupport ↔ f.HasFiniteMulSupport := by
+    simp only [Function.HasFiniteMulSupport, h]
+  by_cases hf : f.HasFiniteMulSupport
+  · rw [finprod_eq_prod _ hf, finprod_eq_prod _ (H.mpr hf), cast_prod f hf.toFinset]
+    simp [h]
+  · rw [finprod_of_not_hasFiniteMulSupport hf, finprod_of_infinite_mulSupport (mt H.mp hf),
+      cast_one]
 
 end Nat
 
@@ -172,10 +121,10 @@ lemma prod_map_eq_finprod {α M : Type*} [DecidableEq α] [CommMonoid M] (s : Mu
       ← finprod_eq_single (fun b ↦ f b ^ if b = a then 1 else 0) a (by simp +contextual),
       ← finprod_mul_distrib ?hf ?hg]
     case hf =>
-      simpa only [pow_ite, pow_one, pow_zero, Function.mulSupport]
+      simpa only [pow_ite, pow_one, pow_zero, Function.HasFiniteMulSupport, Function.mulSupport]
         using Set.Finite.subset (Set.finite_singleton a) (by grind)
     case hg =>
-      simp only [Function.mulSupport]
+      simp only [Function.HasFiniteMulSupport, Function.mulSupport]
       have : {a | s.count a ≠ 0}.Finite := by simp
       refine Set.Finite.subset this fun b hb ↦ ?_
       simp only [ne_eq, Set.mem_setOf_eq, count_eq_zero, Decidable.not_not] at hb ⊢
@@ -198,6 +147,7 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
   have := emultiplicity_eq_count_normalizedFactors ha hb
   rw [FiniteMultiplicity.emultiplicity_eq_multiplicity ?h] at this
   case h => exact finiteMultiplicity_of_emultiplicity_eq_natCast this
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact_mod_cast this
 
 lemma finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
@@ -307,8 +257,7 @@ lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
 
 lemma relIndex_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule]
     [Module.Finite ℤ ↥S.toIntSubmodule] :
-    (AddSubgroup.map (nsmulAddMonoidHom (α := M) n) S).relIndex S =
-      n ^ finrank ℤ S := by
+    (AddSubgroup.map (nsmulAddMonoidHom (α := M) n) S).relIndex S = n ^ finrank ℤ S := by
   rw [AddSubgroup.relIndex]
   have H₁ : (AddSubgroup.map (nsmulAddMonoidHom n) S).addSubgroupOf S =
       (nsmulAddMonoidHom n).range := by
@@ -318,7 +267,7 @@ lemma relIndex_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule
     refine ⟨fun ⟨x, hx₁, hx₂⟩ ↦ ⟨x, hx₁, Subtype.ext hx₂⟩, fun ⟨a, ha₁, ha₂⟩ ↦ ⟨a, ha₁, ?_⟩⟩
     rw [← ha₂]
   rw [H₁]
-  convert index_nsmul S.toIntSubmodule n <;> assumption
+  exact index_nsmul S.toIntSubmodule n
 
 lemma finrank_eq_of_index_ne_zero [Module.Finite ℤ M] [IsTorsionFree ℤ M] {A : AddSubgroup M}
     (h : A.index ≠ 0) :
@@ -384,16 +333,15 @@ info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R]
 
 /--
 info: IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm.{u_1} {K : Type u_1} [Field K] [NumberField K]
-  (v : HeightOneSpectrum (NumberField.RingOfIntegers K)) {x : NumberField.RingOfIntegers (WithVal (valuation K v))}
-  (h_x_nezero : x ≠ 0) :
+  (v : HeightOneSpectrum (NumberField.RingOfIntegers K)) {x : NumberField.RingOfIntegers K} (h_x_nezero : x ≠ 0) :
   ‖(NumberField.FinitePlace.embedding v) ↑x‖ * ↑(Ideal.absNorm (v.maxPowDividing (Ideal.span {x}))) = 1
 -/
 #guard_msgs in
 #check IsDedekindDomain.HeightOneSpectrum.embedding_mul_absNorm
 
 /--
-info: sup_eq_prod_inf_factors.{u_4} {T : Type u_4} [CommRing T] [IsDedekindDomain T] {I J : Ideal T} [DecidableEq (Ideal T)]
-  (hI : I ≠ ⊥) (hJ : J ≠ ⊥) :
+info: sup_eq_prod_inf_factors.{u_4} {T : Type u_4} [CommRing T] [IsDedekindDomain T] {I J : Ideal T} (hI : I ≠ ⊥)
+  (hJ : J ≠ ⊥) :
   I ⊔ J = (UniqueFactorizationMonoid.normalizedFactors I ∩ UniqueFactorizationMonoid.normalizedFactors J).prod
 -/
 #guard_msgs in
@@ -417,6 +365,7 @@ lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal
     Multiset.count p.asIdeal (UniqueFactorizationMonoid.normalizedFactors I) =
       multiplicity p.asIdeal I := by
   have := UniqueFactorizationMonoid.emultiplicity_eq_count_normalizedFactors (irreducible p) hI
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   apply_fun ((↑) : ℕ → ℕ∞) using CharZero.cast_injective
   convert this.symm
   · -- `p.asIdeal = normalize p.asIdeal`
@@ -511,6 +460,7 @@ lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSp
   have := emultiplicity_ciSup p I
   rw [FiniteMultiplicity.emultiplicity_eq_multiplicity H'] at this
   conv_rhs at this => enter [1, i]; rw [FiniteMultiplicity.emultiplicity_eq_multiplicity (H i)]
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact_mod_cast this
 
 /--
@@ -568,7 +518,7 @@ lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
 
 /--
 info: IsDedekindDomain.HeightOneSpectrum.maxPowDividing_eq_pow_multiset_count.{u_1} {R : Type u_1} [CommRing R]
-  [IsDedekindDomain R] (v : IsDedekindDomain.HeightOneSpectrum R) [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ 0) :
+  [IsDedekindDomain R] (v : IsDedekindDomain.HeightOneSpectrum R) {I : Ideal R} (hI : I ≠ 0) :
   v.maxPowDividing I = v.asIdeal ^ Multiset.count v.asIdeal (UniqueFactorizationMonoid.normalizedFactors I)
 -/
 #guard_msgs in
@@ -615,6 +565,7 @@ lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
   ext1 v
   rw [show FinitePlace.equivHeightOneSpectrum v = v.maximalIdeal from rfl,
     v.maximalIdeal.maxPowDividing_eq_pow_multiset_count]
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   rwa [count_normalizedFactors_eq_multiplicity hI]
 
 lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 0) :
@@ -624,7 +575,6 @@ lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} 
   · exact (norm_embedding_eq v ↑x).symm
   · norm_cast
     rw [v.maximalIdeal.maxPowDividing_eq_pow (by exact hnz), map_pow]
-    rfl
 
 end NumberField
 
@@ -633,95 +583,6 @@ end API
 /-!
 ### Properties of heights on number fields
 -/
-
-namespace NumberField
-
-open Height Finset Multiset
-
-variable {K : Type*} [Field K] [NumberField K]
-
-open AdmissibleAbsValues
-
--- #35919
-lemma sum_archAbsVal_eq {M : Type*} [AddCommMonoid M] (f : AbsoluteValue K ℝ → M) :
-    (archAbsVal.map f).sum = ∑ v : InfinitePlace K, v.mult • f v.val := by
-  classical
-  rw [sum_multiset_map_count]
-  exact sum_bij' (fun w hw ↦ ⟨w, mem_multisetInfinitePlace.mp <| mem_dedup.mp hw⟩)
-    (fun v _ ↦ v.val) (fun _ _ ↦ mem_univ _) (fun v _ ↦ by simp [v.isInfinitePlace, archAbsVal])
-    (fun _ _ ↦ rfl) (fun _ _ ↦ rfl)
-    fun w hw ↦ by
-      simp only [archAbsVal, mem_toFinset, mem_multisetInfinitePlace] at hw ⊢
-      simp [count_multisetInfinitePlace_eq_mult ⟨w, hw⟩]
-
--- #35919
-lemma sum_nonarchAbsVal_eq {M : Type*} [AddCommMonoid M] (f : AbsoluteValue K ℝ → M) :
-    (∑ᶠ v : nonarchAbsVal, f v.val) = ∑ᶠ v : FinitePlace K, f v.val :=
-  rfl
-
--- #35924
-variable (K) in
-lemma totalWeight_eq_sum_mult : totalWeight K = ∑ v : InfinitePlace K, v.mult := by
-  simp only [totalWeight]
-  convert sum_archAbsVal_eq (fun _ ↦ (1 : ℕ))
-  · rw [← Multiset.sum_map_toList, ← Fin.sum_univ_fun_getElem, ← Multiset.length_toList,
-      Fin.sum_const, Multiset.length_toList, smul_eq_mul, mul_one]
-  · simp
-
--- #35924
-variable (K) in
-lemma totalWeight_eq_finrank : totalWeight K = Module.finrank ℚ K := by
-  rw [totalWeight_eq_sum_mult, InfinitePlace.sum_mult_eq]
-
-variable (K) in
-@[grind! .]
-lemma totalWeight_pos : 0 < totalWeight K := by
-  simp [totalWeight, archAbsVal, multisetInfinitePlace]
-  have : Inhabited (InfinitePlace K) := Classical.inhabited_of_nonempty'
-  exact Fintype.sum_pos
-    (Function.ne_iff.mpr ⟨default, (default : InfinitePlace K).mult_ne_zero⟩).pos
-
-open Real in
--- #35919
-/-- This is the familiar definition of the logarithmic height on a number field. -/
-lemma logHeight₁_eq (x : K) :
-    logHeight₁ x =
-      (∑ v : InfinitePlace K, v.mult * log⁺ (v x)) + ∑ᶠ v : FinitePlace K, log⁺ (v x) := by
-  simp only [← nsmul_eq_mul, FinitePlace.coe_apply, InfinitePlace.coe_apply, Height.logHeight₁_eq,
-    sum_archAbsVal_eq, sum_nonarchAbsVal_eq fun v ↦ log⁺ (v x)]
-
-end NumberField
-
--- #35924
-
-/-!
-### Positivity extension for totalWeight on number fields
--/
-
-namespace Mathlib.Meta.Positivity
-
-open Lean.Meta Qq
-
-/-- Extension for the `positivity` tactic: `Height.totalWeight` is positive for number fields. -/
-@[positivity Height.totalWeight _]
-meta def evalHeightTotalWeight : PositivityExt where eval {u α} _ _ e := do
-  match u, α, e with
-  | 0, ~q(ℕ), ~q(@Height.totalWeight $K $KF $KA) =>
-    -- Check whether there is a `NumberField` instance for `$K` around.
-    match ← trySynthInstanceQ q(NumberField $K) with
-    | .some _instFinite =>
-      assertInstancesCommute
-      return .positive q(NumberField.totalWeight_pos $K)
-    | _ => throwError "field in Height.totalWeight not known to be a number field"
-  | _, _, _ => throwError "not Height.totalWeight"
-
-end Mathlib.Meta.Positivity
-
--- end #35924
-
-open Height in
-example (K : Type*) [Field K] [NumberField K] (n : ℕ) : 0 < totalWeight K ^ n :=
-  by positivity
 
 -- Towards Northcott
 
@@ -826,13 +687,14 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
   rw [Ideal.span_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx', map_finprod _ H,
     Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
   case hf =>
-    rwa [← Function.comp_def (fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)),
+    rwa [Function.HasFiniteMulSupport, ← Function.comp_def (fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)),
       Function.mulSupport_comp_eq _ fun {I} ↦ ?hnorm]
     case hnorm =>
       norm_cast
       rw [Ideal.absNorm_eq_one_iff, Ideal.one_eq_top]
   case hg =>
-    exact Function.finite_mulSupport_iSup fun j ↦ FinitePlace.mulSupport_finite (mod_cast j.prop)
+    exact Function.HasFiniteMulSupport.iSup
+      fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
   refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
   rw [multiplicity_ciSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
     Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
@@ -1063,7 +925,7 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     have : v.val x ≤ ⨆ i, v.val (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
     grw [this]
     nth_rw 1 [le_div_iff₀' (mod_cast Nat.pow_pos hn₁)]
-    refine (mul_le_mul_of_nonneg_right ?_ v.val.iSup_abv_nonneg).trans h
+    refine (mul_le_mul_of_nonneg_right ?_ (Real.iSup_nonneg_of_nonnegHomClass ..)).trans h
     have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^v.mult)
         (g := fun v ↦ (⨆ i, v.val (![(x : K), n] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
     case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
@@ -1073,7 +935,7 @@ lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
         show v.mult - 1 + 1 = v.mult by lia, Finset.prod_erase_mul _ _ (mem_univ v),
         prod_pow_eq_pow_sum univ InfinitePlace.mult]
       exact (congrArg (fun a ↦ (n : ℝ) ^ a) <| totalWeight_eq_sum_mult K).le
-    · exact pow_nonneg v.val.iSup_abv_nonneg _
+    · exact pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   set B' := B / n ^ (totalWeight K - 1)
   refine Set.Finite.subset (s := {x : 𝓞 K | ∀ v : InfinitePlace K, v.val x ≤ B'}) ?_
     fun x hx ↦ by grind
@@ -1135,7 +997,7 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     grw [← H₁] at ha
     · exact (div_le_iff₀' Hw).mp ha
     · -- nonnegativity side goal from `grw`
-      exact Finset.prod_nonneg fun v _ ↦ pow_nonneg v.val.iSup_abv_nonneg _
+      exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   exact (finite_setOf_prod_archAbsVal_nat_le hn _).subset H₂
 
 variable (K) in

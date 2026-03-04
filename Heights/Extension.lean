@@ -16,6 +16,9 @@ We follow [Brian Conrad's notes](http://math.stanford.edu/~conrad/676Page/handou
 Sections 6 and 7.
 -/
 
+#exit
+-- Need to fix errors from `WithAbs` refactor.
+
 section restrict
 
 namespace AbsoluteValue
@@ -55,7 +58,7 @@ lemma isometry_comap {F' : Type*} [Field F'] (v : AbsoluteValue F' ℝ) (f : F �
     Isometry ((equiv v).symm.toRingHom.comp (f.comp (equiv (v.comap f)).toRingHom)) := by
   refine AddMonoidHomClass.isometry_of_norm _ fun x ↦ ?_
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
-  simp [norm_eq_abv]
+  simp [norm_eq_apply_ofAbs]
 
 lemma isNontrivial_of_comap (v : AbsoluteValue R S) (f : F →+* R) (h : (v.comap f).IsNontrivial) :
     v.IsNontrivial := by

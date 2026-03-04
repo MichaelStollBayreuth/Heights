@@ -131,34 +131,35 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
   rw [discreteTopology_iff_isOpen_singleton_zero, Metric.isOpen_singleton_iff]
   refine ⟨fun ⟨ε, hε₀, hε₁⟩ ↦ ?_, fun H ↦ ⟨1 / 2, one_half_pos, fun y hy ↦ ?_⟩⟩
   · set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    simp only [dist_zero_right, norm_eq_abv] at hε₁
+    simp only [dist_zero_right, norm_eq_apply_ofAbs] at hε₁
     rw [not_isNontrivial_iff]
     intro x hx₀
     by_contra! h
     have H {y : F} (hy₀ : y ≠ 0) (hy : v y < 1) : False := by
       obtain ⟨n, hn⟩ := exists_pow_lt_of_lt_one hε₀ hy
       rw [← v.map_pow] at hn
-      exact hy₀ <| eq_zero_of_pow_eq_zero <| hε₁ _ hn
+      exact hy₀ <| eq_zero_of_pow_eq_zero <| (toAbs_eq_zero v).mp (hε₁ _ hn)
     rcases h.lt_or_gt with h | h
     · exact H hx₀ h
     · replace h := inv_lt_one_of_one_lt₀ h
       rw [← map_inv₀] at h
       exact H (inv_ne_zero hx₀) h
   · set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    rw [dist_zero_right, norm_eq_abv] at hy
+    rw [dist_zero_right, norm_eq_apply_ofAbs] at hy
     rcases eq_or_ne y 0 with rfl | hy₀
     · rfl
-    · have : WithAbs.equiv v y ≠ 0 := hy₀
-      simp only [H, not_false_eq_true, ne_eq, this, not_isNontrivial_apply] at hy
-      contrapose! hy
-      exact one_half_lt_one.le
+    · have : WithAbs.equiv v y ≠ 0 := (RingEquiv.map_ne_zero_iff (equiv v)).mpr hy₀
+      rw [show v y.ofAbs = 1 from not_isNontrivial_apply H this] at hy
+      norm_num at hy
 
 /-- A field with a nontrivial absolute value on it is a nontrivially normed field. -/
 noncomputable
 def IsNontrivial.nontriviallyNormedField {v : AbsoluteValue F ℝ} (hv : v.IsNontrivial) :
     NontriviallyNormedField (WithAbs v) where
   __ := WithAbs.normedField v
-  non_trivial := hv.exists_abv_gt_one
+  non_trivial := by
+    obtain ⟨x, hx⟩ := hv.exists_abv_gt_one
+    exact ⟨WithAbs.toAbs v x, hx⟩
 
 noncomputable
 instance _root_.WithAbs.nontriviallynormedField {v : AbsoluteValue F ℝ} [Fact v.IsNontrivial] :
@@ -197,22 +198,22 @@ variable {F : Type*} [Field F]
 open WithAbs
 
 lemma continuous_equivWithAbs {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    Continuous (equivWithAbs v₁ v₂) :=
+    Continuous (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) :=
   isEquiv_iff_isHomeomorph v₁ v₂ |>.mp h |>.continuous
 
 /-- Two equivalent absolute values on a field `F` induce the same topology.
 This defines the identity map `F → F` as a homeomorphism between the two topologies. -/
 def homeomorph_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ₜ WithAbs v₂ where
-  toFun := WithAbs.equivWithAbs v₁ v₂
-  invFun := WithAbs.equivWithAbs v₂ v₁
+  toFun := WithAbs.congr v₁ v₂ (RingEquiv.refl F)
+  invFun := WithAbs.congr v₂ v₁ (RingEquiv.refl F).symm
   left_inv _ := rfl
   right_inv _ := rfl
   continuous_toFun := continuous_equivWithAbs h
   continuous_invFun := continuous_equivWithAbs (Setoid.symm h)
 
 lemma homeomorph_of_isEquiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    ⇑(homeomorph_of_isEquiv h) = ⇑(equivWithAbs v₁ v₂) :=
+    ⇑(homeomorph_of_isEquiv h) = ⇑(WithAbs.congr v₁ v₂ (RingEquiv.refl F)) :=
   rfl
 
 set_option backward.isDefEq.respectTransparency false in -- temporary measure
@@ -221,7 +222,7 @@ absolute values. -/
 noncomputable
 def ringHom_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion →+* v₂.Completion :=
-  UniformSpace.Completion.mapRingHom (equivWithAbs v₁ v₂) <|
+  UniformSpace.Completion.mapRingHom (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) <|
     ((isEquiv_iff_isHomeomorph v₁ v₂).mp h).continuous
 
 /-- The induced ring isomorphism between two completions with respect to equivalent
@@ -230,10 +231,10 @@ noncomputable
 def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion ≃+* v₂.Completion := by
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
-  refine UniformSpace.Completion.mapRingEquiv (equivWithAbs v₁ v₂) ?_ ?_
+  refine UniformSpace.Completion.mapRingEquiv (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) ?_ ?_
   · rw [← homeomorph_of_isEquiv_toFun_eq h]
     exact Homeomorph.continuous (homeomorph_of_isEquiv h)
-  · rw [WithAbs.equivWithAbs_symm, ← homeomorph_of_isEquiv_toFun_eq (Setoid.symm h)]
+  · rw [WithAbs.congr_symm, RingEquiv.symm_refl, ← homeomorph_of_isEquiv_toFun_eq (Setoid.symm h)]
     exact Homeomorph.continuous (homeomorph_of_isEquiv (Setoid.symm h))
 
 lemma ringEquiv_completion_coe_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
@@ -258,6 +259,8 @@ lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v
     ⟨?_, (ringEquiv_completion_of_isEquiv h).symm, ?_, ?_, ?_⟩
   · rw [show ⇑(ringEquiv_completion_of_isEquiv h) = ⇑(ringEquiv_completion_of_isEquiv h).toRingHom
          from rfl]
+    stop -- timeout below
+    set_option backward.isDefEq.respectTransparency false in -- temporary measure
     rw [congrArg DFunLike.coe (ringEquiv_completion_coeFun_eq ..), ringHom_completion_of_isEquiv]
     set_option backward.isDefEq.respectTransparency false in -- temporary measure
     exact continuous_mapRingHom (continuous_equivWithAbs h)
@@ -267,22 +270,23 @@ lemma isHomeomorph_ringEquiv_completion {v₁ v₂ : AbsoluteValue F ℝ} (h : v
           ⇑(ringEquiv_completion_of_isEquiv h).symm.toRingHom from rfl]
     rw [ringEquiv_completion_symm_coeFun_eq, ringHom_completion_of_isEquiv]
     set_option backward.isDefEq.respectTransparency false in -- temporary measure
+    stop -- continuous_mapRingHom in Auxiliary?
     exact continuous_mapRingHom (continuous_equivWithAbs (Setoid.symm h))
 
 lemma uniformContinuous_equivWithAbs_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    UniformContinuous (equivWithAbs v₁ v₂) :=
+    UniformContinuous (congr v₁ v₂ (RingEquiv.refl F)) :=
   uniformContinuous_of_continuousAt_zero _ (continuous_equivWithAbs h).continuousAt
 
 /-- If `v₁` and `v₂` are equivalent absolute values on `F`, then `WithAbs.equivWithAbs v₁ v₂`
 is an equivalence of uniformities. This gives the `UniformEquiv`. -/
 def uniformEquivOfIsEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ᵤ WithAbs v₂ :=
-  UniformEquiv.mk (equivWithAbs v₁ v₂) (uniformContinuous_equivWithAbs_of_isEquiv h)
+  UniformEquiv.mk (congr v₁ v₂ (RingEquiv.refl F)) (uniformContinuous_equivWithAbs_of_isEquiv h)
     (uniformContinuous_equivWithAbs_of_isEquiv <| Setoid.symm h)
 
 /-- The underlying equivalence of `uniformEquivOfIsEquiv h` is `WithAbs.equivWithAbs _ _`. -/
 lemma uniformEquiv_eq_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
-    (uniformEquivOfIsEquiv h).toEquiv = (equivWithAbs v₁ v₂).toEquiv :=
+    (uniformEquivOfIsEquiv h).toEquiv = (congr v₁ v₂ (RingEquiv.refl F)).toEquiv :=
   rfl
 
 /-- If `v₁` and `v₂` are equivalent absolute values on `F` and `F` is complete

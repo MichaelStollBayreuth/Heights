@@ -1,6 +1,5 @@
 import Mathlib
 import Heights.MvPolynomial
-import Heights.Descent
 import Heights.NumberField
 
 /-!
@@ -543,6 +542,9 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
   refine (Set.Finite.union (by simp) ?_).subset h
   exact Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) hS
 
+instance : Northcott (Point.naiveHeight (K := K) (W := W)) where
+  finite_le := finite_naiveHeight_le W
+
 variable [DecidableEq K]
 
 include hab hW in
@@ -555,7 +557,7 @@ theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.
     rw [Point.naiveHeight_eq_logHeight P]
     positivity
   obtain ⟨C, hC⟩ := approx_parallelogram_law hab hW
-  exact AddCommGroup.fg_of_descent' weakMW H₂ hC (finite_naiveHeight_le W)
+  exact AddCommGroup.fg_of_descent' weakMW H₂ hC
 
 end NumberField
 
