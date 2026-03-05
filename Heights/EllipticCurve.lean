@@ -550,7 +550,7 @@ variable [DecidableEq K]
 include hab hW in
 /-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
 `E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
-number field `K`.-/
+number field `K`. -/
 theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex) :
     AddGroup.FG W.Point := by
   have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
