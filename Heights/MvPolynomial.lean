@@ -1,6 +1,49 @@
-import Heights.Basic
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Algebra.Polynomial.Homogenize
+import Mathlib.NumberTheory.Height.Basic
+
+-- NOTE: There is some slight divergence between this file and the contents of the corresponding
+--       file in the sequence of PRs.
+
+namespace Height
+
+variable {K : Type*} [Field K]
+
+open Function
+
+-- use `NonnegHomClass`
+lemma iSup_eq_iSup_subtype {ι K M : Type*} [Finite ι] [Zero K] [Zero M]
+    [ConditionallyCompleteLattice M] {x : ι → K} (hx : x ≠ 0) {v : K → M}
+    (hv₀ : v 0 = 0) (hv : ∀ k, 0 ≤ v k) :
+    ⨆ i, v (x i) =  ⨆ i : {j // x j ≠ 0}, v (x i) := by
+  obtain ⟨i, hi⟩ : ∃ j, x j ≠ 0 := ne_iff.mp hx
+  have : Nonempty {j // x j ≠ 0} := .intro ⟨i, hi⟩
+  have : Nonempty ι := .intro i
+  refine le_antisymm ?_ <| ciSup_le fun ⟨j, hj⟩ ↦ le_ciSup_of_le (Finite.bddAbove_range _) j le_rfl
+  refine ciSup_le fun j ↦ ?_
+  rcases eq_or_ne (x j) 0 with h | h
+  · rw [h, hv₀]
+    exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨i, hi⟩ (hv ..)
+  · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨j, h⟩ le_rfl
+
+lemma iSup_abv_eq_iSup_subtype {ι : Type*} [Finite ι] (v : AbsoluteValue K ℝ) {x : ι → K}
+    (hx : x ≠ 0) :
+    ⨆ i, v (x i) =  ⨆ i : {j // x j ≠ 0}, v (x i) :=
+  iSup_eq_iSup_subtype hx v.map_zero v.nonneg
+
+variable [AdmissibleAbsValues K]
+
+open AdmissibleAbsValues
+
+-- Finiteness of the multiplicative support for some relevant functions.
+@[fun_prop]
+lemma mulSupport_iSup_nonarchAbsVal_finite {ι : Type*} [Finite ι] {x : ι → K} (hx : x ≠ 0) :
+    (fun v : nonarchAbsVal ↦ ⨆ i, v.val (x i)).HasFiniteMulSupport := by
+  simp only [iSup_abv_eq_iSup_subtype _ hx]
+  have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| ne_iff.mp hx
+  fun_prop (disch := grind)
+
+end Height
 
 /-!
 # Height bounds for polynomial maps

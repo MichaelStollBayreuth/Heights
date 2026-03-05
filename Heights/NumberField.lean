@@ -2,7 +2,8 @@ import Mathlib.GroupTheory.FiniteAbelian.Basic
 import Mathlib.NumberTheory.Height.Northcott
 import Mathlib.NumberTheory.Height.NumberField
 import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp
-import Heights.Basic
+import Heights.MvPolynomial
+
 /-!
 # Heights over number fields
 
