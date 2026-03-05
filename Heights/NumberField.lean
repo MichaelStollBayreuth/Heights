@@ -1,4 +1,5 @@
 import Mathlib.GroupTheory.FiniteAbelian.Basic
+import Mathlib.NumberTheory.Height.Northcott
 import Mathlib.NumberTheory.Height.NumberField
 import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp
 import Heights.Basic
@@ -100,7 +101,7 @@ namespace Submodule
 
 variable {R K : Type*} [CommRing R] [CommRing K] [Algebra R K] [Module.Finite ℤ R]
 
-lemma relIndex_ne_zero_of_map_linearMapMulLeft_le (A B : Submodule R K) {n : ℕ} (hn : n ≠ 0)
+lemma relIndex_ne_zero_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ} (hn : n ≠ 0)
     (hfg : A.FG) (h : A.map (LinearMap.mulLeft R (n : K)) ≤ B) :
     B.toAddSubgroup.relIndex A.toAddSubgroup ≠ 0 := by
   have hA : A.toAddSubgroup.FG := by
@@ -637,6 +638,13 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
     Matrix.cons_val_fin_one]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
+lemma exists_integer_of_mem_span {x : K} (hx : x ∈ Submodule.span (𝓞 K) {(1 : K)}) :
+    ∃ a : 𝓞 K, (a : K) = x := by
+  rw [Submodule.mem_span_singleton] at hx
+  obtain ⟨a, ha⟩ := hx
+  refine ⟨a, ?_⟩
+  rw [← ha, ← Algebra.algebraMap_eq_smul_one a]
+
 variable [NumberField K]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid in
@@ -686,10 +694,7 @@ info: AddSubgroup.relIndex_pointwise_smul.{u_1, u_2} {G : Type u_1} {H : Type u_
 #guard_msgs in
 #check AddSubgroup.relIndex_pointwise_smul
 
-lemma relIndex_ne_zero (x : K) :
-    (Submodule.span (𝓞 K) {(1 : K)}).toAddSubgroup.relIndex
-      (Submodule.span (𝓞 K) {1, x}).toAddSubgroup ≠ 0 := by
-  obtain ⟨m, r, hm, h⟩ : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
+lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
     obtain ⟨num, ⟨d, hd⟩, h⟩ :=
       IsLocalization.exists_mk'_eq (Algebra.algebraMapSubmonoid (𝓞 K) (nonZeroDivisors ℤ)) x
     rw [show
@@ -697,23 +702,30 @@ lemma relIndex_ne_zero (x : K) :
         from rfl] at hd
     choose a hamem ha using hd
     rw [mem_nonZeroDivisors_iff_ne_zero] at hamem
-    refine ⟨a.natAbs, a.sign * num, Int.natAbs_ne_zero.mpr hamem, ?_⟩
-    have Ha : (a.natAbs : 𝓞 K) * num = (a.sign * num) * (a : 𝓞 K) := by
-      rw [mul_right_comm]
-      congr
-      rw [← Int.cast_mul, Int.sign_mul_self]
-      exact (Int.cast_natCast a.natAbs).symm
-    rw [← h, nsmul_eq_mul,
-      show (a.natAbs : K) * _ = (a.natAbs : 𝓞 K) • _ from (smul_eq_mul ..).symm,
-      IsLocalization.smul_mk', Ha, ← IsLocalization.smul_mk']
-    simp only [← ha, algebraMap_int_eq, eq_intCast, IsLocalization.mk'_self, map_mul, map_intCast]
-    rw [← smul_eq_mul (↑a.sign) ((algebraMap (𝓞 K) K) num), Algebra.smul_def, mul_one]
-    rfl
-  refine Submodule.relIndex_ne_zero_of_map_linearMapMulLeft_le _ _ hm (Submodule.fg_span (by simp)) ?_
+    refine ⟨a, num, hamem, ?_⟩
+    have Ha : (a : 𝓞 K) * num = num * (a : 𝓞 K) := Int.cast_comm a num
+    rw [← h, zsmul_eq_mul, show (a : K) * _ = (a : 𝓞 K) • _ from (smul_eq_mul ..).symm]
+    rw [IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
+    simp only [← ha, algebraMap_int_eq, eq_intCast, IsLocalization.mk'_self, Algebra.smul_def,
+      mul_one]
+
+lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
+    obtain ⟨a, r, ha, h⟩ := exists_zsmul_eq_integer x
+    refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
+    simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
+    rw [← RingOfIntegers.coe_eq_algebraMap r, ← h, ← mul_assoc]
+    congrm ?_ * x
+    exact_mod_cast (Int.sign_mul_self_eq_abs a).symm
+
+open Submodule in
+lemma relIndex_ne_zero (x : K) :
+    (span (𝓞 K) {(1 : K)}).toAddSubgroup.relIndex (span (𝓞 K) {1, x}).toAddSubgroup ≠ 0 := by
+  obtain ⟨m, r, hm, h⟩ := exists_nsmul_eq_integer x
+  refine relIndex_ne_zero_of_map_linearMapMulLeft_le hm (fg_span (by simp)) ?_
   rw [LinearMap.map_span_le]
   intro a ha
   simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at ha
-  rw [LinearMap.mulLeft_apply, Submodule.mem_span_singleton]
+  rw [LinearMap.mulLeft_apply, mem_span_singleton]
   rcases ha with rfl | rfl
   · refine ⟨m, ?_⟩
     rw [← Algebra.algebraMap_eq_smul_one, mul_one]
@@ -721,132 +733,74 @@ lemma relIndex_ne_zero (x : K) :
   · refine ⟨r, ?_⟩
     rw [← Algebra.algebraMap_eq_smul_one, ← RingOfIntegers.coe_eq_algebraMap, ← h, nsmul_eq_mul]
 
+open Submodule in
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
       (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
-  let R : Submodule (𝓞 K) K := Submodule.span (𝓞 K) {1}
-  let I : Submodule (𝓞 K) K := Submodule.span (𝓞 K) {1, x}
+  let R : Submodule (𝓞 K) K := span (𝓞 K) {1}
+  let I : Submodule (𝓞 K) K := span (𝓞 K) {1, x}
+  have hRI : R.toAddSubgroup ≤ I.toAddSubgroup := by
+    refine toAddSubgroup_mono <| span_le.mpr fun r hr ↦ ?_
+    simpa only [Set.mem_singleton_iff.mp hr, SetLike.mem_coe, I] using mem_span_of_mem <| by simp
   let n := R.toAddSubgroup.relIndex I.toAddSubgroup
   have hn : n ≠ 0 := relIndex_ne_zero x
   have ha₁ : n * x ∈ R := by
     rw [← nsmul_eq_mul]
-    have hx : x ∈ I := Submodule.mem_span_of_mem <| Set.mem_insert_of_mem 1 rfl
+    have hx : x ∈ I := mem_span_of_mem <| Set.mem_insert_of_mem 1 rfl
     exact AddSubgroup.nsmul_relIndex_mem R.toAddSubgroup hx
-  obtain ⟨a, ha₂⟩ : ∃ a : 𝓞 K, (a : K) = n * x := by
-    simp only [R] at ha₁
-    rw [Submodule.mem_span_singleton] at ha₁
-    obtain ⟨a, ha⟩ := ha₁
-    refine ⟨a, ?_⟩
-    rw [← ha, ← Algebra.algebraMap_eq_smul_one a]
+  obtain ⟨a, ha₂⟩ := exists_integer_of_mem_span ha₁
   refine ⟨n, hn, a, ha₂.symm, ?_⟩
-  let nI : Submodule (𝓞 K) K := Submodule.span (𝓞 K) {(n : K), (a : K)}
+  let nI : Submodule (𝓞 K) K := span (𝓞 K) {(n : K), (a : K)}
+  have hnIR : nI.toAddSubgroup ≤ R.toAddSubgroup := by
+    refine toAddSubgroup_mono <| span_le.mpr fun r hr ↦ ?_
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hr
+    simp only [SetLike.mem_coe, R, mem_span_singleton]
+    rcases hr with rfl | rfl
+    · exact ⟨n, by simp [Nat.cast_smul_eq_nsmul]⟩
+    · exact ⟨a, by simp [Algebra.smul_def]⟩
+  have hnI' : nI = I.map (DistribSMul.toLinearMap (𝓞 K) K n) := by
+    have H (u v : 𝓞 K) : u • (n : K) + v • a = n * (u • 1 + v • x) := by
+      simp [ha₂, ← nsmul_eq_mul, mul_add]
+    ext1
+    simp [I, nI, Submodule.mem_span_pair, H]
   have hnI : nI.toAddSubgroup = AddSubgroup.map (nsmulAddMonoidHom (α := K) n) I.toAddSubgroup := by
-    simp only [I, nI]
-    ext z
-    simp only [Submodule.mem_toAddSubgroup, AddSubgroup.mem_map, nsmulAddMonoidHom_apply,
-      nsmul_eq_mul, Submodule.mem_span_pair]
-    refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-    · obtain ⟨u, v, rfl⟩ := H
-      refine ⟨_, ⟨u, v, rfl⟩, ?_⟩
-      rw [mul_add, mul_smul_comm v, ← ha₂, mul_smul_one u]
-    · obtain ⟨_, ⟨u, v, rfl⟩, H⟩ := H
-      refine ⟨u, v, ?_⟩
-      rw [← H, mul_add, mul_smul_comm v, ← ha₂, mul_smul_one u]
-  let f : 𝓞 K →+ R.toAddSubgroup := {
-    toFun r := ⟨r • 1, by simpa [R] using Submodule.mem_span_singleton.mpr ⟨_, rfl⟩⟩
-    map_zero' := by simp
-    map_add' r r' := by simp [add_smul]
-  }
-  have hf : Function.Bijective f := by
+    rw [hnI', map_toAddSubgroup]
+    rfl
+  set_option backward.isDefEq.respectTransparency false in -- temporary measure
+  let f : 𝓞 K →ₗ[𝓞 K] R := LinearMap.toSpanSingleton _ _ ⟨_, mem_span_singleton_self 1⟩
+  have hf₀ : Function.Bijective f := by
     refine ⟨fun r r' h ↦ by simpa [f] using h, fun r ↦ ?_⟩
     have := r.prop
-    simp only [R] at this
-    rw [Submodule.mem_toAddSubgroup, Submodule.mem_span_singleton] at this
-    obtain ⟨b, hb⟩ := this
-    refine ⟨b, ?_⟩
-    ext1
-    rw [← hb]
-    rfl
-  have H₂ : (Ideal.span {(n : 𝓞 K), a}).absNorm = nI.toAddSubgroup.relIndex R.toAddSubgroup := by
-    rw [show Ideal.absNorm _ = (Submodule.toAddSubgroup _).index from rfl]
-    rw [show
-        nI.toAddSubgroup.relIndex R.toAddSubgroup =
-          (nI.toAddSubgroup.addSubgroupOf R.toAddSubgroup).index
-        from rfl]
-    erw [← AddSubgroup.index_map_of_bijective hf (Ideal.span {(n : 𝓞 K), a}).toAddSubgroup] -- `rw` does not work
-    congr
+    simp only [R, mem_span_singleton] at this
+    obtain ⟨a, ha⟩ := this
+    exact ⟨a, by simp [f, ha]⟩
+  have hf : Function.Bijective f.toAddMonoidHom := hf₀
+  have H (u v : 𝓞 K) : u • (n : 𝓞 K) • (1 : K) + v • a • 1 = u • (n : K) + v • (a : K) := by
+    rw [Nat.cast_smul_eq_nsmul, nsmul_one, show a • (1 : K) = (a : K) • 1 from rfl,
+      smul_eq_mul, mul_one]
+  have H₁ : AddSubgroup.map f.toAddMonoidHom (toAddSubgroup (Ideal.span {↑n, a})) =
+      nI.toAddSubgroup.addSubgroupOf R.toAddSubgroup := by
+    have := congrArg toAddSubgroup (f.map_span {(n : 𝓞 K), a})
+    rw [map_toAddSubgroup, show (f : 𝓞 K →+ ↥R) = f.toAddMonoidHom from rfl] at this
+    simp only [nI, Ideal.span, this]
     ext1 r
-    simp only [AddSubgroup.mem_map, AddMonoidHom.coe_mk, ZeroHom.coe_mk, R, f, nI]
-    refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-    · obtain ⟨y, hy, rfl⟩ := H
-      rw [AddSubgroup.mem_addSubgroupOf]
-      rw [show Subtype.val ⟨y • (1 : K), _⟩ = y • 1 from rfl]
-      set_option backward.isDefEq.respectTransparency false in -- temporary measure
-      -- have : Module (𝓞 K) (𝓞 K) := inferInstance
-      rw [show Ideal.span _ = Submodule.span (𝓞 K) _ from rfl] at hy
-      rw [Submodule.mem_toAddSubgroup, Submodule.mem_span_pair] at hy ⊢
-      obtain ⟨u, v, rfl⟩ := hy
-      refine ⟨u, v, ?_⟩
-      rw [add_smul]
-      simp_rw [smul_assoc, ← Algebra.algebraMap_eq_smul_one, RingOfIntegers.coe_eq_algebraMap]
-      rfl
-    · rw [AddSubgroup.mem_addSubgroupOf, Submodule.mem_toAddSubgroup,
-        Submodule.mem_span_pair] at H
-      obtain ⟨u, v, huv⟩ := H
-      conv =>
-        enter [1, y, 1]
-        erw [Submodule.mem_toAddSubgroup, Submodule.mem_span_pair] -- `rw` does not work
-      obtain ⟨r', hr'⟩ := hf.surjective r
-      refine ⟨r', ⟨u, v, ?_⟩, by rw [← hr']; simp [f]⟩
-      apply_fun ((↑) : 𝓞 K → K) using RingOfIntegers.coe_injective
-      push_cast
-      rw [huv, ← hr']
-      simp only [AddMonoidHom.coe_mk, ZeroHom.coe_mk, f]
-      rw [← Algebra.algebraMap_eq_smul_one r']
-  have H' : Module.Finite ℤ ↥I.toAddSubgroup.toIntSubmodule := by
-    simp only [Submodule.toIntSubmodule_toAddSubgroup]
-    refine Module.Finite.of_fg ?_
-    set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    exact Submodule.FG.restrictScalars_iff.mpr <| Submodule.fg_span <| Set.toFinite _
-  have H₁ : nI.toAddSubgroup.relIndex I.toAddSubgroup = n ^ Module.finrank ℚ K := by
-    rw [hnI]
-    have H₃ : Module.Free ℤ ↥I.toAddSubgroup.toIntSubmodule := by
-      convert Module.free_iff_isTorsionFree.mpr ?_
-      · infer_instance
-      · infer_instance
-      · exact H'
-      · exact I.toAddSubgroup.toIntSubmodule.instIsTorsionFree
-    rw [AddSubgroup.relIndex_nsmul n I.toAddSubgroup]
-    rw [← RingOfIntegers.rank K]
-    refine congrArg (n ^ ·) ?_
-    have : Module.finrank ℤ (𝓞 K) = Module.finrank ℤ R :=
-      (AddEquiv.toIntLinearEquiv <| .ofBijective f hf).finrank_eq
-    rw [this]
-    convert (AddSubgroup.finrank_eq_of_relIndex_ne_zero ?_ hn).symm
-    · convert H'
-    · simp only [R, I]
-      rw [Submodule.toAddSubgroup_le]
-      simp only [Submodule.span_singleton_le_iff_mem]
-      exact Submodule.mem_span_of_mem (by simp)
-  have H₃ : nI.toAddSubgroup.relIndex I.toAddSubgroup =
-      nI.toAddSubgroup.relIndex R.toAddSubgroup * R.toAddSubgroup.relIndex I.toAddSubgroup := by
-    refine (AddSubgroup.relIndex_mul_relIndex _ _ _ ?_ ?_).symm
-    · refine Submodule.toAddSubgroup_mono <| Submodule.span_le.mpr fun r hr ↦ ?_
-      simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hr
-      rcases hr with rfl | rfl <;>
-        simp only [SetLike.mem_coe, R, Submodule.mem_span_singleton]
-      · exact ⟨n, by simp [Nat.cast_smul_eq_nsmul]⟩
-      · exact ⟨a, by simp [Algebra.smul_def]⟩
-    · refine Submodule.toAddSubgroup_mono <| Submodule.span_le.mpr fun r hr ↦ ?_
-      simp only [Set.mem_singleton_iff] at hr
-      rw [hr]
-      simp only [SetLike.mem_coe, I]
-      exact Submodule.mem_span_of_mem <| by simp
-  rw [H₂]
-  apply_fun (· * n) using mul_left_injective₀ hn
-  dsimp only
-  rw [← H₃, H₁, ← pow_succ]
-  exact congrArg (n ^ ·) (Nat.sub_add_cancel one_le_finrank_rat).symm
+    simp only [LinearMap.toSpanSingleton_apply, SetLike.mk_smul_mk, Set.image_pair, f, R,
+      AddSubgroup.mem_mk, mem_toAddSubmonoid]
+    rw [AddSubgroup.mem_addSubgroupOf, mem_toAddSubgroup]
+    simp only [mem_span_pair, SetLike.mk_smul_mk, AddMemClass.mk_add_mk, Subtype.ext_iff, H]
+  have H₂ : (Ideal.span {(n : 𝓞 K), a}).absNorm = nI.toAddSubgroup.relIndex R.toAddSubgroup := by
+    rw [show Ideal.absNorm _ = (toAddSubgroup _).index from rfl, AddSubgroup.relIndex,
+      ← AddSubgroup.index_map_of_bijective hf, H₁]
+  have H₃ : Module.Finite ℤ ↥I.toAddSubgroup :=
+    Module.Finite.of_fg <| FG.restrictScalars_iff.mpr <| fg_span <| Set.toFinite _
+  have H₃' : Module.Finite ℤ ↥I.toAddSubgroup.toIntSubmodule := by
+    simpa only [toIntSubmodule_toAddSubgroup] using H₃
+  have H₄ : nI.toAddSubgroup.relIndex I.toAddSubgroup = n ^ Module.finrank ℚ K := by
+    rw [hnI, I.toAddSubgroup.relIndex_nsmul n, ← RingOfIntegers.rank K,
+      (AddEquiv.toIntLinearEquiv <| .ofBijective f hf).finrank_eq]
+    exact congrArg (n ^ ·) <| (AddSubgroup.finrank_eq_of_relIndex_ne_zero hRI hn).symm
+  rw [H₂, ← mul_left_inj' hn, AddSubgroup.relIndex_mul_relIndex _ _ _ hnIR hRI, H₄, ← pow_succ,
+    Nat.sub_add_cancel one_le_finrank_rat]
 
 lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
@@ -854,70 +808,58 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
       ∃ a : 𝓞 K, n * x = a ∧ (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (totalWeight K - 1) by
     obtain ⟨n, hn, a, ha₁, ha₂⟩ := this
     refine ⟨n, hn, ?_, ha₁ ▸ a.isIntegral_coe⟩
-    have han : ![a, n] ≠ 0 := by simp [hn]
     have hv (v : FinitePlace K) (i : Fin 2) : v.val (![a, n] i : K) = v (![(a : K), n] i) := by
       fin_cases i <;> rfl
-    have := absNorm_mul_finprod_nonarchAbsVal_eq_one han
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.range_cons, Matrix.range_empty,
-      Set.union_empty, Set.union_singleton, ha₂, hv] at this
-    push_cast at this
     have hx : mulHeight₁ x = mulHeight ![(a : K), n] := by
       rw [← mulHeight₁_div_eq_mulHeight (a : K) n, ← ha₁, mul_div_cancel_left₀ x (mod_cast hn)]
     rw [hx, mulHeight_eq (by simp [hn])]
-    have hw : (0 : ℝ) < n ^ (totalWeight K - 1) := by positivity
-    refine le_of_mul_le_mul_left ?_ hw
+    refine le_of_mul_le_mul_left ?_ (show (0 : ℝ) < n ^ (totalWeight K - 1) by positivity)
+    have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
+    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.range_cons, Matrix.range_empty,
+      Set.union_empty, Set.union_singleton, ha₂, hv, Nat.cast_pow] at this
     rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_left_comm, this,
-      mul_one, totalWeight_eq_sum_mult]
-    rw [← prod_pow_eq_pow_sum univ]
+      mul_one, totalWeight_eq_sum_mult, ← prod_pow_eq_pow_sum univ]
     refine prod_le_prod (fun _ _ ↦ by positivity) fun v _ ↦ ?_
     gcongr
     exact InfinitePlace.le_iSup_abv_nat v n a
   rw [totalWeight_eq_finrank]
   exact exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow x
 
-lemma finite_setOf_prod_archAbsVal_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
+lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
   have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B)
       (v : InfinitePlace K) :
       v.val x ≤ B / n ^ (totalWeight K - 1) := by
     classical
-    have hn₁ : 1 ≤ n := by lia
-    have hvm := v.mult_pos
-    rw [← Finset.prod_erase_mul _ _ (mem_univ v), show v.mult = v.mult - 1 + 1 by lia, pow_succ,
-      ← mul_assoc] at h
+    have hvm : v.mult = v.mult - 1 + 1 := by have := v.mult_pos; lia
+    rw [← Finset.prod_erase_mul _ _ (mem_univ v), hvm, pow_succ, ← mul_assoc] at h
     have : v.val x ≤ ⨆ i, v.val (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
     grw [this]
-    nth_rw 1 [le_div_iff₀' (mod_cast Nat.pow_pos hn₁)]
+    nth_rw 1 [le_div_iff₀' (mod_cast Nat.pow_pos hn.pos)]
     refine (mul_le_mul_of_nonneg_right ?_ (Real.iSup_nonneg_of_nonnegHomClass ..)).trans h
-    have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^v.mult)
+    have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^ v.mult)
         (g := fun v ↦ (⨆ i, v.val (![(x : K), n] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
     case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
     grw [← this, ← v.le_iSup_abv_nat]
-    · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) by norm_cast)).mp ?_
+    · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) from mod_cast hn.pos)).mp ?_
       rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_assoc, ← pow_succ,
-        show v.mult - 1 + 1 = v.mult by lia, Finset.prod_erase_mul _ _ (mem_univ v),
-        prod_pow_eq_pow_sum univ InfinitePlace.mult]
+        ← hvm, Finset.prod_erase_mul _ _ (mem_univ v), prod_pow_eq_pow_sum univ InfinitePlace.mult]
       exact (congrArg (fun a ↦ (n : ℝ) ^ a) <| totalWeight_eq_sum_mult K).le
     · exact pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   set B' := B / n ^ (totalWeight K - 1)
-  refine Set.Finite.subset (s := {x : 𝓞 K | ∀ v : InfinitePlace K, v.val x ≤ B'}) ?_
-    fun x hx ↦ by grind
-  have H₁ := Embeddings.finite_of_norm_le K ℂ B'
-  let f : 𝓞 K → K := (↑)
-  have H₂ : Set.BijOn ((↑) : 𝓞 K → K) {x | ∀ (v : InfinitePlace K), v.val x ≤ B'}
+  have H' : Set.BijOn ((↑) : 𝓞 K → K) {x | ∀ (v : InfinitePlace K), v.val x ≤ B'}
       {x | IsIntegral ℤ x ∧ ∀ (φ : K →+* ℂ), ‖φ x‖ ≤ B'} := by
-    refine Set.BijOn.mk (fun x hx ↦ ?_) (fun x₁ _ x₂ _ ↦ RingOfIntegers.eq_iff.mp) ?_
+    refine Set.BijOn.mk (fun x hx ↦ ?_) (fun x₁ _ x₂ _ ↦ RingOfIntegers.eq_iff.mp) fun a ha ↦ ?_
     · simp only [Set.mem_setOf_eq] at hx ⊢
       exact ⟨x.isIntegral_coe, fun φ ↦ hx <| InfinitePlace.mk φ⟩
-    · intro a ha
-      simp only [Set.mem_setOf_eq] at ha ⊢
+    · simp only [Set.mem_setOf_eq] at ha ⊢
       simp only [Set.mem_image, Set.mem_setOf_eq]
       rw [← mem_integralClosure_iff ℤ K] at ha
       refine ⟨⟨a, ha.1⟩, fun v ↦ ?_, rfl⟩
-      convert ha.2 v.embedding
-      rw [InfinitePlace.norm_embedding_eq v a]
-      rfl
-  rwa [Set.BijOn.finite_iff_finite H₂]
+      have := ha.2 v.embedding
+      rwa [InfinitePlace.norm_embedding_eq v a] at this
+  have := (Set.BijOn.finite_iff_finite H').mpr <| Embeddings.finite_of_norm_le K ℂ B'
+  exact Set.Finite.subset this fun x hx ↦ by grind
 
 open Ideal in
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
@@ -926,29 +868,22 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
   have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
   have H₁ (a : 𝓞 K) :
       (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ v : FinitePlace K, ⨆ i, v (![(a : K), n] i) := by
-    let z : Fin 2 → 𝓞 K := ![a, n]
-    have han : ![a, n] ≠ 0 := by simp [hn]
-    have := absNorm_mul_finprod_nonarchAbsVal_eq_one han
     have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
       norm_cast
       refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
       rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
       exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
+    have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
     rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this
-    have HH (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
-      have (x : K) : v.val x = v x := rfl
-      fin_cases i <;> simp [this]
-    simp only [HH] at this
-    rw [← this]
-    nth_rw 1 [inv_le_inv₀ Hw Hnorm]
-    norm_cast
+    have H (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
+      fin_cases i <;> simp [v.coe_apply]
+    simp only [H] at this; clear H
+    rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
+    have H : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
     have := absNorm_span_singleton (n : 𝓞 K)
-    rw [Algebra.norm_apply ℤ (n : 𝓞 K)] at this
-    have H₃ : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
     set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    rw [H₃, LinearMap.det_smul, LinearMap.det_id] at this
-    simp only [mul_one, Int.natAbs_pow, Int.natAbs_natCast] at this
-    rw [RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
+    rw [Algebra.norm_apply ℤ (n : 𝓞 K), H, LinearMap.det_smul, LinearMap.det_id, mul_one,
+      Int.natAbs_pow, Int.natAbs_natCast, RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
     rw_mod_cast [← this] at Hw ⊢
     exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
   have H₂ : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
@@ -961,7 +896,7 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     · exact (div_le_iff₀' Hw).mp ha
     · -- nonnegativity side goal from `grw`
       exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
-  exact (finite_setOf_prod_archAbsVal_nat_le hn _).subset H₂
+  exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H₂
 
 variable (K) in
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
@@ -973,7 +908,7 @@ lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 
     · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq, f] at ha ⊢
       rw [mul_div_cancel₀ (a : K) (mod_cast hn), mulHeight₁_div_eq_mulHeight (a : K) n]
       exact ⟨a.isIntegral_coe, ha⟩
-    · simp [f] at h
+    · simp only [f] at h
       rw [div_left_inj' (mod_cast hn)] at h
       exact_mod_cast h
     · simp only [Set.mem_setOf_eq, Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_image]
@@ -988,23 +923,21 @@ variable (K) in
 The set of elements of bounded multiplicative height is finite. -/
 theorem finite_setOf_mulHeight₁_le (B : ℝ) : {x : K | mulHeight₁ x ≤ B}.Finite := by
   rcases lt_or_ge B 0 with hB | hB
-  · convert Set.finite_empty
-    refine Set.eq_empty_of_forall_notMem fun x ↦ ?_
-    simp only [Set.mem_setOf_eq, not_le]
-    grw [hB]
-    positivity
+  · rw [show {x : K | mulHeight₁ x ≤ B} = ∅ by grind [mulHeight₁_pos]]
+    exact Set.finite_empty
   have H₁ : {x : K | mulHeight₁ x ≤ B} =
       ⋃ n : Fin (⌊B⌋₊), {x : K | IsIntegral ℤ ((n + 1) * x) ∧ mulHeight₁ x ≤ B} := by
     ext1 x
-    simp only [Set.mem_setOf_eq, Set.mem_iUnion, exists_and_right, iff_and_self]
     obtain ⟨n, hn₀, hn₁, hn⟩ := exists_nat_le_mulHeight₁ x
+    simp only [Set.mem_setOf_eq, Set.mem_iUnion, exists_and_right, iff_and_self]
     refine fun h ↦ ⟨⟨n - 1, by grind [Nat.le_floor <| hn₁.trans h]⟩, ?_⟩
-    rw [← Nat.cast_add_one]
-    convert hn
-    grind
+    rwa [← Nat.cast_add_one, Nat.sub_one_add_one hn₀]
   rw [H₁]
   exact Set.finite_iUnion fun n ↦
-    mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le  K (Nat.zero_ne_add_one ↑n).symm B
+    mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le K (Nat.zero_ne_add_one n).symm B
+
+instance : Northcott (mulHeight₁ (K := K)) where
+  finite_le := finite_setOf_mulHeight₁_le K
 
 open Real in
 variable (K) in
@@ -1016,6 +949,9 @@ theorem finite_setOf_logHeight₁_le (B : ℝ) : {x : K | logHeight₁ x ≤ B}.
   rw [← log_exp B]
   convert this using 3 with x
   refine log_le_log_iff ?_ ?_ <;> positivity
+
+instance : Northcott (logHeight₁ (K := K)) where
+  finite_le := finite_setOf_logHeight₁_le K
 
 end NumberField
 

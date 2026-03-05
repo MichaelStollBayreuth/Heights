@@ -171,13 +171,13 @@ variable {K : Type*} [Field K] {a b : K} {W : Affine K}
 lemma Point.exists_x_y_of_ne_zero {P : W.Point} (hP : P ≠ 0) :
     ∃ (x y : K) (h : W.Nonsingular x y), P = .some h := by
   match P with
-  | @WeierstrassCurve.Affine.Point.some _ _ _ x y h => exact ⟨x, y, h, rfl⟩
+  | @Point.some _ _ _ x y h => exact ⟨x, y, h, rfl⟩
 
 def Point.x_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | @WeierstrassCurve.Affine.Point.some _ _ _ x _ _, _ => x
+  | @Point.some _ _ _ x _ _, _ => x
 
 def Point.y_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | @WeierstrassCurve.Affine.Point.some _ _ _ _ y _, _ => y
+  | @Point.some _ _ _ _ y _, _ => y
 
 lemma Point.x_eq_iff {P Q : W.Point} (hP : P ≠ 0) (hQ : Q ≠ 0) :
     x_of_ne_zero hP = x_of_ne_zero hQ ↔ Q = P ∨ Q = -P := by
@@ -200,7 +200,7 @@ under the x-coordinate map. We take `![1, 0]` for the point at infinity and `[x,
 where `x` is the x-coordinate of `P` for a finite point. -/
 noncomputable def Point.xRep : W.Point → Fin 2 → K
   | 0 => ![1, 0]
-  | @WeierstrassCurve.Affine.Point.some _ _ _ x _ _ => ![x, 1]
+  | @Point.some _ _ _ x _ _ => ![x, 1]
 
 @[simp]
 lemma Point.xRep_zero : (0 : W.Point).xRep = ![1, 0] :=
@@ -452,7 +452,7 @@ noncomputable def Point.naiveHeight (P : W.Point) : ℝ :=
 lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P.xRep :=
   rfl
 
-lemma Point.naiveHeight_eq_logHeight₁_of_ne_zero {P : W.Point} :
+lemma Point.naiveHeight_eq_logHeight₁ {P : W.Point} :
     P.naiveHeight = logHeight₁ (P.xRep 0) := by
   cases P with
   | zero =>
@@ -537,7 +537,7 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
     rw [Set.eq_empty_iff_forall_notMem]
     intro P
     simp only [Set.mem_setOf_eq, not_and, not_le]
-    rw [Point.naiveHeight_eq_logHeight₁_of_ne_zero]
+    rw [Point.naiveHeight_eq_logHeight₁]
     simp +contextual [hx]
   refine (Set.Finite.union (by simp) ?_).subset h
   exact Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) hS
