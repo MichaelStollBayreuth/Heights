@@ -68,14 +68,19 @@ lemma pow_relIndex_mem {G : Type*} [Group G] (H : Subgroup G) {K : Subgroup G} [
 -- #find_home! pow_relIndex_mem -- [Mathlib.GroupTheory.OrderOfElement]
 
 @[to_additive]
-lemma finiteIndex_range_powMonoidHom_of_fg (A : Type*) [CommGroup A] [Group.FG A] {n : ℕ}
-    (hn : n ≠ 0) :
-    (powMonoidHom (α := A) n).range.FiniteIndex := by
-  refine finiteIndex_iff_finite_quotient.mpr <| CommGroup.finite_of_fg_torsion _ ?_
+lemma isTorsion_quotient_range_powMonoidHom (A : Type*) [CommGroup A] {n : ℕ} (hn : n ≠ 0) :
+    Monoid.IsTorsion (A ⧸ (powMonoidHom (α := A) n).range) := by
   simp only [Monoid.IsTorsion, isOfFinOrder_iff_pow_eq_one]
   refine fun g ↦ QuotientGroup.induction_on g fun a ↦ ⟨n, hn.pos, ?_⟩
   rw [← QuotientGroup.mk_pow, QuotientGroup.eq_one_iff]
   simp
+
+@[to_additive]
+lemma finiteIndex_range_powMonoidHom_of_fg (A : Type*) [CommGroup A] [Group.FG A] {n : ℕ}
+    (hn : n ≠ 0) :
+    (powMonoidHom (α := A) n).range.FiniteIndex :=
+  finiteIndex_iff_finite_quotient.mpr <| CommGroup.finite_of_fg_torsion _ <|
+    isTorsion_quotient_range_powMonoidHom A hn
 
 @[to_additive]
 lemma isFiniteRelIndex_iff_relIndex_eq_zero {G : Type*} [Group G] {H₁ H₂ : Subgroup G} :
@@ -88,11 +93,17 @@ lemma isFiniteRelIndex_iff_finiteIndex {G : Type*} [Group G] {H₁ H₂ : Subgro
   rw [isFiniteRelIndex_iff_relIndex_eq_zero, finiteIndex_iff, relIndex]
 
 @[to_additive]
+lemma subgroupOf_mono {G : Type*} [Group G] {H₁ H₂ : Subgroup G} (H₃ : Subgroup G) (h : H₁ ≤ H₂) :
+    H₁.subgroupOf H₃ ≤ H₂.subgroupOf H₃ :=
+  comap_mono h
+-- #find_home! subgroupOf_mono --[Mathlib.Algebra.Group.Subgroup.Map]
+
+@[to_additive]
 lemma isFiniteRelIndex_of_le {G : Type*} [Group G] {H₁ H₂ : Subgroup G} (H₃ : Subgroup G)
     [H₁.IsFiniteRelIndex H₃] (h : H₁ ≤ H₂) :
     H₂.IsFiniteRelIndex H₃ := by
   rw [isFiniteRelIndex_iff_finiteIndex] at *
-  have : H₁.subgroupOf H₃ ≤ H₂.subgroupOf H₃ := comap_mono h
+  have := subgroupOf_mono H₃ h
   exact finiteIndex_of_le this
 
 @[to_additive]
@@ -107,6 +118,7 @@ lemma isFiniteRelIndex_map_powMonoidHom_of_fg {A : Type*} [CommGroup A] {B : Sub
   have := (Group.fg_iff_subgroup_fg B).mpr hB
   exact finiteIndex_range_powMonoidHom_of_fg B hn
 
+/-
 @[to_additive]
 lemma finiteIndex_of_range_powMonoidHom_le {A : Type*} [CommGroup A] [Group.FG A]
     (B : Subgroup A) {n : ℕ} (hn : n ≠ 0) (h : (powMonoidHom (α := A) n).range ≤ B) :
@@ -120,6 +132,7 @@ lemma isFiniteRelIndex_of_range_powMonoidHom_le {A : Type*} [CommGroup A] (B C :
     C.IsFiniteRelIndex B := by
   have := isFiniteRelIndex_map_powMonoidHom_of_fg hB hn
   exact isFiniteRelIndex_of_le B h
+ -/
 
 end Subgroup
 
@@ -133,11 +146,14 @@ lemma fg_toAddSubgroup {A : Submodule R M} (hfg : A.FG) : A.toAddSubgroup.FG := 
     rwa [fg_iff_addSubgroup_fg, AddSubgroup.toIntSubmodule_toAddSubgroup] at this
   exact FG.restrictScalars hfg
 
+open AddSubgroup in
 lemma isFiniteRelIndex_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ} (hn : n ≠ 0)
     (hfg : A.FG) (h : A.map (LinearMap.mulLeft R (n : K)) ≤ B) :
     B.toAddSubgroup.IsFiniteRelIndex A.toAddSubgroup := by
-  refine A.toAddSubgroup.isFiniteRelIndex_of_range_nsmulAddMonoidHom_le B.toAddSubgroup
-    (fg_toAddSubgroup hfg) hn ?_
+  have := fg_toAddSubgroup hfg
+  have := isFiniteRelIndex_map_nsmulAddMonoidHom_of_fg this hn
+  refine isFiniteRelIndex_of_le (H₁ := (A.toAddSubgroup.map (nsmulAddMonoidHom n))) A.toAddSubgroup
+    ?_
   rw [SetLike.le_def] at h ⊢
   simpa using h
 
@@ -224,7 +240,9 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
   case h => exact finiteMultiplicity_of_emultiplicity_eq_natCast this
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact_mod_cast this
+-- [Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity]
 
+-- wait for #36233
 lemma finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
     [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
     Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
@@ -240,7 +258,7 @@ lemma finprod_pow_count_of_subsingleton_units {α : Type*} [CommMonoidWithZero �
 end UniqueFactorizationMonoid
 
 namespace Finite
-
+/-
 variable {α β : Type*} [ConditionallyCompleteLinearOrderBot α] [Finite β]
 
 lemma ciSup_option (f : Option β → α) : ⨆ o, f o = f none ⊔ ⨆ b, f (some b) := by
@@ -252,10 +270,13 @@ lemma ciSup_option (f : Option β → α) : ⨆ o, f o = f none ⊔ ⨆ b, f (so
     · rw [iSup_of_empty', csSup_empty, sup_bot_eq]
       exact le_ciSup ..
     exact sup_le (le_ciSup f none) <| ciSup_le fun b ↦ le_ciSup ..
+ -/
+
+variable {α β : Type*} [Finite β]
 
 -- There appears to be no `ConditionallyCompleteLinearOrderTop`, so we restrict
 -- to our use case `β = ENat`.
-lemma ciInf_option (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b, f (some b) := by
+lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b, f (some b) := by
   -- exact ciSup_option (α := α ᵒᵈ) .. -- does not work
   refine le_antisymm (le_min (ciInf_le ..) ?_) <| le_ciInf fun o ↦ ?_
   · rcases isEmpty_or_nonempty β with hβ | hβ
@@ -270,7 +291,7 @@ end Finite
 namespace AddSubgroup
 
 noncomputable
-def tupleModRangeNsmulAddMonoidHom {A : Type*} [AddCommGroup A] (n : ℕ) (ι : Type*) :
+def addEquivTupleModRangeNsmulAddMonoidHom {A : Type*} [AddCommGroup A] (n : ℕ) (ι : Type*) :
     (ι → A) ⧸ (nsmulAddMonoidHom n).range ≃+ (ι → A ⧸ (nsmulAddMonoidHom n).range) :=
   let φ : (ι → A) →+ (ι → A ⧸ (nsmulAddMonoidHom n).range) := {
     toFun x := (x ·)
@@ -304,7 +325,7 @@ lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
       · obtain ⟨a, rfl⟩ := H
         exact ⟨e a, rfl⟩
     rwa [H, AddSubgroup.index_map_equiv] at this
-  rw [AddSubgroup.index_eq_card, Nat.card_congr (tupleModRangeNsmulAddMonoidHom n _).toEquiv,
+  rw [AddSubgroup.index_eq_card, Nat.card_congr (addEquivTupleModRangeNsmulAddMonoidHom n _).toEquiv,
     Nat.card_fun]
   simp only [Nat.card_eq_fintype_card, Fintype.card_fin]
   congr
@@ -471,7 +492,7 @@ lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I 
     rw [ih, ← EquivLike.range_comp (fun i ↦ emultiplicity p.asIdeal (I i)) e]
     rfl
   | h_option ih =>
-    rw [iSup_option, emultiplicity_sup p .., ih, Finite.ciInf_option]
+    rw [iSup_option, emultiplicity_sup p .., ih, Finite.ciInf_option_eNat]
 
 lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpectrum R)
     {I : ι → Ideal R} (hI : ∀ i, I i ≠ ⊥) :
