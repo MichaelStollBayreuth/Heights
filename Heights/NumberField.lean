@@ -29,14 +29,14 @@ namespace Function
 -- #36223
 variable {α M : Type*} [One M]
 
-@[to_additive]
+/- @[to_additive]
 lemma HasFiniteMulSupport.subset {f g : α → M} (hg : g.HasFiniteMulSupport)
     (h : f.mulSupport ⊆ g.mulSupport) :
     f.HasFiniteMulSupport := by
   simp only [HasFiniteMulSupport] at hg ⊢
-  exact hg.subset h
+  exact hg.subset h -/
 
-@[to_additive]
+@[to_additive (attr := fun_prop)]
 lemma HasFiniteMulSupport.comp_of_injective {β : Type*} {f : β → M} {g : α → β} (hg : Injective g)
     (hf : f.HasFiniteMulSupport) :
     (f ∘ g).HasFiniteMulSupport := by
@@ -44,17 +44,17 @@ lemma HasFiniteMulSupport.comp_of_injective {β : Type*} {f : β → M} {g : α 
   refine Set.Finite.of_injOn (f := g) ?_ (Set.injOn_of_injective hg) hf
   exact Set.mapsTo_iff_subset_preimage.mpr fun ⦃_⦄ a ↦ a
 
-@[to_additive]
+@[to_additive (attr := fun_prop)]
 lemma HasFiniteMulSupport.fun_comp_of_injective {β : Type*} {f : β → M} {g : α → β}
     (hg : Injective g) (hf : f.HasFiniteMulSupport) :
     (fun a ↦ f (g a)).HasFiniteMulSupport :=
   hf.comp_of_injective hg
 
-@[to_additive]
+/- @[to_additive]
 lemma hasFiniteMulSupport_iff {f g : α → M} (h : f.mulSupport = g.mulSupport) :
     f.HasFiniteMulSupport ↔ g.HasFiniteMulSupport := by
   simp only [HasFiniteMulSupport]
-  rw [h]
+  rw [h] -/
 
 end Function
 
@@ -68,58 +68,76 @@ lemma pow_relIndex_mem {G : Type*} [Group G] (H : Subgroup G) {K : Subgroup G} [
 -- #find_home! pow_relIndex_mem -- [Mathlib.GroupTheory.OrderOfElement]
 
 @[to_additive]
-lemma index_ne_zero_of_range_powMonoidHom_le {A : Type*} [CommGroup A] [Group.FG A]
-    (B : Subgroup A) {n : ℕ} (hn : n ≠ 0) (h : (powMonoidHom (α := A) n).range ≤ B) :
-    B.index ≠ 0 := by
-  refine index_ne_zero_iff_finite.mpr <| CommGroup.finite_of_fg_torsion _ ?_
+lemma finiteIndex_range_powMonoidHom_of_fg (A : Type*) [CommGroup A] [Group.FG A] {n : ℕ}
+    (hn : n ≠ 0) :
+    (powMonoidHom (α := A) n).range.FiniteIndex := by
+  refine finiteIndex_iff_finite_quotient.mpr <| CommGroup.finite_of_fg_torsion _ ?_
   simp only [Monoid.IsTorsion, isOfFinOrder_iff_pow_eq_one]
-  refine fun g ↦ ⟨n, Nat.zero_lt_of_ne_zero hn, ?_⟩
-  have H a : a ^ n ∈ B := by
-    rw [SetLike.le_def] at h
-    have ha : a ^ n ∈ (powMonoidHom n).range := by simp
-    exact h ha
-  suffices Quotient.out g ^ n ∈ B by
-    obtain ⟨b, hb₁, hb₂⟩ : ∃ b ∈ B, b = Quotient.out g ^ n := ⟨_, this, rfl⟩
-    apply_fun QuotientGroup.mk (s := B) at hb₂
-    rw [(QuotientGroup.eq_one_iff b).mpr hb₁] at hb₂
-    rw [hb₂, QuotientGroup.mk_pow, QuotientGroup.out_eq']
-  exact H _
--- #find_home! index_ne_zero_of_range_powMonoidHom_le -- [Mathlib.GroupTheory.FiniteAbelian.Basic]
+  refine fun g ↦ QuotientGroup.induction_on g fun a ↦ ⟨n, hn.pos, ?_⟩
+  rw [← QuotientGroup.mk_pow, QuotientGroup.eq_one_iff]
+  simp
 
 @[to_additive]
-lemma relIndex_ne_zero_of_range_powMonoidHom_le {A : Type*} [CommGroup A] (B C : Subgroup A)
+lemma isFiniteRelIndex_iff_relIndex_eq_zero {G : Type*} [Group G] {H₁ H₂ : Subgroup G} :
+    H₁.IsFiniteRelIndex H₂ ↔ H₁.relIndex H₂ ≠ 0 :=
+  ⟨fun _ ↦ relIndex_ne_zero, IsFiniteRelIndex.mk⟩
+
+@[to_additive]
+lemma isFiniteRelIndex_iff_finiteIndex {G : Type*} [Group G] {H₁ H₂ : Subgroup G} :
+    H₁.IsFiniteRelIndex H₂ ↔ (H₁.subgroupOf H₂).FiniteIndex := by
+  rw [isFiniteRelIndex_iff_relIndex_eq_zero, finiteIndex_iff, relIndex]
+
+@[to_additive]
+lemma isFiniteRelIndex_of_le {G : Type*} [Group G] {H₁ H₂ : Subgroup G} (H₃ : Subgroup G)
+    [H₁.IsFiniteRelIndex H₃] (h : H₁ ≤ H₂) :
+    H₂.IsFiniteRelIndex H₃ := by
+  rw [isFiniteRelIndex_iff_finiteIndex] at *
+  have : H₁.subgroupOf H₃ ≤ H₂.subgroupOf H₃ := comap_mono h
+  exact finiteIndex_of_le this
+
+@[to_additive]
+lemma isFiniteRelIndex_map_powMonoidHom_of_fg {A : Type*} [CommGroup A] {B : Subgroup A}
+    (hB : B.FG) {n : ℕ} (hn : n ≠ 0) :
+    B.map (powMonoidHom (α := A) n) |>.IsFiniteRelIndex B := by
+  rw [isFiniteRelIndex_iff_finiteIndex]
+  have : (map (powMonoidHom (α := A) n) B).subgroupOf B = (powMonoidHom (α := B) n).range := by
+    ext1
+    simp [mem_subgroupOf, Subtype.ext_iff]
+  rw [this]
+  have := (Group.fg_iff_subgroup_fg B).mpr hB
+  exact finiteIndex_range_powMonoidHom_of_fg B hn
+
+@[to_additive]
+lemma finiteIndex_of_range_powMonoidHom_le {A : Type*} [CommGroup A] [Group.FG A]
+    (B : Subgroup A) {n : ℕ} (hn : n ≠ 0) (h : (powMonoidHom (α := A) n).range ≤ B) :
+    B.FiniteIndex :=
+  have := finiteIndex_range_powMonoidHom_of_fg A hn
+  finiteIndex_of_le h
+
+@[to_additive]
+lemma isFiniteRelIndex_of_range_powMonoidHom_le {A : Type*} [CommGroup A] (B C : Subgroup A)
     (hB : B.FG) {n : ℕ} (hn : n ≠ 0) (h : B.map (powMonoidHom (α := A) n) ≤ C) :
-    C.relIndex B ≠ 0 := by
-  simp only [relIndex]
-  have : Group.FG B := (Group.fg_iff_subgroup_fg B).mpr hB
-  refine index_ne_zero_of_range_powMonoidHom_le (A := B) (C.subgroupOf B) hn ?_
-  rw [SetLike.le_def] at h ⊢
-  rintro ⟨b, hbmem⟩ hb
-  simp only [mem_map, powMonoidHom_apply, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂,
-    MonoidHom.mem_range, Subtype.exists, SubmonoidClass.mk_pow, Subtype.mk.injEq,
-    exists_prop] at h hb
-  rw [mem_subgroupOf, show Subtype.val ⟨b, hbmem⟩ = b from rfl]
-  obtain ⟨a, hamem, rfl⟩ := hb
-  exact mem_carrier.mp (h a hamem)
+    C.IsFiniteRelIndex B := by
+  have := isFiniteRelIndex_map_powMonoidHom_of_fg hB hn
+  exact isFiniteRelIndex_of_le B h
 
 end Subgroup
 
 namespace Submodule
 
-variable {R K : Type*} [CommRing R] [CommRing K] [Algebra R K] [Module.Finite ℤ R]
+variable {R K M : Type*} [CommRing R] [CommRing K] [Algebra R K] [Module.Finite ℤ R]
+  [AddCommGroup M] [Module R M]
 
-lemma relIndex_ne_zero_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ} (hn : n ≠ 0)
+lemma fg_toAddSubgroup {A : Submodule R M} (hfg : A.FG) : A.toAddSubgroup.FG := by
+  suffices A.toAddSubgroup.toIntSubmodule.FG by
+    rwa [fg_iff_addSubgroup_fg, AddSubgroup.toIntSubmodule_toAddSubgroup] at this
+  exact FG.restrictScalars hfg
+
+lemma isFiniteRelIndex_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ} (hn : n ≠ 0)
     (hfg : A.FG) (h : A.map (LinearMap.mulLeft R (n : K)) ≤ B) :
-    B.toAddSubgroup.relIndex A.toAddSubgroup ≠ 0 := by
-  have hA : A.toAddSubgroup.FG := by
-    suffices A.toAddSubgroup.toIntSubmodule.FG by
-      rwa [fg_iff_addSubgroup_fg, AddSubgroup.toIntSubmodule_toAddSubgroup] at this
-    rw [Submodule.toIntSubmodule_toAddSubgroup A]
-    have : Module.Finite R ↥(restrictScalars ℤ A) := by
-      rwa [← Module.Finite.iff_fg] at hfg
-    nth_rw 1 [← Module.Finite.iff_fg]
-    exact Module.Finite.trans R _
-  refine A.toAddSubgroup.relIndex_ne_zero_of_range_nsmulAddMonoidHom_le B.toAddSubgroup hA hn ?_
+    B.toAddSubgroup.IsFiniteRelIndex A.toAddSubgroup := by
+  refine A.toAddSubgroup.isFiniteRelIndex_of_range_nsmulAddMonoidHom_le B.toAddSubgroup
+    (fg_toAddSubgroup hfg) hn ?_
   rw [SetLike.le_def] at h ⊢
   simpa using h
 
@@ -589,7 +607,7 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 
   classical
   have := Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
   simp only [← count_normalizedFactors_eq_multiplicity hI]
-  exact Function.HasFiniteMulSupport.fun_comp_of_injective injective_asIdeal_maximalIdeal this
+  exact this.fun_comp_of_injective injective_asIdeal_maximalIdeal
 
 end NumberField
 
@@ -721,9 +739,9 @@ lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧ 
 
 open Submodule in
 lemma relIndex_ne_zero (x : K) :
-    (span (𝓞 K) {(1 : K)}).toAddSubgroup.relIndex (span (𝓞 K) {1, x}).toAddSubgroup ≠ 0 := by
+    (span (𝓞 K) {(1 : K)}).toAddSubgroup.IsFiniteRelIndex (span (𝓞 K) {1, x}).toAddSubgroup := by
   obtain ⟨m, r, hm, h⟩ := exists_nsmul_eq_integer x
-  refine relIndex_ne_zero_of_map_linearMapMulLeft_le hm (fg_span (by simp)) ?_
+  refine isFiniteRelIndex_of_map_linearMapMulLeft_le hm (fg_span (by simp)) ?_
   rw [LinearMap.map_span_le]
   intro a ha
   simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at ha
@@ -745,7 +763,8 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     refine toAddSubgroup_mono <| span_le.mpr fun r hr ↦ ?_
     simpa only [Set.mem_singleton_iff.mp hr, SetLike.mem_coe, I] using mem_span_of_mem <| by simp
   let n := R.toAddSubgroup.relIndex I.toAddSubgroup
-  have hn : n ≠ 0 := relIndex_ne_zero x
+  have fri := relIndex_ne_zero x
+  have hn : n ≠ 0 := AddSubgroup.IsFiniteRelIndex.relIndex_ne_zero
   have ha₁ : n * x ∈ R := by
     rw [← nsmul_eq_mul]
     have hx : x ∈ I := mem_span_of_mem <| Set.mem_insert_of_mem 1 rfl
