@@ -17,13 +17,16 @@ section API
 ### API for Mathlib
 -/
 
+-- #36222
 variable {R : Type*} [GroupWithZero R] [PartialOrder R] [PosMulReflectLT R] [MulPosReflectLT R]
 
 lemma antitoneOn_inv_pos : AntitoneOn (fun x : R ↦ x⁻¹) {r | 0 < r} :=
-  antitoneOn_iff_forall_lt.mpr fun ⦃_⦄ ha ⦃_⦄ _ h ↦  inv_anti₀ (Set.mem_setOf.mp ha) h.le
+  antitoneOn_iff_forall_lt.mpr fun ⦃_⦄ ha ⦃_⦄ _ h ↦ inv_anti₀ (Set.mem_setOf.mp ha) h.le
+-- #find_home! antitoneOn_inv_pos --  [Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic]
 
 namespace Function
 
+-- #36223
 variable {α M : Type*} [One M]
 
 @[to_additive]
@@ -55,12 +58,14 @@ lemma hasFiniteMulSupport_iff {f g : α → M} (h : f.mulSupport = g.mulSupport)
 
 end Function
 
+-- #36227
 namespace Subgroup
 
 @[to_additive]
 lemma pow_relIndex_mem {G : Type*} [Group G] (H : Subgroup G) {K : Subgroup G} [H.Normal]
     {g : G} (hg : g ∈ K) : g ^ H.relIndex K ∈ H :=
   pow_index_mem (H.subgroupOf K) ⟨g, hg⟩
+-- #find_home! pow_relIndex_mem -- [Mathlib.GroupTheory.OrderOfElement]
 
 @[to_additive]
 lemma index_ne_zero_of_range_powMonoidHom_le {A : Type*} [CommGroup A] [Group.FG A]
@@ -79,6 +84,7 @@ lemma index_ne_zero_of_range_powMonoidHom_le {A : Type*} [CommGroup A] [Group.FG
     rw [(QuotientGroup.eq_one_iff b).mpr hb₁] at hb₂
     rw [hb₂, QuotientGroup.mk_pow, QuotientGroup.out_eq']
   exact H _
+-- #find_home! index_ne_zero_of_range_powMonoidHom_le -- [Mathlib.GroupTheory.FiniteAbelian.Basic]
 
 @[to_additive]
 lemma relIndex_ne_zero_of_range_powMonoidHom_le {A : Type*} [CommGroup A] (B C : Subgroup A)
@@ -118,14 +124,17 @@ lemma relIndex_ne_zero_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ
   simpa using h
 
 end Submodule
+-- end #36227
 
+-- #36229
 namespace Ideal
 
 variable {R : Type*} [Semiring R]
 
-lemma span_eq_iSup {ι : Type*} (x : ι → R) :
+lemma span_range_eq_iSup {ι : Type*} (x : ι → R) :
     Ideal.span (Set.range x) = ⨆ i, Ideal.span {x i} := by
   rw [← Ideal.span_iUnion, Set.iUnion_singleton_eq_range]
+-- #find_home! span_eq_iSup -- [Mathlib.RingTheory.Ideal.Span]
 
 variable {ι : Type*}
 
@@ -141,21 +150,11 @@ lemma span_range_eq_span_range_support (x : ι → R) :
 
 end Ideal
 
-/-
-namespace Function
-
-variable {α R : Type*} [Semiring R]
-
-lemma mulSupport_pow_eq_support (f : α → ℕ) {b : R} (hb : orderOf b = 0) :
-    (fun a ↦ b ^ f a).mulSupport = f.support := by
-  ext1
-  simp [← orderOf_dvd_iff_pow_eq_one, hb]
-
-end Function
--/
-
+-- #36232
 namespace Nat
 
+/-- This does not assume that `ι` is finite (compare `Nat.cast_finprod`), but instead needs
+to assume characteristic zero to deal with the infinite case. -/
 lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ) :
     ((∏ᶠ (x : ι), f x :) : R) = ∏ᶠ (x : ι), (f x : R) := by
   by_cases hf : f.HasFiniteMulSupport
@@ -165,6 +164,7 @@ lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ
       convert hf
       ext1; simp
     rw [finprod_of_not_hasFiniteMulSupport hf, finprod_of_not_hasFiniteMulSupport H, cast_one]
+-- #find_home! cast_finprod' -- [Mathlib.Algebra.BigOperators.Finprod]
 
 end Nat
 
@@ -174,23 +174,24 @@ variable {α M : Type*} [DecidableEq α] [CommMonoid M]
 
 open Function in
 @[to_additive]
-lemma mulSupport_subset (s : Multiset α) (f : α → M) :
+lemma mulSupport_fun_pow_count_subset (s : Multiset α) (f : α → M) :
     (fun a ↦ f a ^ count a s).mulSupport ⊆ s.toFinset := by
   refine Function.mulSupport_subset_iff'.mpr fun a h ↦ ?_
   simp only [SetLike.mem_coe, mem_toFinset] at h
   simp [count_eq_zero_of_notMem h]
+-- #find_home! mulSupport_fun_pow_count_subset -- no good hits
 
 @[to_additive]
 lemma prod_map_eq_finprod (s : Multiset α) (f : α → M) :
     (s.map f).prod = ∏ᶠ a, f a ^ s.count a := by
   rw [Finset.prod_multiset_map_count, eq_comm]
-  exact finprod_eq_prod_of_mulSupport_subset _ <| mulSupport_subset ..
+  exact finprod_eq_prod_of_mulSupport_subset _ <| mulSupport_fun_pow_count_subset ..
 
 open Function in
 @[to_additive (attr := fun_prop)]
-lemma hasFiniteMulSupport_fun_pow_multiplicity (s : Multiset α) (f : α → M) :
+lemma hasFiniteMulSupport_fun_pow_count (s : Multiset α) (f : α → M) :
     (fun a ↦ (f a) ^ s.count a).HasFiniteMulSupport :=
-  s.toFinset.finite_toSet.subset <| mulSupport_subset ..
+  s.toFinset.finite_toSet.subset <| mulSupport_fun_pow_count_subset ..
 
 end Multiset
 
@@ -586,7 +587,7 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 
     (fun v : FinitePlace K ↦
       (f v.maximalIdeal.asIdeal) ^ multiplicity v.maximalIdeal.asIdeal I).HasFiniteMulSupport := by
   classical
-  have := Multiset.hasFiniteMulSupport_fun_pow_multiplicity (normalizedFactors I) f
+  have := Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
   simp only [← count_normalizedFactors_eq_multiplicity hI]
   exact Function.HasFiniteMulSupport.fun_comp_of_injective injective_asIdeal_maximalIdeal this
 
@@ -666,7 +667,7 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
   let i' : ι' := ⟨i₀, hi₀⟩
   have hι' : Nonempty ι' := .intro i'
   have hx' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
-  rw [span_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx',
+  rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx',
     map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hx' (·),
     Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
   case hf =>
