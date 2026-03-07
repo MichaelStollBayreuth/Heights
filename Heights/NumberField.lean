@@ -17,13 +17,6 @@ section API
 ### API for Mathlib
 -/
 
--- #36222
-variable {R : Type*} [GroupWithZero R] [PartialOrder R] [PosMulReflectLT R] [MulPosReflectLT R]
-
-lemma antitoneOn_inv_pos : AntitoneOn (fun x : R ↦ x⁻¹) {r | 0 < r} :=
-  antitoneOn_iff_forall_lt.mpr fun ⦃_⦄ ha ⦃_⦄ _ h ↦ inv_anti₀ (Set.mem_setOf.mp ha) h.le
--- #find_home! antitoneOn_inv_pos --  [Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic]
-
 namespace Function
 
 -- #36223
@@ -160,30 +153,6 @@ lemma isFiniteRelIndex_of_map_linearMapMulLeft_le {A B : Submodule R K} {n : ℕ
 end Submodule
 -- end #36227
 
--- #36229
-namespace Ideal
-
-variable {R : Type*} [Semiring R]
-
-lemma span_range_eq_iSup {ι : Type*} (x : ι → R) :
-    Ideal.span (Set.range x) = ⨆ i, Ideal.span {x i} := by
-  rw [← Ideal.span_iUnion, Set.iUnion_singleton_eq_range]
--- #find_home! span_eq_iSup -- [Mathlib.RingTheory.Ideal.Span]
-
-variable {ι : Type*}
-
-lemma span_range_eq_span_range_support (x : ι → R) :
-    span (Set.range x) = span (Set.range fun i : x.support ↦ x i.val) := by
-  rw [← Ideal.span_sdiff_singleton_zero (s := Set.range x), Function.support]
-  congr
-  ext1 a
-  simp only [Set.mem_diff, Set.mem_range, Set.mem_singleton_iff]
-  exact ⟨fun ⟨⟨i, hi⟩, ha⟩ ↦ ⟨⟨i, Set.mem_setOf.mpr (hi ▸ ha)⟩, hi⟩,
-    fun ⟨j, hj⟩ ↦ ⟨⟨j.val, hj⟩, by grind⟩⟩
--- #find_home! span_range_eq_span_range_support -- [Mathlib.RingTheory.Ideal.Span]
-
-end Ideal
-
 -- #36232
 namespace Nat
 
@@ -288,6 +257,16 @@ lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b
 
 end Finite
 
+namespace Int
+
+lemma range_nsmulAddMonoidHom (n : ℕ) :
+    (nsmulAddMonoidHom (α := ℤ) n).range = AddSubgroup.zmultiples (n : ℤ) := by
+  ext1 m
+  suffices (∃ x : ℤ , n * x = m) ↔ ∃ y, y * n = m by simpa only using this
+  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩ <;> obtain ⟨k, rfl⟩ := H <;> exact ⟨k, Int.mul_comm ..⟩
+
+end Int
+
 namespace AddSubgroup
 
 noncomputable
@@ -301,41 +280,27 @@ def addEquivTupleModRangeNsmulAddMonoidHom {A : Type*} [AddCommGroup A] (n : ℕ
   QuotientAddGroup.liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
     ext1 x
     simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ n • a = x i)).symm
+-- #find_home! addEquivTupleModRangeNsmulAddMonoidHom -- [Mathlib.GroupTheory.QuotientGroup.Defs]
 
-variable {M : Type*} [AddCommGroup M]
+variable {M N : Type*} [AddCommGroup M] [AddCommGroup N]
 
 open Module
+
+lemma map_range_nsmulAddMonoidHom (e : M ≃+ N) (n : ℕ) :
+    (nsmulAddMonoidHom (α := M) n).range.map e = (nsmulAddMonoidHom (α := N) n).range := by
+  ext1 y
+  suffices (∃ a, n • e a = y) ↔ ∃ x, n • x = y by simpa using this
+  exact ⟨fun ⟨x, hx⟩ ↦ hx ▸ ⟨e x, rfl⟩, fun ⟨x, hx⟩ ↦ hx ▸ ⟨e.symm x, by simp⟩⟩
 
 variable (M) in
 lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
     (nsmulAddMonoidHom (α := M) n).range.index = n ^ finrank ℤ M := by
-  let bas := Module.finBasis ℤ M
-  let e := bas.equivFun
+  let e := (Module.finBasis ℤ M).equivFun
   suffices (nsmulAddMonoidHom (α := Fin (finrank ℤ M) → ℤ) n).range.index = n ^ finrank ℤ M by
-    have H : (nsmulAddMonoidHom (α := Fin (finrank ℤ M) → ℤ) n).range =
-        AddSubgroup.map e.toAddEquiv (nsmulAddMonoidHom (α := M) n).range := by
-      ext x
-      simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply, nsmul_eq_mul, AddSubgroup.mem_map,
-        AddMonoidHom.coe_coe, AddEquiv.coe_mk, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom,
-        LinearEquiv.coe_coe, LinearEquiv.invFun_eq_symm, Equiv.coe_fn_mk, exists_exists_eq_and,
-        map_nsmul]
-      refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-      · obtain ⟨x, rfl⟩ := H
-        exact ⟨e.symm x, by simp⟩
-      · obtain ⟨a, rfl⟩ := H
-        exact ⟨e a, rfl⟩
-    rwa [H, AddSubgroup.index_map_equiv] at this
-  rw [AddSubgroup.index_eq_card, Nat.card_congr (addEquivTupleModRangeNsmulAddMonoidHom n _).toEquiv,
-    Nat.card_fun]
-  simp only [Nat.card_eq_fintype_card, Fintype.card_fin]
-  congr
-  have : (nsmulAddMonoidHom (α := ℤ) n).range = AddSubgroup.zmultiples (n : ℤ) := by
-    ext m
-    simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply, Int.nsmul_eq_mul,
-      AddSubgroup.zmultiples, Int.zsmul_eq_mul, AddSubgroup.mem_mk, AddSubmonoid.mem_mk,
-      AddSubsemigroup.mem_mk, Set.mem_range]
-    refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩ <;> obtain ⟨k, rfl⟩ := H <;> exact ⟨k, Int.mul_comm ..⟩
-  rw [this, Nat.card_congr (Int.quotientZMultiplesNatEquivZMod n).toEquiv, Nat.card_zmod]
+    rwa [← map_range_nsmulAddMonoidHom e.toAddEquiv, index_map_equiv] at this
+  simp [index_eq_card, Nat.card_congr (addEquivTupleModRangeNsmulAddMonoidHom n _).toEquiv,
+    Nat.card_fun, Int.range_nsmulAddMonoidHom,
+    Nat.card_congr (Int.quotientZMultiplesNatEquivZMod n).toEquiv]
 
 lemma relIndex_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule]
     [Module.Finite ℤ ↥S.toIntSubmodule] :
