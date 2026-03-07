@@ -169,15 +169,15 @@ open Height EllipticCurve
 variable {K : Type*} [Field K] {a b : K} {W : Affine K}
 
 lemma Point.exists_x_y_of_ne_zero {P : W.Point} (hP : P ≠ 0) :
-    ∃ (x y : K) (h : W.Nonsingular x y), P = .some h := by
+    ∃ (x y : K) (h : W.Nonsingular x y), P = .some x y h := by
   match P with
-  | @Point.some _ _ _ x y h => exact ⟨x, y, h, rfl⟩
+  | some x y h => exact ⟨x, y, h, rfl⟩
 
 def Point.x_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | @Point.some _ _ _ x _ _, _ => x
+  | some x _ _, _ => x
 
 def Point.y_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | @Point.some _ _ _ _ y _, _ => y
+  | some _ y _, _ => y
 
 lemma Point.x_eq_iff {P Q : W.Point} (hP : P ≠ 0) (hQ : Q ≠ 0) :
     x_of_ne_zero hP = x_of_ne_zero hQ ↔ Q = P ∨ Q = -P := by
@@ -200,34 +200,34 @@ under the x-coordinate map. We take `![1, 0]` for the point at infinity and `[x,
 where `x` is the x-coordinate of `P` for a finite point. -/
 noncomputable def Point.xRep : W.Point → Fin 2 → K
   | 0 => ![1, 0]
-  | @Point.some _ _ _ x _ _ => ![x, 1]
+  | some x _ _ => ![x, 1]
 
 @[simp]
 lemma Point.xRep_zero : (0 : W.Point).xRep = ![1, 0] :=
   rfl
 
 @[simp]
-lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (.some h : W.Point).xRep = ![x, 1] :=
+lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (.some x y h : W.Point).xRep = ![x, 1] :=
   rfl
 
 lemma Point.xRep_ne_zero (P : W.Point) : P.xRep ≠ 0 := by
   match P with
   | 0 => simp
-  | .some _ => simp
+  | some .. => simp
 
 @[simp]
 lemma Point.xRep_neg (P : W.Point) : (-P).xRep = P.xRep := by
   match P with
   | 0 => simp
-  | .some _ => simp
+  | some .. => simp
 
 lemma Point.eq_or_eq_neg_of_xRep_eq_xRep {P Q : W.Point} (h : P.xRep = Q.xRep) :
     P = Q ∨ P = -Q := by
   match P, Q with
-  | .zero, .zero => exact .inl rfl
-  | .zero, .some _ => simp [xRep] at h
-  | .some _, .zero => simp [xRep] at h
-  | @some _ _ _ x₁ y₁ h₁, @some _ _ _ x₂ y₂ h₂ =>
+  | zero, zero => exact .inl rfl
+  | zero, some .. => simp [xRep] at h
+  | some .. , zero => simp [xRep] at h
+  | some x₁ y₁ h₁, some x₂ y₂ h₂ =>
     simp only [xRep, Matrix.vecCons_inj, and_true] at h
     rcases Y_eq_of_X_eq h₁.1 h₂.1 h with H | H
     · refine .inl ?_
@@ -255,32 +255,32 @@ lemma Point.sym2x_zero_zero : (0 : W.Point).sym2x 0 = ![1, 0, 0] := by
 
 @[simp]
 lemma Point.sym2x_zero_some {x y : K} (h : W.Nonsingular x y) :
-    (0 : W.Point).sym2x (.some h) = ![x, 1, 0] := by
+    (0 : W.Point).sym2x (some x y h) = ![x, 1, 0] := by
   simp [sym2x]
 
 @[simp]
 lemma Point.sym2x_some_zero {x y : K} (h : W.Nonsingular x y) :
-    (.some h : W.Point).sym2x 0 = ![x, 1, 0] := by
+    (some x y h : W.Point).sym2x 0 = ![x, 1, 0] := by
   simp [sym2x]
 
 @[simp]
 lemma Point.sym2x_some_some {x y x' y' : K} (h : W.Nonsingular x y) (h' : W.Nonsingular x' y') :
-    (.some h : W.Point).sym2x (.some h') = ![x * x', x + x', 1] := by
+    (some x y h : W.Point).sym2x (some x' y' h') = ![x * x', x + x', 1] := by
   simp [sym2x]
 
 lemma Point.sym2x_ne_zero (P Q : W.Point) : P.sym2x Q ≠ 0 := by
   match P, Q with
   | 0, 0 => simp
-  | 0, .some _ => simp
-  | .some _, 0 => simp
-  | .some _, .some h => simp
+  | 0, some .. => simp
+  | some .., 0 => simp
+  | some .., some .. => simp
 
 lemma Point.sym2x_symm (P Q : W.Point) : P.sym2x Q = Q.sym2x P := by
   match P, Q with
   | 0, 0 => simp
-  | 0, .some _ => simp
-  | .some _, 0 => simp
-  | .some _, .some h => simp [mul_comm, add_comm]
+  | 0, some .. => simp
+  | some .., 0 => simp
+  | some .., some .. => simp [mul_comm, add_comm]
 
 lemma Point.sym2x_neg_left (P Q : W.Point) : (-P).sym2x Q = P.sym2x Q := by
   simp only [sym2x, Fin.isValue, P.xRep_neg]
@@ -301,7 +301,7 @@ lemma Point.sym2x_etc_P_zero [DecidableEq K] (P : W.Point) :
       C_pow]
     ext1 i
     fin_cases i <;> simp
-  | .some _ =>
+  | some .. =>
     simp only [sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd, sym2x_some_zero, add_sub_map,
       Fin.isValue, C_mul, C_pow]
     ext1 i
@@ -403,7 +403,7 @@ lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
   have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [(x_eq_iff hP₀ hQ₀).mp Heq]
   have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
   refine ⟨_, hxPQ', ?_⟩
-  rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some _), neg_some hQ,
+  rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some ..), neg_some hQ,
     add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
   simp only [addX, slope, hxPQ, ↓reduceIte, hW, zero_mul, add_zero, sub_zero, addY, negY, negAddY,
     neg_add_rev, sub_neg_eq_add, sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd,
@@ -523,7 +523,7 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
     simp only [Set.singleton_union, Set.mem_insert_iff, Set.mem_iUnion]
     match HP : P with
     | .zero => exact .inl rfl
-    | .some _ =>
+    | .some .. =>
       refine .inr ⟨P.xRep 0, ?_⟩
       simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Set.mem_setOf_eq, Point.xRep_some,
         Matrix.vecCons_inj, and_true, s]
