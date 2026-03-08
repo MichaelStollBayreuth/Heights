@@ -24,24 +24,27 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
     (ha : Irreducible a) (hb : b ≠ 0) :
     multiplicity a b = (normalizedFactors b).count (normalize a) := by
   have := emultiplicity_eq_count_normalizedFactors ha hb
-  rw [FiniteMultiplicity.emultiplicity_eq_multiplicity ?h] at this
-  case h => exact finiteMultiplicity_of_emultiplicity_eq_natCast this
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
-  exact_mod_cast this
+  rwa [(finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity,
+    ENat.coe_inj] at this
 -- [Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity]
 
--- wait for #36233
-lemma finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
+lemma associated_finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
     [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
     Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
   rw [← Multiset.prod_map_eq_finprod, Multiset.map_id']
   exact prod_normalizedFactors hx
+-- #find_home! finprod_pow_count
+-- [Mathlib.Algebra.Squarefree.Basic, Mathlib.RingTheory.Localization.Away.Basic, Mathlib.Algebra.Polynomial.FieldDivision]
 
-lemma finprod_pow_count_of_subsingleton_units {α : Type*} [CommMonoidWithZero α]
+-- #min_imports
+-- public import Mathlib.Algebra.BigOperators.Finprod
+-- public import Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity
+
+lemma finprod_pow_count_eq_of_subsingleton_units {α : Type*} [CommMonoidWithZero α]
     [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
     {x : α} (hx : x ≠ 0) :
     ∏ᶠ p : α, p ^ (normalizedFactors x).count p = x :=
-  associated_iff_eq.mp <| finprod_pow_count hx
+  associated_iff_eq.mp <| associated_finprod_pow_count hx
 
 end UniqueFactorizationMonoid
 
@@ -65,7 +68,6 @@ variable {α β : Type*} [Finite β]
 -- There appears to be no `ConditionallyCompleteLinearOrderTop`, so we restrict
 -- to our use case `β = ENat`.
 lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b, f (some b) := by
-  -- exact ciSup_option (α := α ᵒᵈ) .. -- does not work
   refine le_antisymm (le_min (ciInf_le ..) ?_) <| le_ciInf fun o ↦ ?_
   · rcases isEmpty_or_nonempty β with hβ | hβ
     · simp
@@ -83,72 +85,115 @@ lemma range_nsmulAddMonoidHom (n : ℕ) :
   ext1 m
   suffices (∃ x : ℤ , n * x = m) ↔ ∃ y, y * n = m by simpa only using this
   refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩ <;> obtain ⟨k, rfl⟩ := H <;> exact ⟨k, Int.mul_comm ..⟩
+-- #find_home! range_nsmulAddMonoidHom
+-- [Mathlib.Topology.Algebra.Order.Archimedean, Mathlib.Algebra.Group.Subgroup.Pointwise,
+--  Mathlib.Algebra.Group.Subgroup.ZPowers.Lemmas, -- maybe here?
+--  Mathlib.Algebra.CharZero.Quotient,
+--  Mathlib.GroupTheory.QuotientGroup.ModEq]
+
+-- public import Mathlib.Algebra.Group.Subgroup.Ker
+-- public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
 
 end Int
 
-namespace AddSubgroup
+namespace MulEquiv
 
+variable {M N : Type*} [CommGroup M] [CommGroup N]
+
+@[to_additive]
+lemma powMonoidHom_comm (e : M ≃* N) (n : ℕ) :
+    (e : M →* N).comp (powMonoidHom n) = (powMonoidHom n).comp e := by
+  ext1
+  simp
+-- #find_home powMonoidHom_comm -- maybe Mathlib.Algebra.Group.Equiv.Basic ?
+
+@[to_additive]
+lemma range_eq_top (e : M ≃* N) : (e : M →* N).range = ⊤ :=
+  MonoidHom.range_eq_top.mpr e.surjective
+-- #find_home! range_eq_top -- [Mathlib.Algebra.Group.Subgroup.Ker]
+
+open MonoidHom in
+@[to_additive]
+lemma map_range_powMonoidHom (e : M ≃* N) (n : ℕ) :
+    (powMonoidHom (α := M) n).range.map e = (powMonoidHom (α := N) n).range := by
+  rw [map_range, e.powMonoidHom_comm, range_comp, e.range_eq_top, ← range_eq_map]
+-- #find_home! map_addEquiv_range_nsmulAddMonoidHom -- [Mathlib.Algebra.Group.Subgroup.Ker] ?
+
+end MulEquiv
+
+namespace Subgroup
+
+@[to_additive]
 noncomputable
-def addEquivTupleModRangeNsmulAddMonoidHom {A : Type*} [AddCommGroup A] (n : ℕ) (ι : Type*) :
-    (ι → A) ⧸ (nsmulAddMonoidHom n).range ≃+ (ι → A ⧸ (nsmulAddMonoidHom n).range) :=
-  let φ : (ι → A) →+ (ι → A ⧸ (nsmulAddMonoidHom n).range) := {
+def mulEquivPiModRangePowMonoidHom {ι : Type*} (A : ι → Type*) [∀ i, CommGroup (A i)] (n : ℕ) :
+    ((i : ι) → A i) ⧸ (powMonoidHom n).range ≃* ((i : ι) → A i ⧸ (powMonoidHom n).range) :=
+  let φ : ((i : ι) → A i) →* ((i : ι) → A i ⧸ (powMonoidHom n).range) := {
     toFun x := (x ·)
-    map_zero' := by simp [Pi.zero_def]
-    map_add' x y := by simp [Pi.add_def]
+    map_one' := by simp [Pi.one_def]
+    map_mul' x y := by simp [Pi.mul_def]
   }
-  QuotientAddGroup.liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
+  QuotientGroup.liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
     ext1 x
-    simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ n • a = x i)).symm
--- #find_home! addEquivTupleModRangeNsmulAddMonoidHom -- [Mathlib.GroupTheory.QuotientGroup.Defs]
+    simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ a ^ n = x i)).symm
+
+-- #find_home! addEquivPiModRangeNsmulAddMonoidHom -- [Mathlib.GroupTheory.QuotientGroup.Defs]
+
+end Subgroup
+
+namespace AddSubgroup
 
 variable {M N : Type*} [AddCommGroup M] [AddCommGroup N]
 
 open Module
-
-lemma map_range_nsmulAddMonoidHom (e : M ≃+ N) (n : ℕ) :
-    (nsmulAddMonoidHom (α := M) n).range.map e = (nsmulAddMonoidHom (α := N) n).range := by
-  ext1 y
-  suffices (∃ a, n • e a = y) ↔ ∃ x, n • x = y by simpa using this
-  exact ⟨fun ⟨x, hx⟩ ↦ hx ▸ ⟨e x, rfl⟩, fun ⟨x, hx⟩ ↦ hx ▸ ⟨e.symm x, by simp⟩⟩
 
 variable (M) in
 lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
     (nsmulAddMonoidHom (α := M) n).range.index = n ^ finrank ℤ M := by
   let e := (Module.finBasis ℤ M).equivFun
   suffices (nsmulAddMonoidHom (α := Fin (finrank ℤ M) → ℤ) n).range.index = n ^ finrank ℤ M by
-    rwa [← map_range_nsmulAddMonoidHom e.toAddEquiv, index_map_equiv] at this
-  simp [index_eq_card, Nat.card_congr (addEquivTupleModRangeNsmulAddMonoidHom n _).toEquiv,
+    rwa [← AddEquiv.map_range_nsmulAddMonoidHom e.toAddEquiv, index_map_equiv] at this
+  simp [index_eq_card, Nat.card_congr (addEquivPiModRangeNSMulAddMonoidHom _ n).toEquiv,
     Nat.card_fun, Int.range_nsmulAddMonoidHom,
     Nat.card_congr (Int.quotientZMultiplesNatEquivZMod n).toEquiv]
 
+example (m n : ℕ) : (nsmulAddMonoidHom (α := Fin m → ℤ) n).range.index = n ^ m := by
+  have := index_nsmul (Fin m → ℤ) n
+  rwa [finrank_fin_fun] at this
+
 lemma relIndex_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule]
     [Module.Finite ℤ ↥S.toIntSubmodule] :
-    (AddSubgroup.map (nsmulAddMonoidHom (α := M) n) S).relIndex S = n ^ finrank ℤ S := by
-  rw [AddSubgroup.relIndex]
-  have H₁ : (AddSubgroup.map (nsmulAddMonoidHom n) S).addSubgroupOf S =
-      (nsmulAddMonoidHom n).range := by
-    ext1 x
-    rw [AddSubgroup.mem_addSubgroupOf, AddSubgroup.mem_map, AddMonoidHom.mem_range]
-    simp only [nsmulAddMonoidHom_apply, Subtype.exists, AddSubmonoidClass.mk_nsmul]
+    (S.map (nsmulAddMonoidHom (α := M) n)).relIndex S = n ^ finrank ℤ S := by
+  have H₁ : (S.map (nsmulAddMonoidHom n)).addSubgroupOf S = (nsmulAddMonoidHom n).range := by
+    ext1
+    simp only [mem_addSubgroupOf, mem_map, AddMonoidHom.mem_range, nsmulAddMonoidHom_apply,
+      Subtype.exists, AddSubmonoidClass.mk_nsmul]
     refine ⟨fun ⟨x, hx₁, hx₂⟩ ↦ ⟨x, hx₁, Subtype.ext hx₂⟩, fun ⟨a, ha₁, ha₂⟩ ↦ ⟨a, ha₁, ?_⟩⟩
     rw [← ha₂]
-  rw [H₁]
-  exact index_nsmul S.toIntSubmodule n
+  simpa only [relIndex, H₁] using index_nsmul S.toIntSubmodule n
 
-lemma finrank_eq_of_index_ne_zero [Module.Finite ℤ M] [IsTorsionFree ℤ M] {A : AddSubgroup M}
-    (h : A.index ≠ 0) :
+lemma distribSMulToLinearMap_injective_of_isTorsionFree [IsTorsionFree ℤ M] {n : ℕ} (hn :n ≠ 0) :
+    Function.Injective (DistribSMul.toLinearMap ℤ M n) := by
+    refine LinearMap.ker_eq_bot.mp <| (Submodule.eq_bot_iff _).mpr fun x hx ↦ ?_
+    simp only [LinearMap.mem_ker, DistribSMul.toLinearMap_apply, ← natCast_zsmul] at hx
+    exact (smul_eq_zero_iff_right <| mod_cast hn).mp hx
+
+lemma nsmulAddMonoidHom_injective_of_isTorsionFree [IsTorsionFree ℤ M] {n : ℕ} (hn :n ≠ 0) :
+    Function.Injective (nsmulAddMonoidHom (α := M) n) := by
+    refine (AddMonoidHom.ker_eq_bot_iff _).mp <| (eq_bot_iff_forall _).mpr fun x hx ↦ ?_
+    simp only [AddMonoidHom.mem_ker, nsmulAddMonoidHom_apply, ← natCast_zsmul] at hx
+    exact (smul_eq_zero_iff_right <| mod_cast hn).mp hx
+
+lemma finrank_eq_of_finiteIndex [Module.Finite ℤ M] [IsTorsionFree ℤ M] (A : AddSubgroup M)
+    [A.FiniteIndex] :
     finrank ℤ A = finrank ℤ M := by
   refine le_antisymm ?_ ?_
   · rw [← finrank_top ℤ M]
     exact Submodule.finrank_mono (s := A.toIntSubmodule) le_top
   · set n := A.index
+    have h : n ≠ 0 := index_ne_zero_of_finite
     let F := DistribSMul.toLinearMap ℤ M n
-    have : finrank ℤ M = finrank ℤ F.range.toAddSubgroup := by
-      refine (LinearMap.finrank_range_of_inj <| LinearMap.ker_eq_bot.mp ?_).symm
-      simp only [Submodule.eq_bot_iff, F]
-      intro x hx
-      simp only [LinearMap.mem_ker, DistribSMul.toLinearMap_apply, ← natCast_zsmul] at hx
-      exact (smul_eq_zero_iff_right <| mod_cast h).mp hx
+    have : finrank ℤ M = finrank ℤ F.range.toAddSubgroup :=
+      (F.finrank_range_of_inj <| distribSMulToLinearMap_injective_of_isTorsionFree h).symm
     rw [this]
     refine Submodule.finrank_mono <| (OrderIso.symm_apply_le toIntSubmodule).mp fun m hm ↦ ?_
     suffices ∃ y, n • y = m by
@@ -156,11 +201,11 @@ lemma finrank_eq_of_index_ne_zero [Module.Finite ℤ M] [IsTorsionFree ℤ M] {A
       exact A.nsmul_index_mem x
     simpa [F] using hm
 
-lemma finrank_eq_of_relIndex_ne_zero {A B : AddSubgroup M} [Module.Finite ℤ B] [IsTorsionFree ℤ B]
-    (h : A ≤ B) (hi : A.relIndex B ≠ 0) :
+lemma finrank_eq_of_isFiniteRelIndex {A B : AddSubgroup M} [Module.Finite ℤ B] [IsTorsionFree ℤ B]
+    (h : A ≤ B) [A.IsFiniteRelIndex B] :
     finrank ℤ A = finrank ℤ B := by
-  simp only [relIndex] at hi
-  rw [← finrank_eq_of_index_ne_zero hi]
+  have : (A.addSubgroupOf B).FiniteIndex := IsFiniteRelIndex.to_finiteIndex_addSubgroupOf
+  rw [← finrank_eq_of_finiteIndex (A.addSubgroupOf B)]
   exact (addSubgroupOfEquivOfLe h).symm.toIntLinearEquiv.finrank_eq
 
 end AddSubgroup
@@ -185,7 +230,7 @@ lemma injective_asIdeal : (asIdeal (R := R)).Injective :=
 ### Conversion between various multplicities
 -/
 variable [IsDedekindDomain R]
-
+-- use [NeBot I] ?
 open UniqueFactorizationMonoid in
 @[simp]
 lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ ⊥)
@@ -216,7 +261,7 @@ lemma factorization_eq_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOn
 
 lemma _root_.Ideal.finprod_heightOneSpectrum_pow_multiplicity {I : Ideal R} (hI : I ≠ ⊥) :
     ∏ᶠ p : HeightOneSpectrum R, p.asIdeal ^ multiplicity p.asIdeal I = I := by
-  simpa only [← maxPowDividing_eq_pow_multiplicity hI]
+  simpa only [maxPowDividing_eq_pow_multiplicity hI]
     using Ideal.finprod_heightOneSpectrum_factorization hI
 
 lemma multiplicity_le_of_ideal_ge (p : HeightOneSpectrum R) {I J : Ideal R} (h : J ≤ I)
@@ -463,12 +508,11 @@ lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K)
     Matrix.cons_val_fin_one]
   rw [← v.coe_apply, ← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
 
-lemma exists_integer_of_mem_span {x : K} (hx : x ∈ Submodule.span (𝓞 K) {(1 : K)}) :
+lemma exists_integer_of_mem_span_one {x : K} (hx : x ∈ Submodule.span (𝓞 K) {(1 : K)}) :
     ∃ a : 𝓞 K, (a : K) = x := by
   rw [Submodule.mem_span_singleton] at hx
   obtain ⟨a, ha⟩ := hx
-  refine ⟨a, ?_⟩
-  rw [← ha, ← Algebra.algebraMap_eq_smul_one a]
+  exact ⟨a, by rw [← ha, ← Algebra.algebraMap_eq_smul_one a]⟩
 
 variable [NumberField K]
 
@@ -522,28 +566,22 @@ info: AddSubgroup.relIndex_pointwise_smul.{u_1, u_2} {G : Type u_1} {H : Type u_
 lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
     obtain ⟨num, ⟨d, hd⟩, h⟩ :=
       IsLocalization.exists_mk'_eq (Algebra.algebraMapSubmonoid (𝓞 K) (nonZeroDivisors ℤ)) x
-    rw [show
-        (d ∈ Algebra.algebraMapSubmonoid ..) = ∃ a ∈ ↑(nonZeroDivisors ℤ), (algebraMap ..) a = d
-        from rfl] at hd
+    rw [Algebra.algebraMapSubmonoid, Submonoid.mem_map] at hd
     choose a hamem ha using hd
-    rw [mem_nonZeroDivisors_iff_ne_zero] at hamem
-    refine ⟨a, num, hamem, ?_⟩
-    have Ha : (a : 𝓞 K) * num = num * (a : 𝓞 K) := Int.cast_comm a num
-    rw [← h, zsmul_eq_mul, show (a : K) * _ = (a : 𝓞 K) • _ from (smul_eq_mul ..).symm]
-    rw [IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
-    simp only [← ha, algebraMap_int_eq, eq_intCast, IsLocalization.mk'_self, Algebra.smul_def,
-      mul_one]
+    refine ⟨a, num, mem_nonZeroDivisors_iff_ne_zero.mp hamem, ?_⟩
+    rw [← h, zsmul_eq_mul, ← show (a : 𝓞 K) • _ = (a : K) * _ from smul_eq_mul ..,
+      IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
+    simp [← ha, Algebra.smul_def]
 
 lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
     obtain ⟨a, r, ha, h⟩ := exists_zsmul_eq_integer x
     refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
     simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
-    rw [← RingOfIntegers.coe_eq_algebraMap r, ← h, ← mul_assoc]
-    congrm ?_ * x
-    exact_mod_cast (Int.sign_mul_self_eq_abs a).symm
+    rw [← r.coe_eq_algebraMap, ← h, ← mul_assoc]
+    rw_mod_cast [Int.sign_mul_self_eq_abs a]
 
 open Submodule in
-lemma relIndex_ne_zero (x : K) :
+lemma isFiniteRelIndex_span_one_self (x : K) :
     (span (𝓞 K) {(1 : K)}).toAddSubgroup.IsFiniteRelIndex (span (𝓞 K) {1, x}).toAddSubgroup := by
   obtain ⟨m, r, hm, h⟩ := exists_nsmul_eq_integer x
   refine isFiniteRelIndex_of_map_linearMapMulLeft_le hm (fg_span (by simp)) ?_
@@ -568,13 +606,13 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     refine toAddSubgroup_mono <| span_le.mpr fun r hr ↦ ?_
     simpa only [Set.mem_singleton_iff.mp hr, SetLike.mem_coe, I] using mem_span_of_mem <| by simp
   let n := R.toAddSubgroup.relIndex I.toAddSubgroup
-  have fri := relIndex_ne_zero x
-  have hn : n ≠ 0 := AddSubgroup.IsFiniteRelIndex.relIndex_ne_zero
+  have fri := isFiniteRelIndex_span_one_self x
+  have hn : n ≠ 0 := fri.relIndex_ne_zero
   have ha₁ : n * x ∈ R := by
     rw [← nsmul_eq_mul]
     have hx : x ∈ I := mem_span_of_mem <| Set.mem_insert_of_mem 1 rfl
     exact AddSubgroup.nsmul_relIndex_mem R.toAddSubgroup hx
-  obtain ⟨a, ha₂⟩ := exists_integer_of_mem_span ha₁
+  obtain ⟨a, ha₂⟩ := exists_integer_of_mem_span_one ha₁
   refine ⟨n, hn, a, ha₂.symm, ?_⟩
   let nI : Submodule (𝓞 K) K := span (𝓞 K) {(n : K), (a : K)}
   have hnIR : nI.toAddSubgroup ≤ R.toAddSubgroup := by
@@ -589,42 +627,40 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
       simp [ha₂, ← nsmul_eq_mul, mul_add]
     ext1
     simp [I, nI, Submodule.mem_span_pair, H]
-  have hnI : nI.toAddSubgroup = AddSubgroup.map (nsmulAddMonoidHom (α := K) n) I.toAddSubgroup := by
+  have hnI : nI.toAddSubgroup = AddSubgroup.map (nsmulAddMonoidHom n) I.toAddSubgroup := by
     rw [hnI', map_toAddSubgroup]
     rfl
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
   let f : 𝓞 K →ₗ[𝓞 K] R := LinearMap.toSpanSingleton _ _ ⟨_, mem_span_singleton_self 1⟩
   have hf₀ : Function.Bijective f := by
-    refine ⟨fun r r' h ↦ by simpa [f] using h, fun r ↦ ?_⟩
-    have := r.prop
-    simp only [R, mem_span_singleton] at this
-    obtain ⟨a, ha⟩ := this
+    refine ⟨fun r r' h ↦ by simpa [f] using h, fun ⟨r, hr⟩ ↦ ?_⟩
+    obtain ⟨a, ha⟩ := mem_span_singleton.mp hr
     exact ⟨a, by simp [f, ha]⟩
-  have hf : Function.Bijective f.toAddMonoidHom := hf₀
+  have hf : Function.Bijective (f : 𝓞 K →+ R) := hf₀
   have H (u v : 𝓞 K) : u • (n : 𝓞 K) • (1 : K) + v • a • 1 = u • (n : K) + v • (a : K) := by
     rw [Nat.cast_smul_eq_nsmul, nsmul_one, show a • (1 : K) = (a : K) • 1 from rfl,
       smul_eq_mul, mul_one]
-  have H₁ : AddSubgroup.map f.toAddMonoidHom (toAddSubgroup (Ideal.span {↑n, a})) =
+  have H₁ : (toAddSubgroup (Ideal.span {↑n, a})).map f =
       nI.toAddSubgroup.addSubgroupOf R.toAddSubgroup := by
     have := congrArg toAddSubgroup (f.map_span {(n : 𝓞 K), a})
-    rw [map_toAddSubgroup, show (f : 𝓞 K →+ ↥R) = f.toAddMonoidHom from rfl] at this
+    rw [map_toAddSubgroup] at this
     simp only [nI, Ideal.span, this]
     ext1 r
     simp only [LinearMap.toSpanSingleton_apply, SetLike.mk_smul_mk, Set.image_pair, f, R,
       AddSubgroup.mem_mk, mem_toAddSubmonoid]
     rw [AddSubgroup.mem_addSubgroupOf, mem_toAddSubgroup]
-    simp only [mem_span_pair, SetLike.mk_smul_mk, AddMemClass.mk_add_mk, Subtype.ext_iff, H]
+    simp [mem_span_pair, Subtype.ext_iff, H]
   have H₂ : (Ideal.span {(n : 𝓞 K), a}).absNorm = nI.toAddSubgroup.relIndex R.toAddSubgroup := by
     rw [show Ideal.absNorm _ = (toAddSubgroup _).index from rfl, AddSubgroup.relIndex,
       ← AddSubgroup.index_map_of_bijective hf, H₁]
   have H₃ : Module.Finite ℤ ↥I.toAddSubgroup :=
-    Module.Finite.of_fg <| FG.restrictScalars_iff.mpr <| fg_span <| Set.toFinite _
+    .of_fg <| FG.restrictScalars_iff.mpr <| fg_span <| Set.toFinite _
   have H₃' : Module.Finite ℤ ↥I.toAddSubgroup.toIntSubmodule := by
     simpa only [toIntSubmodule_toAddSubgroup] using H₃
   have H₄ : nI.toAddSubgroup.relIndex I.toAddSubgroup = n ^ Module.finrank ℚ K := by
     rw [hnI, I.toAddSubgroup.relIndex_nsmul n, ← RingOfIntegers.rank K,
       (AddEquiv.toIntLinearEquiv <| .ofBijective f hf).finrank_eq]
-    exact congrArg (n ^ ·) <| (AddSubgroup.finrank_eq_of_relIndex_ne_zero hRI hn).symm
+    exact congrArg (n ^ ·) <| (AddSubgroup.finrank_eq_of_isFiniteRelIndex hRI).symm
   rw [H₂, ← mul_left_inj' hn, AddSubgroup.relIndex_mul_relIndex _ _ _ hnIR hRI, H₄, ← pow_succ,
     Nat.sub_add_cancel one_le_finrank_rat]
 
