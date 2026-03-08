@@ -17,24 +17,6 @@ section API
 ### API for Mathlib
 -/
 
--- #36232
-namespace Nat
-
-/-- This does not assume that `ι` is finite (compare `Nat.cast_finprod`), but instead needs
-to assume characteristic zero to deal with the infinite case. -/
-lemma cast_finprod' {ι R : Type*} [CommSemiring R] [CharZero R] (f : ι → ℕ) :
-    ((∏ᶠ (x : ι), f x :) : R) = ∏ᶠ (x : ι), (f x : R) := by
-  by_cases hf : f.HasFiniteMulSupport
-  · exact map_finprod (Nat.castRingHom R) hf
-  · have H : ¬ (fun i ↦ (f i : R)).HasFiniteMulSupport := by
-      simp only [Function.HasFiniteMulSupport] at hf ⊢
-      convert hf
-      ext1; simp
-    rw [finprod_of_not_hasFiniteMulSupport hf, finprod_of_not_hasFiniteMulSupport H, cast_one]
--- #find_home! cast_finprod' -- [Mathlib.Algebra.BigOperators.Finprod]
-
-end Nat
-
 namespace UniqueFactorizationMonoid
 
 lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
