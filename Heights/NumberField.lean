@@ -17,6 +17,7 @@ section API
 ### API for Mathlib
 -/
 
+-- #36381
 namespace UniqueFactorizationMonoid
 
 lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
@@ -26,19 +27,12 @@ lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
   have := emultiplicity_eq_count_normalizedFactors ha hb
   rwa [(finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity,
     ENat.coe_inj] at this
--- [Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity]
 
 lemma associated_finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
     [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
     Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
   rw [← Multiset.prod_map_eq_finprod, Multiset.map_id']
   exact prod_normalizedFactors hx
--- #find_home! finprod_pow_count
--- [Mathlib.Algebra.Squarefree.Basic, Mathlib.RingTheory.Localization.Away.Basic, Mathlib.Algebra.Polynomial.FieldDivision]
-
--- #min_imports
--- public import Mathlib.Algebra.BigOperators.Finprod
--- public import Mathlib.RingTheory.UniqueFactorizationDomain.Multiplicity
 
 lemma finprod_pow_count_eq_of_subsingleton_units {α : Type*} [CommMonoidWithZero α]
     [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
@@ -47,6 +41,7 @@ lemma finprod_pow_count_eq_of_subsingleton_units {α : Type*} [CommMonoidWithZer
   associated_iff_eq.mp <| associated_finprod_pow_count hx
 
 end UniqueFactorizationMonoid
+-- end #36381
 
 namespace Finite
 /-
@@ -78,6 +73,7 @@ lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b
 
 end Finite
 
+-- #36458
 namespace Int
 
 lemma range_nsmulAddMonoidHom (n : ℕ) :
@@ -120,6 +116,7 @@ lemma map_range_powMonoidHom (e : M ≃* N) (n : ℕ) :
 -- #find_home! map_addEquiv_range_nsmulAddMonoidHom -- [Mathlib.Algebra.Group.Subgroup.Ker] ?
 
 end MulEquiv
+-- end #36458
 
 namespace Subgroup
 
