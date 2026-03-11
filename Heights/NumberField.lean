@@ -153,6 +153,7 @@ def mulEquivPiModRangePowMonoidHom {ι : Type*} (A : ι → Type*) [∀ i, CommG
 end QuotientGroup
 -- end #36458
 
+-- #36494
 namespace AddSubgroup
 
 variable {M N : Type*} [AddCommGroup M] [AddCommGroup N]
@@ -223,6 +224,7 @@ lemma finrank_eq_of_isFiniteRelIndex {A B : AddSubgroup M} [Module.Finite ℤ B]
   exact (addSubgroupOfEquivOfLe h).symm.toIntLinearEquiv.finrank_eq
 
 end AddSubgroup
+-- end #36494
 
 namespace IsDedekindDomain.HeightOneSpectrum
 
