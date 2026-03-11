@@ -116,9 +116,8 @@ lemma map_range_powMonoidHom (e : M ≃* N) (n : ℕ) :
 -- #find_home! map_addEquiv_range_nsmulAddMonoidHom -- [Mathlib.Algebra.Group.Subgroup.Ker] ?
 
 end MulEquiv
--- end #36458
 
-namespace Subgroup
+namespace QuotientGroup
 
 @[to_additive]
 noncomputable
@@ -129,13 +128,14 @@ def mulEquivPiModRangePowMonoidHom {ι : Type*} (A : ι → Type*) [∀ i, CommG
     map_one' := by simp [Pi.one_def]
     map_mul' x y := by simp [Pi.mul_def]
   }
-  QuotientGroup.liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
+  liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
     ext1 x
     simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ a ^ n = x i)).symm
 
 -- #find_home! addEquivPiModRangeNsmulAddMonoidHom -- [Mathlib.GroupTheory.QuotientGroup.Defs]
 
-end Subgroup
+end QuotientGroup
+-- end #36458
 
 namespace AddSubgroup
 
@@ -143,6 +143,7 @@ variable {M N : Type*} [AddCommGroup M] [AddCommGroup N]
 
 open Module
 
+open QuotientAddGroup in
 variable (M) in
 lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
     (nsmulAddMonoidHom (α := M) n).range.index = n ^ finrank ℤ M := by
