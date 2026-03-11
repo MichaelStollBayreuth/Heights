@@ -206,16 +206,11 @@ lemma finrank_eq_of_finiteIndex [Module.Finite ℤ M] [IsTorsionFree ℤ M] (A :
   · rw [← finrank_top ℤ M]
     exact Submodule.finrank_mono (s := A.toIntSubmodule) le_top
   · set n := A.index
-    have h : n ≠ 0 := index_ne_zero_of_finite
-    let F := DistribSMul.toLinearMap ℤ M n
-    have : finrank ℤ M = finrank ℤ F.range.toAddSubgroup :=
-      (F.finrank_range_of_inj <| distribSMulToLinearMap_injective_of_isTorsionFree h).symm
-    rw [this]
+    rw [← (DistribSMul.toLinearMap ℤ M n).finrank_range_of_inj <|
+      distribSMulToLinearMap_injective_of_isTorsionFree FiniteIndex.index_ne_zero]
     refine Submodule.finrank_mono <| (OrderIso.symm_apply_le toIntSubmodule).mp fun m hm ↦ ?_
-    suffices ∃ y, n • y = m by
-      obtain ⟨x, rfl⟩ := this
-      exact A.nsmul_index_mem x
-    simpa [F] using hm
+    obtain ⟨x, rfl⟩ : ∃ x, n • x = m := by simpa using hm
+    exact A.nsmul_index_mem x
 
 /-- If `A ≤ B` are subgroups of an additive group `M` such that `A` has finite relative index
 in `B`, where `B` is finitely generated and torsion-free as a `ℤ`-module, then `A` and `B`
