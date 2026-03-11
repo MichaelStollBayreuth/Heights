@@ -17,32 +17,6 @@ section API
 ### API for Mathlib
 -/
 
--- #36381
-namespace UniqueFactorizationMonoid
-
-lemma multiplicity_eq_count_normalizedFactors {R : Type*} [CommMonoidWithZero R]
-    [UniqueFactorizationMonoid R] [NormalizationMonoid R] [DecidableEq R] {a b : R}
-    (ha : Irreducible a) (hb : b ≠ 0) :
-    multiplicity a b = (normalizedFactors b).count (normalize a) := by
-  have := emultiplicity_eq_count_normalizedFactors ha hb
-  rwa [(finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity,
-    ENat.coe_inj] at this
-
-lemma associated_finprod_pow_count {α : Type*} [CommMonoidWithZero α] [UniqueFactorizationMonoid α]
-    [NormalizationMonoid α] [DecidableEq α] {x : α} (hx : x ≠ 0) :
-    Associated (∏ᶠ p : α, p ^ (normalizedFactors x).count p) x := by
-  rw [← Multiset.prod_map_eq_finprod, Multiset.map_id']
-  exact prod_normalizedFactors hx
-
-lemma finprod_pow_count_eq_of_subsingleton_units {α : Type*} [CommMonoidWithZero α]
-    [UniqueFactorizationMonoid α] [NormalizationMonoid α] [DecidableEq α] [Subsingleton αˣ]
-    {x : α} (hx : x ≠ 0) :
-    ∏ᶠ p : α, p ^ (normalizedFactors x).count p = x :=
-  associated_iff_eq.mp <| associated_finprod_pow_count hx
-
-end UniqueFactorizationMonoid
--- end #36381
-
 namespace Finite
 /-
 variable {α β : Type*} [ConditionallyCompleteLinearOrderBot α] [Finite β]
