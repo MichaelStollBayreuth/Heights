@@ -1,7 +1,7 @@
 import Mathlib.Analysis.Normed.Field.Instances
 import Mathlib.Analysis.Normed.Field.Ultra
 import Mathlib.LinearAlgebra.Charpoly.Basic
-import Mathlib.NumberTheory.NumberField.FinitePlaces
+import Mathlib.NumberTheory.NumberField.Completion.FinitePlace
 import Mathlib.NumberTheory.Ostrowski
 
 -- import Mathlib

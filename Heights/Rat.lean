@@ -24,7 +24,7 @@ lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ �
     ∏ v : InfinitePlace ℚ, f v ^ v.mult = f infinitePlace := by
   have : infinitePlace.mult = 1 :=
     NumberField.InfinitePlace.mult_isReal ⟨infinitePlace, isReal_infinitePlace⟩
-  simp [Fintype.prod_subsingleton _ infinitePlace, this]
+  simp [Subsingleton.elim default infinitePlace, this]
 
 -- The following are not needed, after all, but might be useful eventually.
 /-
