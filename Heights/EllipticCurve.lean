@@ -397,11 +397,9 @@ lemma Point.naiveHeight_eq_logHeight (P : W.Point) : P.naiveHeight = logHeight P
 
 lemma Point.naiveHeight_eq_logHeight₁ {P : W.Point} :
     P.naiveHeight = logHeight₁ (P.xRep 0) := by
-  cases P with
-  | zero =>
-    simp [naiveHeight, xRep]
-  | some h =>
-    simpa [naiveHeight] using (logHeight₁_eq_logHeight _).symm
+  match P with
+  | 0 => simp [naiveHeight, xRep]
+  | some .. => simpa [naiveHeight] using (logHeight₁_eq_logHeight _).symm
 
 variable (W) in
 lemma abs_logHeight_sym2x_sub_le :
@@ -410,16 +408,12 @@ lemma abs_logHeight_sym2x_sub_le :
   refine ⟨C, fun P Q ↦ ?_⟩
   rw [P.naiveHeight_eq_logHeight, Q.naiveHeight_eq_logHeight, Point.sym2x]
   have H₁ := logHeight_fun_mul_eq P.xRep_ne_zero Q.xRep_ne_zero
-  have H (v : Fin 2 → K) : ![v 0, v 1] = v := by
-    ext1 i
-    fin_cases i <;> simp
+  have H (v : Fin 2 → K) : ![v 0, v 1] = v := by ext i : 1; fin_cases i <;> simp
   have h₀ (P : W.Point) : ![P.xRep 0, P.xRep 1] ≠ 0 := H P.xRep ▸ P.xRep_ne_zero
   specialize hC (P.xRep 0) (P.xRep 1) (Q.xRep 0) (Q.xRep 1) (h₀ P) (h₀ Q)
   rw [H P.xRep, H Q.xRep] at *
   grind only [= abs.eq_1, = max_def]
 
--- set_option Elab.async false in
--- #count_heartbeats in -- 8840 / 17416
 include hab hW in
 /-- The "approximate parallelogram law" for the naïve height on an elliptic curve
 given by a short Weierstrass equation. -/
@@ -465,25 +459,13 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
     simp only [Set.mem_setOf_eq] at hP
     simp only [Set.singleton_union, Set.mem_insert_iff, Set.mem_iUnion]
     match HP : P with
-    | .zero => exact .inl rfl
-    | .some .. =>
-      refine .inr ⟨P.xRep 0, ?_⟩
-      simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Set.mem_setOf_eq, Point.xRep_some,
-        Matrix.vecCons_inj, and_true, s]
-      refine ⟨?_, hP⟩
-      simp [Point.xRep, HP]
-  let S : Set K := {x | logHeight₁ x ≤ B}
-  have hS : ∀ x ∉ S, s x = ∅ := by
-    intro x hx
-    simp only [Set.mem_setOf_eq, not_le, S] at hx
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, s]
-    rw [Set.eq_empty_iff_forall_notMem]
-    intro P
-    simp only [Set.mem_setOf_eq, not_and, not_le]
-    rw [Point.naiveHeight_eq_logHeight₁]
-    simp +contextual [hx]
+    | 0 => exact .inl rfl
+    | .some .. => exact .inr ⟨P.xRep 0, by simp [s, hP, HP]⟩
   refine (Set.Finite.union (by simp) ?_).subset h
-  exact Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) hS
+  refine Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) fun x hx ↦ ?_
+  simp only [Set.mem_setOf_eq, not_le] at hx
+  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, s, Point.naiveHeight_eq_logHeight₁]
+  exact Set.eq_empty_iff_forall_notMem.mpr fun P ↦ by simp +contextual [hx]
 
 instance : Northcott (Point.naiveHeight (K := K) (W := W)) where
   finite_le := finite_naiveHeight_le W
