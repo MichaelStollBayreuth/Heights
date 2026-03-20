@@ -168,32 +168,13 @@ open Height EllipticCurve
 
 variable {K : Type*} [Field K] {a b : K} {W : Affine K}
 
-lemma Point.exists_x_y_of_ne_zero {P : W.Point} (hP : P ≠ 0) :
-    ∃ (x y : K) (h : W.Nonsingular x y), P = .some x y h := by
-  match P with
-  | some x y h => exact ⟨x, y, h, rfl⟩
-
-def Point.x_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | some x _ _, _ => x
-
-def Point.y_of_ne_zero : {P : W.Point} → (hP : P ≠ 0) → K
-  | some _ y _, _ => y
-
-lemma Point.x_eq_iff {P Q : W.Point} (hP : P ≠ 0) (hQ : Q ≠ 0) :
-    x_of_ne_zero hP = x_of_ne_zero hQ ↔ Q = P ∨ Q = -P := by
+lemma Point.x_eq_iff {P Q : W.Point} {xP yP xQ yQ : K} {hP' : W.Nonsingular xP yP}
+    {hQ' : W.Nonsingular xQ yQ} (hP : P = some xP yP hP') (hQ : Q = some xQ yQ hQ') :
+    xP = xQ ↔ Q = P ∨ Q = -P := by
   refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-  · obtain ⟨xP, yP, hP', rfl⟩ := exists_x_y_of_ne_zero hP
-    obtain ⟨xQ, yQ, hQ', rfl⟩ := exists_x_y_of_ne_zero hQ
-    simp_rw [neg_some, some.injEq]
-    rw [← and_or_left]
+  · simp_rw [hP, hQ, neg_some, some.injEq, ← and_or_left]
     exact ⟨H.symm, Y_eq_of_X_eq hQ'.1 hP'.1 H.symm⟩
-  · rcases H with rfl | H
-    · rfl
-    · obtain ⟨xP, yP, hP', rfl⟩ := exists_x_y_of_ne_zero hP
-      rw [neg_some] at H
-      obtain ⟨xQ, yQ, hQ', rfl⟩ := exists_x_y_of_ne_zero hQ
-      rw [some.injEq] at H
-      exact H.1.symm
+  · grind [neg_some]
 
 /-- This map sends an affine point `P` on `W` to a representative of its image on ℙ¹
 under the x-coordinate map. We take `![1, 0]` for the point at infinity and `[x, 1]`,
@@ -207,7 +188,7 @@ lemma Point.xRep_zero : (0 : W.Point).xRep = ![1, 0] :=
   rfl
 
 @[simp]
-lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (.some x y h : W.Point).xRep = ![x, 1] :=
+lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (some x y h).xRep = ![x, 1] :=
   rfl
 
 lemma Point.xRep_ne_zero (P : W.Point) : P.xRep ≠ 0 := by
@@ -224,18 +205,15 @@ lemma Point.xRep_neg (P : W.Point) : (-P).xRep = P.xRep := by
 lemma Point.eq_or_eq_neg_of_xRep_eq_xRep {P Q : W.Point} (h : P.xRep = Q.xRep) :
     P = Q ∨ P = -Q := by
   match P, Q with
-  | zero, zero => exact .inl rfl
-  | zero, some .. => simp [xRep] at h
-  | some .. , zero => simp [xRep] at h
+  | 0, 0 => exact .inl rfl
+  | 0, some .. => simp [xRep] at h
+  | some .. , 0 => simp [xRep] at h
   | some x₁ y₁ h₁, some x₂ y₂ h₂ =>
     simp only [xRep, Matrix.vecCons_inj, and_true] at h
-    rcases Y_eq_of_X_eq h₁.1 h₂.1 h with H | H
-    · refine .inl ?_
-      subst h H
-      rfl
-    · refine .inr ?_
-      subst h H
-      rfl
+    subst h
+    rcases Y_eq_of_X_eq h₁.1 h₂.1 rfl with rfl | rfl
+    · exact .inl rfl
+    · exact .inr rfl
 
 lemma Point.xRep_eq_xRep_iff {P Q : W.Point} :
     P.xRep = Q.xRep ↔ P = Q ∨ P = -Q := by
@@ -299,12 +277,12 @@ lemma Point.sym2x_etc_P_zero [DecidableEq K] (P : W.Point) :
   | 0 =>
     simp only [sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, add_sub_map, Fin.isValue, C_mul,
       C_pow]
-    ext1 i
+    ext i : 1
     fin_cases i <;> simp
   | some .. =>
     simp only [sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd, sym2x_some_zero, add_sub_map,
       Fin.isValue, C_mul, C_pow]
-    ext1 i
+    ext i : 1
     fin_cases i <;> simp [pow_two, two_mul]
 
 include hW in
@@ -315,76 +293,48 @@ lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
   · refine ⟨1, one_ne_zero, ?_⟩
     simp only [add_zero, sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, add_sub_map,
       Fin.isValue, C_mul, C_pow]
-    ext1 i
+    ext i : 1
     fin_cases i <;> simp
-  obtain ⟨x, y, h, rfl⟩ := exists_x_y_of_ne_zero hP
-  have Heq := (W.equation_iff x y).mp h.1
-  simp only [hW, zero_mul, add_zero] at Heq
-  by_cases! H : y = W.negY x y
-  · have H' : 4 * (x ^ 3 + a * x + b) = 0 := by
-      simp only [negY, hW, zero_mul, sub_zero] at H
-      rw [← Heq]
-      grind only
-    have H'' : x ^ 4 - 2 * a * x ^ 2 - 8 * b * x + a ^ 2 ≠ 0 := by
-      have := h.2
-      simp only [polynomialX, hW, _root_.map_zero, zero_mul, mul_zero, add_zero, map_add, map_mul,
-        map_pow, zero_sub, neg_add_rev, Polynomial.evalEval_add, Polynomial.evalEval_neg,
-        Polynomial.evalEval_C, Polynomial.eval_C, Polynomial.evalEval_mul, Polynomial.evalEval_pow,
-        Polynomial.eval_X, polynomialY, Polynomial.evalEval_X] at this
-      rcases this with H₁ | H₁
-      · contrapose! H₁
-        rw [← sq_eq_zero_iff]
-        linear_combination 2 * x * H' + H₁
-      · grind only
-    refine ⟨_, H'', ?_⟩
-    rw [add_self_of_Y_eq H]
-    simp only [sym2x_zero_zero, Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.smul_cons, smul_eq_mul,
-      mul_one, mul_zero, Matrix.smul_empty, sym2x_some_some, add_sub_map, Fin.isValue, C_mul, C_pow]
-    ext1 i
-    fin_cases i
-    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue,
-        Matrix.cons_val_zero, map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val,
-        mul_one, Matrix.cons_val_one, one_pow, add_left_inj]
-      ring
-    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
-        Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow,
-        one_pow]
-      linear_combination -H'
-    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.reduceFinMk, Matrix.cons_val, Fin.isValue,
-        map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul, eval_C,
-        mul_one]
-      ring
-  · have H' : 4 * (x ^ 3 + a * x + b) ≠ 0 := by
-      simp only [negY, hW, zero_mul, sub_zero] at H
-      rw [← Heq]
-      grind only
-    refine ⟨_, H', ?_⟩
-    rw [add_self_of_Y_ne H]
-    simp only [addX, addY, negY, negAddY, neg_add_rev, sym2x_some_zero, Nat.succ_eq_add_one,
-      Nat.reduceAdd, sym2x_some_some, add_sub_map, Fin.isValue, C_mul, C_pow]
-    have Hsl : W.slope x x y y ^ 2 + W.a₁ * W.slope x x y y - W.a₂ =
-        (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) := by
-      rw [slope_of_Y_ne_eq_evalEval rfl H]
-      suffices (3 * x ^ 2 + a) ^ 2 / (2 * y) ^ 2 = (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b))
-        by simp [polynomialX, polynomialY, hW, Polynomial.evalEval_C, div_pow, this]
-      congr
-      rw [← Heq]
-      ring
-    rw [Hsl]
-    ext1 i
-    fin_cases i
-    · simp only [Fin.zero_eta, Fin.isValue, Pi.smul_apply, Matrix.cons_val_zero, smul_eq_mul,
-        map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
-        Matrix.cons_val_one, one_pow]
-      rw [mul_sub, mul_sub, mul_div_cancel₀ _ H']
-      ring
-    · simp only [Fin.mk_one, Fin.isValue, Pi.smul_apply, Matrix.cons_val_one, Matrix.cons_val_zero,
-        smul_eq_mul, mul_one, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, map_pow, one_pow]
-      ring
-    · simp only [Fin.reduceFinMk, Pi.smul_apply, Fin.isValue, Matrix.cons_val, smul_eq_mul,
-        mul_zero, map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul,
-        eval_C, mul_one]
-      ring
+  match P with
+  | some x y h =>
+    have Heq := (W.equation_iff x y).mp h.1
+    simp only [hW, zero_mul, add_zero] at Heq
+    by_cases! H : y = W.negY x y
+    · have H' : 4 * (x ^ 3 + a * x + b) = 0 := by
+        simp only [negY, hW, zero_mul, sub_zero] at H
+        grind only
+      have H'' : x ^ 4 - 2 * a * x ^ 2 - 8 * b * x + a ^ 2 ≠ 0 := by
+        have : -a + -(3 * x ^ 2) ≠ 0 ∨ 2 * y ≠ 0 := by
+          simpa [hW, polynomialX, polynomialY, Polynomial.evalEval_pow, Polynomial.evalEval_C] using h.2
+        rcases this with H₁ | H₁
+        · contrapose! H₁
+          rw [← sq_eq_zero_iff]
+          linear_combination 2 * x * H' + H₁
+        · grind only
+      refine ⟨_, H'', ?_⟩
+      rw [add_self_of_Y_eq H, sym2x_zero_zero, sym2x_some_some, add_sub_map]
+      ext i : 1
+      fin_cases i <;> { simp; grind only }
+    · have H' : 4 * (x ^ 3 + a * x + b) ≠ 0 := by
+        simp [negY, hW] at H
+        grind only
+      refine ⟨_, H', ?_⟩
+      have Hsl : W.slope x x y y ^ 2 + W.a₁ * W.slope x x y y - W.a₂ =
+          (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) := by
+        rw [slope_of_Y_ne_eq_evalEval rfl H, ← Heq]
+        suffices (2 * y) ^ 2 = 4 * y ^ 2 by
+          simp [polynomialX, polynomialY, hW, Polynomial.evalEval_C, div_pow, this]
+        ring
+      rw [add_self_of_Y_ne H, sym2x_some_zero, sym2x_some_some, add_sub_map]
+      simp only [addX, Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, C_mul, C_pow, Hsl]
+      ext i : 1
+      fin_cases i
+      · suffices 4 * (x ^ 3 + a * x + b) * ((3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) - x - x) =
+            (x * x) ^ 2 - 2 * a * (x * x) - 4 * b * (x + x) + a ^ 2 by
+          simpa using this
+        rw [mul_sub, mul_sub, mul_div_cancel₀ _ H']
+        ring
+      all_goals { simp; ring }
 
 include hW in
 lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
@@ -398,44 +348,37 @@ lemma Point.sym2x_add_sub_eq_add_sub_map_sym2x [DecidableEq K] (P Q : W.Point) :
   · simpa using P.sym2x_etc_P_P hW
   rcases eq_or_ne Q (-P) with rfl | hPQ'
   · simpa [sym2x_neg_right, sym2x_symm 0] using P.sym2x_etc_P_P hW
-  obtain ⟨xP, yP, hP, rfl⟩ := P.exists_x_y_of_ne_zero hP₀
-  obtain ⟨xQ, yQ, hQ, rfl⟩ := Q.exists_x_y_of_ne_zero hQ₀
-  have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [(x_eq_iff hP₀ hQ₀).mp Heq]
-  have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
-  refine ⟨_, hxPQ', ?_⟩
-  rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some ..), neg_some hQ,
-    add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
-  simp only [addX, slope, hxPQ, ↓reduceIte, hW, zero_mul, add_zero, sub_zero, addY, negY, negAddY,
-    neg_add_rev, sub_neg_eq_add, sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd,
-    Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty]
-  simp only [add_sub_map, Fin.isValue, C_mul, C_pow]
-  have HeqP := (W.equation_iff xP yP).mp hP.1
-  have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
-  simp only [hW, zero_mul, add_zero] at HeqP HeqQ
-  ext1 i
-  fin_cases i
-  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero,
-      map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
-      Matrix.cons_val_one, one_pow]
-    rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _)]
-    conv_lhs => enter [2, 1]; rw [mul_sub, mul_sub, mul_div_cancel₀ _ hxPQ']
-    rw [mul_left_comm]
-    conv_lhs => enter [2]; rw [mul_sub, mul_sub, mul_div_cancel₀ _ hxPQ']
-    conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
-    rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
-    ring
-  · set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one,
-      Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow,
-      one_pow]
-    simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ']
-    conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
-    rw [HeqP, HeqQ]
-    ring
-  · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.reduceFinMk, Matrix.cons_val, Fin.isValue,
-      map_sub, map_pow, eval_X, Matrix.cons_val_one, Matrix.cons_val_zero, map_mul, eval_C, mul_one]
-    ring
+  match P, Q with
+  | some xP yP hP, some xQ yQ hQ =>
+    have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [(x_eq_iff rfl rfl).mp Heq]
+    have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
+    refine ⟨_, hxPQ', ?_⟩
+    have HeqP := (W.equation_iff xP yP).mp hP.1
+    have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
+    simp only [hW, zero_mul, add_zero] at HeqP HeqQ
+    rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some ..), neg_some hQ,
+      add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
+    simp only [addX, slope, hxPQ, ↓reduceIte, hW, zero_mul, add_zero, sub_zero, addY, negY, negAddY,
+      neg_add_rev, sub_neg_eq_add, sym2x_some_some, Nat.succ_eq_add_one, Nat.reduceAdd, C_pow,
+      Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty, add_sub_map, Fin.isValue, C_mul]
+    ext i : 1
+    fin_cases i
+    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.zero_eta, Fin.isValue,
+        Matrix.cons_val_zero, map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val,
+        mul_one, Matrix.cons_val_one, one_pow]
+      rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _), mul_left_comm]
+      simp only [mul_sub, mul_div_cancel₀ _ hxPQ']
+      conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
+      rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
+      ring
+    · simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', Nat.succ_eq_add_one,
+        Nat.reduceAdd, Fin.mk_one, Fin.isValue, Matrix.cons_val_one, Matrix.cons_val_zero, map_add,
+        map_mul, eval_C, eval_X, Matrix.cons_val, mul_one, map_pow, one_pow]
+      conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
+      rw [HeqP, HeqQ]
+      ring
+    · simp
+      ring
 
 /-!
 ### The naïve height
