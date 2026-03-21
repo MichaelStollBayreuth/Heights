@@ -163,9 +163,9 @@ end Polynomial
 /-!
 ### Bounds for the height of ![x*y, x+y, 1]
 
-We show that the multiplicative height of `![x*y, x+y, 1]` is bounded from above and from below
-by a positive constant times the product of the multiplicative heights of `x` and `y`
-(and the analogous statements for the logarithmic heights).
+We show that the multiplicative height of `![a*c, a*d + b*c, b*d]` is bounded from above and from
+below by a positive constant times the product of the multiplicative heights of `![a, b]` and
+`![c, d]` (and the analogous statements for the logarithmic heights).
 
 The constants are unspecified here; with (likely considerably, but trivial) more work,
 we could make them explicit.
