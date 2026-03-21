@@ -175,69 +175,109 @@ section sym2
 
 namespace Height
 
-open Function in
-lemma mulHeight₁_mul_mulHeight₁ (x y : K) :
-    mulHeight₁ x * mulHeight₁ y = mulHeight ![x * y, x, y, 1] := by
-  have hx : ![x, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
-  have hy : ![y, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
-  simp only [mulHeight₁_eq_mulHeight, ← mulHeight_fun_mul_eq hx hy]
-  convert mulHeight_comp_equiv finProdFinEquiv _ with a
-  fin_cases a <;> simp [finProdFinEquiv]
+lemma mulHeight_mul_mulHeight {a b c d : K} (hab : ![a, b] ≠ 0) (hcd : ![c, d] ≠ 0) :
+    mulHeight ![a, b]* mulHeight ![c, d] = mulHeight ![a * c, a * d, b * c, b * d] := by
+  simp only [← mulHeight_fun_mul_eq hab hcd]
+  convert mulHeight_comp_equiv finProdFinEquiv _ with i
+  fin_cases i <;> simp [finProdFinEquiv]
 
 open MvPolynomial
 
+variable (K)
+
 lemma mulHeight_sym2_le :
-    ∃ C > 0, ∀  (x y : K), mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
+    ∃ C > 0, ∀ (a b c d : K),
+      mulHeight ![a * c, a * d + b * c, b * d] ≤ C * mulHeight ![a, b] * mulHeight ![c, d] := by
   let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
   have hom i : (p i).IsHomogeneous 1 := by
     fin_cases i <;> simp [p, isHomogeneous_X, IsHomogeneous.add]
-  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_le' (p := p) (N := 1) hom
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_le' hom
+  simp only [pow_one] at hC
+  refine ⟨max C 1, by grind, fun a b c d ↦ ?_⟩
+  by_cases hab : ![a, b] = 0
+  · rw [hab, mulHeight_zero, mul_one, show a = 0 from congrFun hab 0,
+      show b = 0 from congrFun hab 1,
+      show ![0 * c, 0 * d + 0 * c, 0 * d] = 0 by ext i; fin_cases i <;> simp, mulHeight_zero]
+    grw [← one_le_mulHeight]
+    grind
+  by_cases hcd : ![c, d] = 0
+  · rw [hcd, mulHeight_zero, mul_one, show c = 0 from congrFun hcd 0,
+      show d = 0 from congrFun hcd 1,
+      show ![a * 0, a * 0 + b * 0, b * 0] = 0 by ext i; fin_cases i <;> simp, mulHeight_zero]
+    grw [← one_le_mulHeight]
+    grind
+  rw [mul_assoc, mulHeight_mul_mulHeight hab hcd]
+  grw [← le_max_left C 1]
+  convert hC _ with i
+  fin_cases i <;> simp [p]
+
+lemma mulHeight_sym2_le' :
+    ∃ C > 0, ∀  (x y : K), mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_le K
   refine ⟨C, hC₀, fun x y ↦ ?_⟩
-  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
-  convert hC ![x * y, x, y, 1] with a
-  fin_cases a <;> simp [p]
+  simp only [mulHeight₁_eq_mulHeight]
+  convert hC x 1 y 1 <;> simp
 
 lemma mulHeight_sym2_ge :
-    ∃ C > 0, ∀ (x y : K), C * mulHeight₁ x * mulHeight₁ y ≤ mulHeight ![x * y, x + y, 1]:= by
+    ∃ C > 0, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
+      C * mulHeight ![a, b] * mulHeight ![c, d] ≤ mulHeight ![a * c, a * d + b * c, b * d] := by
   let p : Fin 3 → MvPolynomial (Fin 4) K := ![X 0, X 1 + X 2, X 3]
   let q : Fin 4 × Fin 3 → MvPolynomial (Fin 4) K :=
     ![![X 0, 0, 0], ![0, X 1, -X 0], ![0, X 2, -X 0], ![0, 0, X 3]].uncurry
   have hom a : (q a).IsHomogeneous 1 := by
     fin_cases a <;> simp [q] <;> grind only [!isHomogeneous_X, isHomogeneous_zero, IsHomogeneous.neg]
   obtain ⟨C, hC₀, hC⟩ := mulHeight_eval_ge' (M := 1) (N := 1) hom
+  simp only [pow_one] at hC
+  refine ⟨C, hC₀, fun hab hcd ↦ ?_⟩
+  rw [mul_assoc, mulHeight_mul_mulHeight hab hcd]
+  convert hC p fun j ↦ ?H  with i
+  case H => fin_cases j <;> simp [p, q, Fin.sum_univ_three] <;> ring
+  fin_cases i <;> simp [p]
+
+open Function in
+lemma mulHeight_sym2_ge' :
+    ∃ C > 0, ∀ (x y : K), C * mulHeight₁ x * mulHeight₁ y ≤ mulHeight ![x * y, x + y, 1]:= by
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_ge K
   refine ⟨C, hC₀, fun x y ↦ ?_⟩
-  rw [mul_assoc, mulHeight₁_mul_mulHeight₁, ← pow_one (mulHeight ![x * y, x, y, 1])]
-  have H a : ∑ j, (eval ![x * y, x, y, 1]) (q (a, j)) * (eval ![x * y, x, y, 1]) (p j) =
-      ![x * y, x, y, 1] a ^ 2 := by
-    fin_cases a <;> simp [p, q, Fin.sum_univ_three] <;> ring
-  convert hC p (x := ![x * y, x, y, 1]) H with a
-  fin_cases a <;> simp [p]
+  have hx : ![x, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  have hy : ![y, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  simp only [mulHeight₁_eq_mulHeight]
+  convert hC hx hy <;> simp
 
 open Real
 
-variable (K)
-
 lemma logHeight_sym2_le :
-    ∃ C, ∀ (x y : K), logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
-  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_le (K := K)
-  refine ⟨log c, fun x y ↦ ?_⟩
-  simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
+    ∃ C, ∀ (a b c d : K), logHeight ![a * c, a * d + b * c, b * d] ≤
+      C + logHeight ![a, b] + logHeight ![c, d] := by
+    -- ∃ C, ∀ (x y : K), logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
+  obtain ⟨C', hC₀, hC⟩ := mulHeight_sym2_le K
+  refine ⟨log C', fun a b c d ↦ ?_⟩
+  simp only [logHeight_eq_log_mulHeight]
   pull (disch := positivity) log
-  exact log_le_log (by positivity) (hc x y)
+  exact log_le_log (by positivity) (hC ..)
 
 lemma logHeight_sym2_ge :
-    ∃ C, ∀  (x y : K), C + logHeight₁ x + logHeight₁ y ≤ logHeight ![x * y, x + y, 1]:= by
-  obtain ⟨c, hc₉, hc⟩ := mulHeight_sym2_ge (K := K)
-  refine ⟨log c, fun x y ↦ ?_⟩
-  simp only [logHeight_eq_log_mulHeight, logHeight₁_eq_log_mulHeight₁]
+    ∃ C, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
+      C + logHeight ![a, b] + logHeight ![c, d] ≤ logHeight ![a * c, a * d + b * c, b * d] := by
+    -- ∃ C, ∀ (x y : K), C + logHeight₁ x + logHeight₁ y ≤ logHeight ![x * y, x + y, 1] := by
+  obtain ⟨C', hC₀, hC⟩ := mulHeight_sym2_ge K
+  refine ⟨log C', fun hab hcd ↦ ?_⟩
+  simp only [logHeight_eq_log_mulHeight]
   pull (disch := positivity) log
-  exact log_le_log (by positivity) (hc x y)
+  exact log_le_log (by positivity) (hC hab hcd)
 
 lemma abs_logHeight_sym2_sub_le :
-    ∃ C, ∀ (x y : K), |logHeight ![x * y, x + y, 1] - (logHeight₁ x + logHeight₁ y)| ≤ C := by
+    ∃ C, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
+      |logHeight ![a * c, a * d + b * c, b * d] - (logHeight ![a, b] + logHeight ![c, d])| ≤ C := by
+    -- ∃ C, ∀ (x y : K), |logHeight ![x * y, x + y, 1] - (logHeight₁ x + logHeight₁ y)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := logHeight_sym2_le K
   obtain ⟨C₂, hC₂⟩ := logHeight_sym2_ge K
-  exact ⟨max C₁ (-C₂), by grind⟩
+  -- `grind` does it without the `specialize`, but is slow
+  exact ⟨max C₁ (-C₂), fun hab hcd ↦ by specialize hC₂ hab hcd; grind⟩
+
+/-!
+### Removing zeros from a tuple does not change the height
+-/
 
 variable {K}
 
@@ -286,34 +326,6 @@ private lemma ne_zero_of_tuple_ne_zero {a : K} (ha : ![a, 0] ≠ 0) : a ≠ 0 :=
   fin_cases i
   · simpa using hi
   · simp at hi
-
-variable (K) in
-lemma abs_logHeight_sym2_sub_le' :
-    ∃ C, ∀ a b c d : K, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
-      |logHeight ![a * c, a * d + b * c, b * d] - (logHeight ![a, b] + logHeight ![c, d])| ≤ C := by
-  obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le K
-  refine ⟨C, fun a b c d hab hcd ↦ ?_⟩
-  have hC₀ : 0 ≤ C := by simpa using hC 0 0
-  rcases eq_or_ne b 0 with rfl | hb
-  · have ha : a ≠ 0 := ne_zero_of_tuple_ne_zero hab
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, zero_mul, add_zero, logHeight_x_y_zero,
-      logHeight_zero_right, zero_add]
-    rw [← logHeight_smul_eq_logHeight (c := 1 / a) _ (by simp [ha])]
-    simpa [field, ha] using hC₀
-  rcases eq_or_ne d 0 with rfl | hd
-  · have hc : c ≠ 0 := ne_zero_of_tuple_ne_zero hcd
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, mul_zero, zero_add, logHeight_x_y_zero,
-      logHeight_zero_right, add_zero, mul_comm _  c]
-    rw [← logHeight_smul_eq_logHeight (c := 1 / c) _ (by simp [hc])]
-    simpa [field, hc] using hC₀
-  simp only [← logHeight₁_div_eq_logHeight]
-  have H : logHeight ![a * c, a * d + b * c, b * d] = logHeight ![a / b * (c / d), a / b + c / d, 1] := by
-    rw [← logHeight_smul_eq_logHeight (c := 1 / (b * d)) _ (by simp [hb, hd])]
-    congr
-    ext1 i
-    fin_cases i <;> simp <;> field
-  rw [H]
-  exact hC ..
 
 end Height
 
