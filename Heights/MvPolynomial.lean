@@ -288,9 +288,11 @@ TODO: Write a `simproc` that removes all (syntactic) zeros from a tuple when
 
 variable {K}
 
+open Matrix
+
 @[simp]
-lemma mulHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
-    mulHeight (Matrix.vecCons 0 x) = mulHeight x := by
+lemma mulHeight_vecCons_zero {n : ℕ} (x : Fin n → K) :
+    mulHeight (vecCons 0 x) = mulHeight x := by
   let e := (Equiv.sumComm ..).trans <| (finSumFinEquiv (m := 1) (n := n)).trans <|
     finCongr (show 1 + n = n.succ from n.one_add)
   have he : Matrix.vecCons 0 x ∘ ⇑e = Sum.elim x 0 := by
@@ -303,16 +305,29 @@ lemma mulHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
   rw [← mulHeight_comp_equiv e, he, mulHeight_sumElim_zero_eq]
 
 @[simp]
-lemma logHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
+lemma logHeight_vecCons_zero {n : ℕ} (x : Fin n → K) :
     logHeight (Matrix.vecCons 0 x) = logHeight x := by
   simp [logHeight_eq_log_mulHeight]
 
 @[simp]
-lemma mulHeight_finTwo_zero_right (x : K) : mulHeight ![x, 0] = 1 := by
-  simp [mulHeight_swap]
+lemma mulHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
+    mulHeight (vecCons a (vecCons 0 x)) = mulHeight (vecCons a x) := by
+  have he : vecCons a (vecCons 0 x) ∘ ⇑(Equiv.swap 0 1) = vecCons 0 (vecCons a x) := by
+    ext j : 1
+    match j with
+    | 0 => simp
+    | 1 => simp
+    | ⟨i + 2, h⟩ =>
+      have h' : (⟨i + 2, h⟩ : Fin n.succ.succ) = Fin.succ (Fin.succ ⟨i, by lia⟩) := by grind
+      simp only [Nat.succ_eq_add_one, Function.comp_apply, cons_val_succ']
+      rw [h', Equiv.swap_apply_of_ne_of_ne (Fin.succ_ne_zero _) (Fin.succ_succ_ne_one _),
+        cons_val_succ, cons_val_succ]
+  rw [← mulHeight_comp_equiv (Equiv.swap 0 1), he]
+  simp
 
 @[simp]
-lemma logHeight_finTwo_zero_right (x : K) : logHeight ![x, 0] = 0 := by
+lemma logHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
+    logHeight (vecCons a (vecCons 0 x)) = logHeight (vecCons a x) := by
   simp [logHeight_eq_log_mulHeight]
 
 @[simp]
