@@ -211,13 +211,6 @@ lemma mulHeight_sym2_le :
   convert hC _ with i
   fin_cases i <;> simp [p]
 
-lemma mulHeight_sym2_le' :
-    ∃ C > 0, ∀  (x y : K), mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
-  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_le K
-  refine ⟨C, hC₀, fun x y ↦ ?_⟩
-  simp only [mulHeight₁_eq_mulHeight]
-  convert hC x 1 y 1 <;> simp
-
 lemma mulHeight_sym2_ge :
     ∃ C > 0, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
       C * mulHeight ![a, b] * mulHeight ![c, d] ≤ mulHeight ![a * c, a * d + b * c, b * d] := by
@@ -234,32 +227,20 @@ lemma mulHeight_sym2_ge :
   case H => fin_cases j <;> simp [p, q, Fin.sum_univ_three] <;> ring
   fin_cases i <;> simp [p]
 
-open Function in
-lemma mulHeight_sym2_ge' :
-    ∃ C > 0, ∀ (x y : K), C * mulHeight₁ x * mulHeight₁ y ≤ mulHeight ![x * y, x + y, 1]:= by
-  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_ge K
-  refine ⟨C, hC₀, fun x y ↦ ?_⟩
-  have hx : ![x, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
-  have hy : ![y, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
-  simp only [mulHeight₁_eq_mulHeight]
-  convert hC hx hy <;> simp
-
-open Real
-
+open Real in
 lemma logHeight_sym2_le :
     ∃ C, ∀ (a b c d : K), logHeight ![a * c, a * d + b * c, b * d] ≤
       C + logHeight ![a, b] + logHeight ![c, d] := by
-    -- ∃ C, ∀ (x y : K), logHeight ![x * y, x + y, 1] ≤ C + logHeight₁ x + logHeight₁ y := by
   obtain ⟨C', hC₀, hC⟩ := mulHeight_sym2_le K
   refine ⟨log C', fun a b c d ↦ ?_⟩
   simp only [logHeight_eq_log_mulHeight]
   pull (disch := positivity) log
   exact log_le_log (by positivity) (hC ..)
 
+open Real in
 lemma logHeight_sym2_ge :
     ∃ C, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
       C + logHeight ![a, b] + logHeight ![c, d] ≤ logHeight ![a * c, a * d + b * c, b * d] := by
-    -- ∃ C, ∀ (x y : K), C + logHeight₁ x + logHeight₁ y ≤ logHeight ![x * y, x + y, 1] := by
   obtain ⟨C', hC₀, hC⟩ := mulHeight_sym2_ge K
   refine ⟨log C', fun hab hcd ↦ ?_⟩
   simp only [logHeight_eq_log_mulHeight]
@@ -269,63 +250,70 @@ lemma logHeight_sym2_ge :
 lemma abs_logHeight_sym2_sub_le :
     ∃ C, ∀ {a b c d : K}, ![a, b] ≠ 0 → ![c, d] ≠ 0 →
       |logHeight ![a * c, a * d + b * c, b * d] - (logHeight ![a, b] + logHeight ![c, d])| ≤ C := by
-    -- ∃ C, ∀ (x y : K), |logHeight ![x * y, x + y, 1] - (logHeight₁ x + logHeight₁ y)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := logHeight_sym2_le K
   obtain ⟨C₂, hC₂⟩ := logHeight_sym2_ge K
   -- `grind` does it without the `specialize`, but is slow
   exact ⟨max C₁ (-C₂), fun hab hcd ↦ by specialize hC₂ hab hcd; grind⟩
 
+/-
+lemma mulHeight_sym2_le' :
+    ∃ C > 0, ∀  (x y : K), mulHeight ![x * y, x + y, 1] ≤ C * mulHeight₁ x * mulHeight₁ y := by
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_le K
+  refine ⟨C, hC₀, fun x y ↦ ?_⟩
+  simp only [mulHeight₁_eq_mulHeight]
+  convert hC x 1 y 1 <;> simp
+
+open Function in
+lemma mulHeight_sym2_ge' :
+    ∃ C > 0, ∀ (x y : K), C * mulHeight₁ x * mulHeight₁ y ≤ mulHeight ![x * y, x + y, 1]:= by
+  obtain ⟨C, hC₀, hC⟩ := mulHeight_sym2_ge K
+  refine ⟨C, hC₀, fun x y ↦ ?_⟩
+  have hx : ![x, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  have hy : ![y, 1] ≠ 0 := ne_iff.mpr ⟨1, by simp⟩
+  simp only [mulHeight₁_eq_mulHeight]
+  convert hC hx hy <;> simp
+-/
+
+
 /-!
 ### Removing zeros from a tuple does not change the height
+
+We show that the height of `![0, x₁, …, xₙ]` is the same as that of `![x₁, …, xₙ]`
+and use this to establish a couple of helpful `simp` lemmas for the (logarithmic) height
+of `![x, 0]` and of `![x, y, 0]`.
+
+TODO: Write a `simproc` that removes all (syntactic) zeros from a tuple when
+      `mulHeight` or `logHeight` is applied to it.
 -/
 
 variable {K}
 
 @[simp]
-lemma logHeight_zero_right (x : K) : logHeight ![x, 0] = 0 := by
-  let e : Unit ⊕ Unit ≃ Fin 2 := {
-    toFun | .inl () => 0 | .inr () => 1
-    invFun | 0 => .inl () | 1 => .inr ()
-    left_inv := by grind
-    right_inv := by grind
-  }
-  have he : ![x, 0] ∘ e = Sum.elim (fun | () => x) (0 : Unit → K) := by
-    ext1 j
-    fin_cases j <;> simp [e]
-  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq, logHeight_eq_zero_of_subsingleton]
+lemma mulHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
+    mulHeight (Matrix.vecCons 0 x) = mulHeight x := by
+  let e := (Equiv.sumComm ..).trans <| (finSumFinEquiv (m := 1) (n := n)).trans <|
+    finCongr (show 1 + n = n.succ from n.one_add)
+  have he : Matrix.vecCons 0 x ∘ ⇑e = Sum.elim x 0 := by
+    ext j : 1
+    match j with
+    | .inl _ => simp [e]
+    | .inr ⟨i, h⟩ => simp [e, show i = 0 by lia]; rw [Fin.castAdd_mk]; simp
+  rw [← mulHeight_comp_equiv e, he, mulHeight_sumElim_zero_eq]
 
 @[simp]
-lemma logHeight_zero_zero_left (x : K) : logHeight ![0, 0, x] = 0 := by
-  let e : Unit ⊕ Fin 2 ≃ Fin 3 := {
-    toFun | .inr 0 => 0 | .inr 1 => 1 | .inl () => 2
-    invFun | 0 => .inr 0 | 1 => .inr 1 | 2 => .inl ()
-    left_inv := by grind
-    right_inv := by grind
-  }
-  have he : ![0, 0, x] ∘ e = Sum.elim (fun | () => x) (0 : Fin 2 → K) := by
-    ext1 j
-    fin_cases j <;> simp [e]
-  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq, logHeight_eq_zero_of_subsingleton]
+lemma logHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
+    logHeight (Matrix.vecCons 0 x) = logHeight x := by
+  simp [logHeight_eq_log_mulHeight]
 
 @[simp]
-lemma logHeight_x_y_zero (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
-  let e : Fin 2 ⊕ Unit ≃ Fin 3 := {
-    toFun | .inl 0 => 0 | .inl 1 => 1 | .inr () => 2
-    invFun | 0 => .inl 0 | 1 => .inl 1 | 2 => .inr ()
-    left_inv := by grind
-    right_inv := by grind
-  }
-  have he : ![x, y, 0] ∘ e = Sum.elim ![x, y] (0 : Unit → K) := by
-    ext1 j
-    fin_cases j <;> simp [e]
-  rw [← logHeight_comp_equiv e, he, logHeight_sumElim_zero_eq]
+lemma logHeight_finTwo_zero_right (x : K) : logHeight ![x, 0] = 0 := by
+  simp [logHeight_swap]
 
-omit [AdmissibleAbsValues K] in
-private lemma ne_zero_of_tuple_ne_zero {a : K} (ha : ![a, 0] ≠ 0) : a ≠ 0 := by
-  obtain ⟨i, hi⟩ := Function.ne_iff.mp ha
-  fin_cases i
-  · simpa using hi
-  · simp at hi
+@[simp]
+lemma logHeight_finThree_zero_right (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
+  rw [← logHeight_comp_equiv (finRotate 3).symm,
+    show ![x, y, 0] ∘ _ = ![0, x, y] by ext i : 1; fin_cases i <;> simp]
+  simp
 
 end Height
 
