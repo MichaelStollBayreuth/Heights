@@ -306,14 +306,22 @@ lemma logHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
   simp [logHeight_eq_log_mulHeight]
 
 @[simp]
+lemma mulHeight_finTwo_zero_right (x : K) : mulHeight ![x, 0] = 1 := by
+  simp [mulHeight_swap]
+
+@[simp]
 lemma logHeight_finTwo_zero_right (x : K) : logHeight ![x, 0] = 0 := by
-  simp [logHeight_swap]
+  simp [logHeight_eq_log_mulHeight]
+
+@[simp]
+lemma mulHeight_finThree_zero_right (x y : K) : mulHeight ![x, y, 0] = mulHeight ![x, y] := by
+  rw [← mulHeight_comp_equiv (finRotate 3).symm,
+    show ![x, y, 0] ∘ _ = ![0, x, y] by ext i : 1; fin_cases i <;> simp]
+  simp
 
 @[simp]
 lemma logHeight_finThree_zero_right (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
-  rw [← logHeight_comp_equiv (finRotate 3).symm,
-    show ![x, y, 0] ∘ _ = ![0, x, y] by ext i : 1; fin_cases i <;> simp]
-  simp
+  simp [logHeight_eq_log_mulHeight]
 
 end Height
 
