@@ -297,7 +297,9 @@ lemma mulHeight_matrixCons_zero {n : ℕ} (x : Fin n → K) :
     ext j : 1
     match j with
     | .inl _ => simp [e]
-    | .inr ⟨i, h⟩ => simp [e, show i = 0 by lia]; rw [Fin.castAdd_mk]; simp
+    | .inr ⟨i, h⟩ =>
+      simp only [show i = 0 by lia]
+      simp [e, show Fin.castAdd n 0 = 0 from Fin.castAdd_mk _ _ zero_lt_one]
   rw [← mulHeight_comp_equiv e, he, mulHeight_sumElim_zero_eq]
 
 @[simp]
