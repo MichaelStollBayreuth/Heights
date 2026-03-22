@@ -1,4 +1,5 @@
 import Mathlib
+import Heights.Basic
 import Heights.MvPolynomial
 import Heights.NumberField
 

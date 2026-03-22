@@ -91,6 +91,7 @@ namespace Matrix
 
 variable {α : Type*} {n : ℕ}
 
+@[simp]
 lemma vecCons_vecCons_comp_swap_zero_one (a b : α) (x : Fin n → α) :
     vecCons a (vecCons b x) ∘ ⇑(Equiv.swap 0 1) = vecCons b (vecCons a x) := by
   ext j : 1
@@ -160,13 +161,14 @@ lemma logHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
   simp [logHeight_eq_log_mulHeight]
 
 @[simp]
-lemma mulHeight_finThree_zero_right (x y : K) : mulHeight ![x, y, 0] = mulHeight ![x, y] := by
-  rw [← mulHeight_comp_equiv (finRotate 3).symm,
-    show ![x, y, 0] ∘ _ = ![0, x, y] by ext i : 1; fin_cases i <;> simp]
+lemma mulHeight_vecCons_vecCons_vecCons_zero {n : ℕ} (a b : K) (x : Fin n → K) :
+    mulHeight (vecCons a (vecCons b (vecCons 0 x))) = mulHeight (vecCons a (vecCons b x)) := by
+  rw [← mulHeight_comp_equiv (Equiv.swap (Fin.succ 0) (Fin.succ 1)), ← vecCons_swap]
   simp
 
 @[simp]
-lemma logHeight_finThree_zero_right (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
+lemma logHeight_vecCons_vecCons_vecCons_zero {n : ℕ} (a b : K) (x : Fin n → K) :
+    logHeight (vecCons a (vecCons b (vecCons 0 x))) = logHeight (vecCons a (vecCons b x)) := by
   simp [logHeight_eq_log_mulHeight]
 
 end Height
