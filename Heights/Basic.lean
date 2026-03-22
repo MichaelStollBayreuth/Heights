@@ -74,6 +74,105 @@ We define the following variants.
 noncomputable section
 
 
+/-!
+### Removing zeros from a tuple does not change the height
+
+We show that the height of `![0, x₁, …, xₙ]` is the same as that of `![x₁, …, xₙ]`
+and use this to establish a couple of helpful `simp` lemmas for the (logarithmic) height
+of `![x, 0]` and of `![x, y, 0]`.
+
+TODO: Write a `simproc` that removes all (syntactic) zeros from a tuple when
+      `mulHeight` or `logHeight` is applied to it.
+-/
+
+section API
+
+namespace Matrix
+
+variable {α : Type*} {n : ℕ}
+
+lemma vecCons_vecCons_comp_swap_zero_one (a b : α) (x : Fin n → α) :
+    vecCons a (vecCons b x) ∘ ⇑(Equiv.swap 0 1) = vecCons b (vecCons a x) := by
+  ext j : 1
+  match j with
+  | 0 => simp
+  | 1 => simp
+  | ⟨i + 2, h⟩ =>
+    have h' : (⟨i + 2, h⟩ : Fin n.succ.succ) = Fin.succ (Fin.succ ⟨i, by lia⟩) := by grind
+    simp only [Nat.succ_eq_add_one, h', Function.comp_apply,
+      Equiv.swap_apply_of_ne_of_ne (Fin.succ_ne_zero _) (Fin.succ_succ_ne_one _), cons_val_succ]
+-- #find_home! vecCons_vecCons_comp_swap_zero_one -- [Mathlib.Data.Fin.VecNotation]
+
+lemma vecCons_swap (a : α) (x : Fin n → α) (i j : Fin n) :
+    vecCons a (x ∘ ⇑(Equiv.swap i j)) = vecCons a x ∘ ⇑(Equiv.swap i.succ j.succ) := by
+  ext k : 1
+  rcases eq_or_ne k 0 with rfl | hk₀
+  · simp [Equiv.swap_apply_of_ne_of_ne (Fin.succ_ne_zero i).symm (Fin.succ_ne_zero j).symm]
+  rcases eq_or_ne k i.succ with rfl | hki
+  · simp
+  rcases eq_or_ne k j.succ with rfl | hkj
+  · simp
+  have hk : k = Fin.succ ⟨k - 1, by lia⟩ := by grind
+  rw [Function.comp_apply, Equiv.swap_apply_of_ne_of_ne hki hkj, hk, cons_val_succ,
+    Function.comp_apply, cons_val_succ, Equiv.swap_apply_of_ne_of_ne (by grind) (by grind)]
+-- #find_home! vecCons_swap -- [Mathlib.Data.Fin.VecNotation]
+
+end Matrix
+
+end API
+
+section remove_zeros
+
+namespace Height
+
+variable {K : Type*} [Field K] [AdmissibleAbsValues K]
+
+open Matrix
+
+@[simp]
+lemma mulHeight_vecCons_zero {n : ℕ} (x : Fin n → K) :
+    mulHeight (vecCons 0 x) = mulHeight x := by
+  let e := (Equiv.sumComm ..).trans <| (finSumFinEquiv (m := 1) (n := n)).trans <|
+    finCongr (show 1 + n = n.succ from n.one_add)
+  have he : Matrix.vecCons 0 x ∘ ⇑e = Sum.elim x 0 := by
+    ext j : 1
+    match j with
+    | .inl _ => simp [e]
+    | .inr ⟨i, h⟩ =>
+      simp only [show i = 0 by lia]
+      simp [e, show Fin.castAdd n 0 = 0 from Fin.castAdd_mk _ _ zero_lt_one]
+  rw [← mulHeight_comp_equiv e, he, mulHeight_sumElim_zero_eq]
+
+@[simp]
+lemma logHeight_vecCons_zero {n : ℕ} (x : Fin n → K) :
+    logHeight (Matrix.vecCons 0 x) = logHeight x := by
+  simp [logHeight_eq_log_mulHeight]
+
+@[simp]
+lemma mulHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
+    mulHeight (vecCons a (vecCons 0 x)) = mulHeight (vecCons a x) := by
+  rw [← mulHeight_comp_equiv (Equiv.swap 0 1), vecCons_vecCons_comp_swap_zero_one]
+  simp
+
+@[simp]
+lemma logHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
+    logHeight (vecCons a (vecCons 0 x)) = logHeight (vecCons a x) := by
+  simp [logHeight_eq_log_mulHeight]
+
+@[simp]
+lemma mulHeight_finThree_zero_right (x y : K) : mulHeight ![x, y, 0] = mulHeight ![x, y] := by
+  rw [← mulHeight_comp_equiv (finRotate 3).symm,
+    show ![x, y, 0] ∘ _ = ![0, x, y] by ext i : 1; fin_cases i <;> simp]
+  simp
+
+@[simp]
+lemma logHeight_finThree_zero_right (x y : K) : logHeight ![x, y, 0] = logHeight ![x, y] := by
+  simp [logHeight_eq_log_mulHeight]
+
+end Height
+
+end remove_zeros
+
 #exit
 
 /-!
