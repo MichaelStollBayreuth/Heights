@@ -36,7 +36,7 @@ noncomputable def addSubMap : Fin 3 → MvPolynomial (Fin 3) K :=
     C 2 * t * s + C (2 * a) * t * u + C (4 * b) * u ^ 2,
     t ^ 2 - C 4 * s * u]
 
-/-- The coefficient polynomials in linear combinations of the polynomials on `F`
+/-- The coefficient polynomials in linear combinations of the polynomials in `addSubMap`
 that result in the fourth powers of the variables, multiplied by `32*a^3 + 216*b^2`. -/
 noncomputable def addSubMapCoeff : Fin 3 × Fin 3 → MvPolynomial (Fin 3) K :=
   letI s := X (σ := Fin 3) 0
@@ -144,7 +144,8 @@ variable [AdmissibleAbsValues K]
 include hab in
 /-- If `a b : K` and  `D := 32*a^3 + 216*b^2` is nonzero, then the map `F : ℙ² → ℙ²` given by
 `(s : t : u) ↦ (s^2 - 2*a*s*u - 4*b*t*u + a²*u² : 2*s*t + 2*a*t*u + 4*b*u² : t² - 4*s*u)`
-is a morphism. This implies that `|logHeight (F x) - 2 * logHeight x| ≤ C` for a constant `C`,
+(called `addSubMap` here) is a morphism.
+This implies that `|logHeight (F x) - 2 * logHeight x| ≤ C` for a constant `C`,
 where `x = ![s, t, u]` and `F` acts on the coordinate vector. -/
 theorem abs_logHeight_addSubMap_sub_two_mul_logHeight_le :
     ∃ C, ∀ x : Fin 3 → K,
@@ -165,7 +166,11 @@ end EllipticCurve
 
 end Height
 
-/- We work with affine points; this seems to be quite a bit less painful... -/
+-- #36988
+/-
+We work with affine points; this seems to be quite a bit less painful
+than using projective points.
+-/
 
 namespace WeierstrassCurve.Affine
 
@@ -175,11 +180,12 @@ variable {K : Type*} [Field K] {a b : K} {W : Affine K}
 
 lemma Point.x_eq_iff {P Q : W.Point} {xP yP xQ yQ : K} {hP' : W.Nonsingular xP yP}
     {hQ' : W.Nonsingular xQ yQ} (hP : P = some xP yP hP') (hQ : Q = some xQ yQ hQ') :
-    xP = xQ ↔ Q = P ∨ Q = -P := by
+    xP = xQ ↔ P = Q ∨ P = -Q := by
   refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
   · simp_rw [hP, hQ, neg_some, some.injEq, ← and_or_left]
-    exact ⟨H.symm, Y_eq_of_X_eq hQ'.1 hP'.1 H.symm⟩
+    exact ⟨H, Y_eq_of_X_eq hP'.1 hQ'.1 H⟩
   · grind [neg_some]
+-- #find_home! Point.x_eq_iff -- [Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point]
 
 /-- This map sends an affine point `P` on `W` to a representative of its image on ℙ¹
 under the x-coordinate map. We take `![1, 0]` for the point at infinity and `![x, 1]`,
@@ -215,15 +221,14 @@ lemma Point.eq_or_eq_neg_of_xRep_eq_xRep {P Q : W.Point} (h : P.xRep = Q.xRep) :
   | some .. , 0 => simp [xRep] at h
   | some x₁ y₁ h₁, some x₂ y₂ h₂ =>
     simp only [xRep, Matrix.vecCons_inj, and_true] at h
-    subst h
-    rcases Y_eq_of_X_eq h₁.1 h₂.1 rfl with rfl | rfl
-    · exact .inl rfl
-    · exact .inr rfl
+    exact (x_eq_iff rfl rfl).mp h
 
 lemma Point.xRep_eq_xRep_iff {P Q : W.Point} :
     P.xRep = Q.xRep ↔ P = Q ∨ P = -Q := by
   refine ⟨eq_or_eq_neg_of_xRep_eq_xRep, fun H ↦ ?_⟩
   rcases H with rfl | rfl <;> simp
+-- can go in Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point up to here
+-- end #36988
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
 to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`.
