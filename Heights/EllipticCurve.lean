@@ -10,13 +10,17 @@ If `K` is a field with `AdmissibleAbsoluteValues` and `E` is an elliptic curve o
 let `h : E(K) → ℝ` be the naïve height of the x-coordinate.
 
 The goal of this file is to show the approximate parallelogram law:
-`∃ C, ∀ P Q : E(K), |h(P+Q) + h(P-Q) - 2*h(P) - 2*h(Q)| ≤ C
+`∃ C, ∀ P Q : E(K), |h(P+Q) + h(P-Q) - 2*h(P) - 2*h(Q)| ≤ C`,
+where `h` denotes the (logarithmic) naïve height on `E(K)`,
+and to show that there are only finitely many points in `E(K)` of bounded height
+when `K` has the Northcott property.
 -/
 
 namespace Height
 
 namespace EllipticCurve
 
+-- #36989
 /-!
 ### The addition-and-subtraction map on x-coordinates
 -/
@@ -161,6 +165,7 @@ theorem abs_logHeight_addSubMap_sub_two_mul_logHeight_le :
     obtain ⟨C₂, h⟩ := logHeight_eval_ge' H
     exact ⟨C₂, fun x ↦ h _ <| addSubMapCoeff_condition hab x⟩
   refine ⟨max C₁ (-C₂), fun x ↦ abs_sub_le_iff.mpr ⟨?_, ?_⟩⟩ <;> grind
+-- end #36989
 
 end EllipticCurve
 
