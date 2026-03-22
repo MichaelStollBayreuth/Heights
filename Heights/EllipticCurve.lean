@@ -459,11 +459,9 @@ theorem approx_parallelogram_law [DecidableEq K] :
 
 end AAV
 
-section NumberField
+section Northcott
 
-open NumberField
-
-variable [NumberField K]
+variable [AdmissibleAbsValues K] [Northcott (logHeight₁ (K := K))]
 
 variable (W) in
 /-- The set of `K`-points on `W` with naïve height bounded by `B` is finite.
@@ -485,7 +483,8 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
     | 0 => exact .inl rfl
     | .some .. => exact .inr ⟨P.xRep 0, by simp [s, hP, HP]⟩
   refine (Set.Finite.union (by simp) ?_).subset h
-  refine Set.Finite.iUnion (finite_setOf_logHeight₁_le K B) (fun x _ ↦ hs x) fun x hx ↦ ?_
+  refine Set.Finite.iUnion (t := {x | logHeight₁ x ≤ B}) (Northcott.finite_le B) (fun x _ ↦ hs x)
+    fun x hx ↦ ?_
   simp only [Set.mem_setOf_eq, not_le] at hx
   simp only [Nat.succ_eq_add_one, Nat.reduceAdd, s, Point.naiveHeight_eq_logHeight₁]
   exact Set.eq_empty_iff_forall_notMem.mpr fun P ↦ by simp +contextual [hx]
@@ -498,7 +497,7 @@ variable [DecidableEq K]
 include hab hW in
 /-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
 `E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
-number field `K`. -/
+field `K` that satisfies the Northcott property with respect to `logHeight₁`. -/
 theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex) :
     AddGroup.FG W.Point := by
   have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
@@ -507,6 +506,6 @@ theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.
   obtain ⟨C, hC⟩ := approx_parallelogram_law hab hW
   exact AddCommGroup.fg_of_descent' weakMW H₂ hC
 
-end NumberField
+end Northcott
 
 end WeierstrassCurve.Affine
