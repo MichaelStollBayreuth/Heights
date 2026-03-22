@@ -78,10 +78,10 @@ noncomputable section
 ### Removing zeros from a tuple does not change the height
 
 We show that the height of `![0, x₁, …, xₙ]` is the same as that of `![x₁, …, xₙ]`
-and use this to establish a couple of helpful `simp` lemmas for the (logarithmic) height
-of `![x, 0]` and of `![x, y, 0]`.
+and use this to establish some helpful `simp` lemmas for the (logarithmic) height
+of `![a, 0, ...]` and of `![a, b, 0, ...]`.
 
-TODO: Write a `simproc` that removes all (syntactic) zeros from a tuple when
+TODO: Write a `simproc` that removes *all* (syntactic) zeros from a tuple when
       `mulHeight` or `logHeight` is applied to it.
 -/
 
