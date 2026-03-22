@@ -73,7 +73,7 @@ We define the following variants.
 
 noncomputable section
 
-
+-- #36986
 /-!
 ### Removing zeros from a tuple does not change the height
 
@@ -92,7 +92,7 @@ namespace Matrix
 variable {α : Type*} {n : ℕ}
 
 @[simp]
-lemma vecCons_vecCons_comp_swap_zero_one (a b : α) (x : Fin n → α) :
+lemma cons_cons_comp_swap_zero_one (a b : α) (x : Fin n → α) :
     vecCons a (vecCons b x) ∘ ⇑(Equiv.swap 0 1) = vecCons b (vecCons a x) := by
   ext j : 1
   match j with
@@ -102,9 +102,9 @@ lemma vecCons_vecCons_comp_swap_zero_one (a b : α) (x : Fin n → α) :
     have h' : (⟨i + 2, h⟩ : Fin n.succ.succ) = Fin.succ (Fin.succ ⟨i, by lia⟩) := by grind
     simp only [Nat.succ_eq_add_one, h', Function.comp_apply,
       Equiv.swap_apply_of_ne_of_ne (Fin.succ_ne_zero _) (Fin.succ_succ_ne_one _), cons_val_succ]
--- #find_home! vecCons_vecCons_comp_swap_zero_one -- [Mathlib.Data.Fin.VecNotation]
+-- #find_home! cons_cons_comp_swap_zero_one -- [Mathlib.Data.Fin.VecNotation]
 
-lemma vecCons_swap (a : α) (x : Fin n → α) (i j : Fin n) :
+lemma cons_swap (a : α) (x : Fin n → α) (i j : Fin n) :
     vecCons a (x ∘ ⇑(Equiv.swap i j)) = vecCons a x ∘ ⇑(Equiv.swap i.succ j.succ) := by
   ext k : 1
   rcases eq_or_ne k 0 with rfl | hk₀
@@ -116,7 +116,7 @@ lemma vecCons_swap (a : α) (x : Fin n → α) (i j : Fin n) :
   have hk : k = Fin.succ ⟨k - 1, by lia⟩ := by grind
   rw [Function.comp_apply, Equiv.swap_apply_of_ne_of_ne hki hkj, hk, cons_val_succ,
     Function.comp_apply, cons_val_succ, Equiv.swap_apply_of_ne_of_ne (by grind) (by grind)]
--- #find_home! vecCons_swap -- [Mathlib.Data.Fin.VecNotation]
+-- #find_home! cons_swap -- [Mathlib.Data.Fin.VecNotation]
 
 end Matrix
 
@@ -152,7 +152,7 @@ lemma logHeight_vecCons_zero {n : ℕ} (x : Fin n → K) :
 @[simp]
 lemma mulHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
     mulHeight (vecCons a (vecCons 0 x)) = mulHeight (vecCons a x) := by
-  rw [← mulHeight_comp_equiv (Equiv.swap 0 1), vecCons_vecCons_comp_swap_zero_one]
+  rw [← mulHeight_comp_equiv (Equiv.swap 0 1), cons_cons_comp_swap_zero_one]
   simp
 
 @[simp]
@@ -163,7 +163,7 @@ lemma logHeight_vecCons_vecCons_zero {n : ℕ} (a : K) (x : Fin n → K) :
 @[simp]
 lemma mulHeight_vecCons_vecCons_vecCons_zero {n : ℕ} (a b : K) (x : Fin n → K) :
     mulHeight (vecCons a (vecCons b (vecCons 0 x))) = mulHeight (vecCons a (vecCons b x)) := by
-  rw [← mulHeight_comp_equiv (Equiv.swap (Fin.succ 0) (Fin.succ 1)), ← vecCons_swap]
+  rw [← mulHeight_comp_equiv (Equiv.swap (Fin.succ 0) (Fin.succ 1)), ← cons_swap]
   simp
 
 @[simp]
@@ -174,6 +174,7 @@ lemma logHeight_vecCons_vecCons_vecCons_zero {n : ℕ} (a b : K) (x : Fin n → 
 end Height
 
 end remove_zeros
+-- end #36986
 
 #exit
 
