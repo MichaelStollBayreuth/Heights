@@ -143,7 +143,7 @@ instance NumberField.instAdmissibleAbsValues :
               { simp only [h, sup_of_le_right, right_eq_sup, sup_of_le_left, left_eq_sup]
                 gcongr }
       mulSupport_ineqBounds_finite := Function.mulSupport_sumElim_finite' _
-      mulSupport_absValues_finite hx := by
+      hasFiniteMulSupport_absValues hx := by
         rw [MonoidWithZeroHom.sumElim_apply']
         exact Function.mulSupport_sumElim_finite (FinitePlace.mulSupport_finite' hx) <|
           Set.toFinite _

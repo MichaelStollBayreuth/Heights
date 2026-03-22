@@ -89,7 +89,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   /-- Only finitely many of the bounds are `≠ 1`. -/
   mulSupport_ineqBounds_finite : triangleIneqBound.mulSupport.Finite
   /-- Only finitely many absolute values are `≠ 1` for any nonzero `x : K`. -/
-  mulSupport_absValues_finite {x : K} (_ : x ≠ 0) : (absValue · x).mulSupport.Finite
+  hasFiniteMulSupport_absValues {x : K} (_ : x ≠ 0) : (absValue · x).HasFiniteMulSupport
   /-- The product formula -/
   product_formula {x : K} (_ : x ≠ 0) : ∏ᶠ v : Vals, absValue v x = 1
 
@@ -182,7 +182,7 @@ lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v ↦ ⨆ i, absValue v (x i)).Finite := by
   simp_rw [iSup_absValue_eq]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
-  exact (Set.finite_iUnion fun i ↦ mulSupport_absValues_finite i.prop).subset <|
+  exact (Set.finite_iUnion fun i ↦ hasFiniteMulSupport_absValues i.prop).subset <|
     Function.mulSupport_iSup _
 
 lemma mulSupport_max_absValue_finite (x : K) :
@@ -233,7 +233,7 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
   rcases eq_or_ne x 0 with rfl | hx
   · rw [smul_zero]
   simp only [mulHeight, Pi.smul_apply, smul_eq_mul, map_mul, ← mul_iSup]
-  rw [finprod_mul_distrib (mulSupport_absValues_finite hc) (mulSupport_iSup_absValue_finite hx),
+  rw [finprod_mul_distrib (hasFiniteMulSupport_absValues hc) (mulSupport_iSup_absValue_finite hx),
     product_formula hc, one_mul]
 
 /-- The logarithmic height of a (nonzero) tuple does not change under scaling. -/

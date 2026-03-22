@@ -76,7 +76,7 @@ instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   weight_pos v hv := by simp_all [weight', InfinitePlace.mult_pos]
   nonarchAbsVal := {v | IsFinitePlace v}
   strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa using hv⟩
-  mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
+  hasFiniteMulSupport_nonarchAbsVal := FinitePlace.hasFiniteMulSupport
   product_formula {x} hx := prod_finsetInfinitePlace_eq K ▸ prod_abs_eq_one hx
 
 end NumberField

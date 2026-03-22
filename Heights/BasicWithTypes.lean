@@ -104,7 +104,7 @@ class AdmissibleAbsValues (K : Type*) [Field K] where
   /-- The nonarchimedean absolute values are indeed nonarchimedean. -/
   strong_triangle_ineq (v : NonarchAbsVal) : IsNonarchimedean (nonarchAbsVal v)
   /-- Only finitely many absolute values are `≠ 1` for any nonzero `x : K`. -/
-  mulSupport_nonarchAbsVal_finite {x : K} (_ : x ≠ 0) : (nonarchAbsVal · x).mulSupport.Finite
+  hasFiniteMulSupport_nonarchAbsVal {x : K} (_ : x ≠ 0) : (nonarchAbsVal · x).HasFiniteMulSupport
   /-- The product formula -/
   product_formula {x : K} (_ : x ≠ 0) :
       (∏ v, archAbsVal v x ^ weight v) * ∏ᶠ v, nonarchAbsVal v x = 1
@@ -181,7 +181,7 @@ lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v ↦ ⨆ i, nonarchAbsVal v (x i)).Finite := by
   simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
-  exact (Set.finite_iUnion fun i ↦ mulSupport_nonarchAbsVal_finite i.prop).subset <|
+  exact (Set.finite_iUnion fun i ↦ hasFiniteMulSupport_nonarchAbsVal i.prop).subset <|
     Function.mulSupport_iSup _
 
 lemma mulSupport_max_absValue_finite (x : K) :
@@ -240,7 +240,7 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
     enter [1, 2, 1, v]
     rw [← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg ..]
   rw [Finset.prod_mul_distrib,
-    finprod_mul_distrib (mulSupport_nonarchAbsVal_finite hc) (mulSupport_iSup_absValue_finite hx),
+    finprod_mul_distrib (hasFiniteMulSupport_nonarchAbsVal hc) (mulSupport_iSup_absValue_finite hx),
     mul_mul_mul_comm, product_formula hc, one_mul]
 
 lemma one_le_mulHeight {x : ι → K} (hx : x ≠ 0) : 1 ≤ mulHeight x := by

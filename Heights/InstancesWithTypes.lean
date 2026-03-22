@@ -35,7 +35,7 @@ instance NumberField.instAdmissibleAbsValues {K : Type*} [Field K] [NumberField 
   NonarchAbsVal := FinitePlace K
   nonarchAbsVal v := v.val
   strong_triangle_ineq := FinitePlace.add_le
-  mulSupport_nonarchAbsVal_finite := FinitePlace.mulSupport_finite
+  hasFiniteMulSupport_nonarchAbsVal := FinitePlace.hasFiniteMulSupport
   product_formula := prod_abs_eq_one
 
 end number_field
