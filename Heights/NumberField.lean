@@ -411,7 +411,7 @@ lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} 
   have hnz : span {x} ≠ ⊥ := mt Submodule.span_singleton_eq_bot.mp hx
   rw [← norm_embedding_eq v x, ← Nat.cast_pow, ← map_pow,
     ← maxPowDividing_eq_pow_multiplicity hnz v.maximalIdeal]
-  exact v.maximalIdeal.embedding_mul_absNorm hx
+  exact HeightOneSpectrum.embedding_mul_absNorm K v.maximalIdeal hx
 
 end NumberField
 
@@ -461,7 +461,7 @@ open Height Finset Multiset
 
 variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
-open AdmissibleAbsValues IsDedekindDomain RingOfIntegers.HeightOneSpectrum
+open AdmissibleAbsValues IsDedekindDomain NumberField.HeightOneSpectrum
 
 /-
 lemma FinitePlace.apply_eq_adicAbv_maximalIdeal_apply (v : FinitePlace K) (x : K) :

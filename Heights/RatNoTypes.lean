@@ -169,7 +169,7 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
   have H i : (x i : ℚ) = Rat.ringOfIntegersEquiv.symm (x i) := by
     simp only [eq_intCast, map_intCast]
   simp_rw [H, ← FinitePlace.norm_embedding_eq]
-  exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one v' _) zero_le_one) <|
+  exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one ℚ v' _) zero_le_one) <|
     le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
 
 open Height Classical
