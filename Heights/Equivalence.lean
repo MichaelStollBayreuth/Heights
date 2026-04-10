@@ -153,7 +153,7 @@ lemma discrete_iff_not_isNontrivial {v : AbsoluteValue F ℝ} :
       norm_num at hy
 
 /-- A field with a nontrivial absolute value on it is a nontrivially normed field. -/
-noncomputable
+@[reducible] noncomputable
 def IsNontrivial.nontriviallyNormedField {v : AbsoluteValue F ℝ} (hv : v.IsNontrivial) :
     NontriviallyNormedField (WithAbs v) where
   __ := WithAbs.normedField v

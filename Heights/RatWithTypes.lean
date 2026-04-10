@@ -234,7 +234,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   have ⟨R', hR₁, hR₂⟩ := Finset.extract_gcd R Finset.univ_nonempty
   have hg : Finset.univ.gcd R ≠ 0 := by
     rw [ne_eq, Finset.gcd_eq_zero_iff]
-    push_neg
+    push Not
     simpa only [Finset.mem_univ, true_and] using Function.ne_iff.mp hR₀
   have hR₃ : ((↑) : ℤ → ℚ) ∘ R' = ((d : ℚ) / Finset.univ.gcd R) • r := by
     have : R = Finset.univ.gcd R • R' := by

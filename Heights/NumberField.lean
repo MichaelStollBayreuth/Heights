@@ -1,4 +1,5 @@
 import Mathlib.GroupTheory.FiniteAbelian.Basic
+-- import Mathlib.GroupTheory.IndexNSmul
 import Mathlib.NumberTheory.Height.Northcott
 import Mathlib.NumberTheory.Height.NumberField
 import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp
@@ -47,85 +48,6 @@ lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b
 
 end Finite
 
--- #36458
-namespace Int
-
-lemma range_nsmulAddMonoidHom (n : ℕ) :
-    (nsmulAddMonoidHom (α := ℤ) n).range = AddSubgroup.zmultiples (n : ℤ) := by
-  ext1 m
-  suffices (∃ x : ℤ , n * x = m) ↔ ∃ y, y * n = m by simpa only using this
-  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩ <;> obtain ⟨k, rfl⟩ := H <;> exact ⟨k, Int.mul_comm ..⟩
--- #find_home! range_nsmulAddMonoidHom
--- [Mathlib.Topology.Algebra.Order.Archimedean, Mathlib.Algebra.Group.Subgroup.Pointwise,
---  Mathlib.Algebra.Group.Subgroup.ZPowers.Lemmas, -- maybe here?
---  Mathlib.Algebra.CharZero.Quotient,
---  Mathlib.GroupTheory.QuotientGroup.ModEq]
-
--- public import Mathlib.Algebra.Group.Subgroup.Ker
--- public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
-
-end Int
-
-namespace MulEquiv
-
-variable {M N : Type*} [CommGroup M] [CommGroup N]
-
-@[to_additive]
-lemma powMonoidHom_comm (e : M ≃* N) (n : ℕ) :
-    (e : M →* N).comp (powMonoidHom n) = (powMonoidHom n).comp e := by
-  ext1
-  simp
--- #find_home powMonoidHom_comm -- maybe Mathlib.Algebra.Group.Equiv.Basic ?
-
-@[to_additive]
-lemma range_eq_top (e : M ≃* N) : (e : M →* N).range = ⊤ :=
-  MonoidHom.range_eq_top.mpr e.surjective
--- #find_home! range_eq_top -- [Mathlib.Algebra.Group.Subgroup.Ker]
-
-open MonoidHom in
-@[to_additive]
-lemma map_range_powMonoidHom (e : M ≃* N) (n : ℕ) :
-    (powMonoidHom (α := M) n).range.map e = (powMonoidHom (α := N) n).range := by
-  rw [map_range, e.powMonoidHom_comm, range_comp, e.range_eq_top, ← range_eq_map]
--- #find_home! map_addEquiv_range_nsmulAddMonoidHom -- [Mathlib.Algebra.Group.Subgroup.Ker] ?
-
-end MulEquiv
-
-namespace Subgroup
-
-variable {M : Type*} [CommGroup M]
-
-@[to_additive]
-lemma subgroupOf_map_powMonoidHom_eq_range (S : Subgroup M) (n : ℕ) :
-    (map (powMonoidHom n) S).subgroupOf S = (powMonoidHom n).range := by
-  ext1
-  simp only [mem_subgroupOf, mem_map, MonoidHom.mem_range, powMonoidHom_apply, Subtype.exists,
-    SubmonoidClass.mk_pow]
-  exact ⟨fun ⟨x, h₁, h₂⟩ ↦ ⟨x, h₁, Subtype.ext h₂⟩,
-    fun ⟨a, h₁, h₂⟩ ↦ ⟨a, h₁, Subtype.ext_iff.mp h₂⟩⟩
--- #find_home! subgroupOf_map_powMonoidHom_eq_range -- [Mathlib.Algebra.Group.Subgroup.Ker]
-
-end Subgroup
-
-namespace QuotientGroup
-
-@[to_additive]
-noncomputable
-def mulEquivPiModRangePowMonoidHom {ι : Type*} (A : ι → Type*) [∀ i, CommGroup (A i)] (n : ℕ) :
-    ((i : ι) → A i) ⧸ (powMonoidHom n).range ≃* ((i : ι) → A i ⧸ (powMonoidHom n).range) :=
-  let φ : ((i : ι) → A i) →* ((i : ι) → A i ⧸ (powMonoidHom n).range) := {
-    toFun x := (x ·)
-    map_one' := by simp [Pi.one_def]
-    map_mul' x y := by simp [Pi.mul_def]
-  }
-  liftEquiv (φ := φ) _ (fun y ↦ ⟨fun i ↦ Quotient.out (y i), by simp [φ]⟩) <| by
-    ext1 x
-    simpa [φ, funext_iff] using (Classical.skolem (p := fun i a ↦ a ^ n = x i)).symm
-
--- #find_home! addEquivPiModRangeNsmulAddMonoidHom -- [Mathlib.GroupTheory.QuotientGroup.Defs]
-
-end QuotientGroup
--- end #36458
 
 -- #36494
 namespace AddSubgroup
@@ -138,7 +60,7 @@ open QuotientAddGroup in
 variable (M) in
 /-- The index of the image of the multiplication-by-`n` map on an additive group `M` that is free
 and finitely generated as a `ℤ`-module is `n ^ finrank ℤ M`. -/
-lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
+lemma index_range_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
     (nsmulAddMonoidHom (α := M) n).range.index = n ^ finrank ℤ M := by
   let e := (Module.finBasis ℤ M).equivFun
   suffices (nsmulAddMonoidHom (α := Fin (finrank ℤ M) → ℤ) n).range.index = n ^ finrank ℤ M by
@@ -150,11 +72,11 @@ lemma index_nsmul [Free ℤ M] [Module.Finite ℤ M] (n : ℕ) :
 /-- The relative index in `S` of the image of the multiplication-by-`n` map
 on an additive subgroup `S` of an additive group such that `S` is free
 and finitely generated as a `ℤ`-module is `n ^ finrank ℤ S`. -/
-lemma relIndex_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule]
+lemma relIndex_map_nsmul (n : ℕ) (S : AddSubgroup M) [Free ℤ ↥S.toIntSubmodule]
     [Module.Finite ℤ ↥S.toIntSubmodule] :
     (S.map (nsmulAddMonoidHom (α := M) n)).relIndex S = n ^ finrank ℤ S := by
   simpa only [relIndex, addSubgroupOf_map_nsmulAddMonoidHom_eq_range]
-    using index_nsmul S.toIntSubmodule n
+    using index_range_nsmul S.toIntSubmodule n
 
 /-- On an additive group that is torsion-free as a `ℤ`-module, the linear map given by
 multiplication by `n : ℕ` is injective (when `n ≠ 0`). -/
@@ -648,7 +570,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   have H₃' : Module.Finite ℤ ↥I.toAddSubgroup.toIntSubmodule := by
     simpa only [toIntSubmodule_toAddSubgroup] using H₃
   have H₄ : nI.toAddSubgroup.relIndex I.toAddSubgroup = n ^ Module.finrank ℚ K := by
-    rw [hnI, I.toAddSubgroup.relIndex_nsmul n, ← RingOfIntegers.rank K,
+    rw [hnI, I.toAddSubgroup.relIndex_map_nsmul n, ← RingOfIntegers.rank K,
       (AddEquiv.toIntLinearEquiv <| .ofBijective f hf).finrank_eq]
     exact congrArg (n ^ ·) <| (AddSubgroup.finrank_eq_of_isFiniteRelIndex hRI).symm
   rw [H₂, ← mul_left_inj' hn, AddSubgroup.relIndex_mul_relIndex _ _ _ hnIR hRI, H₄, ← pow_succ,

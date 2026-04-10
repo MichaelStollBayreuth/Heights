@@ -171,7 +171,6 @@ end EllipticCurve
 
 end Height
 
--- #36988
 /-
 We work with affine points; this seems to be quite a bit less painful
 than using projective points.
@@ -182,58 +181,6 @@ namespace WeierstrassCurve.Affine
 open Height EllipticCurve
 
 variable {K : Type*} [Field K] {a b : K} {W : Affine K}
-
-lemma Point.x_eq_iff {P Q : W.Point} {xP yP xQ yQ : K} {hP' : W.Nonsingular xP yP}
-    {hQ' : W.Nonsingular xQ yQ} (hP : P = some xP yP hP') (hQ : Q = some xQ yQ hQ') :
-    xP = xQ ↔ P = Q ∨ P = -Q := by
-  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
-  · simp_rw [hP, hQ, neg_some, some.injEq, ← and_or_left]
-    exact ⟨H, Y_eq_of_X_eq hP'.1 hQ'.1 H⟩
-  · grind [neg_some]
--- #find_home! Point.x_eq_iff -- [Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point]
-
-/-- This map sends an affine point `P` on `W` to a representative of its image on ℙ¹
-under the x-coordinate map. We take `![1, 0]` for the point at infinity and `![x, 1]`,
-where `x` is the x-coordinate of `P` for a finite point. -/
-noncomputable def Point.xRep : W.Point → Fin 2 → K
-  | 0 => ![1, 0]
-  | some x _ _ => ![x, 1]
-
-@[simp]
-lemma Point.xRep_zero : (0 : W.Point).xRep = ![1, 0] :=
-  rfl
-
-@[simp]
-lemma Point.xRep_some {x y : K} (h : W.Nonsingular x y) : (some x y h).xRep = ![x, 1] :=
-  rfl
-
-lemma Point.xRep_ne_zero (P : W.Point) : P.xRep ≠ 0 := by
-  match P with
-  | 0 => simp
-  | some .. => simp
-
-@[simp]
-lemma Point.xRep_neg (P : W.Point) : (-P).xRep = P.xRep := by
-  match P with
-  | 0 => simp
-  | some .. => simp
-
-lemma Point.eq_or_eq_neg_of_xRep_eq_xRep {P Q : W.Point} (h : P.xRep = Q.xRep) :
-    P = Q ∨ P = -Q := by
-  match P, Q with
-  | 0, 0 => exact .inl rfl
-  | 0, some .. => simp [xRep] at h
-  | some .. , 0 => simp [xRep] at h
-  | some x₁ y₁ h₁, some x₂ y₂ h₂ =>
-    simp only [xRep, Matrix.vecCons_inj, and_true] at h
-    exact (x_eq_iff rfl rfl).mp h
-
-lemma Point.xRep_eq_xRep_iff {P Q : W.Point} :
-    P.xRep = Q.xRep ↔ P = Q ∨ P = -Q := by
-  refine ⟨eq_or_eq_neg_of_xRep_eq_xRep, fun H ↦ ?_⟩
-  rcases H with rfl | rfl <;> simp
--- can go in Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point up to here
--- end #36988
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
 to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`.
@@ -381,7 +328,7 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
   · simpa [sym2x_neg_right, Point.sym2x_comm 0] using P.sym2x_etc_P_P hW
   match P, Q with
   | some xP yP hP, some xQ yQ hQ =>
-    have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [(x_eq_iff rfl rfl).mp Heq]
+    have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [X_eq_iff.mp Heq]
     have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
     refine ⟨_, hxPQ', ?_⟩
     have HeqP := (W.equation_iff xP yP).mp hP.1
