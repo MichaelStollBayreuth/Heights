@@ -341,17 +341,16 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
       Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty, addSubMap, Fin.isValue, C_mul]
     ext i : 1
     fin_cases i
-    · simp only [succ_eq_add_one, reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero,
-        map_add, map_sub, map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one,
-        Matrix.cons_val_one, one_pow]
+    · simp only [reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero, map_add, map_sub,
+        map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one, Matrix.cons_val_one, one_pow]
       rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _), mul_left_comm]
       simp only [mul_sub, mul_div_cancel₀ _ hxPQ']
       conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
       rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
       ring
-    · simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', succ_eq_add_one, reduceAdd,
-        Fin.mk_one, Fin.isValue, Matrix.cons_val_one, Matrix.cons_val_zero, map_add, map_mul,
-        eval_C, eval_X, Matrix.cons_val, mul_one, map_pow, one_pow]
+    · simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', reduceAdd, Fin.mk_one,
+        Fin.isValue, Matrix.cons_val_one, Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X,
+        Matrix.cons_val, mul_one, map_pow, one_pow]
       conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
       rw [HeqP, HeqQ]
       ring

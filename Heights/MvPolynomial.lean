@@ -144,7 +144,7 @@ by `p.mulHeight₁Bound * (mulHeight₁ x) ^ p.natDegree`. -/
 theorem mulHeight₁_eval_le (p : K[X]) (x : K) :
     mulHeight₁ (p.eval x) ≤ p.mulHeight₁Bound * mulHeight₁ x ^ p.natDegree := by
   rw [p.eval_eq_div_eval_toTupleMvPolynomial, mulHeight₁_div_eq_mulHeight, mulHeight₁_eq_mulHeight]
-  convert mulHeight_eval_le p.isHomogenous_toTupleMvPolynomial _ with i
+  convert mulHeight_eval_le p.isHomogeneous_toTupleMvPolynomial _ with i
   fin_cases i <;> simp
 
 open Real in
