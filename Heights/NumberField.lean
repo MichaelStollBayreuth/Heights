@@ -18,36 +18,6 @@ section API
 ### API for Mathlib
 -/
 
-namespace Finite
-/-
-variable {α β : Type*} [ConditionallyCompleteLinearOrderBot α] [Finite β]
-
-lemma ciSup_option (f : Option β → α) : ⨆ o, f o = f none ⊔ ⨆ b, f (some b) := by
-  refine le_antisymm (ciSup_le fun o ↦ ?_) ?_
-  · cases o with
-    | none => exact le_sup_left
-    | some val => exact le_sup_of_le_right <| le_ciSup_of_le val le_rfl
-  · rcases isEmpty_or_nonempty β with hβ | hβ
-    · rw [iSup_of_empty', csSup_empty, sup_bot_eq]
-      exact le_ciSup ..
-    exact sup_le (le_ciSup f none) <| ciSup_le fun b ↦ le_ciSup ..
- -/
-
-variable {α β : Type*} [Finite β]
-
--- There appears to be no `ConditionallyCompleteLinearOrderTop`, so we restrict
--- to our use case `β = ENat`.
-lemma ciInf_option_eNat (f : Option β → ENat) : ⨅ o, f o = f none ⊓ ⨅ b, f (some b) := by
-  refine le_antisymm (le_min (ciInf_le ..) ?_) <| le_ciInf fun o ↦ ?_
-  · rcases isEmpty_or_nonempty β with hβ | hβ
-    · simp
-    exact le_ciInf fun b ↦ ciInf_le ..
-  · cases o with
-  | none => exact inf_le_left
-  | some val => exact inf_le_of_right_le <| ciInf_le ..
-
-end Finite
-
 namespace IsDedekindDomain.HeightOneSpectrum
 
 /--
@@ -61,37 +31,48 @@ info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R]
 
 variable {R : Type*} [CommRing R]
 
-lemma injective_asIdeal : (asIdeal (R := R)).Injective :=
-  fun ⦃_ _⦄ h ↦ HeightOneSpectrum.ext h
-
 /-!
 ### Conversion between various multplicities
 -/
+
 variable [IsDedekindDomain R]
--- use [NeBot I] ?
+-- use [NeBot I] ? -- This is `Filter.NeBot`; does not work for ideals.
+
+
 open UniqueFactorizationMonoid in
+/-- Normalize multiplicity of a prime ideal `p` in the factorization of `I`
+as `multiplicity p.asIdeal I`. -/
 @[simp]
 lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal R} (hI : I ≠ ⊥)
     (p : HeightOneSpectrum R) :
     Multiset.count p.asIdeal (normalizedFactors I) = multiplicity p.asIdeal I := by
   have := emultiplicity_eq_count_normalizedFactors (irreducible p) hI
   rw [normalize_eq p.asIdeal] at this
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   apply_fun ((↑) : ℕ → ℕ∞) using CharZero.cast_injective
   rw [← this]
   exact (finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity
+-- #find_home! count_normalizedFactors_eq_multiplicity -- [Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas]
+-- Mathlib.RingTheory.DedekindDomain.Factorization ?
 
+/-- Normalize multiplicity of a prime ideal `p` in the factorization of `I`
+as `multiplicity p.asIdeal I`. -/
 @[simp]
 lemma maxPowDividing_eq_pow_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
     p.maxPowDividing I = p.asIdeal ^ multiplicity p.asIdeal I := by
   classical
   rw [maxPowDividing_eq_pow_multiset_count _ hI, count_normalizedFactors_eq_multiplicity hI]
 
+/-- Normalize multiplicity of a prime ideal `p` in the factorization of `I`
+as `multiplicity p.asIdeal I`. -/
 @[simp]
 lemma factorization_eq_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
     factorization I p.asIdeal = multiplicity p.asIdeal I := by
   rw [factorization_eq_count, count_normalizedFactors_eq_multiplicity hI]
 
+/- #min_imports
+public import Mathlib.RingTheory.DedekindDomain.Factorization
+public import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp ← need to import this?
+-/
 
 /-!
 ---
@@ -101,6 +82,7 @@ lemma _root_.Ideal.finprod_heightOneSpectrum_pow_multiplicity {I : Ideal R} (hI 
     ∏ᶠ p : HeightOneSpectrum R, p.asIdeal ^ multiplicity p.asIdeal I = I := by
   simpa only [maxPowDividing_eq_pow_multiplicity hI]
     using Ideal.finprod_heightOneSpectrum_factorization hI
+-- #find_home! Ideal.finprod_heightOneSpectrum_pow_multiplicity -- [Mathlib.RingTheory.DedekindDomain.Factorization]
 
 lemma multiplicity_le_of_ideal_ge (p : HeightOneSpectrum R) {I J : Ideal R} (h : J ≤ I)
     (hJ : J ≠ ⊥) :
@@ -145,7 +127,6 @@ lemma emultiplicity_sup (p : HeightOneSpectrum R) (I J : Ideal R) :
     (H hJ).emultiplicity_eq_multiplicity, multiplicity_sup _ hI hJ]
   norm_cast
 
--- set_option backward.isDefEq.respectTransparency false in -- temporary measure
 lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I : ι → Ideal R) :
     emultiplicity p.asIdeal (⨆ i, I i) = ⨅ i, emultiplicity p.asIdeal (I i) := by
   induction ι using Finite.induction_empty_option with
@@ -159,7 +140,7 @@ lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I 
     rw [ih, ← EquivLike.range_comp (fun i ↦ emultiplicity p.asIdeal (I i)) e]
     rfl
   | h_option ih =>
-    rw [iSup_option, emultiplicity_sup p .., ih, Finite.ciInf_option_eNat]
+    rw [iSup_option, emultiplicity_sup p .., ih, iInf_option]
 
 lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpectrum R)
     {I : ι → Ideal R} (hI : ∀ i, I i ≠ ⊥) :
@@ -173,7 +154,6 @@ lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSp
     exact ⟨Classical.ofNonempty, hI _⟩
   have := emultiplicity_ciSup p I
   simp only [H'.emultiplicity_eq_multiplicity, (H _).emultiplicity_eq_multiplicity] at this
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   exact_mod_cast this
 
 /--
@@ -220,23 +200,23 @@ end IsDedekindDomain.HeightOneSpectrum
 
 namespace NumberField
 
-open IsDedekindDomain.HeightOneSpectrum
+open IsDedekindDomain HeightOneSpectrum
 
 variable {K : Type*} [Field K] [NumberField K]
 
-lemma equivHeightOneSpectrum_apply (v : FinitePlace K) :
-    v.equivHeightOneSpectrum = v.maximalIdeal :=
-  rfl
-
 lemma injective_asIdeal_maximalIdeal :
     (fun v : FinitePlace K ↦ v.maximalIdeal.asIdeal).Injective :=
-  fun ⦃_ _⦄ h ↦ (FinitePlace.maximalIdeal_inj ..).mp <| injective_asIdeal h
+  fun ⦃_ _⦄ h ↦ (FinitePlace.maximalIdeal_inj ..).mp <| HeightOneSpectrum.ext h
+-- #find_home! injective_asIdeal_maximalIdeal -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
 
 lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
   refine Nat.one_le_iff_ne_zero.mpr ?_
   rw [Ne, Module.finrank_eq_zero_iff_of_free]
   exact not_subsingleton K
+-- #find_home! one_le_finrank_rat
+-- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne]
 
+/-
 open FinitePlace in
 lemma finite_setOf_multiplicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0}.Finite := by
@@ -245,13 +225,15 @@ lemma finite_setOf_multiplicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
   -- slow `simp` without `only`
   simp only [equivHeightOneSpectrum, Equiv.coe_fn_mk, Set.mem_setOf_eq, ne_eq,
     multiplicity_eq_zero, not_not]
+-- #find_home! finite_setOf_multiplicity_ne_zero -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
+-/
 
 lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
   classical
   nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_pow_multiplicity hI]
   rw [← finprod_comp_equiv (FinitePlace.equivHeightOneSpectrum (K := K))]
-  simp only [equivHeightOneSpectrum_apply]
+  simp only [show ∀ v : FinitePlace K, v.equivHeightOneSpectrum = v.maximalIdeal from fun _ ↦ rfl]
 
 open Ideal in
 lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 0) :
