@@ -1,6 +1,7 @@
 import Heights.NumberField
 import Mathlib.LinearAlgebra.Projectivization.Cardinality
 import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.Ostrowski
 
 /-!
 ### Heights over ℚ
@@ -122,6 +123,37 @@ def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R]
         exact IsDedekindDomain.HeightOneSpectrum.ext <|
           map_comap_of_surjective e e.surjective _
 
+namespace NumberField
+
+variable {K : Type*} [Field K] [NumberField K]
+
+instance : AddGroupSeminormClass (FinitePlace K) K ℝ where
+  map_add_le_add v x y := by
+    simpa [FinitePlace.coe_apply] using IsAbsoluteValue.abv_add' x y
+  map_zero v := by simp
+  map_neg_eq_map v x := by simp [FinitePlace.coe_apply]
+
+lemma FinitePlace.isNonarchimedean (v : FinitePlace K) : IsNonarchimedean (v ·) :=
+  FinitePlace.add_le v
+
+end NumberField
+
+lemma Finset.gcd_eq_sum_mul {α R : Type*} [DecidableEq α] [CommRing R] [IsBezout R] [IsDomain R]
+    [NormalizedGCDMonoid R] (s : Finset α) (f : α → R) :
+    ∃ g : α → R, s.gcd f = ∑ a ∈ s, f a * g a := by
+  induction s using Finset.induction with
+  | empty => simp
+  | insert a s ha ih =>
+    conv => enter [1, g]; rw [gcd_insert, sum_insert ha]
+    obtain ⟨x, y, hxy⟩ := exists_gcd_eq_mul_add_mul (f a) (s.gcd f)
+    obtain ⟨g', hg'⟩ := ih
+    refine ⟨Function.update (y • g') a x, ?_⟩
+    rw [hxy, hg']
+    simp only [Function.update_self, add_right_inj, sum_mul, mul_assoc]
+    refine sum_congr rfl fun b hb ↦ congrArg (f b * ·) ?_
+    rw [Function.update_of_ne (by grind) x (y • g'), mul_comm]
+    simp
+
 -- (up to here)
 
 end API
@@ -130,37 +162,32 @@ section tuples
 
 open Ideal
 
--- We need to increase the priority to avoid an instance mismatch below:
--- lemma test (v : IsDedekindDomain.HeightOneSpectrum (RingOfIntegers ℚ)) (x : RingOfIntegers ℚ) :
---     ‖(embedding v) x‖ = 1 ↔ x ∉ v.asIdeal := by
---   convert NumberField.norm_eq_one_iff_not_mem v x
---   -- UniformSpace.Completion.instNorm ℚ = NormedField.toNorm
---   sorry
--- attribute [local instance 2000] NormedField.toNorm -- apparently no longer necessary
-
 /-- The term corresponding to a finite place in the definition of the multiplicative height
 of a tuple of rational numbers equals `1` if the tuple consists of coprime integers. -/
 lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι : Type*}
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
-  let v' : IsDedekindDomain.HeightOneSpectrum (𝓞 ℚ) := v.maximalIdeal
-  have ⟨i, hi⟩ : ∃ i, ‖(FinitePlace.embedding v') (ringOfIntegersEquiv.symm (x i) : ℚ)‖ = 1 := by
-    simp_rw [FinitePlace.norm_eq_one_iff_notMem]
-    by_contra! H
-    let pI := ringOfIntegersEquiv.isDedekindDomainHeightOneSpectrumEquiv v'
-    let p := Int.natPrimesEquivHeightOneSpectrum.symm pI
-    have h i : (p : ℤ) ∣ x i := by
-      rw [← pI.mem_iff_dvd, show pI.asIdeal = .map Rat.ringOfIntegersEquiv v'.asIdeal from rfl,
-        mem_map_of_equiv]
-      exact ⟨_, H i, RingEquiv.apply_symm_apply ..⟩
-    refine p.prop.not_dvd_one ?_
-    rw [← Int.ofNat_dvd, Nat.cast_one, ← hx]
-    exact Finset.dvd_gcd fun i _ ↦ h i
-  have H i : (x i : ℚ) = ringOfIntegersEquiv.symm (x i) := by
-    simp only [eq_intCast, map_intCast]
-  simp_rw [H, ← v.norm_embedding_eq]
-  exact le_antisymm (Real.iSup_le (fun i ↦ FinitePlace.norm_le_one ℚ v' _) zero_le_one) <|
-    le_ciSup_of_le (Finite.bddAbove_range _) i hi.symm.le
+  classical
+  have H (n : ℤ) : v n ≤ 1 := IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean
+    (NonarchimedeanHomClass.map_add_le_max v)
+  obtain ⟨f, hf⟩ := Finset.gcd_eq_sum_mul .univ x
+  rw [hx] at hf
+  obtain ⟨j, hj⟩ : ∃ j, v (x j) = 1 := by
+    by_contra! h
+    replace h i : v (x i) < 1 := lt_of_le_of_ne (H <| x i) (h i)
+    rw [← map_one v, show (1 : ℚ) = (1 : ℤ) from rfl, hf] at h
+    have h' : v (∑ i ∈ .univ, x i * f i) ≤ ⨆ i, v (x i * f i) := by
+      have : IsNonarchimedean (v ·) := FinitePlace.add_le v
+      convert IsNonarchimedean.apply_sum_le (v := v) (s := (.univ : Finset ι)) (l := fun i ↦ x i * f i) this
+      rw [← cbiSup_eq_of_forall (by grind)]
+      simp only [map_mul, Finset.mem_univ, ciSup_unique]
+    push_cast at h
+    replace h i : v (x i * f i) < ⨆ i, v (x i * f i) := by
+      rw [map_mul, ← mul_one (iSup _)]
+      exact mul_lt_mul_of_nonneg_of_pos ((h i).trans_le h') (H _) (by positivity) zero_lt_one
+    obtain ⟨i, hi⟩ := exists_eq_ciSup_of_finite (f := fun i ↦ v (x i * f i))
+    exact (h i).ne hi
+  exact le_antisymm (ciSup_le fun i ↦ H (x i)) <| Finite.le_ciSup_of_le j hj.symm.le
 
 open Height
 
