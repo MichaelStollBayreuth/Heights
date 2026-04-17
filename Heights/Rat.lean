@@ -168,9 +168,8 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
   classical
-  have H (n : ℤ) : v n ≤ 1 :=
-    IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean
-      (NonarchimedeanHomClass.map_add_le_max v)
+  have hv : IsNonarchimedean (v ·) := FinitePlace.add_le v
+  have H (n : ℤ) : v n ≤ 1 := IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean hv
   obtain ⟨f, hf⟩ := Finset.gcd_eq_sum_mul .univ x
   rw [hx] at hf
   obtain ⟨j, hj⟩ : ∃ j, v (x j) = 1 := by
@@ -178,10 +177,9 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     replace h i : v (x i) < 1 := lt_of_le_of_ne (H <| x i) (h i)
     rw [← map_one v, show (1 : ℚ) = (1 : ℤ) from rfl, hf] at h
     have h' : v (∑ i ∈ .univ, x i * f i) ≤ ⨆ i, v (x i * f i) := by
-      have : IsNonarchimedean (v ·) := FinitePlace.add_le v
-      convert IsNonarchimedean.apply_sum_le (v := v) (s := (.univ : Finset ι)) (l := fun i ↦ x i * f i) this
+      convert IsNonarchimedean.apply_sum_le (v := v) (s := (.univ : Finset ι)) (l := fun i ↦ x i * f i) hv
       rw [← cbiSup_eq_of_forall (by grind)]
-      simp only [map_mul, Finset.mem_univ, ciSup_unique]
+      simp [Finset.mem_univ, ciSup_unique]
     push_cast at h
     replace h i : v (x i * f i) < ⨆ i, v (x i * f i) := by
       rw [map_mul, ← mul_one (iSup _)]
