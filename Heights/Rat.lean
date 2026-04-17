@@ -168,8 +168,9 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     [Fintype ι] [Nonempty ι] {x : ι → ℤ} (hx : Finset.univ.gcd x = 1) :
     ⨆ i, v (x i) = 1 := by
   classical
-  have H (n : ℤ) : v n ≤ 1 := IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean
-    (NonarchimedeanHomClass.map_add_le_max v)
+  have H (n : ℤ) : v n ≤ 1 :=
+    IsNonarchimedean.apply_intCast_le_one_of_isNonarchimedean
+      (NonarchimedeanHomClass.map_add_le_max v)
   obtain ⟨f, hf⟩ := Finset.gcd_eq_sum_mul .univ x
   rw [hx] at hf
   obtain ⟨j, hj⟩ : ∃ j, v (x j) = 1 := by
