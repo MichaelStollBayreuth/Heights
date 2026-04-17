@@ -133,8 +133,8 @@ instance : AddGroupSeminormClass (FinitePlace K) K ℝ where
   map_zero v := by simp
   map_neg_eq_map v x := by simp [FinitePlace.coe_apply]
 
-lemma FinitePlace.isNonarchimedean (v : FinitePlace K) : IsNonarchimedean (v ·) :=
-  FinitePlace.add_le v
+/- lemma FinitePlace.isNonarchimedean (v : FinitePlace K) : IsNonarchimedean (v ·) :=
+  FinitePlace.add_le v -/
 
 end NumberField
 
