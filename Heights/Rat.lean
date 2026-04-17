@@ -9,132 +9,18 @@ import Mathlib.NumberTheory.Ostrowski
 
 open NumberField
 
+-- #38183
+
 section API
-
--- The following should go into `Mathlib.NumberTheory.NumberField.Embeddings`
-
--- needed?
--- instance : TrivialStar (ℚ →+* ℂ) := { star_trivial r := by ext1; simp only [eq_ratCast] }
-
--- (up to here)
 
 open Height AdmissibleAbsValues
 
-@[simp]
 lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : InfinitePlace ℚ → M) :
     ∏ v : InfinitePlace ℚ, f v ^ v.mult = f infinitePlace := by
   have : infinitePlace.mult = 1 :=
     NumberField.InfinitePlace.mult_isReal ⟨infinitePlace, isReal_infinitePlace⟩
   simp [Subsingleton.elim default infinitePlace, this]
 -- #find_home! Rat.prod_infinitePlace -- [Mathlib.NumberTheory.NumberField.InfinitePlace.Basic]
-
-
--- The following are not needed, after all, but might be useful eventually.
-/-
-lemma ciSup_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
-    [TopologicalSpace R] [OrderClosedTopology R] [AddMonoidWithOne R] [AddLeftMono R]
-    [ZeroLEOneClass R] (f : ι → ℕ) :
-    ⨆ i, (f i : R) = (⨆ i, f i : ) := by
-  -- not found by `apply?`
-  refine (Monotone.map_ciSup_of_continuousAt ?_ Nat.mono_cast (Finite.bddAbove_range f)).symm
-  exact continuous_of_discreteTopology.continuousAt -/
-
-/-
-lemma ciInf_natCast {ι R : Type*} [Fintype ι] [Nonempty ι] [ConditionallyCompleteLinearOrder R]
-    [TopologicalSpace R] [OrderClosedTopology R] [AddMonoidWithOne R] [AddLeftMono R]
-    [ZeroLEOneClass R] (f : ι → ℕ) :
-    ⨅ i, (f i : R) = (⨅ i, f i : ) := by
-  refine (Monotone.map_ciInf_of_continuousAt ?_ Nat.mono_cast (Finite.bddBelow_range f)).symm
-  exact continuous_of_discreteTopology.continuousAt -/
-
-/-
-lemma Real.iSup_inv_eq_iInf {ι : Type*} [Fintype ι] [Nonempty ι] {f : ι → ℝ} (hf : ∀ i, 0 < f i) :
-    ⨆ i, (f i)⁻¹ = (⨅ i, f i)⁻¹ := by
-  have ⟨i, hi⟩ := exists_eq_ciInf_of_finite (f := f)
-  have H₀ : 0 < ⨅ i, f i := hi ▸ hf i
-  refine le_antisymm ?_ ?_
-  · exact ciSup_le fun i ↦ (inv_le_inv₀ (hf i) H₀).mpr <| ciInf_le (Finite.bddBelow_range _) i
-  · exact le_ciSup_of_le (Finite.bddAbove_range _) i <| by rw [← hi] -/
-
--- The following material could go into `Mathlib.RingTheory.DedekindDomain.Ideal`
-
-open Ideal
-/-
-private
-lemma Int.heightOneSpectrum_aux₁ (I : IsDedekindDomain.HeightOneSpectrum ℤ) :
-    span {((Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs : ℤ)} = I.asIdeal := by
-  have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
-  rw [submodule_span_eq] at this
-  rw [this, span_natAbs]
-  convert rfl
-
-private
-lemma Int.heightOneSpectrum_aux₂ (p : Nat.Primes) :
-    (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose.natAbs = p := by
-  have := (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose_spec
-  rw [submodule_span_eq, span_singleton_eq_span_singleton, associated_iff_natAbs] at this
-  rw [← this, natAbs_natCast]
-
-/-- The canonical bijection between the set of prime numbers and the height one spectrum of `ℤ` -/
-noncomputable
-def Int.natPrimesEquivHeightOneSpectrum : Nat.Primes ≃ IsDedekindDomain.HeightOneSpectrum ℤ where
-  toFun p := .mk (span {(p.val : ℤ)})
-    ((span_singleton_prime <| mod_cast p.prop.ne_zero).mpr <| Nat.prime_iff_prime_int.mp p.prop)
-    (by simpa only [ne_eq, span_singleton_eq_bot, Nat.cast_eq_zero] using mod_cast p.prop.ne_zero)
-  invFun I :=
-    ⟨(Submodule.IsPrincipal.principal I.asIdeal).choose.natAbs, by
-      have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
-      have h : (Submodule.IsPrincipal.principal I.asIdeal).choose ≠ 0 := by
-        intro hf
-        rw [hf, submodule_span_eq, span_singleton_eq_bot.mpr rfl] at this
-        exact I.ne_bot this
-      rw [← Int.prime_iff_natAbs_prime, ← span_singleton_prime h, ← submodule_span_eq, ← this]
-      exact I.isPrime⟩
-  left_inv p := Subtype.ext <| heightOneSpectrum_aux₂ p
-  right_inv I := IsDedekindDomain.HeightOneSpectrum.ext_iff.mpr <| heightOneSpectrum_aux₁ I
-
-/-- If `v` is an element of the height one spectrum of `ℤ`, then membership in the associated
-ideal is equivalent to divisibility by the corresponding prime number. -/
-lemma IsDedekindDomain.HeightOneSpectrum.mem_iff_dvd (v : HeightOneSpectrum ℤ) (x : ℤ) :
-    x ∈ v.asIdeal ↔ (Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ) ∣ x := by
-  have : v.asIdeal = span {(Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ)} := by
-    rw [← Int.heightOneSpectrum_aux₁]
-    simp only [Int.natPrimesEquivHeightOneSpectrum, submodule_span_eq, Equiv.coe_fn_symm_mk]
-  simpa only [this] using mem_span_singleton
-
-/-- A ring isomorphism `R → S` induces a map from the height one spectrum of `R` to that of `S`. -/
-def RingEquiv.mapIsDedekindDomainHeightOneSpectrum {R S : Type*} [CommRing R] [IsDedekindDomain R]
-    [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) (v : IsDedekindDomain.HeightOneSpectrum R) :
-    IsDedekindDomain.HeightOneSpectrum S :=
-  .mk (map e v.asIdeal)
-      (have := v.isPrime; map_isPrime_of_equiv e (I := v.asIdeal))
-      (mt (map_eq_bot_iff_of_injective e.injective).mp v.ne_bot)
-
-/-- A ring isomorphism (of Dedekind domains) induces an equivalence
-between the height one spectra. -/
-def RingEquiv.isDedekindDomainHeightOneSpectrumEquiv {R S : Type*} [CommRing R]
-    [IsDedekindDomain R] [CommRing S] [IsDedekindDomain S] (e : R ≃+* S) :
-    IsDedekindDomain.HeightOneSpectrum R ≃ IsDedekindDomain.HeightOneSpectrum S where
-      toFun := e.mapIsDedekindDomainHeightOneSpectrum
-      invFun := e.symm.mapIsDedekindDomainHeightOneSpectrum
-      left_inv v := by
-        simp only [mapIsDedekindDomainHeightOneSpectrum, map_symm]
-        exact IsDedekindDomain.HeightOneSpectrum.ext <| comap_map_of_bijective e e.bijective
-      right_inv v := by
-        simp only [mapIsDedekindDomainHeightOneSpectrum, map_symm]
-        exact IsDedekindDomain.HeightOneSpectrum.ext <|
-          map_comap_of_surjective e e.surjective _
- -/
-
-/- lemma iSup_eq_max {α : Type*} [ConditionallyCompleteLinearOrder α] (a b : α) :
-    iSup ![a, b] = max a b := by
-  refine le_antisymm (ciSup_le fun i ↦ ?_) (max_le ?_ ?_)
-  · fin_cases i <;> simp
-  · exact Finite.le_ciSup_of_le 0 <| by simp
-  · exact Finite.le_ciSup_of_le 1 <| by simp
-
--- #find_home! iSup_eq_max -- no good location Mathlib.Data.Fin.VecNotation? if `fin_cases` exists there...
- -/
 
 namespace NumberField.FinitePlace
 
@@ -145,9 +31,6 @@ instance : AddGroupSeminormClass (FinitePlace K) K ℝ where
   map_zero v := by simp
   map_neg_eq_map v x := by simp [coe_apply]
 -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
-
-/- lemma FinitePlace.isNonarchimedean (v : FinitePlace K) : IsNonarchimedean (v ·) :=
-  FinitePlace.add_le v -/
 
 end NumberField.FinitePlace
 
@@ -167,16 +50,12 @@ lemma Finset.gcd_eq_sum_mul {α R : Type*} [DecidableEq α] [CommRing R] [IsBezo
 
 -- #find_home! Finset.gcd_eq_sum_mul -- no good location
 
--- (up to here)
-
 end API
 
 
 namespace Rat
 
 section tuples
-
-open Ideal
 
 /-- The term corresponding to a finite place in the definition of the multiplicative height
 of a tuple of rational numbers equals `1` if the tuple consists of coprime integers. -/
@@ -274,6 +153,8 @@ theorem mulHeight₁_natCast (n : ℕ) [NeZero n] :
 end mulHeight₁
 
 end Rat
+
+-- end #38183
 
 section projective
 
