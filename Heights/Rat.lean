@@ -176,8 +176,8 @@ lemma Rat.iSup_finitePlace_apply_eq_one_of_gcd_eq_one (v : FinitePlace ℚ) {ι 
     by_contra! h
     replace h i : v (x i) < 1 := lt_of_le_of_ne (H <| x i) (h i)
     rw [← map_one v, show (1 : ℚ) = (1 : ℤ) from rfl, hf] at h
-    have h' : v (∑ i ∈ .univ, x i * f i) ≤ ⨆ i, v (x i * f i) := by
-      convert IsNonarchimedean.apply_sum_le (v := v) (s := (.univ : Finset ι)) (l := fun i ↦ x i * f i) hv
+    have h' : v (∑ i, x i * f i) ≤ ⨆ i, v (x i * f i) := by
+      convert IsNonarchimedean.apply_sum_le hv
       rw [← cbiSup_eq_of_forall (by grind)]
       simp [Finset.mem_univ, ciSup_unique]
     push_cast at h
