@@ -104,8 +104,8 @@ lemma finprod_mono [CommMonoid β] [PartialOrder β] [IsOrderedMonoid β] {f g :
     simp only [Set.coe_toFinset, Set.subset_union_left, s]
   have hg₁ : g.mulSupport ⊆ s := by
     simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
-    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
+  rw [finprod_eq_finsetProd_of_mulSupport_subset f hf₁,
+    finprod_eq_finsetProd_of_mulSupport_subset g hg₁]
   exact Finset.prod_le_prod' fun i _ ↦ h i
 
 /-- Monotonicity of `finprod`. See `finprod_mono` for a variant
@@ -120,8 +120,8 @@ lemma finprod_mono' [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β
     simp only [Set.coe_toFinset, Set.subset_union_left, s]
   have hg₁ : g.mulSupport ⊆ s := by
     simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finset_prod_of_mulSupport_subset f hf₁,
-    finprod_eq_finset_prod_of_mulSupport_subset g hg₁]
+  rw [finprod_eq_finsetProd_of_mulSupport_subset f hf₁,
+    finprod_eq_finsetProd_of_mulSupport_subset g hg₁]
   exact Finset.prod_le_prod (fun i _ ↦ hf₀ i) fun i _ ↦ h i
 
 -- needed later

@@ -63,7 +63,7 @@ lemma sup'_range_eq_max {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0) (f : ℕ → �
       max ((range m).sup' (nonempty_range_iff.mpr hm) f)
        ((range n).sup' (nonempty_range_iff.mpr hn) (fun i ↦ f (m + i))) := by
   have : range (m + n) = range m ∪ Ico m (m + n) := by
-    rw [range_eq_Ico]
+    simp_rw [range_eq_Ico]
     exact (Ico_union_Ico_eq_Ico m.zero_le (m.le_add_right n)).symm
   simp_rw [this]
   have H : (Ico m (m + n)).Nonempty := by grind [nonempty_Ico]
