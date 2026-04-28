@@ -90,13 +90,13 @@ lemma multiplicity_le_of_ideal_ge (p : HeightOneSpectrum R) {I J : Ideal R} (h :
   classical
   rw [← count_normalizedFactors_eq_multiplicity hJ,
     ← count_normalizedFactors_eq_multiplicity <| ne_bot_of_le_ne_bot hJ h]
-  exact count_le_of_ideal_ge h hJ _
+  exact Ideal.count_le_of_ideal_ge h hJ _
 
 open UniqueFactorizationMonoid Multiset in
 lemma multiplicity_sup (p : HeightOneSpectrum R) {I J : Ideal R} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) :
     multiplicity p.asIdeal (I ⊔ J) = multiplicity p.asIdeal I ⊓ multiplicity p.asIdeal J := by
   classical
-  rw [sup_eq_prod_inf_factors hI hJ, ← count_normalizedFactors_eq_multiplicity ?h,
+  rw [Ideal.sup_eq_prod_inf_factors hI hJ, ← count_normalizedFactors_eq_multiplicity ?h,
     ← count_normalizedFactors_eq_multiplicity hI, ← count_normalizedFactors_eq_multiplicity hJ]
   -- extracted from the proof of `sup_eq_prod_inf_factors`
   -- (which should really not be in the root namespace!)
