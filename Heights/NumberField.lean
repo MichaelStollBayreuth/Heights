@@ -12,6 +12,8 @@ We provide an instance of `Height.AdmissibleAbsValues` for algebraic number fiel
 and prove some properties.
 -/
 
+-- #38654
+
 section API
 
 /-!
@@ -20,15 +22,6 @@ section API
 
 namespace IsDedekindDomain.HeightOneSpectrum
 
-/--
-info: Ideal.finprod_count.{u_1} {R : Type u_1} [CommRing R] [IsDedekindDomain R] (v : HeightOneSpectrum R) (I : Ideal R)
-  (hI : I ≠ 0) :
-  (Associates.mk v.asIdeal).count (Associates.mk (∏ᶠ (v : HeightOneSpectrum R), v.maxPowDividing I)).factors =
-    (Associates.mk v.asIdeal).count (Associates.mk I).factors
--/
-#guard_msgs in
-#check Ideal.finprod_count
-
 variable {R : Type*} [CommRing R]
 
 /-!
@@ -36,8 +29,6 @@ variable {R : Type*} [CommRing R]
 -/
 
 variable [IsDedekindDomain R]
--- use [NeBot I] ? -- This is `Filter.NeBot`; does not work for ideals.
-
 
 open UniqueFactorizationMonoid in
 /-- Normalize multiplicity of a prime ideal `p` in the factorization of `I`
@@ -51,8 +42,6 @@ lemma count_normalizedFactors_eq_multiplicity [DecidableEq (Ideal R)] {I : Ideal
   apply_fun ((↑) : ℕ → ℕ∞) using CharZero.cast_injective
   rw [← this]
   exact (finiteMultiplicity_of_emultiplicity_eq_natCast this).emultiplicity_eq_multiplicity
--- #find_home! count_normalizedFactors_eq_multiplicity -- [Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas]
--- Mathlib.RingTheory.DedekindDomain.Factorization ?
 
 /-- Normalize multiplicity of a prime ideal `p` in the factorization of `I`
 as `multiplicity p.asIdeal I`. -/
@@ -68,11 +57,6 @@ as `multiplicity p.asIdeal I`. -/
 lemma factorization_eq_multiplicity {I : Ideal R} (hI : I ≠ ⊥) (p : HeightOneSpectrum R) :
     factorization I p.asIdeal = multiplicity p.asIdeal I := by
   rw [factorization_eq_count, count_normalizedFactors_eq_multiplicity hI]
-
-/- #min_imports
-public import Mathlib.RingTheory.DedekindDomain.Factorization
-public import Mathlib.RingTheory.UniqueFactorizationDomain.Finsupp ← need to import this?
--/
 
 /-!
 ---
@@ -156,27 +140,6 @@ lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSp
   simp only [H'.emultiplicity_eq_multiplicity, (H _).emultiplicity_eq_multiplicity] at this
   exact_mod_cast this
 
-/--
-info: multiplicity_mul.{u_1} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {p a b : α} (hp : Prime p)
-  (hfin : FiniteMultiplicity p (a * b)) : multiplicity p (a * b) = multiplicity p a + multiplicity p b
--/
-#guard_msgs in
-#check multiplicity_mul
-
-/--
-info: emultiplicity_mul.{u_1} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {p a b : α} (hp : Prime p) :
-  emultiplicity p (a * b) = emultiplicity p a + emultiplicity p b
--/
-#guard_msgs in
-#check emultiplicity_mul
-
-/--
-info: Finset.emultiplicity_prod.{u_1, u_3} {α : Type u_1} [CommMonoidWithZero α] [IsCancelMulZero α] {β : Type u_3} {p : α}
-  (hp : Prime p) (s : Finset β) (f : β → α) : emultiplicity p (∏ x ∈ s, f x) = ∑ x ∈ s, emultiplicity p (f x)
--/
-#guard_msgs in
-#check Finset.emultiplicity_prod
-
 /-
 I've been researching Mathlib for a bit today to figure out how to best set up a proof of the first
 of the two lemmas in the initial post. I learned that there are at least seven ways of expressing
@@ -197,6 +160,8 @@ docs#UniqueFactorizationMonoid.factors).
 
 
 end IsDedekindDomain.HeightOneSpectrum
+
+-- end #38654
 
 namespace NumberField
 
