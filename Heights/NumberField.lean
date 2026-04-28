@@ -111,7 +111,7 @@ lemma emultiplicity_sup (p : HeightOneSpectrum R) (I J : Ideal R) :
     (H hJ).emultiplicity_eq_multiplicity, multiplicity_sup _ hI hJ]
   norm_cast
 
-lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I : ι → Ideal R) :
+lemma emultiplicity_iSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I : ι → Ideal R) :
     emultiplicity p.asIdeal (⨆ i, I i) = ⨅ i, emultiplicity p.asIdeal (I i) := by
   induction ι using Finite.induction_empty_option with
   | h_empty =>
@@ -126,7 +126,7 @@ lemma emultiplicity_ciSup {ι : Type*} [Finite ι] (p : HeightOneSpectrum R) (I 
   | h_option ih =>
     rw [iSup_option, emultiplicity_sup p .., ih, iInf_option]
 
-lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpectrum R)
+lemma multiplicity_iSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpectrum R)
     {I : ι → Ideal R} (hI : ∀ i, I i ≠ ⊥) :
     multiplicity p.asIdeal (⨆ i, I i) = ⨅ i, multiplicity p.asIdeal (I i) := by
   have H i : FiniteMultiplicity p.asIdeal (I i) :=
@@ -136,7 +136,7 @@ lemma multiplicity_ciSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSp
     contrapose! hI
     rw [← bot_eq_zero, iSup_eq_bot] at hI
     exact ⟨Classical.ofNonempty, hI _⟩
-  have := emultiplicity_ciSup p I
+  have := emultiplicity_iSup p I
   simp only [H'.emultiplicity_eq_multiplicity, (H _).emultiplicity_eq_multiplicity] at this
   exact_mod_cast this
 
@@ -329,7 +329,7 @@ lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0
     exact Function.HasFiniteMulSupport.iSup
       fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
   refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
-  rw [multiplicity_ciSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
+  rw [multiplicity_iSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
     Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
     Finite.map_iInf_of_monotone _ Nat.mono_cast,
     Finite.map_iInf_of_antitoneOn antitoneOn_inv_pos fun j ↦ ?hs]
