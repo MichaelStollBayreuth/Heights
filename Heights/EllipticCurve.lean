@@ -417,13 +417,12 @@ end AAV
 
 section Northcott
 
-lemma finite_preimage_xRep (x : K) : (Point.xRep (W' := W) ⁻¹' {![x, 1]}).Finite := by
-  rcases Set.eq_empty_or_nonempty (Point.xRep (W' := W) ⁻¹' {![x, 1]}) with h | h
+lemma finite_preimage_xRep (x : K) : {P : W.Point | P.xRep = ![x, 1]}.Finite := by
+  rcases Set.eq_empty_or_nonempty {P : W.Point | P.xRep = ![x, 1]} with h | h
   · exact h ▸ Set.finite_empty
   choose Q hQ using h
-  simp only [Set.mem_preimage, Set.mem_singleton_iff] at hQ
-  have : Point.xRep ⁻¹' {Q.xRep} = {Q, -Q} := by ext : 1; simp [Point.xRep_eq_xRep_iff]
-  rw [← hQ, this]
+  simp only [Set.mem_setOf_eq] at hQ
+  rw [show {P | P.xRep = ![x, 1]} = {Q, -Q} by ext : 1; simp [← hQ, Point.xRep_eq_xRep_iff]]
   simp
 
 lemma finite_preimage_xRep0 (x : K) : {P : W.Point | P.xRep 0 = x}.Finite := by
