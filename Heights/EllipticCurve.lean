@@ -417,36 +417,38 @@ end AAV
 
 section Northcott
 
-variable [AdmissibleAbsValues K] [Northcott (logHeight₁ (K := K))]
+lemma finite_preimage_xRep (x : K) : (Point.xRep (W' := W) ⁻¹' {![x, 1]}).Finite := by
+  rcases Set.eq_empty_or_nonempty (Point.xRep (W' := W) ⁻¹' {![x, 1]}) with h | h
+  · exact h ▸ Set.finite_empty
+  choose Q hQ using h
+  simp only [Set.mem_preimage, Set.mem_singleton_iff] at hQ
+  have : Point.xRep ⁻¹' {Q.xRep} = {Q, -Q} := by ext : 1; simp [Point.xRep_eq_xRep_iff]
+  rw [← hQ, this]
+  simp
+
+lemma finite_preimage_xRep0 (x : K) : {P : W.Point | P.xRep 0 = x}.Finite := by
+  have : {P : W.Point | P.xRep 0 = x} ⊆ {P | P.xRep = ![x, 1]} ∪ {0} := by
+    intro P hP
+    match P with
+    | 0 => simp
+    | .some x' y h => simp_all [Point.xRep_some]
+  exact (finite_preimage_xRep x).union (Set.finite_singleton 0) |>.subset this
+
+variable [AdmissibleAbsValues K]
+
+instance [Northcott (logHeight₁ (K := K))] : Northcott (Point.naiveHeight (K := K) (W := W)) := by
+  eta_expand
+  simp only [Point.naiveHeight_eq_logHeight₁]
+  rw [← Function.comp_def]
+  exact Northcott.comp_of_finite_fibers _ _ finite_preimage_xRep0
+
+variable [Northcott (logHeight₁ (K := K))]
 
 variable (W) in
 /-- The set of `K`-points on `W` with naïve height bounded by `B` is finite.
 This is an important ingredient for the *Mordell-Weil Theorem*. -/
-lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Finite := by
-  let s := fun x : K ↦ {P : W.Point | P.xRep = ![x, 1] ∧ P.naiveHeight ≤ B}
-  have hs x : (s x).Finite := by
-    rcases Set.eq_empty_or_nonempty (s x) with h | h
-    · exact h ▸ Set.finite_empty
-    choose Q hQ using h
-    simp [s] at hQ ⊢
-    simp only [← hQ.1, Point.xRep_eq_xRep_iff, Set.setOf_and]
-    exact Set.Finite.inter_of_left (by simp [Set.setOf_or]) _
-  have h : {P : W.Point | P.naiveHeight ≤ B} ⊆ {0} ∪ ⋃ x : K, s x := by
-    intro P hP
-    simp only [Set.mem_setOf_eq] at hP
-    simp only [Set.singleton_union, Set.mem_insert_iff, Set.mem_iUnion]
-    match HP : P with
-    | 0 => exact .inl rfl
-    | .some .. => exact .inr ⟨P.xRep 0, by simp [s, hP, HP]⟩
-  refine (Set.Finite.union (by simp) ?_).subset h
-  refine Set.Finite.iUnion (t := {x | logHeight₁ x ≤ B}) (Northcott.finite_le B) (fun x _ ↦ hs x)
-    fun x hx ↦ ?_
-  simp only [Set.mem_setOf_eq, not_le] at hx
-  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, s, Point.naiveHeight_eq_logHeight₁]
-  exact Set.eq_empty_iff_forall_notMem.mpr fun P ↦ by simp +contextual [hx]
-
-instance : Northcott (Point.naiveHeight (K := K) (W := W)) where
-  finite_le := finite_naiveHeight_le W
+lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Finite :=
+  Northcott.finite_le B
 
 variable [DecidableEq K]
 
