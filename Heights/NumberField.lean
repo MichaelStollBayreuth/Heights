@@ -588,18 +588,24 @@ instance : Northcott (mulHeight₁ (K := K)) where
 
 end NumberField
 
-open Height Real
+namespace Real
+
+-- API
+
+lemma le_exp_of_log_le {x y : ℝ} (h : log x ≤ y) : x ≤ exp y := by
+  rcases le_or_gt x 0 with hx | hx
+  · exact hx.trans <| exp_nonneg y
+  · exact (log_le_iff_le_exp hx).mp h
+
+end Real
+
+open Height Real Northcott
 
 variable {K : Type*} [Field K]
 
 instance [AdmissibleAbsValues K] [Northcott (mulHeight₁ (K := K))] :
-    Northcott (logHeight₁ (K := K)) := by
-  refine Northcott.comp_of_bddAbove mulHeight₁ log fun B ↦ bddAbove_def.mpr ?_
-  simp only [Set.preimage_setOf_eq, Set.mem_setOf_eq]
-  refine ⟨exp B, fun y hy ↦ ?_⟩
-  rcases le_or_gt y 0 with hy₀ | hy₀
-  · exact hy₀.trans <| exp_nonneg B
-  · exact (log_le_iff_le_exp hy₀).mp hy
+    Northcott (logHeight₁ (K := K)) :=
+  comp_of_bddAbove mulHeight₁ log fun B ↦ bddAbove_def.mpr ⟨exp B, fun _ ↦ le_exp_of_log_le⟩
 
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
