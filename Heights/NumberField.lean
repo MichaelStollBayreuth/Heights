@@ -509,60 +509,58 @@ lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ)
   exact Set.Finite.subset this fun x hx ↦ by grind
 
 open Ideal in
+private lemma inv_pow_totalWeight_le_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
+    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
+  have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
+  have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
+    norm_cast
+    refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
+    rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
+    exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
+  have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
+  have H (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
+    fin_cases i <;> simp [v.coe_apply]
+  simp_rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne', H] at this; clear H
+  rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
+  have H : Algebra.lmul ℤ (𝓞 K) n = (n : ℤ) • LinearMap.id := by ext : 1; simp
+  have := absNorm_span_singleton (n : 𝓞 K)
+  rw [Algebra.norm_apply ℤ (n : 𝓞 K), H, LinearMap.det_smul, LinearMap.det_id, mul_one,
+    Int.natAbs_pow, Int.natAbs_natCast, RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
+  rw_mod_cast [← this] at Hw ⊢
+  exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
+
+open Ideal in
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
-  have H₀ (a : 𝓞 K) : ![(a : K), n] ≠ 0 := by simp [hn]
-  have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
-  have H₁ (a : 𝓞 K) :
-      (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ v : FinitePlace K, ⨆ i, v (![(a : K), n] i) := by
-    have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
-      norm_cast
-      refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
-      rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
-      exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
-    have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
-    rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this
-    have H (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
-      fin_cases i <;> simp [v.coe_apply]
-    simp only [H] at this; clear H
-    rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
-    have H : (Algebra.lmul ℤ (𝓞 K)) n = (n : ℤ) • LinearMap.id := by ext1; simp
-    have := absNorm_span_singleton (n : 𝓞 K)
-    set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    rw [Algebra.norm_apply ℤ (n : 𝓞 K), H, LinearMap.det_smul, LinearMap.det_id, mul_one,
-      Int.natAbs_pow, Int.natAbs_natCast, RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
-    rw_mod_cast [← this] at Hw ⊢
-    exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
-  have H₂ : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
-      {a : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(a : K), n] i)) ^ v.mult ≤
+  have H : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
+      {a | ∏ v : InfinitePlace K, (⨆ i, v.val (![(a : K), n] i)) ^ v.mult ≤
         n ^ totalWeight K * B} := by
     intro a ha
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq] at ha ⊢
-    rw [mulHeight_eq (H₀ a)] at ha
-    grw [← H₁] at ha
-    · exact (div_le_iff₀' Hw).mp ha
+    simp only [Set.mem_setOf_eq] at ha ⊢
+    rw [mulHeight_eq <| by simp [hn], mul_comm] at ha
+    refine (inv_mul_le_iff₀ (by positivity)).mp ?_
+    grw [← ha, inv_pow_totalWeight_le_finprod hn a]
+    · rfl
     · -- nonnegativity side goal from `grw`
       exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
-  exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H₂
+  exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H
 
 variable (K) in
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
-  let f (a : 𝓞 K) : K := a / n
-  have H : Set.BijOn f {a | mulHeight ![(a : K), n] ≤ B}
+  have hn' : (n : K) ≠ 0 := mod_cast hn
+  have H : Set.BijOn (fun a : 𝓞 K ↦ (a / n : K)) {a | mulHeight ![(a : K), n] ≤ B}
       {x | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B} := by
     refine Set.BijOn.mk (fun a ha ↦ ?_) (fun a _ b _ h ↦ ?_) fun x ⟨hx₁, hx₂⟩ ↦ ?_
-    · simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_setOf_eq, f] at ha ⊢
-      rw [mul_div_cancel₀ (a : K) (mod_cast hn), mulHeight₁_div_eq_mulHeight (a : K) n]
+    · simp only [Set.mem_setOf_eq] at ha ⊢
+      rw [mul_div_cancel₀ (a : K) hn', mulHeight₁_div_eq_mulHeight (a : K) n]
       exact ⟨a.isIntegral_coe, ha⟩
-    · simp only [f] at h
-      rw [div_left_inj' (mod_cast hn)] at h
+    · rw [div_left_inj' hn'] at h
       exact_mod_cast h
-    · simp only [Set.mem_setOf_eq, Nat.succ_eq_add_one, Nat.reduceAdd, Set.mem_image]
+    · simp only [Set.mem_setOf_eq, Set.mem_image]
       obtain ⟨a, ha⟩ : ∃ a : 𝓞 K, n * x = a := ⟨⟨n * x, hx₁⟩, rfl⟩
-      refine ⟨a, ?_, ?_⟩
-      · rwa [← ha, ← mulHeight₁_div_eq_mulHeight (↑n * x) ↑n, mul_div_cancel_left₀ x (mod_cast hn)]
-      · simpa only [f, ← ha] using mul_div_cancel_left₀ x (mod_cast hn)
+      refine ⟨a, ?_, (EuclideanDomain.eq_div_of_mul_eq_right hn' ha).symm⟩
+      rwa [← ha, ← mulHeight₁_div_eq_mulHeight, mul_div_cancel_left₀ x hn']
   exact H.finite_iff_finite.mp <| finite_setOf_mulHeight_nat_le hn B
 
 variable (K) in
@@ -572,14 +570,14 @@ theorem finite_setOf_mulHeight₁_le (B : ℝ) : {x : K | mulHeight₁ x ≤ B}.
   rcases lt_or_ge B 0 with hB | hB
   · rw [show {x : K | mulHeight₁ x ≤ B} = ∅ by grind [mulHeight₁_pos]]
     exact Set.finite_empty
-  have H₁ : {x : K | mulHeight₁ x ≤ B} =
-      ⋃ n : Fin (⌊B⌋₊), {x : K | IsIntegral ℤ ((n + 1) * x) ∧ mulHeight₁ x ≤ B} := by
-    ext1 x
+  have H : {x : K | mulHeight₁ x ≤ B} =
+      ⋃ n : Fin ⌊B⌋₊, {x : K | IsIntegral ℤ ((n + 1) * x) ∧ mulHeight₁ x ≤ B} := by
+    ext x : 1
     obtain ⟨n, hn₀, hn₁, hn⟩ := exists_nat_le_mulHeight₁ x
     simp only [Set.mem_setOf_eq, Set.mem_iUnion, exists_and_right, iff_and_self]
     refine fun h ↦ ⟨⟨n - 1, by grind [Nat.le_floor <| hn₁.trans h]⟩, ?_⟩
     rwa [← Nat.cast_add_one, Nat.sub_one_add_one hn₀]
-  rw [H₁]
+  rw [H]
   exact Set.finite_iUnion fun n ↦
     mod_cast finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le K (Nat.zero_ne_add_one n).symm B
 
