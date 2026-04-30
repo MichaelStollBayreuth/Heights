@@ -586,20 +586,26 @@ theorem finite_setOf_mulHeight₁_le (B : ℝ) : {x : K | mulHeight₁ x ≤ B}.
 instance : Northcott (mulHeight₁ (K := K)) where
   finite_le := finite_setOf_mulHeight₁_le K
 
-open Real in
+end NumberField
+
+open Height Real
+
+variable {K : Type*} [Field K]
+
+instance [AdmissibleAbsValues K] [Northcott (mulHeight₁ (K := K))] :
+    Northcott (logHeight₁ (K := K)) := by
+  refine Northcott.comp_of_bddAbove mulHeight₁ log fun B ↦ bddAbove_def.mpr ?_
+  simp only [Set.preimage_setOf_eq, Set.mem_setOf_eq]
+  refine ⟨exp B, fun y hy ↦ ?_⟩
+  rcases le_or_gt y 0 with hy₀ | hy₀
+  · exact hy₀.trans <| exp_nonneg B
+  · exact (log_le_iff_le_exp hy₀).mp hy
+
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
 The set of elements of bounded logarithmic height is finite. -/
-theorem finite_setOf_logHeight₁_le (B : ℝ) : {x : K | logHeight₁ x ≤ B}.Finite := by
-  have := finite_setOf_mulHeight₁_le K (exp B)
-  simp only [logHeight₁_eq_log_mulHeight₁]
-  rw [← log_exp B]
-  convert this using 3 with x
-  refine log_le_log_iff ?_ ?_ <;> positivity
-
-instance : Northcott (logHeight₁ (K := K)) where
-  finite_le := finite_setOf_logHeight₁_le K
-
-end NumberField
+theorem NumberField.finite_setOf_logHeight₁_le [NumberField K] (B : ℝ) :
+    {x : K | logHeight₁ x ≤ B}.Finite :=
+  Northcott.finite_le B
 
 end Northcott
