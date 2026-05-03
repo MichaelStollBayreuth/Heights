@@ -472,45 +472,44 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
   rw [totalWeight_eq_finrank]
   exact exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow x
 
+private lemma infinitePlace_apply_le_of_prod_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) {x : 𝓞 K}
+    (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B) (v : InfinitePlace K) :
+    v.val x ≤ B / n ^ (totalWeight K - 1) := by
+  classical
+  have hvm : v.mult = v.mult - 1 + 1 := by have := v.mult_pos; lia
+  rw [← Finset.prod_erase_mul _ _ (mem_univ v), hvm, pow_succ, ← mul_assoc] at h
+  have : v.val x ≤ ⨆ i, v.val (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
+  grw [this]; clear this
+  rw [le_div_iff₀' (mod_cast Nat.pow_pos hn.pos)]
+  refine (mul_le_mul_of_nonneg_right ?_ (Real.iSup_nonneg_of_nonnegHomClass ..)).trans h
+  have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^ v.mult)
+      (g := fun v ↦ (⨆ i, v.val (![(x : K), n] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
+  case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
+  grw [← this, ← v.le_iSup_abv_nat]
+  · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) from mod_cast hn.pos)).mp ?_
+    rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_assoc, ← pow_succ,
+      ← hvm, Finset.prod_erase_mul _ _ (mem_univ v), prod_pow_eq_pow_sum univ InfinitePlace.mult]
+    exact congr(_ ^ $(totalWeight_eq_sum_mult K)).le
+  · exact pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
+
 lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
-  have H (x : 𝓞 K) (h : ∏ v : InfinitePlace K, (⨆ i, v.val (![(x : K), n] i)) ^ v.mult ≤ B)
-      (v : InfinitePlace K) :
-      v.val x ≤ B / n ^ (totalWeight K - 1) := by
-    classical
-    have hvm : v.mult = v.mult - 1 + 1 := by have := v.mult_pos; lia
-    rw [← Finset.prod_erase_mul _ _ (mem_univ v), hvm, pow_succ, ← mul_assoc] at h
-    have : v.val x ≤ ⨆ i, v.val (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
-    grw [this]
-    nth_rw 1 [le_div_iff₀' (mod_cast Nat.pow_pos hn.pos)]
-    refine (mul_le_mul_of_nonneg_right ?_ (Real.iSup_nonneg_of_nonnegHomClass ..)).trans h
-    have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^ v.mult)
-        (g := fun v ↦ (⨆ i, v.val (![(x : K), n] i)) ^ v.mult) (by simp) (fun v _ ↦ ?hle)
-    case hle => simp only [Nat.succ_eq_add_one, Nat.reduceAdd]; grw [v.le_iSup_abv_nat]
-    grw [← this, ← v.le_iSup_abv_nat]
-    · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) from mod_cast hn.pos)).mp ?_
-      rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_assoc, ← pow_succ,
-        ← hvm, Finset.prod_erase_mul _ _ (mem_univ v), prod_pow_eq_pow_sum univ InfinitePlace.mult]
-      exact (congrArg (fun a ↦ (n : ℝ) ^ a) <| totalWeight_eq_sum_mult K).le
-    · exact pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   set B' := B / n ^ (totalWeight K - 1)
   have H' : Set.BijOn ((↑) : 𝓞 K → K) {x | ∀ (v : InfinitePlace K), v.val x ≤ B'}
       {x | IsIntegral ℤ x ∧ ∀ (φ : K →+* ℂ), ‖φ x‖ ≤ B'} := by
-    refine Set.BijOn.mk (fun x hx ↦ ?_) (fun x₁ _ x₂ _ ↦ RingOfIntegers.eq_iff.mp) fun a ha ↦ ?_
-    · simp only [Set.mem_setOf_eq] at hx ⊢
-      exact ⟨x.isIntegral_coe, fun φ ↦ hx <| InfinitePlace.mk φ⟩
-    · simp only [Set.mem_setOf_eq] at ha ⊢
-      simp only [Set.mem_image, Set.mem_setOf_eq]
-      rw [← mem_integralClosure_iff ℤ K] at ha
+    refine Set.BijOn.mk (fun x hx ↦ ?_) (fun x₁ _ x₂ _ ↦ RingOfIntegers.eq_iff.mp) fun a ha ↦ ?_ <;>
+      simp only [Set.mem_image, Set.mem_setOf_eq] at *
+    · exact ⟨x.isIntegral_coe, fun φ ↦ hx <| InfinitePlace.mk φ⟩
+    · rw [← mem_integralClosure_iff ℤ K] at ha
       refine ⟨⟨a, ha.1⟩, fun v ↦ ?_, rfl⟩
       have := ha.2 v.embedding
       rwa [InfinitePlace.norm_embedding_eq v a] at this
   have := (Set.BijOn.finite_iff_finite H').mpr <| Embeddings.finite_of_norm_le K ℂ B'
-  exact Set.Finite.subset this fun x hx ↦ by grind
+  exact Set.Finite.subset this fun x hx ↦ by grind [infinitePlace_apply_le_of_prod_le hn B]
 
 open Ideal in
 private lemma inv_pow_totalWeight_le_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
-    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
+    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v.val (![↑a, ↑n] i) := by
   have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
   have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
     norm_cast
@@ -518,9 +517,8 @@ private lemma inv_pow_totalWeight_le_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 
     rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
     exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
   have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
-  have H (v : FinitePlace K) (i : Fin 2) : v.val (![a, ↑n] i).val = v (![(a : K), n] i) := by
-    fin_cases i <;> simp [v.coe_apply]
-  simp_rw [mul_eq_one_iff_inv_eq₀ Hnorm.ne', H] at this; clear H
+  have H (i : Fin 2) : (![a, ↑n] i : K) = ![(a : K), n] i := by fin_cases i <;> simp
+  simp_rw [H, mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this; clear H
   rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
   have H : Algebra.lmul ℤ (𝓞 K) n = (n : ℤ) • LinearMap.id := by ext : 1; simp
   have := absNorm_span_singleton (n : 𝓞 K)
@@ -538,11 +536,11 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     intro a ha
     simp only [Set.mem_setOf_eq] at ha ⊢
     rw [mulHeight_eq <| by simp [hn], mul_comm] at ha
+    simp only [InfinitePlace.coe_apply, FinitePlace.coe_apply] at ha
     refine (inv_mul_le_iff₀ (by positivity)).mp ?_
     grw [← ha, inv_pow_totalWeight_le_finprod hn a]
-    · rfl
-    · -- nonnegativity side goal from `grw`
-      exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
+    -- nonnegativity side goal from `grw`
+    exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H
 
 variable (K) in
