@@ -369,9 +369,8 @@ open Submodule in
 lemma isFiniteRelIndex_span_one_self (x : K) :
     (span (𝓞 K) {(1 : K)}).toAddSubgroup.IsFiniteRelIndex (span (𝓞 K) {1, x}).toAddSubgroup := by
   obtain ⟨m, r, hm, h⟩ := exists_nsmul_eq_integer x
-  refine isFiniteRelIndex_of_map_linearMapMulLeft_le hm (fg_span (by simp)) ?_
-  rw [LinearMap.map_span_le]
-  intro a ha
+  refine isFiniteRelIndex_of_map_linearMapMulLeft_le hm (fg_span (by simp)) <|
+    (LinearMap.map_span_le ..).mpr fun a ha ↦ ?_
   simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at ha
   rw [LinearMap.mulLeft_apply, mem_span_singleton]
   rcases ha with rfl | rfl
@@ -410,18 +409,17 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   have hnI' : nI = I.map (DistribSMul.toLinearMap (𝓞 K) K n) := by
     have H (u v : 𝓞 K) : u • (n : K) + v • a = n * (u • 1 + v • x) := by
       simp [ha₂, ← nsmul_eq_mul, mul_add]
-    ext1
+    ext : 1
     simp [I, nI, Submodule.mem_span_pair, H]
   have hnI : nI.toAddSubgroup = AddSubgroup.map (nsmulAddMonoidHom n) I.toAddSubgroup := by
     rw [hnI', map_toAddSubgroup]
     rfl
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
   let f : 𝓞 K →ₗ[𝓞 K] R := LinearMap.toSpanSingleton _ _ ⟨_, mem_span_singleton_self 1⟩
-  have hf₀ : Function.Bijective f := by
+  have hf : Function.Bijective f := by
     refine ⟨fun r r' h ↦ by simpa [f] using h, fun ⟨r, hr⟩ ↦ ?_⟩
     obtain ⟨a, ha⟩ := mem_span_singleton.mp hr
     exact ⟨a, by simp [f, ha]⟩
-  have hf : Function.Bijective (f : 𝓞 K →+ R) := hf₀
+  replace hf : Function.Bijective (f : 𝓞 K →+ R) := hf
   have H (u v : 𝓞 K) : u • (n : 𝓞 K) • (1 : K) + v • a • 1 = u • (n : K) + v • (a : K) := by
     rw [Nat.cast_smul_eq_nsmul, nsmul_one, show a • (1 : K) = (a : K) • 1 from rfl,
       smul_eq_mul, mul_one]
@@ -430,7 +428,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     have := congrArg toAddSubgroup (f.map_span {(n : 𝓞 K), a})
     rw [map_toAddSubgroup] at this
     simp only [nI, Ideal.span, this]
-    ext1 r
+    ext r : 1
     simp only [LinearMap.toSpanSingleton_apply, SetLike.mk_smul_mk, Set.image_pair, f, R,
       AddSubgroup.mem_mk, mem_toAddSubmonoid]
     rw [AddSubgroup.mem_addSubgroupOf, mem_toAddSubgroup]
