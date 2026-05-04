@@ -302,51 +302,51 @@ lemma exists_integer_of_mem_span_one {x : K} (hx : x ∈ Submodule.span (𝓞 K)
 variable [NumberField K]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid in
-lemma absNorm_mul_finprod_nonarchAbsVal_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
-    (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v.val (x i) = 1 := by
+lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
+    (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
   classical
-  set ι' := Set.Elem x.support with hι'_eq
+  set x' := fun i : ι ↦ (x i : K)
+  have hx' i : (x i : K) = x' i := rfl
+  set ι' := Set.Elem x'.support with hι'_eq
+  have hxx' : x.support = x'.support := by ext : 1; simp [x']
   have hnpos (v : FinitePlace K) : 1 ≤ v.maximalIdeal.asIdeal.absNorm :=
     Nat.one_le_iff_ne_zero.mpr <| mt absNorm_eq_zero_iff.mp v.maximalIdeal.ne_bot
   obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
   simp only [Pi.zero_def] at hi₀
   have Hi₀ : (x i₀ : K) ≠ 0 := by norm_cast
-  have HI : span (Set.range x) = span (Set.range fun i : ι' ↦ x i.val) :=
-    span_range_eq_span_range_support x
+  have HI : span (Set.range x) = span (Set.range fun i : ι' ↦ x i.val) := by
+    convert span_range_eq_span_range_support x <;> exact hxx'.symm
   -- restrict to the subtype of `ι` where `x` is non-zero
-  have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i₀, Hi₀⟩
-  simp only [Height.iSup_abv_eq_iSup_subtype _ hx₀, HI, iSup_cast_ne_zero_eq_iSup_support]
-  let i' : ι' := ⟨i₀, hi₀⟩
+  have hx₀ : x' ≠ 0 := Function.ne_iff.mpr ⟨i₀, Hi₀⟩
+  simp_rw [FinitePlace.coe_apply, hx', Height.iSup_abv_eq_iSup_subtype _ hx₀, HI]
+  let i' : ι' := ⟨i₀, Hi₀⟩
   have hι' : Nonempty ι' := .intro i'
-  have hx' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
-  rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hx',
-    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hx' (·),
+  have hxι' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
+  rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
+    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·),
     Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
   case hf =>
     simp only [map_pow, Nat.cast_pow]
-    exact hasFiniteMulSupport_fun_pow_multiplicity hx' fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)
+    exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)
   case hg =>
-    exact Function.HasFiniteMulSupport.iSup
-      fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
+    convert Function.HasFiniteMulSupport.iSup
+      fun j : ι' ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
   refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
   rw [multiplicity_iSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
     Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
     Finite.map_iInf_of_monotone _ Nat.mono_cast,
     Finite.map_iInf_of_antitoneOn antitoneOn_inv_pos fun j ↦ ?hs]
-  case hj => simpa only [ne_eq, Ideal.span_singleton_eq_bot] using j.prop
+  case hj =>
+    simp only [ne_eq, Ideal.span_singleton_eq_bot, ← Function.mem_support, hxx']
+    exact_mod_cast j.prop
   case hn => simp [Ideal.absNorm_eq_zero_iff, ne_bot]
   case hs => simpa only [Set.mem_setOf_eq] using mod_cast Nat.pow_pos (hnpos v)
   refine iSup_congr fun i ↦ ?_
   rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, ← FinitePlace.coe_apply v ↑(x ↑i), Nat.cast_pow]
   case hne => simp [(show 0 < _ from hnpos v).ne']
-  exact FinitePlace.apply_mul_absNorm_pow_eq_one v i.prop
-
-/--
-info: AddSubgroup.relIndex_pointwise_smul.{u_1, u_2} {G : Type u_1} {H : Type u_2} [Group H] (h : H) [AddGroup G]
-  [DistribMulAction H G] (J K : AddSubgroup G) : (h • J).relIndex (h • K) = J.relIndex K
--/
-#guard_msgs in
-#check AddSubgroup.relIndex_pointwise_smul
+  refine FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp ?_
+  rw [hxx']
+  exact i.prop
 
 lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
     obtain ⟨num, ⟨d, hd⟩, h⟩ :=
@@ -386,16 +386,13 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
       (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
   let R : Submodule (𝓞 K) K := span (𝓞 K) {1}
   let I : Submodule (𝓞 K) K := span (𝓞 K) {1, x}
-  have hRI : R.toAddSubgroup ≤ I.toAddSubgroup := by
-    refine toAddSubgroup_mono <| span_le.mpr fun r hr ↦ ?_
-    simpa only [Set.mem_singleton_iff.mp hr, SetLike.mem_coe, I] using mem_span_of_mem <| by simp
+  have hRI : R.toAddSubgroup ≤ I.toAddSubgroup := toAddSubgroup_mono <| span_mono <| by grind
   let n := R.toAddSubgroup.relIndex I.toAddSubgroup
   have fri := isFiniteRelIndex_span_one_self x
   have hn : n ≠ 0 := fri.relIndex_ne_zero
   have ha₁ : n * x ∈ R := by
     rw [← nsmul_eq_mul]
-    have hx : x ∈ I := mem_span_of_mem <| Set.mem_insert_of_mem 1 rfl
-    exact AddSubgroup.nsmul_relIndex_mem R.toAddSubgroup hx
+    exact AddSubgroup.nsmul_relIndex_mem R.toAddSubgroup <| mem_span_of_mem <| by grind
   obtain ⟨a, ha₂⟩ := exists_integer_of_mem_span_one ha₁
   refine ⟨n, hn, a, ha₂.symm, ?_⟩
   let nI : Submodule (𝓞 K) K := span (𝓞 K) {(n : K), (a : K)}
@@ -453,13 +450,12 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
       ∃ a : 𝓞 K, n * x = a ∧ (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (totalWeight K - 1) by
     obtain ⟨n, hn, a, ha₁, ha₂⟩ := this
     refine ⟨n, hn, ?_, ha₁ ▸ a.isIntegral_coe⟩
-    have hv (v : FinitePlace K) (i : Fin 2) : v.val (![a, n] i : K) = v (![(a : K), n] i) := by
-      fin_cases i <;> rfl
+    have hv (i : Fin 2) : (![a, n] i : K) = ![(a : K), n] i := by fin_cases i <;> rfl
     have hx : mulHeight₁ x = mulHeight ![(a : K), n] := by
       rw [← mulHeight₁_div_eq_mulHeight (a : K) n, ← ha₁, mul_div_cancel_left₀ x (mod_cast hn)]
     rw [hx, mulHeight_eq (by simp [hn])]
     refine le_of_mul_le_mul_left ?_ (show (0 : ℝ) < n ^ (totalWeight K - 1) by positivity)
-    have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
+    have := absNorm_mul_finprod_finitePlace_eq_one (show ![a, n] ≠ 0 by simp [hn])
     simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Matrix.range_cons, Matrix.range_empty,
       Set.union_empty, Set.union_singleton, ha₂, hv, Nat.cast_pow] at this
     rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_left_comm, this,
@@ -507,14 +503,14 @@ lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ)
 
 open Ideal in
 private lemma inv_pow_totalWeight_le_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
-    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v.val (![↑a, ↑n] i) := by
+    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
   have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
   have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
     norm_cast
     refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
     rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
     exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
-  have := absNorm_mul_finprod_nonarchAbsVal_eq_one (show ![a, n] ≠ 0 by simp [hn])
+  have := absNorm_mul_finprod_finitePlace_eq_one (show ![a, n] ≠ 0 by simp [hn])
   have H (i : Fin 2) : (![a, ↑n] i : K) = ![(a : K), n] i := by fin_cases i <;> simp
   simp_rw [H, mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this; clear H
   rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
@@ -529,12 +525,11 @@ open Ideal in
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
   have H : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
-      {a | ∏ v : InfinitePlace K, (⨆ i, v.val (![(a : K), n] i)) ^ v.mult ≤
+      {a | ∏ v : InfinitePlace K, (⨆ i, v (![(a : K), n] i)) ^ v.mult ≤
         n ^ totalWeight K * B} := by
     intro a ha
     simp only [Set.mem_setOf_eq] at ha ⊢
     rw [mulHeight_eq <| by simp [hn], mul_comm] at ha
-    simp only [InfinitePlace.coe_apply, FinitePlace.coe_apply] at ha
     refine (inv_mul_le_iff₀ (by positivity)).mp ?_
     grw [← ha, inv_pow_totalWeight_le_finprod hn a]
     -- nonnegativity side goal from `grw`
