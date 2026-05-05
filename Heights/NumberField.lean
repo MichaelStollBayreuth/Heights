@@ -502,23 +502,25 @@ lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ)
   exact Set.Finite.subset this fun x hx ↦ by grind [infinitePlace_apply_le_of_prod_le hn B]
 
 open Ideal in
-private lemma inv_pow_totalWeight_le_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
-    (n ^ totalWeight K : ℝ)⁻¹ ≤ ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
+lemma absNorm_span_cast_eq_pow_totalWeight (n : ℕ) :
+    absNorm (span {(n : 𝓞 K)}) = n ^ totalWeight K := by
+  have H : Algebra.lmul ℤ (𝓞 K) n = (n : ℤ) • LinearMap.id := by ext : 1; simp
+  rw [absNorm_span_singleton, Algebra.norm_apply, H, LinearMap.det_smul, totalWeight_eq_finrank,
+    RingOfIntegers.rank]
+  simp
+
+open Ideal in
+private lemma one_le_pow_totalWeight_mul_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
+    1 ≤ (n ^ totalWeight K : ℝ) * ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
   have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
-  have Hnorm : (0 : ℝ) < (span (Set.range ![a, n])).absNorm := by
-    norm_cast
-    refine absNorm_pos_iff_mem_nonZeroDivisors.mpr ?_
-    rw [mem_nonZeroDivisors_iff_ne_zero, Submodule.zero_eq_bot, Submodule.ne_bot_iff]
-    exact ⟨n, by simpa using mem_span_pair.mpr ⟨1, 0, by simp⟩, mod_cast hn⟩
   have := absNorm_mul_finprod_finitePlace_eq_one (show ![a, n] ≠ 0 by simp [hn])
   have H (i : Fin 2) : (![a, ↑n] i : K) = ![(a : K), n] i := by fin_cases i <;> simp
-  simp_rw [H, mul_eq_one_iff_inv_eq₀ Hnorm.ne'] at this; clear H
-  rw [← this, inv_le_inv₀ Hw Hnorm, ← Nat.cast_pow, Nat.cast_le]; clear this
-  have H : Algebra.lmul ℤ (𝓞 K) n = (n : ℤ) • LinearMap.id := by ext : 1; simp
-  have := absNorm_span_singleton (n : 𝓞 K)
-  rw [Algebra.norm_apply ℤ (n : 𝓞 K), H, LinearMap.det_smul, LinearMap.det_id, mul_one,
-    Int.natAbs_pow, Int.natAbs_natCast, RingOfIntegers.rank, ← totalWeight_eq_finrank] at this
-  rw_mod_cast [← this] at Hw ⊢
+  simp_rw [H] at this; clear H
+  rw [← this, ← Nat.cast_pow]; clear this
+  gcongr
+  · -- nonnegativity side goal
+    exact finprod_nonneg fun v ↦ Real.iSup_nonneg_of_nonnegHomClass ..
+  rw_mod_cast [← absNorm_span_cast_eq_pow_totalWeight] at Hw ⊢
   exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
 
 open Ideal in
@@ -530,10 +532,9 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     intro a ha
     simp only [Set.mem_setOf_eq] at ha ⊢
     rw [mulHeight_eq <| by simp [hn], mul_comm] at ha
-    refine (inv_mul_le_iff₀ (by positivity)).mp ?_
-    grw [← ha, inv_pow_totalWeight_le_finprod hn a]
-    -- nonnegativity side goal from `grw`
-    exact Finset.prod_nonneg fun v _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
+    grw [← ha, ← mul_assoc, ← one_le_pow_totalWeight_mul_finprod hn, one_mul]
+    -- nonnegativity side goal
+    exact Finset.prod_nonneg fun _ _ ↦ pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
   exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H
 
 variable (K) in
