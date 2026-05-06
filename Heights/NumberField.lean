@@ -267,52 +267,51 @@ lemma exists_integer_of_mem_span_one {x : K} (hx : x ∈ Submodule.span (𝓞 K)
 
 variable [NumberField K]
 
-open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace in
-lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
-    (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
-  classical
-  set x' := fun i : ι ↦ (x i : K)
-  have hx' i : (x i : K) = x' i := rfl
-  set ι' := Set.Elem x'.support with hι'_eq
-  have hxx' : x.support = x'.support := by ext : 1; simp [x']
-  have hnpos (v : FinitePlace K) : 1 ≤ v.maximalIdeal.asIdeal.absNorm :=
+open IsDedekindDomain.HeightOneSpectrum Ideal in
+lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one (x : ι → 𝓞 K)
+    [Nonempty { j // (x j : K) ≠ 0 }] (v : FinitePlace K) :
+    (absNorm (v.maximalIdeal.asIdeal ^
+      multiplicity v.maximalIdeal.asIdeal (⨆ i: { j // (x j : K) ≠ 0 }, span {x i.val}))) *
+      ⨆ i: { j // (x j : K) ≠ 0 }, v (x i.val) = 1 := by
+  have hnpos : 1 ≤ v.maximalIdeal.asIdeal.absNorm :=
     Nat.one_le_iff_ne_zero.mpr <| mt absNorm_eq_zero_iff.mp v.maximalIdeal.ne_bot
-  obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
-  simp only [Pi.zero_def] at hi₀
-  have Hi₀ : (x i₀ : K) ≠ 0 := by norm_cast
-  have HI : span (Set.range x) = span (Set.range fun i : ι' ↦ x i.val) := by
-    convert span_range_eq_span_range_support x <;> exact hxx'.symm
-  -- restrict to the subtype of `ι` where `x` is non-zero
-  have hx₀ : x' ≠ 0 := Function.ne_iff.mpr ⟨i₀, Hi₀⟩
-  simp_rw [FinitePlace.coe_apply, hx', Height.iSup_abv_eq_iSup_subtype _ hx₀, HI]
-  let i' : ι' := ⟨i₀, Hi₀⟩
-  have hι' : Nonempty ι' := .intro i'
-  have hxι' : ⨆ i : ι', Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
-  rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
-    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·),
-    Nat.cast_finprod', ← finprod_mul_distrib ?hf ?hg]
-  case hf =>
-    simp only [map_pow, Nat.cast_pow]
-    exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v : Ideal (𝓞 K) ↦ (v.absNorm : ℝ)
-  case hg =>
-    convert Function.HasFiniteMulSupport.iSup
-      fun j : ι' ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
-  refine finprod_eq_one_of_forall_eq_one fun v ↦ ?_
   rw [multiplicity_iSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
-    Finite.map_iInf_of_monotone (fun j : ι' ↦ multiplicity ..) (pow_right_monotone <| hnpos v),
+    Finite.map_iInf_of_monotone (fun _ ↦ multiplicity ..) (pow_right_monotone <| hnpos),
     Finite.map_iInf_of_monotone _ Nat.mono_cast,
     Finite.map_iInf_of_antitoneOn antitoneOn_inv_pos fun j ↦ ?hs]
   case hj =>
-    simp only [ne_eq, Ideal.span_singleton_eq_bot, ← Function.mem_support, hxx']
+    simp only [ne_eq, Ideal.span_singleton_eq_bot, ← Function.mem_support]
     exact_mod_cast j.prop
   case hn => simp [Ideal.absNorm_eq_zero_iff, ne_bot]
-  case hs => simpa only [Set.mem_setOf_eq] using mod_cast Nat.pow_pos (hnpos v)
+  case hs => simpa only [Set.mem_setOf_eq] using mod_cast Nat.pow_pos hnpos
   refine iSup_congr fun i ↦ ?_
-  rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, ← FinitePlace.coe_apply v ↑(x ↑i), Nat.cast_pow]
-  case hne => simp [(show 0 < _ from hnpos v).ne']
-  refine FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp ?_
-  rw [hxx']
-  exact i.prop
+  rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, Nat.cast_pow]
+  case hne => simp [(show 0 < _ from hnpos).ne']
+  exact FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| mod_cast i.prop
+
+open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace in
+lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
+    (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
+  obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
+  simp only [Pi.zero_def] at hi₀
+  let i' : { j // (x j : K) ≠ 0 } := ⟨i₀, mod_cast hi₀⟩
+  have HI : span (Set.range x) = span (Set.range fun i : { j // (x j : K) ≠ 0 } ↦ x i.val) := by
+    convert span_range_eq_span_range_support x <;> norm_cast
+  -- restrict to the subtype of `ι` where `x'` is non-zero
+  have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i', i'.prop⟩
+  simp_rw [FinitePlace.coe_apply, Height.iSup_abv_eq_iSup_subtype _ hx₀, HI]
+  have hι' : Nonempty _ := .intro i'
+  have hxι' : ⨆ i : { j // (x j : K) ≠ 0 }, Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
+  rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
+    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
+    ← finprod_mul_distrib ?hf ?hg]
+  case hf =>
+    simp only [map_pow, Nat.cast_pow]
+    exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
+  case hg =>
+    exact Function.HasFiniteMulSupport.iSup
+      fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
+  exact finprod_eq_one_of_forall_eq_one fun v ↦ v.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one x
 
 lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
     obtain ⟨num, ⟨d, hd⟩, h⟩ :=
