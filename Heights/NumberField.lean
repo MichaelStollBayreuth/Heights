@@ -163,35 +163,26 @@ end IsDedekindDomain.HeightOneSpectrum
 
 -- end #38654
 
+-- #39008
+
 namespace NumberField
 
 open IsDedekindDomain HeightOneSpectrum
 
 variable {K : Type*} [Field K] [NumberField K]
 
-lemma injective_asIdeal_maximalIdeal :
+lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
+  rw [Nat.one_le_iff_ne_zero, Ne, Module.finrank_eq_zero_iff_of_free]
+  exact not_subsingleton K
+-- #find_home! one_le_finrank_rat -- Mathlib.NumberTheory.NumberField.Basic should work
+-- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne]
+
+namespace FinitePlace
+
+lemma asIdeal_maximalIdeal_injective :
     (fun v : FinitePlace K ↦ v.maximalIdeal.asIdeal).Injective :=
   fun ⦃_ _⦄ h ↦ (FinitePlace.maximalIdeal_inj ..).mp <| HeightOneSpectrum.ext h
 -- #find_home! injective_asIdeal_maximalIdeal -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
-
-lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
-  refine Nat.one_le_iff_ne_zero.mpr ?_
-  rw [Ne, Module.finrank_eq_zero_iff_of_free]
-  exact not_subsingleton K
--- #find_home! one_le_finrank_rat
--- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne]
-
-/-
-open FinitePlace in
-lemma finite_setOf_multiplicity_ne_zero {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
-    {v : FinitePlace K | multiplicity v.maximalIdeal.asIdeal I ≠ 0}.Finite := by
-  refine (Equiv.bijOn equivHeightOneSpectrum fun v ↦ ?_).finite_iff_finite.mpr <|
-    I.finite_factors hI
-  -- slow `simp` without `only`
-  simp only [equivHeightOneSpectrum, Equiv.coe_fn_mk, Set.mem_setOf_eq, ne_eq,
-    multiplicity_eq_zero, not_not]
--- #find_home! finite_setOf_multiplicity_ne_zero -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
--/
 
 lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
@@ -199,18 +190,22 @@ lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
   nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_pow_multiplicity hI]
   rw [← finprod_comp_equiv (FinitePlace.equivHeightOneSpectrum (K := K))]
   simp only [show ∀ v : FinitePlace K, v.equivHeightOneSpectrum = v.maximalIdeal from fun _ ↦ rfl]
+-- #find_home! finprod_finitePlace_pow_multiplicity -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
 
 open Ideal in
-lemma FinitePlace.apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 0) :
+lemma apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 0) :
     v x * v.maximalIdeal.asIdeal.absNorm ^ multiplicity v.maximalIdeal.asIdeal (span {x}) = 1 := by
   have hnz : span {x} ≠ ⊥ := mt Submodule.span_singleton_eq_bot.mp hx
   rw [← norm_embedding_eq v x, ← Nat.cast_pow, ← map_pow,
     ← maxPowDividing_eq_pow_multiplicity hnz v.maximalIdeal]
   exact HeightOneSpectrum.embedding_mul_absNorm K v.maximalIdeal hx
+-- #find_home! FinitePlace.apply_mul_absNorm_pow_eq_one -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
 
-end NumberField
+end NumberField.FinitePlace
 
 end API
+
+-- end #39008
 
 /-!
 ### The Northcott property for heights on number fields
@@ -234,7 +229,7 @@ private lemma iSup_cast_ne_zero_eq_iSup_support (v : K → ℝ) (x : ι → 𝓞
 
 variable [NumberField K] {M : Type*} [CommMonoid M]
 
-open UniqueFactorizationMonoid IsDedekindDomain.HeightOneSpectrum in
+open UniqueFactorizationMonoid IsDedekindDomain.HeightOneSpectrum FinitePlace in
 lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ ⊥)
     (f : Ideal (𝓞 K) → M) :
     (fun v : FinitePlace K ↦
@@ -242,7 +237,7 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 
   classical
   have := Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
   simp only [← count_normalizedFactors_eq_multiplicity hI]
-  exact this.fun_comp_of_injective injective_asIdeal_maximalIdeal
+  exact this.fun_comp_of_injective asIdeal_maximalIdeal_injective
 
 end NumberField
 
@@ -301,7 +296,7 @@ lemma exists_integer_of_mem_span_one {x : K} (hx : x ∈ Submodule.span (𝓞 K)
 
 variable [NumberField K]
 
-open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid in
+open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace in
 lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
     (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
   classical
