@@ -186,8 +186,7 @@ lemma asIdeal_maximalIdeal_injective :
 
 lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
-  classical
-  nth_rewrite 2 [← Ideal.finprod_heightOneSpectrum_pow_multiplicity hI]
+  conv_rhs => rw [← Ideal.finprod_heightOneSpectrum_pow_multiplicity hI]
   rw [← finprod_comp_equiv (FinitePlace.equivHeightOneSpectrum (K := K))]
   simp only [show ∀ v : FinitePlace K, v.equivHeightOneSpectrum = v.maximalIdeal from fun _ ↦ rfl]
 -- #find_home! finprod_finitePlace_pow_multiplicity -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
@@ -252,34 +251,6 @@ open Height Finset Multiset
 variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
 open AdmissibleAbsValues IsDedekindDomain NumberField.HeightOneSpectrum
-
-/-
-lemma FinitePlace.apply_eq_adicAbv_maximalIdeal_apply (v : FinitePlace K) (x : K) :
-    v x = (adicAbv v.maximalIdeal) x := by
-  rw [← FinitePlace.norm_def]
-  exact (v.norm_embedding_eq x).symm
-
-lemma abv_apply_eq_norm_inv_pow_multiplicity (v : FinitePlace K) (x : 𝓞 K) :
-    v x = ((v.maximalIdeal.asIdeal.absNorm : ℝ)⁻¹) ^ multiplicity v.maximalIdeal.asIdeal (Ideal.span {x}) := by
-  rw [v.apply_eq_adicAbv_maximalIdeal_apply, adicAbv, HeightOneSpectrum.adicAbv]
-  simp only [AbsoluteValue.coe_mk, MulHom.coe_mk, inv_pow]
-  generalize v.maximalIdeal = P
-  simp only [HeightOneSpectrum.adicAbvDef, HeightOneSpectrum.valuation]
-  -- ?
-  sorry
-
-lemma natCast_ciSup [Nonempty ι] (f : ι → ℕ) : ((⨆ i, f i :) : ℝ) = ⨆ i, (f i : ℝ) := by
-  refine Monotone.map_ciSup_of_continuousAt ?_ Nat.mono_cast <| Finite.bddAbove_range f
-  exact Continuous.continuousAt <| by fun_prop
-
--- set_option maxHeartbeats 0 in
-lemma iSup_abv_eq_multiplicity (v : FinitePlace K) {x : ι → 𝓞 K} (hx : x ≠ 0) :
-    ⨆ i, v (x i) = multiplicity v.maximalIdeal.asIdeal (Ideal.span <| Set.range x) := by
-  have : Nonempty ι := .intro (Function.ne_iff.mp hx).choose
-  simp only [abv_apply_eq_norm_inv_pow_multiplicity]
-
-  sorry
--/
 
 lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
     n ≤ ⨆ i, v (![(x : K), n] i) := by
@@ -575,17 +546,6 @@ instance : Northcott (mulHeight₁ (K := K)) where
   finite_le := finite_setOf_mulHeight₁_le K
 
 end NumberField
-
-namespace Real
-
--- API
-
-lemma le_exp_of_log_le {x y : ℝ} (h : log x ≤ y) : x ≤ exp y := by
-  rcases le_or_gt x 0 with hx | hx
-  · exact hx.trans <| exp_nonneg y
-  · exact (log_le_iff_le_exp hx).mp h
-
-end Real
 
 open Height Real Northcott
 
