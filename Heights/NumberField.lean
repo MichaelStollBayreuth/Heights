@@ -271,6 +271,12 @@ lemma finiteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
   have := finiteIndex_iff_isFiniteRelIndex_top.mp <| finiteIndex hIJ
   exact hasFiniteRelIndex_of_le' (Submodule.toAddSubgroup_mono inf_le_right) le_top
 
+lemma absNorm_span_nat (n : ℕ) :
+    (span {(n : R)}).absNorm = n ^ Module.finrank ℤ R := by
+  rw [absNorm_span_singleton, Algebra.norm_apply, map_natCast,
+    show (n : Module.End ℤ R) = (n : ℤ) by norm_cast, ← zsmul_one, LinearMap.det_smul]
+  simp
+
 end Ideal
 
 end API
@@ -332,7 +338,7 @@ section withIdeal
 
 open Ideal
 
-lemma relIndex_span_span_nat_mul {m n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
+private lemma relIndex_span_span_nat_mul (m : ℕ) {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup := by
   let f : 𝓞 K →ₗ[𝓞 K] 𝓞 K := .mulLeft _ n
@@ -343,60 +349,44 @@ lemma relIndex_span_span_nat_mul {m n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
   have H₂ : span {↑(n * m), n * a} = Submodule.map f (span {↑m, a}) := by
     simp [LinearMap.map_span, f, Set.image_pair]
   rw [H₁, H₂]
-  simp only [Submodule.map_toAddSubgroup]
   exact AddSubgroup.relIndex_map_map_of_injective _ _ hf |>.symm
 
-lemma relIndex_span_span_eq_relIndex_span_span {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0) {a b : 𝓞 K}
-    (h : n * a = m * b) :
+private lemma relIndex_span_span_eq_relIndex_span_span {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0)
+    {a b : 𝓞 K} (h : n * a = m * b) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, b}).toAddSubgroup := by
-  refine (relIndex_span_span_nat_mul hn a).trans ?_
+  refine (relIndex_span_span_nat_mul m hn a).trans ?_
   rw [mul_comm, mul_comm n, h]
-  exact (relIndex_span_span_nat_mul hm b).symm
+  exact (relIndex_span_span_nat_mul n hm b).symm
 
-open Module AddSubgroup in
-lemma absNorm_span_pair_eq_pow {n : ℕ} (hn : n ≠ 0) {a : 𝓞 K}
+open Module AddSubgroup LinearMap in
+private lemma absNorm_span_pair_eq_pow {n : ℕ} (hn : n ≠ 0) {a : 𝓞 K}
     (h : (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, a}).toAddSubgroup = n) :
     (span {↑n, a}).absNorm = n ^ (finrank ℚ K - 1) := by
-  rw [absNorm_eq_index, ← relIndex_top_right]
   refine mul_left_cancel₀ hn ?_
-  rw [← pow_succ', show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat]]
-  have : (span {(n : 𝓞 K)}).toAddSubgroup.relIndex ⊤ = n ^ (finrank ℚ K) := by
-    have : (span {(n : 𝓞 K)}).toAddSubgroup = .map (nsmulAddMonoidHom n) ⊤ := by
-      ext : 1
-      simp [mem_span_singleton', mul_comm]
-    rw [this]
-    have : finrank ℚ K = finrank ℤ ↥(⊤ : AddSubgroup (𝓞 K)) :=
-      RingOfIntegers.rank K ▸ (finrank_eq_of_finiteIndex ⊤).symm
-    rw [this]
-    have hfr : Free ℤ (⊤ : AddSubgroup (𝓞 K)).toIntSubmodule :=
-      free_of_finite_type_torsion_free'
-    have hfin : Module.Finite ℤ (⊤ : AddSubgroup (𝓞 K)).toIntSubmodule := IsNoetherian.finite ..
-    exact relIndex_map_nsmul n _
-  rw [← this]
   nth_rewrite 1 [← h]
-  refine relIndex_mul_relIndex _ _ _ ?_ le_top
-  exact Submodule.toAddSubgroup_mono <| span_mono <| by grind
+  rw [absNorm_eq_index, ← pow_succ',
+    show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
+    ← absNorm_span_nat, absNorm_eq_index]
+  exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
-      (Ideal.span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
+      (span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
   obtain ⟨m, r, hm, hmr⟩ := exists_nsmul_eq_integer x
-  let Im := span {(m : 𝓞 K)}
-  let Imr := span {(m : 𝓞 K), r}
-  have hI : Im.toAddSubgroup ≤ Imr.toAddSubgroup :=
+  have hI : (span {(m : 𝓞 K)}).toAddSubgroup ≤ (span {(m : 𝓞 K), r}).toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
-  let n := Im.toAddSubgroup.relIndex Imr.toAddSubgroup
-  have hn : n ≠ 0 := finiteRelIndex (by simp [hm, Im]) _ |>.relIndex_ne_zero
+  let n := (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {(m : 𝓞 K), r}).toAddSubgroup
+  have hn : n ≠ 0 := finiteRelIndex (by simp [hm]) _ |>.relIndex_ne_zero
   obtain ⟨a, ha'⟩ : ∃ a, m * a = n * r := by
     have : n • r ∈ span {(m : 𝓞 K)} :=
-      Im.toAddSubgroup.nsmul_relIndex_mem <| Submodule.mem_span_of_mem <| by grind
-    simpa [nsmul_eq_mul, mem_span_singleton', mul_comm] using this
+      (span {(m : 𝓞 K)}).toAddSubgroup.nsmul_relIndex_mem <| Submodule.mem_span_of_mem <| by grind
+    simpa [mem_span_singleton', mul_comm] using this
   have ha : n * x = a := by
     apply_fun ((n : K) * ·) at hmr
     rw_mod_cast [← ha'] at hmr
-    rw [nsmul_eq_mul, mul_left_comm] at hmr
     push_cast at hmr
+    rw [nsmul_eq_mul, mul_left_comm] at hmr
     exact mul_left_cancel₀ (mod_cast hm) hmr
   refine ⟨n, hn, a, ha, absNorm_span_pair_eq_pow hn ?_⟩
   exact relIndex_span_span_eq_relIndex_span_span hn hm ha'
