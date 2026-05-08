@@ -177,6 +177,25 @@ lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
 -- #find_home! one_le_finrank_rat -- Mathlib.NumberTheory.NumberField.Basic should work
 -- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne]
 
+lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
+    obtain ⟨num, ⟨d, hd⟩, h⟩ :=
+      IsLocalization.exists_mk'_eq (Algebra.algebraMapSubmonoid (𝓞 K) (nonZeroDivisors ℤ)) x
+    rw [Algebra.algebraMapSubmonoid, Submonoid.mem_map] at hd
+    choose a hamem ha using hd
+    refine ⟨a, num, mem_nonZeroDivisors_iff_ne_zero.mp hamem, ?_⟩
+    rw [← h, zsmul_eq_mul, ← show (a : 𝓞 K) • _ = (a : K) * _ from smul_eq_mul ..,
+      IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
+    simp [← ha, Algebra.smul_def]
+-- #find_home! exists_zsmul_eq_integer
+-- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne] ?
+
+lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
+    obtain ⟨a, r, ha, h⟩ := exists_zsmul_eq_integer x
+    refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
+    simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
+    rw [← r.coe_eq_algebraMap, ← h, ← mul_assoc]
+    rw_mod_cast [Int.sign_mul_self_eq_abs a]
+
 namespace FinitePlace
 
 lemma asIdeal_maximalIdeal_injective :
@@ -200,36 +219,8 @@ lemma apply_mul_absNorm_pow_eq_one (v : FinitePlace K) {x : 𝓞 K} (hx : x ≠ 
   exact HeightOneSpectrum.embedding_mul_absNorm K v.maximalIdeal hx
 -- #find_home! FinitePlace.apply_mul_absNorm_pow_eq_one -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
 
-end NumberField.FinitePlace
-
-end API
-
--- end #39008
-
-/-!
-### The Northcott property for heights on number fields
--/
-
-section API
-
-variable {K ι : Type*} [Field K]
-
-namespace NumberField
-
-/- private lemma iSup_cast_ne_zero_eq_iSup_support (v : K → ℝ) (x : ι → 𝓞 K) :
-    ⨆ i : { j // (x j : K) ≠ 0 }, v (x i.val) = ⨆ i : x.support, v (x i.val) :=
-  let e : { j // (x j : K) ≠ 0 } ≃ ↑x.support := {
-    toFun j := ⟨j.val, mod_cast j.prop⟩
-    invFun i := ⟨i.val, mod_cast i.prop⟩
-    left_inv j := by grind only
-    right_inv i := by grind only
-  }
-  Equiv.iSup_congr e fun j ↦ by simp [e] -/
-
-variable [NumberField K] {M : Type*} [CommMonoid M]
-
-open UniqueFactorizationMonoid IsDedekindDomain.HeightOneSpectrum FinitePlace in
-lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ ⊥)
+open UniqueFactorizationMonoid IsDedekindDomain.HeightOneSpectrum in
+lemma hasFiniteMulSupport_fun_pow_multiplicity {M : Type*} [CommMonoid M] {I : Ideal (𝓞 K)} (hI : I ≠ ⊥)
     (f : Ideal (𝓞 K) → M) :
     (fun v : FinitePlace K ↦
       (f v.maximalIdeal.asIdeal) ^ multiplicity v.maximalIdeal.asIdeal I).HasFiniteMulSupport := by
@@ -237,23 +228,62 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 
   exact Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
     |>.fun_comp_of_injective asIdeal_maximalIdeal_injective
 
-end NumberField
+end NumberField.FinitePlace
+
+-- end #39008
+
+namespace AddSubgroup
+
+variable {G : Type*} [AddGroup G]
+
+lemma hasFiniteRelIndex_of_le' {H₁ H₂ H₃ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
+    [h : H₁.IsFiniteRelIndex H₃] :
+    H₁.IsFiniteRelIndex H₂ := by
+  have := relIndex_mul_relIndex _ _ _ h₁₂ h₂₃
+  grind [isFiniteRelIndex_iff_relIndex_ne_zero]
+
+lemma finiteIndex_iff_isFiniteRelIndex_top {H : AddSubgroup G} :
+    H.FiniteIndex ↔ H.IsFiniteRelIndex ⊤ := by
+  rw [finiteIndex_iff, isFiniteRelIndex_iff_relIndex_ne_zero, relIndex_top_right]
+
+end AddSubgroup
+
+namespace Ideal
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R] [Module.Free ℤ R]
+
+lemma absNorm_eq_index (I : Ideal R) : I.absNorm = I.toAddSubgroup.index := rfl
+
+variable [Module.Finite ℤ R]
+
+lemma finiteIndex {I : Ideal R} (hI : I ≠ ⊥) : I.toAddSubgroup.FiniteIndex := by
+  rwa [AddSubgroup.finiteIndex_iff, ← absNorm_eq_index, Ne, Ideal.absNorm_eq_zero_iff]
+
+open AddSubgroup in
+lemma finiteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
+    I.toAddSubgroup.IsFiniteRelIndex J.toAddSubgroup := by
+  rw [isFiniteRelIndex_iff_finiteIndex, ← inf_addSubgroupOf_right]
+  rcases eq_or_ne J ⊥ with rfl | hJ
+  · simpa using instFiniteIndexTop
+  have : I.toAddSubgroup ⊓ J.toAddSubgroup = (I ⊓ J).toAddSubgroup := rfl
+  rw [← isFiniteRelIndex_iff_finiteIndex, this]
+  have hIJ : I ⊓ J ≠ ⊥ := by grind [mul_eq_bot, mul_le_inf]
+  have := finiteIndex_iff_isFiniteRelIndex_top.mp <| finiteIndex hIJ
+  exact hasFiniteRelIndex_of_le' (Submodule.toAddSubgroup_mono inf_le_right) le_top
+
+end Ideal
 
 end API
+
+/-!
+### The Northcott property for heights on number fields
+-/
 
 section Northcott
 
 namespace NumberField
 
-variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
-
-open Height Finset Multiset AdmissibleAbsValues IsDedekindDomain NumberField.HeightOneSpectrum
-
-lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
-    n ≤ ⨆ i, v (![(x : K), n] i) :=
-  Finite.le_ciSup_of_le 1 <| by simp
-
-variable [NumberField K]
+variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal in
 private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
@@ -284,93 +314,68 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
   have HI : span (Set.range x) = span (Set.range fun i : { j // (x j : K) ≠ 0 } ↦ x i.val) := by
     convert span_range_eq_span_range_support x <;> norm_cast
   have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i', i'.prop⟩
-  simp_rw [coe_apply, iSup_abv_eq_iSup_subtype _ hx₀, HI]
+  simp_rw [coe_apply, Height.iSup_abv_eq_iSup_subtype _ hx₀, HI]
   have hι' : Nonempty _ := .intro i'
   have hxι' : ⨆ i : { j // (x j : K) ≠ 0 }, span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
   rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
-    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
+    map_finprod _ <| FinitePlace.hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
     ← finprod_mul_distrib ?hf ?hg]
   case hf =>
     simp only [map_pow, Nat.cast_pow]
-    exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
+    exact FinitePlace.hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
   case hg => exact .iSup fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
   have H (v : FinitePlace K) := v.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one
     (fun j : { j // (x j : K) ≠ 0 } ↦ x j.val) fun j ↦ mod_cast j.prop
   exact finprod_eq_one_of_forall_eq_one H
 
-lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
-    obtain ⟨num, ⟨d, hd⟩, h⟩ :=
-      IsLocalization.exists_mk'_eq (Algebra.algebraMapSubmonoid (𝓞 K) (nonZeroDivisors ℤ)) x
-    rw [Algebra.algebraMapSubmonoid, Submonoid.mem_map] at hd
-    choose a hamem ha using hd
-    refine ⟨a, num, mem_nonZeroDivisors_iff_ne_zero.mp hamem, ?_⟩
-    rw [← h, zsmul_eq_mul, ← show (a : 𝓞 K) • _ = (a : K) * _ from smul_eq_mul ..,
-      IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
-    simp [← ha, Algebra.smul_def]
-
-lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
-    obtain ⟨a, r, ha, h⟩ := exists_zsmul_eq_integer x
-    refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
-    simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
-    rw [← r.coe_eq_algebraMap, ← h, ← mul_assoc]
-    rw_mod_cast [Int.sign_mul_self_eq_abs a]
-
 section withIdeal
 
 open Ideal
 
-lemma isFiniteRelIndex_span_singleton_span_pair {m : ℕ} (hm : m ≠ 0) (r : 𝓞 K) :
-    (span {(m : 𝓞 K)}).toAddSubgroup.IsFiniteRelIndex (span {(m : 𝓞 K), r}).toAddSubgroup := by
-  refine Submodule.isFiniteRelIndex_of_map_linearMapMulLeft_le hm (Submodule.fg_span (by simp)) <|
-    (LinearMap.map_span_le ..).mpr fun a ha ↦ ?_
-  rw [LinearMap.mulLeft_apply, mem_span_singleton]
-  exact dvd_mul_right ..
-
 lemma relIndex_span_span_nat_mul {m n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup := by
-  let f : 𝓞 K →ₗ[𝓞 K] 𝓞 K := LinearMap.mulLeft _ n
-  have hf : Function.Injective f := (injective_iff_map_eq_zero f).mpr fun _ _ ↦ by simp_all [f]
-  have H₁ : span {(n * m : 𝓞 K)} = Submodule.map f (span {(m : 𝓞 K)}) := by
+  let f : 𝓞 K →ₗ[𝓞 K] 𝓞 K := .mulLeft _ n
+  have hf : Function.Injective (f : 𝓞 K →+ 𝓞 K) :=
+    (injective_iff_map_eq_zero f).mpr fun _ _ ↦ by simp_all [f]
+  have H₁ : span {(n * m : 𝓞 K)} = Submodule.map f (span {↑m}) := by
     simp [LinearMap.map_span, f]
   have H₂ : span {↑(n * m), n * a} = Submodule.map f (span {↑m, a}) := by
     simp [LinearMap.map_span, f, Set.image_pair]
   rw [H₁, H₂]
-  simp_rw [Submodule.map_toAddSubgroup]
-  convert AddSubgroup.relIndex_map_map_of_injective _ _ hf |>.symm
+  simp only [Submodule.map_toAddSubgroup]
+  exact AddSubgroup.relIndex_map_map_of_injective _ _ hf |>.symm
 
 lemma relIndex_span_span_eq_relIndex_span_span {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0) {a b : 𝓞 K}
     (h : n * a = m * b) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, b}).toAddSubgroup := by
-  trans (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup
-  · exact relIndex_span_span_nat_mul hn a
-  · rw [mul_comm, mul_comm n, h]
-    exact (relIndex_span_span_nat_mul hm b).symm
+  refine (relIndex_span_span_nat_mul hn a).trans ?_
+  rw [mul_comm, mul_comm n, h]
+  exact (relIndex_span_span_nat_mul hm b).symm
 
-open Module in
+open Module AddSubgroup in
 lemma absNorm_span_pair_eq_pow {n : ℕ} (hn : n ≠ 0) {a : 𝓞 K}
     (h : (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, a}).toAddSubgroup = n) :
     (span {↑n, a}).absNorm = n ^ (finrank ℚ K - 1) := by
-  rw [show Ideal.absNorm _ = (Submodule.toAddSubgroup _).index from rfl,
-    ← AddSubgroup.relIndex_top_right]
+  rw [absNorm_eq_index, ← relIndex_top_right]
   refine mul_left_cancel₀ hn ?_
   rw [← pow_succ', show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat]]
   have : (span {(n : 𝓞 K)}).toAddSubgroup.relIndex ⊤ = n ^ (finrank ℚ K) := by
-    have : (span {(n : 𝓞 K)}).toAddSubgroup = AddSubgroup.map (nsmulAddMonoidHom n) ⊤ := by
+    have : (span {(n : 𝓞 K)}).toAddSubgroup = .map (nsmulAddMonoidHom n) ⊤ := by
       ext : 1
       simp [mem_span_singleton', mul_comm]
     rw [this]
     have : finrank ℚ K = finrank ℤ ↥(⊤ : AddSubgroup (𝓞 K)) :=
-      RingOfIntegers.rank K ▸ (AddSubgroup.finrank_eq_of_finiteIndex ⊤).symm
+      RingOfIntegers.rank K ▸ (finrank_eq_of_finiteIndex ⊤).symm
     rw [this]
     have hfr : Free ℤ (⊤ : AddSubgroup (𝓞 K)).toIntSubmodule :=
       free_of_finite_type_torsion_free'
     have hfin : Module.Finite ℤ (⊤ : AddSubgroup (𝓞 K)).toIntSubmodule := IsNoetherian.finite ..
-    exact AddSubgroup.relIndex_map_nsmul n _
+    exact relIndex_map_nsmul n _
   rw [← this]
   nth_rewrite 1 [← h]
-  refine AddSubgroup.relIndex_mul_relIndex _ _ _ ?_ le_top
+  refine relIndex_mul_relIndex _ _ _ ?_ le_top
   exact Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
@@ -382,7 +387,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   have hI : Im.toAddSubgroup ≤ Imr.toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
   let n := Im.toAddSubgroup.relIndex Imr.toAddSubgroup
-  have hn : n ≠ 0 := isFiniteRelIndex_span_singleton_span_pair hm r |>.relIndex_ne_zero
+  have hn : n ≠ 0 := finiteRelIndex (by simp [hm, Im]) _ |>.relIndex_ne_zero
   obtain ⟨a, ha'⟩ : ∃ a, m * a = n * r := by
     have : n • r ∈ span {(m : 𝓞 K)} :=
       Im.toAddSubgroup.nsmul_relIndex_mem <| Submodule.mem_span_of_mem <| by grind
@@ -397,6 +402,12 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   exact relIndex_span_span_eq_relIndex_span_span hn hm ha'
 
 end withIdeal
+
+open Height
+
+section withFinset
+
+open Finset
 
 lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
@@ -416,7 +427,7 @@ lemma exists_nat_le_mulHeight₁ (x : K) :
       mul_one, totalWeight_eq_sum_mult, ← prod_pow_eq_pow_sum univ]
     refine prod_le_prod (fun _ _ ↦ by positivity) fun v _ ↦ ?_
     gcongr
-    exact v.le_iSup_abv_nat ..
+    exact Finite.le_ciSup_of_le 1 <| by simp
   rw [totalWeight_eq_finrank]
   exact exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow x
 
@@ -425,19 +436,22 @@ private lemma infinitePlace_apply_le_of_prod_le {n : ℕ} (hn : n ≠ 0) (B : �
     v x ≤ B / n ^ (totalWeight K - 1) := by
   classical
   have hvm : v.mult = v.mult - 1 + 1 := by have := v.mult_pos; lia
+  have hvn (v : InfinitePlace K) : n ≤ ⨆ i, v (![(x : K), n] i) := Finite.le_ciSup_of_le 1 <| by simp
   rw [← Finset.prod_erase_mul _ _ (mem_univ v), hvm, pow_succ, ← mul_assoc] at h
   have : v x ≤ ⨆ i, v (![(x : K), n] i) := Finite.le_ciSup_of_le 0 le_rfl
   grw [this, le_div_iff₀' (by positivity)]; clear this
   refine (mul_le_mul_of_nonneg_right ?_ (Real.iSup_nonneg_of_nonnegHomClass ..)).trans h
   have := Finset.prod_le_prod (s := Finset.univ.erase v) (f := fun v ↦ (n : ℝ) ^ v.mult)
       (g := fun v ↦ (⨆ i, v (![(x : K), n] i)) ^ v.mult) (by simp)
-      (fun v _ ↦ by simp only; grw [v.le_iSup_abv_nat])
-  grw [← this, ← v.le_iSup_abv_nat]
+      (fun v _ ↦ by simp only; grw [hvn v])
+  grw [← this, ← hvn v]
   · refine (mul_le_mul_iff_left₀ (show 0 < (n : ℝ) from mod_cast hn.pos)).mp ?_
     rw [← pow_succ, show totalWeight K - 1 + 1 = totalWeight K by grind, mul_assoc, ← pow_succ,
       ← hvm, Finset.prod_erase_mul _ _ (mem_univ v), prod_pow_eq_pow_sum, totalWeight_eq_sum_mult]
   · -- nonnegativity side goal
     exact pow_nonneg (Real.iSup_nonneg_of_nonnegHomClass ..) _
+
+end withFinset
 
 lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : 𝓞 K | ∏ v : InfinitePlace K, (⨆ i, v (![(x : K), n] i)) ^ v.mult ≤ B}.Finite := by
