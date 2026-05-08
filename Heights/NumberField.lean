@@ -341,13 +341,13 @@ lemma isFiniteRelIndex_span_singleton_span_pair {m : ℕ} (hm : m ≠ 0) (r : �
 
 lemma relIndex_span_span_nat_mul {m n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
-      (span {(m * n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(m * n), n * a}).toAddSubgroup := by
+      (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup := by
   let f : 𝓞 K →ₗ[𝓞 K] 𝓞 K := LinearMap.mulLeft _ n
   have hf : Function.Injective f := (injective_iff_map_eq_zero f).mpr fun a ha ↦ by simp_all [f]
-  have H₁ : span {(m * n : 𝓞 K)} = Submodule.map f (span {(m : 𝓞 K)}) := by
-    simp [mul_comm, LinearMap.map_span, f]
-  have H₂ : span {↑(m * n), n * a} = Submodule.map f (span {↑m, a}) := by
-    simp [mul_comm, LinearMap.map_span, f, Set.image_pair]
+  have H₁ : span {(n * m : 𝓞 K)} = Submodule.map f (span {(m : 𝓞 K)}) := by
+    simp [LinearMap.map_span, f]
+  have H₂ : span {↑(n * m), n * a} = Submodule.map f (span {↑m, a}) := by
+    simp [LinearMap.map_span, f, Set.image_pair]
   rw [H₁, H₂]
   simp_rw [Submodule.map_toAddSubgroup]
   convert AddSubgroup.relIndex_map_map_of_injective _ _ hf |>.symm
@@ -356,9 +356,9 @@ lemma relIndex_span_span_eq_relIndex_span_span {m n : ℕ} (hm : m ≠ 0) (hn : 
     (h : n * a = m * b) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, b}).toAddSubgroup := by
-  trans (span {(m * n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(m * n), n * a}).toAddSubgroup
+  trans (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup
   · exact relIndex_span_span_nat_mul hn a
-  · rw [mul_comm, mul_comm m, h]
+  · rw [mul_comm, mul_comm n, h]
     exact (relIndex_span_span_nat_mul hm b).symm
 
 open Module in
