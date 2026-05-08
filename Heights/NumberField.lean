@@ -233,10 +233,9 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 
     (f : Ideal (𝓞 K) → M) :
     (fun v : FinitePlace K ↦
       (f v.maximalIdeal.asIdeal) ^ multiplicity v.maximalIdeal.asIdeal I).HasFiniteMulSupport := by
-  classical
-  have := Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
   simp only [← count_normalizedFactors_eq_multiplicity hI]
-  exact this.fun_comp_of_injective asIdeal_maximalIdeal_injective
+  exact Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
+    |>.fun_comp_of_injective asIdeal_maximalIdeal_injective
 
 end NumberField
 
@@ -246,29 +245,18 @@ section Northcott
 
 namespace NumberField
 
-open Height Finset Multiset
-
 variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
 
-open AdmissibleAbsValues IsDedekindDomain NumberField.HeightOneSpectrum
+open Height Finset Multiset AdmissibleAbsValues IsDedekindDomain NumberField.HeightOneSpectrum
 
 lemma InfinitePlace.le_iSup_abv_nat (v : InfinitePlace K) (n : ℕ) (x : 𝓞 K) :
-    n ≤ ⨆ i, v (![(x : K), n] i) := by
-  refine Finite.le_ciSup_of_le 1 ?_
-  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Matrix.cons_val_one,
-    Matrix.cons_val_fin_one]
-  rw [← v.norm_embedding_eq, map_natCast, Complex.norm_natCast]
-
-lemma exists_integer_of_mem_span_one {x : K} (hx : x ∈ Submodule.span (𝓞 K) {(1 : K)}) :
-    ∃ a : 𝓞 K, (a : K) = x := by
-  rw [Submodule.mem_span_singleton] at hx
-  obtain ⟨a, ha⟩ := hx
-  exact ⟨a, by rw [← ha, ← Algebra.algebraMap_eq_smul_one a]⟩
+    n ≤ ⨆ i, v (![(x : K), n] i) :=
+  Finite.le_ciSup_of_le 1 <| by simp
 
 variable [NumberField K]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal in
-lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
+private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
     (hι : ∀ i, i ∈ x.support) (v : FinitePlace K) :
     (absNorm (v.maximalIdeal.asIdeal ^
       multiplicity v.maximalIdeal.asIdeal (⨆ i: ι, span {x i}))) *
@@ -295,11 +283,10 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
   let i' : { j // (x j : K) ≠ 0 } := ⟨i₀, mod_cast hi₀⟩
   have HI : span (Set.range x) = span (Set.range fun i : { j // (x j : K) ≠ 0 } ↦ x i.val) := by
     convert span_range_eq_span_range_support x <;> norm_cast
-  -- restrict to the subtype of `ι` where `x'` is non-zero
   have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i', i'.prop⟩
   simp_rw [coe_apply, iSup_abv_eq_iSup_subtype _ hx₀, HI]
   have hι' : Nonempty _ := .intro i'
-  have hxι' : ⨆ i : { j // (x j : K) ≠ 0 }, Ideal.span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
+  have hxι' : ⨆ i : { j // (x j : K) ≠ 0 }, span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
   rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
     map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
     ← finprod_mul_distrib ?hf ?hg]
@@ -308,7 +295,7 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
     exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
   case hg => exact .iSup fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
   have H (v : FinitePlace K) := v.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one
-    (fun j: { j // (x j : K) ≠ 0 } ↦ x j.val) fun j ↦ mod_cast j.prop
+    (fun j : { j // (x j : K) ≠ 0 } ↦ x j.val) fun j ↦ mod_cast j.prop
   exact finprod_eq_one_of_forall_eq_one H
 
 lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
@@ -343,7 +330,7 @@ lemma relIndex_span_span_nat_mul {m n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
     (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑m, a}).toAddSubgroup =
       (span {(n * m : 𝓞 K)}).toAddSubgroup.relIndex (span {↑(n * m), n * a}).toAddSubgroup := by
   let f : 𝓞 K →ₗ[𝓞 K] 𝓞 K := LinearMap.mulLeft _ n
-  have hf : Function.Injective f := (injective_iff_map_eq_zero f).mpr fun a ha ↦ by simp_all [f]
+  have hf : Function.Injective f := (injective_iff_map_eq_zero f).mpr fun _ _ ↦ by simp_all [f]
   have H₁ : span {(n * m : 𝓞 K)} = Submodule.map f (span {(m : 𝓞 K)}) := by
     simp [LinearMap.map_span, f]
   have H₂ : span {↑(n * m), n * a} = Submodule.map f (span {↑m, a}) := by
