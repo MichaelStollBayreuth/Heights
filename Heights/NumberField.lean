@@ -304,6 +304,7 @@ variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal
 
+open Finite in
 /- This is the "local" version (for one finite place) of the next result in the special case that
 `x` takes only nonzero values. -/
 private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
@@ -314,16 +315,15 @@ private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempt
   have hnpos : 1 ≤ v.maximalIdeal.asIdeal.absNorm :=
     Nat.one_le_iff_ne_zero.mpr <| mt absNorm_eq_zero_iff.mp v.maximalIdeal.ne_bot
   rw [multiplicity_iSup _ fun j ↦ ?hj, mul_eq_one_iff_inv_eq₀ ?hn, map_pow,
-    Finite.map_iInf_of_monotone (fun _ ↦ multiplicity ..) (pow_right_monotone <| hnpos),
-    Finite.map_iInf_of_monotone _ Nat.mono_cast,
-    Finite.map_iInf_of_antitoneOn antitoneOn_inv_pos fun j ↦ ?hs]
+    map_iInf_of_monotone (fun _ ↦ multiplicity ..) (pow_right_monotone <| hnpos),
+    map_iInf_of_monotone _ Nat.mono_cast, map_iInf_of_antitoneOn antitoneOn_inv_pos fun j ↦ ?hs]
   case hj => simp [← Function.mem_support, hι]
-  case hn => simp [Ideal.absNorm_eq_zero_iff, ne_bot]
+  case hn => simp [absNorm_eq_zero_iff, ne_bot]
   case hs => simpa only [Set.mem_setOf_eq] using mod_cast Nat.pow_pos hnpos
   refine iSup_congr fun i ↦ ?_
   rw [← mul_eq_one_iff_inv_eq₀ ?hne, mul_comm, Nat.cast_pow]
   case hne => simp [(show 0 < _ from hnpos).ne']
-  exact FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| hι i
+  exact apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| hι i
 
 open UniqueFactorizationMonoid FinitePlace in
 /-- This statement is equivalent to the fact that the "finite part" of the multiplicative
@@ -341,12 +341,12 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
   have hι' : Nonempty _ := .intro i'
   have hxι' : ⨆ i : { j // (x j : K) ≠ 0 }, span {x i.val} ≠ ⊥ := by simpa using ⟨i', hi₀⟩
   rw [span_range_eq_iSup, ← finprod_finitePlace_pow_multiplicity hxι',
-    map_finprod _ <| FinitePlace.hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
+    map_finprod _ <| hasFiniteMulSupport_fun_pow_multiplicity hxι' (·), Nat.cast_finprod',
     ← finprod_mul_distrib ?hf ?hg]
   case hf =>
     simp only [map_pow, Nat.cast_pow]
-    exact FinitePlace.hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
-  case hg => exact .iSup fun j ↦ FinitePlace.hasFiniteMulSupport (mod_cast j.prop)
+    exact hasFiniteMulSupport_fun_pow_multiplicity hxι' fun v ↦ (v.absNorm : ℝ)
+  case hg => exact .iSup fun j ↦ hasFiniteMulSupport (mod_cast j.prop)
   have H (v : FinitePlace K) := v.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one
     (fun j : { j // (x j : K) ≠ 0 } ↦ x j.val) fun j ↦ mod_cast j.prop
   exact finprod_eq_one_of_forall_eq_one H
