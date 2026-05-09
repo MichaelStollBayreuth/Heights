@@ -232,27 +232,33 @@ end NumberField.FinitePlace
 
 -- end #39008
 
-namespace AddSubgroup
+-- #39118
 
-variable {G : Type*} [AddGroup G]
+namespace Subgroup
 
-lemma isFiniteRelIndex_of_le' {H₁ H₂ H₃ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
+variable {G : Type*} [Group G]
+
+@[to_additive]
+lemma isFiniteRelIndex_of_le' {H₁ H₂ H₃ : Subgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
     [h : H₁.IsFiniteRelIndex H₃] :
     H₁.IsFiniteRelIndex H₂ := by
   have := relIndex_mul_relIndex _ _ _ h₁₂ h₂₃
   grind [isFiniteRelIndex_iff_relIndex_ne_zero]
+-- #find_home! isFiniteRelIndex_of_le' -- [Mathlib.GroupTheory.Index]
 
-lemma finiteIndex_iff_isFiniteRelIndex_top {H : AddSubgroup G} :
+@[to_additive]
+lemma finiteIndex_iff_isFiniteRelIndex_top {H : Subgroup G} :
     H.FiniteIndex ↔ H.IsFiniteRelIndex ⊤ := by
   rw [finiteIndex_iff, isFiniteRelIndex_iff_relIndex_ne_zero, relIndex_top_right]
 
-lemma isFiniteRelIndex_of_le_of_finiteIndex {H₁ H₂ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂)
+@[to_additive]
+lemma isFiniteRelIndex_of_le_of_finiteIndex {H₁ H₂ : Subgroup G} (h₁₂ : H₁ ≤ H₂)
     [h : H₁.FiniteIndex] :
     H₁.IsFiniteRelIndex H₂ := by
   rw [finiteIndex_iff_isFiniteRelIndex_top] at h
   exact isFiniteRelIndex_of_le' h₁₂ le_top
 
-end AddSubgroup
+end Subgroup
 
 namespace Ideal
 
@@ -261,18 +267,21 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 lemma inf_ne_bot_of_ne_bot {I J : Ideal R} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) : I ⊓ J ≠ ⊥ := by
   grw [← bot_lt_iff_ne_bot, ← mul_le_inf, bot_lt_iff_ne_bot, Ne, mul_eq_bot]
   exact not_or_intro hI hJ
+-- #find_home! inf_ne_bot_of_ne_bot -- [Mathlib.RingTheory.DedekindDomain.Basic]
 
 variable [Module.Free ℤ R]
 
 lemma absNorm_eq_index (I : Ideal R) : I.absNorm = I.toAddSubgroup.index := rfl
+-- #find_home! absNorm_eq_index -- [Mathlib.RingTheory.Ideal.Norm.AbsNorm]
 
 variable [Module.Finite ℤ R]
 
 lemma finiteIndex {I : Ideal R} (hI : I ≠ ⊥) : I.toAddSubgroup.FiniteIndex := by
   rwa [AddSubgroup.finiteIndex_iff, ← absNorm_eq_index, Ne, Ideal.absNorm_eq_zero_iff]
+-- #find_home! finiteIndex -- [Mathlib.RingTheory.Ideal.Norm.AbsNorm]
 
 open AddSubgroup in
-lemma finiteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
+lemma isFiniteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
     I.toAddSubgroup.IsFiniteRelIndex J.toAddSubgroup := by
   rw [isFiniteRelIndex_iff_finiteIndex, ← inf_addSubgroupOf_right]
   rcases eq_or_ne J ⊥ with rfl | hJ
@@ -287,8 +296,11 @@ lemma absNorm_span_nat (n : ℕ) :
   rw [absNorm_span_singleton, Algebra.norm_apply, map_natCast,
     show (n : Module.End ℤ R) = (n : ℤ) by norm_cast, ← zsmul_one, LinearMap.det_smul]
   simp
+-- #find_home! absNorm_span_nat -- [Mathlib.RingTheory.Ideal.Norm.AbsNorm]
 
 end Ideal
+
+-- end #39118
 
 end API
 
@@ -378,7 +390,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   have hI : (span {(m : 𝓞 K)}).toAddSubgroup ≤ (span {(m : 𝓞 K), r}).toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
   set n := (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {(m : 𝓞 K), r}).toAddSubgroup with hndef
-  have hn : n ≠ 0 := finiteRelIndex (by simp [hm]) _ |>.relIndex_ne_zero
+  have hn : n ≠ 0 := isFiniteRelIndex (by simp [hm]) _ |>.relIndex_ne_zero
   obtain ⟨a, ha'⟩ : ∃ a, m * a = n * r := by
     have : n • r ∈ span {(m : 𝓞 K)} :=
       (span {(m : 𝓞 K)}).toAddSubgroup.nsmul_relIndex_mem <| Submodule.mem_span_of_mem <| by grind
