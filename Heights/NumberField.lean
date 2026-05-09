@@ -390,11 +390,10 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     rw [nsmul_eq_mul, mul_left_comm] at hmr
     exact mul_left_cancel₀ (mod_cast hm) hmr
   refine ⟨n, hn, a, ha, mul_left_cancel₀ hn ?_⟩
+  nth_rewrite 1 [hndef]
   rw [absNorm_eq_index, ← pow_succ',
     show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
-    ← absNorm_span_nat, absNorm_eq_index]
-  nth_rewrite 1 [hndef]
-  rw [← relIndex_span_span_eq_relIndex_span_span hn hm ha']
+    ← absNorm_span_nat, absNorm_eq_index, ← relIndex_span_span_eq_relIndex_span_span hn hm ha']
   exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
 end withIdeal
