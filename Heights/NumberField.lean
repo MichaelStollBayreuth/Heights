@@ -298,6 +298,8 @@ end Ideal
 
 end API
 
+-- #39127
+
 namespace NumberField
 
 variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
@@ -342,6 +344,8 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {ι : Type*} [Finite ι] {x : ι �
   exact apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| Hj i
 
 end NumberField
+
+-- end #39127
 
 /-!
 ### The Northcott property for heights on number fields

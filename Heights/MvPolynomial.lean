@@ -5,6 +5,8 @@ import Mathlib.NumberTheory.Height.MvPolynomial
 -- NOTE: There is some slight divergence between this file and the contents of the corresponding
 --       file in the sequence of PRs.
 
+-- #39127
+
 lemma Finite.iSup_eq_iSup_subtype {ι K M F : Type*} [Finite ι] [Zero K] [Zero M]
     [ConditionallyCompleteLattice M] [FunLike F K M] [ZeroHomClass F K M] [NonnegHomClass F K M]
     {x : ι → K} (hx : x ≠ 0) {v : F} :
@@ -18,7 +20,9 @@ lemma Finite.iSup_eq_iSup_subtype {ι K M F : Type*} [Finite ι] [Zero K] [Zero 
   · rw [h, map_zero]
     exact le_ciSup_of_le ⟨i, hi⟩ (NonnegHomClass.apply_nonneg ..)
   · exact le_ciSup_of_le ⟨j, h⟩ le_rfl
--- #find_home! iSup_eq_iSup_subtype
+-- #find_home! iSup_eq_iSup_subtype -> new file
+
+-- end #39127
 
 namespace Height
 
