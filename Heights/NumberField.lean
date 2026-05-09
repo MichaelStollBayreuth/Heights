@@ -218,36 +218,54 @@ namespace Subgroup
 
 variable {G : Type*} [Group G]
 
-@[to_additive]
-lemma isFiniteRelIndex_of_le' {H₁ H₂ H₃ : Subgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
-    [h : H₁.IsFiniteRelIndex H₃] :
-    H₁.IsFiniteRelIndex H₂ := by
-  have := relIndex_mul_relIndex _ _ _ h₁₂ h₂₃
-  grind [isFiniteRelIndex_iff_relIndex_ne_zero]
--- #find_home! isFiniteRelIndex_of_le' -- [Mathlib.GroupTheory.Index]
-
-@[to_additive]
-lemma finiteIndex_iff_isFiniteRelIndex_top {H : Subgroup G} :
-    H.FiniteIndex ↔ H.IsFiniteRelIndex ⊤ := by
+@[to_additive (attr := simp)]
+lemma isFiniteRelIndex_top_iff_finiteIndex {H : Subgroup G} :
+    H.IsFiniteRelIndex ⊤ ↔ H.FiniteIndex := by
   rw [finiteIndex_iff, isFiniteRelIndex_iff_relIndex_ne_zero, relIndex_top_right]
 
 @[to_additive]
-lemma isFiniteRelIndex_of_le_of_finiteIndex {H₁ H₂ : Subgroup G} (h₁₂ : H₁ ≤ H₂)
-    [h : H₁.FiniteIndex] :
+lemma isFiniteRelIndex_of_le_right {H₁ H₂ H₃ : Subgroup G} (h : H₂ ≤ H₃)
+    [H₁.IsFiniteRelIndex H₃] :
     H₁.IsFiniteRelIndex H₂ := by
-  rw [finiteIndex_iff_isFiniteRelIndex_top] at h
-  exact isFiniteRelIndex_of_le' h₁₂ le_top
+  have := relIndex_inter_ne_zero (show H₁.relIndex H₃ ≠ 0 from relIndex_ne_zero) H₂
+  rwa [inf_of_le_right h, inf_relIndex_right, ← isFiniteRelIndex_iff_relIndex_ne_zero] at this
+
+@[to_additive]
+lemma isFiniteRelIndex_of_finiteIndex {H₁ H₂ : Subgroup G} [h : H₁.FiniteIndex] :
+    H₁.IsFiniteRelIndex H₂ := by
+  rw [← isFiniteRelIndex_top_iff_finiteIndex] at h
+  exact isFiniteRelIndex_of_le_right le_top
 
 end Subgroup
 
+namespace Algebra
+
+variable {R S : Type*} [CommRing R] [Ring S] [Algebra R S] [Module.Free R S]
+
+open Module
+
+lemma det_lsmul (x : R) : LinearMap.det (lsmul R R S x) = x ^ finrank R S := by
+  rw [show lsmul R R S x = x • 1 from rfl, LinearMap.det_smul, map_one, mul_one]
+
+theorem norm_algebraMap' (x : R) : norm R (algebraMap R S x) = x ^ finrank R S := by
+  rw [norm_apply, lmul_algebraMap, det_lsmul]
+
+variable (R) in
+protected lemma norm_natCast (n : ℕ) : norm R (n : S) = n ^ Module.finrank R S := by
+  rw [← map_natCast (algebraMap R S) n, norm_algebraMap']
+
+end Algebra
+
 namespace Ideal
 
-variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+variable {A : Type*} [CommRing A] [NoZeroDivisors A]
 
-lemma inf_ne_bot_of_ne_bot {I J : Ideal R} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) : I ⊓ J ≠ ⊥ := by
+lemma inf_ne_bot_of_ne_bot {I J : Ideal A} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) : I ⊓ J ≠ ⊥ := by
   grw [← bot_lt_iff_ne_bot, ← mul_le_inf, bot_lt_iff_ne_bot, Ne, mul_eq_bot]
   exact not_or_intro hI hJ
--- #find_home! inf_ne_bot_of_ne_bot -- [Mathlib.RingTheory.DedekindDomain.Basic]
+-- #find_home! inf_ne_bot_of_ne_bot -- [Mathlib.RingTheory.Ideal.Operations]
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 
 variable [Module.Free ℤ R]
 
@@ -263,18 +281,14 @@ lemma finiteIndex {I : Ideal R} (hI : I ≠ ⊥) : I.toAddSubgroup.FiniteIndex :
 open AddSubgroup in
 lemma isFiniteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
     I.toAddSubgroup.IsFiniteRelIndex J.toAddSubgroup := by
-  rw [isFiniteRelIndex_iff_finiteIndex, ← inf_addSubgroupOf_right]
   rcases eq_or_ne J ⊥ with rfl | hJ
-  · simpa using instFiniteIndexTop
-  change ((I ⊓ J).toAddSubgroup).addSubgroupOf _ |>.FiniteIndex
-  rw [← isFiniteRelIndex_iff_finiteIndex]
-  have := finiteIndex <| inf_ne_bot_of_ne_bot hI hJ
-  exact isFiniteRelIndex_of_le_of_finiteIndex (Submodule.toAddSubgroup_mono inf_le_right)
+  · simpa [isFiniteRelIndex_iff_finiteIndex, ← inf_addSubgroupOf_right] using instFiniteIndexTop
+  have := finiteIndex hI
+  exact isFiniteRelIndex_of_finiteIndex
 
-lemma absNorm_span_nat (n : ℕ) :
+lemma absNorm_span_natCast (n : ℕ) :
     (span {(n : R)}).absNorm = n ^ Module.finrank ℤ R := by
-  rw [absNorm_span_singleton, Algebra.norm_apply, map_natCast,
-    show (n : Module.End ℤ R) = (n : ℤ) by norm_cast, ← zsmul_one, LinearMap.det_smul]
+  rw [absNorm_span_singleton, Algebra.norm_natCast]
   simp
 -- #find_home! absNorm_span_nat -- [Mathlib.RingTheory.Ideal.Norm.AbsNorm]
 
@@ -402,7 +416,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   nth_rewrite 1 [hndef]
   rw [absNorm_eq_index, ← pow_succ',
     show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
-    ← absNorm_span_nat, absNorm_eq_index, ← relIndex_span_span_eq_relIndex_span_span hn hm ha']
+    ← absNorm_span_natCast, absNorm_eq_index, ← relIndex_span_span_eq_relIndex_span_span hn hm ha']
   exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
 end withIdeal
@@ -484,7 +498,7 @@ private lemma one_le_pow_totalWeight_mul_finprod {n : ℕ} (hn : n ≠ 0) (a : �
   gcongr
   · -- nonnegativity side goal
     exact finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
-  rw_mod_cast [totalWeight_eq_finrank, ← RingOfIntegers.rank, ← absNorm_span_nat] at Hw ⊢
+  rw_mod_cast [totalWeight_eq_finrank, ← RingOfIntegers.rank, ← absNorm_span_natCast] at Hw ⊢
   exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
 
 open Ideal in
