@@ -83,7 +83,6 @@ lemma multiplicity_sup (p : HeightOneSpectrum R) {I J : Ideal R} (hI : I ≠ ⊥
   rw [Ideal.sup_eq_prod_inf_factors hI hJ, ← count_normalizedFactors_eq_multiplicity ?h,
     ← count_normalizedFactors_eq_multiplicity hI, ← count_normalizedFactors_eq_multiplicity hJ]
   -- extracted from the proof of `sup_eq_prod_inf_factors`
-  -- (which should really not be in the root namespace!)
   --   ==> refactor that (Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas)
   case h =>
     exact prod_ne_zero_of_prime _
@@ -139,25 +138,6 @@ lemma multiplicity_iSup {ι : Type*} [Finite ι] [Nonempty ι] (p : HeightOneSpe
   have := emultiplicity_iSup p I
   simp only [H'.emultiplicity_eq_multiplicity, (H _).emultiplicity_eq_multiplicity] at this
   exact_mod_cast this
-
-/-
-I've been researching Mathlib for a bit today to figure out how to best set up a proof of the first
-of the two lemmas in the initial post. I learned that there are at least seven ways of expressing
-the multiplicity of a prime ideal `p` in the factorization of  another (nonzero) ideal `I` in a Dedkind domain:
-* `factorization I p`
-* `emultiplicity p I` (but this is an `ENat`)
-* `multiplicity p I`
-* `(UniqueFactorizationMonoid.normalizedFactors I).count p`
-* `(UniqueFactorizationMonoid.normalizedFactors I).count (normalize p)`
-* `(UniqueFactorizationMonoid.factors I).count p`
-* `(UniqueFactorizationMonoid.factors I).count (normalize p)`
-
-The APIs for these are a bit disparate. There are lemmas relating some of these: docs#factorization_eq_count
-and docs#UniqueFactorizationMonoid.emultiplicity_eq_count_normalizedFactors (and, of course, one can relate
-docs#emultiplicity with docs#multiplicity and docs#UniqueFactorizationMonoid.normalizedFactors with
-docs#UniqueFactorizationMonoid.factors).
--/
-
 
 end IsDedekindDomain.HeightOneSpectrum
 
