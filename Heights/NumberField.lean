@@ -298,29 +298,12 @@ end Ideal
 
 end API
 
-/-!
-### The Northcott property for heights on number fields
-
-We shoe that a number field `K` has the **Northcott property** with respect to the multiplicative
-and with respect to the logarithmic height, i.e., for any `B : ℝ` the set of elements `x : K`
-such that `mulHeight₁ x ≤ B` (resp., `logHeight₁ x ≤ B`) is finite.
-See `NumberField.finite_setOf_mulHeight₁_le` and `NumberField.finite_setOf_logHeight₁_le`.
-
-The main idea of the proof is as follows. We show that for every `x : K` there is `n : ℕ` such that
-`n * x` is an algebraic integer and `n ≤ mulHeight₁ x`; see `NumberField.exists_nat_le_mulHeight₁`.
-We also show that the set of `a : 𝓞 K` such that `mulHeight₁ (a / n)` is bounded is finite;
-see `NumberField.finite_setOf_prod_infinitePlace_iSup_le`. The result for the multiplicative height
-follows by combining these two ingredients, and the result for the logarithmic height follows
-from that for any field with a family of admissible absolute values.
--/
-
-section Northcott
-
 namespace NumberField
 
 variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
 
-open IsDedekindDomain.HeightOneSpectrum Ideal in
+open IsDedekindDomain.HeightOneSpectrum Ideal
+
 /- This is the "local" version (for one finite place) of the next result in the special case that
 `x` takes only nonzero values. -/
 private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
@@ -342,7 +325,7 @@ private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempt
   case hne => simp [(show 0 < _ from hnpos).ne']
   exact FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| hι i
 
-open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace in
+open UniqueFactorizationMonoid FinitePlace in
 /-- This statement is equivalent to the fact that the "finite part" of the multiplicative
 height of a (non-zero) tuple `x` is the inverse of the absolute norm of the ideal generated
 by the values of `x`. We state it in a way that avoids taking an inverse. -/
@@ -367,6 +350,30 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
   have H (v : FinitePlace K) := v.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one
     (fun j : { j // (x j : K) ≠ 0 } ↦ x j.val) fun j ↦ mod_cast j.prop
   exact finprod_eq_one_of_forall_eq_one H
+
+end NumberField
+
+/-!
+### The Northcott property for heights on number fields
+
+We shoe that a number field `K` has the **Northcott property** with respect to the multiplicative
+and with respect to the logarithmic height, i.e., for any `B : ℝ` the set of elements `x : K`
+such that `mulHeight₁ x ≤ B` (resp., `logHeight₁ x ≤ B`) is finite.
+See `NumberField.finite_setOf_mulHeight₁_le` and `NumberField.finite_setOf_logHeight₁_le`.
+
+The main idea of the proof is as follows. We show that for every `x : K` there is `n : ℕ` such that
+`n * x` is an algebraic integer and `n ≤ mulHeight₁ x`; see `NumberField.exists_nat_le_mulHeight₁`.
+We also show that the set of `a : 𝓞 K` such that `mulHeight₁ (a / n)` is bounded is finite;
+see `NumberField.finite_setOf_prod_infinitePlace_iSup_le`. The result for the multiplicative height
+follows by combining these two ingredients, and the result for the logarithmic height follows
+from that for any field with a family of admissible absolute values.
+-/
+
+section Northcott
+
+namespace NumberField
+
+variable {K : Type*} [Field K] [NumberField K]
 
 section withIdeal
 
