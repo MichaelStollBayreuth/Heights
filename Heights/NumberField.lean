@@ -371,23 +371,13 @@ private lemma relIndex_span_span_eq_relIndex_span_span {m n : ℕ} (hm : m ≠ 0
   exact (relIndex_span_span_nat_mul n hm b).symm
 
 open Module AddSubgroup LinearMap in
-private lemma absNorm_span_pair_eq_pow {n : ℕ} (hn : n ≠ 0) {a : 𝓞 K}
-    (h : (span {(n : 𝓞 K)}).toAddSubgroup.relIndex (span {↑n, a}).toAddSubgroup = n) :
-    (span {↑n, a}).absNorm = n ^ (finrank ℚ K - 1) := by
-  refine mul_left_cancel₀ hn ?_
-  nth_rewrite 1 [← h]
-  rw [absNorm_eq_index, ← pow_succ',
-    show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
-    ← absNorm_span_nat, absNorm_eq_index]
-  exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
-
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
       (span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
   obtain ⟨m, r, hm, hmr⟩ := exists_nsmul_eq_integer x
   have hI : (span {(m : 𝓞 K)}).toAddSubgroup ≤ (span {(m : 𝓞 K), r}).toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
-  let n := (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {(m : 𝓞 K), r}).toAddSubgroup
+  set n := (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {(m : 𝓞 K), r}).toAddSubgroup with hndef
   have hn : n ≠ 0 := finiteRelIndex (by simp [hm]) _ |>.relIndex_ne_zero
   obtain ⟨a, ha'⟩ : ∃ a, m * a = n * r := by
     have : n • r ∈ span {(m : 𝓞 K)} :=
@@ -399,8 +389,13 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     push_cast at hmr
     rw [nsmul_eq_mul, mul_left_comm] at hmr
     exact mul_left_cancel₀ (mod_cast hm) hmr
-  refine ⟨n, hn, a, ha, absNorm_span_pair_eq_pow hn ?_⟩
-  exact relIndex_span_span_eq_relIndex_span_span hn hm ha'
+  refine ⟨n, hn, a, ha, mul_left_cancel₀ hn ?_⟩
+  rw [absNorm_eq_index, ← pow_succ',
+    show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
+    ← absNorm_span_nat, absNorm_eq_index]
+  nth_rewrite 1 [hndef]
+  rw [← relIndex_span_span_eq_relIndex_span_span hn hm ha']
+  exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
 end withIdeal
 
