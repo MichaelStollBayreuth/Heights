@@ -236,7 +236,7 @@ namespace AddSubgroup
 
 variable {G : Type*} [AddGroup G]
 
-lemma hasFiniteRelIndex_of_le' {H₁ H₂ H₃ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
+lemma isFiniteRelIndex_of_le' {H₁ H₂ H₃ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂) (h₂₃ : H₂ ≤ H₃)
     [h : H₁.IsFiniteRelIndex H₃] :
     H₁.IsFiniteRelIndex H₂ := by
   have := relIndex_mul_relIndex _ _ _ h₁₂ h₂₃
@@ -246,11 +246,23 @@ lemma finiteIndex_iff_isFiniteRelIndex_top {H : AddSubgroup G} :
     H.FiniteIndex ↔ H.IsFiniteRelIndex ⊤ := by
   rw [finiteIndex_iff, isFiniteRelIndex_iff_relIndex_ne_zero, relIndex_top_right]
 
+lemma isFiniteRelIndex_of_le_of_finiteIndex {H₁ H₂ : AddSubgroup G} (h₁₂ : H₁ ≤ H₂)
+    [h : H₁.FiniteIndex] :
+    H₁.IsFiniteRelIndex H₂ := by
+  rw [finiteIndex_iff_isFiniteRelIndex_top] at h
+  exact isFiniteRelIndex_of_le' h₁₂ le_top
+
 end AddSubgroup
 
 namespace Ideal
 
-variable {R : Type*} [CommRing R] [IsDedekindDomain R] [Module.Free ℤ R]
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+
+lemma inf_ne_bot_of_ne_bot {I J : Ideal R} (hI : I ≠ ⊥) (hJ : J ≠ ⊥) : I ⊓ J ≠ ⊥ := by
+  grw [← bot_lt_iff_ne_bot, ← mul_le_inf, bot_lt_iff_ne_bot, Ne, mul_eq_bot]
+  exact not_or_intro hI hJ
+
+variable [Module.Free ℤ R]
 
 lemma absNorm_eq_index (I : Ideal R) : I.absNorm = I.toAddSubgroup.index := rfl
 
@@ -265,11 +277,10 @@ lemma finiteRelIndex {I : Ideal R} (hI : I ≠ ⊥) (J : Ideal R) :
   rw [isFiniteRelIndex_iff_finiteIndex, ← inf_addSubgroupOf_right]
   rcases eq_or_ne J ⊥ with rfl | hJ
   · simpa using instFiniteIndexTop
-  have : I.toAddSubgroup ⊓ J.toAddSubgroup = (I ⊓ J).toAddSubgroup := rfl
-  rw [← isFiniteRelIndex_iff_finiteIndex, this]
-  have hIJ : I ⊓ J ≠ ⊥ := by grind [mul_eq_bot, mul_le_inf]
-  have := finiteIndex_iff_isFiniteRelIndex_top.mp <| finiteIndex hIJ
-  exact hasFiniteRelIndex_of_le' (Submodule.toAddSubgroup_mono inf_le_right) le_top
+  change ((I ⊓ J).toAddSubgroup).addSubgroupOf _ |>.FiniteIndex
+  rw [← isFiniteRelIndex_iff_finiteIndex]
+  have := finiteIndex <| inf_ne_bot_of_ne_bot hI hJ
+  exact isFiniteRelIndex_of_le_of_finiteIndex (Submodule.toAddSubgroup_mono inf_le_right)
 
 lemma absNorm_span_nat (n : ℕ) :
     (span {(n : R)}).absNorm = n ^ Module.finrank ℤ R := by
