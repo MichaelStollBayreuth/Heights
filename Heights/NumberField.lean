@@ -302,13 +302,13 @@ namespace NumberField
 
 variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
 
-set_option Elab.async false in
+-- set_option Elab.async false in
 -- #count_heartbeats in -- 13486
 open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace Finite in
 /-- This statement is equivalent to the fact that the "finite part" of the multiplicative
 height of a (non-zero) tuple `x` is the inverse of the absolute norm of the ideal generated
 by the values of `x`. We state it in a way that avoids taking an inverse. -/
-lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
+lemma absNorm_mul_finprod_finitePlace_eq_one {ι : Type*} [Finite ι] {x : ι → 𝓞 K} (hx : x ≠ 0) :
     (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
   obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
   simp only [Pi.zero_def] at hi₀
@@ -316,7 +316,7 @@ lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) 
   have hI : span (Set.range x) = span (Set.range fun i : { j // (x j : K) ≠ 0 } ↦ x i.val) := by
     convert span_range_eq_span_range_support x <;> norm_cast
   have hx₀ : (fun i ↦ (x i : K)) ≠ 0 := Function.ne_iff.mpr ⟨i', i'.prop⟩
-  simp_rw [coe_apply, Height.iSup_abv_eq_iSup_subtype _ hx₀, hI]
+  simp_rw [coe_apply, iSup_eq_iSup_subtype hx₀, hI]
   have : Nonempty _ := .intro i'
   have Hj (j : { j // (x j : K) ≠ 0 }) : x j.val ≠ 0 := RingOfIntegers.coe_ne_zero_iff.mp j.prop
   have H (j : { j // (x j : K) ≠ 0 }) : span {x ↑j} ≠ ⊥ := mt span_singleton_eq_bot.mp <| Hj j
