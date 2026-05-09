@@ -286,6 +286,18 @@ end API
 
 /-!
 ### The Northcott property for heights on number fields
+
+We shoe that a number field `K` has the **Northcott property** with respect to the multiplicative
+and with respect to the logarithmic height, i.e., for any `B : ℝ` the set of elements `x : K`
+such that `mulHeight₁ x ≤ B` (resp., `logHeight₁ x ≤ B`) is finite.
+See `NumberField.finite_setOf_mulHeight₁_le` and `NumberField.finite_setOf_logHeight₁_le`.
+
+The main idea of the proof is as follows. We show that for every `x : K` there is `n : ℕ` such that
+`n * x` is an algebraic integer and `n ≤ mulHeight₁ x`; see `NumberField.exists_nat_le_mulHeight₁`.
+We also show that the set of `a : 𝓞 K` such that `mulHeight₁ (a / n)` is bounded is finite;
+see `NumberField.finite_setOf_prod_infinitePlace_iSup_le`. The result for the multiplicative height
+follows by combining these two ingredients, and the result for the logarithmic height follows
+from that for any field with a family of admissible absolute values.
 -/
 
 section Northcott
@@ -295,6 +307,8 @@ namespace NumberField
 variable {K : Type*} [Field K] [NumberField K] {ι : Type*} [Finite ι]
 
 open IsDedekindDomain.HeightOneSpectrum Ideal in
+/- This is the "local" version (for one finite place) of the next result in the special case that
+`x` takes only nonzero values. -/
 private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempty ι] (x : ι → 𝓞 K)
     (hι : ∀ i, i ∈ x.support) (v : FinitePlace K) :
     (absNorm (v.maximalIdeal.asIdeal ^
@@ -315,6 +329,9 @@ private lemma FinitePlace.absNorm_pow_multiplicity_iSup_mul_iSup_eq_one [Nonempt
   exact FinitePlace.apply_mul_absNorm_pow_eq_one v <| Function.mem_support.mp <| hι i
 
 open IsDedekindDomain.HeightOneSpectrum Ideal UniqueFactorizationMonoid FinitePlace in
+/-- This statement is equivalent to the fact that the "finite part" of the multiplicative
+height of a (non-zero) tuple `x` is the inverse of the absolute norm of the ideal generated
+by the values of `x`. We state it in a way that avoids taking an inverse. -/
 lemma absNorm_mul_finprod_finitePlace_eq_one {x : ι → 𝓞 K} (hx : x ≠ 0) :
     (span <| Set.range x).absNorm * ∏ᶠ v : FinitePlace K, ⨆ i, v (x i) = 1 := by
   obtain ⟨i₀, hi₀⟩ := Function.ne_iff.mp hx
@@ -396,6 +413,9 @@ section withFinset
 
 open Finset
 
+/-- If `x : K` (for a number field `K`), then we can find a nonzero `n : ℕ` such that
+`n ≤ mulHeight₁ x` and `n * x` is integral. I.e., the denominator of `x` can be bounded by
+its multplicative height. -/
 lemma exists_nat_le_mulHeight₁ (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ n ≤ mulHeight₁ x ∧ IsIntegral ℤ (n * x) := by
   suffices ∃ n : ℕ, n ≠ 0 ∧
@@ -454,14 +474,6 @@ lemma finite_setOf_prod_infinitePlace_iSup_le {n : ℕ} (hn : n ≠ 0) (B : ℝ)
   exact this.subset fun _ _ ↦ by grind [infinitePlace_apply_le_of_prod_le hn B]
 
 open Ideal in
-lemma absNorm_span_cast_eq_pow_totalWeight (n : ℕ) :
-    absNorm (span {(n : 𝓞 K)}) = n ^ totalWeight K := by
-  have H : Algebra.lmul ℤ (𝓞 K) n = (n : ℤ) • LinearMap.id := by ext : 1; simp
-  rw [absNorm_span_singleton, Algebra.norm_apply, H, LinearMap.det_smul, totalWeight_eq_finrank,
-    RingOfIntegers.rank]
-  simp
-
-open Ideal in
 private lemma one_le_pow_totalWeight_mul_finprod {n : ℕ} (hn : n ≠ 0) (a : 𝓞 K) :
     1 ≤ (n ^ totalWeight K : ℝ) * ∏ᶠ (v : FinitePlace K), ⨆ i, v (![↑a, ↑n] i) := by
   have Hw : (0 : ℝ) < n ^ totalWeight K := by positivity
@@ -472,10 +484,12 @@ private lemma one_le_pow_totalWeight_mul_finprod {n : ℕ} (hn : n ≠ 0) (a : �
   gcongr
   · -- nonnegativity side goal
     exact finprod_nonneg fun _ ↦ Real.iSup_nonneg_of_nonnegHomClass ..
-  rw_mod_cast [← absNorm_span_cast_eq_pow_totalWeight] at Hw ⊢
+  rw_mod_cast [totalWeight_eq_finrank, ← RingOfIntegers.rank, ← absNorm_span_nat] at Hw ⊢
   exact Nat.le_of_dvd Hw <| absNorm_dvd_absNorm_of_le <| span_mono <| by simp +contextual
 
 open Ideal in
+/-- The set of `a : 𝓞 K` such that `mulHeight₁ (a / n)` is bounded (for some nonzero `n : ℕ`)
+is finite. -/
 lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B}.Finite := by
   have H : {a : 𝓞 K | mulHeight ![(a : K), n] ≤ B} ⊆
@@ -489,6 +503,8 @@ lemma finite_setOf_mulHeight_nat_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
   exact (finite_setOf_prod_infinitePlace_iSup_le hn _).subset H
 
 variable (K) in
+/-- The set of `x : K` such that `mulHeight₁ x` is bounded and `n * x` is integral
+(for some nonzero `n : ℕ`) is finite. -/
 lemma finite_setOf_isIntegral_nat_mul_and_mulHeight₁_le {n : ℕ} (hn : n ≠ 0) (B : ℝ) :
     {x : K | IsIntegral ℤ (n * x) ∧ mulHeight₁ x ≤ B}.Finite := by
   have hn' : (n : K) ≠ 0 := mod_cast hn
