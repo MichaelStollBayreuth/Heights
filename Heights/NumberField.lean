@@ -555,10 +555,14 @@ open Height Real Northcott
 
 variable {K : Type*} [Field K]
 
+-- #39193
+
 /-- A field that satisfies the Northcott property for `mulHeight₁` also does for `logHeight₁`. -/
 instance [AdmissibleAbsValues K] [Northcott (mulHeight₁ (K := K))] :
     Northcott (logHeight₁ (K := K)) :=
   comp_of_bddAbove mulHeight₁ log fun B ↦ bddAbove_def.mpr ⟨exp B, fun _ ↦ le_exp_of_log_le⟩
+
+-- end #39193
 
 variable (K) in
 /-- A number field `K` satisfies the **Northcott property**:
