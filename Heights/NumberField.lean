@@ -22,19 +22,22 @@ section API
 
 namespace IsAlgebraic
 
-variable (R : Type*) {K : Type*} [Field K] [CommRing R] [Algebra R K] [CharZero K]
-  [IsIntegralClosure R ℤ K]
+variable {Z : Type*} [CommRing Z] [IsDomain Z] (R : Type*) [CommRing R] {K : Type*} [Field K]
+  [Algebra R K] [Algebra Z K] [IsIntegralClosure R Z K]
 
-lemma exists_zsmul_eq {x : K} (hx : IsAlgebraic ℚ x) :
-    ∃ (m : ℤ) (r : R), m ≠ 0 ∧ m • x = algebraMap R K r := by
-  rw [← IsFractionRing.isAlgebraic_iff (A := ℤ)] at hx
-  obtain ⟨m, hm, h⟩ := iff_exists_smul_integral.mp hx
+/-- If `x : K` is algebraic over some ring `Z`, then a nonzero `Z`-multiple of it is contained
+in the integral closure of `Z` in `K`. -/
+lemma exists_smul_eq {x : K} (hx : IsAlgebraic Z x) :
+    ∃ (m : Z) (r : R), m ≠ 0 ∧ m • x = algebraMap R K r := by
+  obtain ⟨m, hm, h⟩ := IsAlgebraic.iff_exists_smul_integral.mp hx
   obtain ⟨r, hr⟩ := IsIntegralClosure.isIntegral_iff (A := R) |>.mp h
   exact ⟨m, r, hm, hr.symm⟩
 
-lemma exists_nsmul_eq {x : K} (hx : IsAlgebraic ℚ x) :
+/-- If `x : K` is algebraic over `ℤ`, then a nonzero `ℕ`-multiple of it is contained in the
+integral closure of `ℤ` in `K`. -/
+lemma exists_nsmul_eq {x : K} [IsIntegralClosure R ℤ K] (hx : IsAlgebraic ℤ x) :
     ∃ (m : ℕ) (r : R), m ≠ 0 ∧ m • x = algebraMap R K r := by
-  obtain ⟨a, r, ha, h⟩ := hx.exists_zsmul_eq R
+  obtain ⟨a, r, ha, h⟩ := hx.exists_smul_eq R
   refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
   simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
   rw [← h, ← mul_assoc]
@@ -186,7 +189,8 @@ open Module AddSubgroup LinearMap in
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
       (span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
-  obtain ⟨m, r, hm, hmr⟩ := IsAlgebraic.exists_nsmul_eq (𝓞 K) (.of_finite ℚ x)
+  have hx : IsAlgebraic ℤ x := IsFractionRing.isAlgebraic_iff ℤ _ _ |>.mpr (.of_finite ℚ x)
+  obtain ⟨m, r, hm, hmr⟩ := hx.exists_nsmul_eq (𝓞 K)
   rw [← RingOfIntegers.coe_eq_algebraMap r] at hmr
   have hI : (span {(m : 𝓞 K)}).toAddSubgroup ≤ (span {(m : 𝓞 K), r}).toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
