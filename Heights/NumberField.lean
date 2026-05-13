@@ -20,36 +20,32 @@ section API
 
 -- #39008
 
+namespace IsAlgebraic
+
+variable {R K : Type*} [Field K] [CommRing R] [Algebra R K] [CharZero K] [IsIntegralClosure R ℤ K]
+
+lemma exists_zsmul_eq {x : K} (hx : IsAlgebraic ℚ x) :
+    ∃ (m : ℤ) (r : R), m ≠ 0 ∧ m • x = algebraMap R K r := by
+  rw [← IsFractionRing.isAlgebraic_iff (A := ℤ)] at hx
+  obtain ⟨m, hm, h⟩ := IsAlgebraic.iff_exists_smul_integral.mp hx
+  obtain ⟨r, hr⟩ := IsIntegralClosure.isIntegral_iff (A := R) |>.mp h
+  exact ⟨m, r, hm, hr.symm⟩
+
+lemma exists_nsmul_eq {x : K} (hx : IsAlgebraic ℚ x) :
+    ∃ (m : ℕ) (r : R), m ≠ 0 ∧ m • x = algebraMap R K r := by
+  obtain ⟨a, r, ha, h⟩ := hx.exists_zsmul_eq (R := R)
+  refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
+  simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
+  rw [← h, ← mul_assoc]
+  rw_mod_cast [Int.sign_mul_self_eq_abs a]
+
+end IsAlgebraic
+
 namespace NumberField
 
 open IsDedekindDomain HeightOneSpectrum
 
 variable {K : Type*} [Field K] [NumberField K]
-
-lemma one_le_finrank_rat : 1 ≤ Module.finrank ℚ K := by
-  rw [Nat.one_le_iff_ne_zero, Ne, Module.finrank_eq_zero_iff_of_free]
-  exact not_subsingleton K
--- #find_home! one_le_finrank_rat -- Mathlib.NumberTheory.NumberField.Basic should work
--- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne]
-
-lemma exists_zsmul_eq_integer (x : K) : ∃ (m : ℤ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
-    obtain ⟨num, ⟨d, hd⟩, h⟩ :=
-      IsLocalization.exists_mk'_eq (Algebra.algebraMapSubmonoid (𝓞 K) (nonZeroDivisors ℤ)) x
-    rw [Algebra.algebraMapSubmonoid, Submonoid.mem_map] at hd
-    choose a hamem ha using hd
-    refine ⟨a, num, mem_nonZeroDivisors_iff_ne_zero.mp hamem, ?_⟩
-    rw [← h, zsmul_eq_mul, ← show (a : 𝓞 K) • _ = (a : K) * _ from smul_eq_mul ..,
-      IsLocalization.smul_mk', Int.cast_comm a num, ← IsLocalization.smul_mk']
-    simp [← ha, Algebra.smul_def]
--- #find_home! exists_zsmul_eq_integer
--- [Mathlib.NumberTheory.NumberField.InfinitePlace.Embeddings, Mathlib.RingTheory.Valuation.Discrete.RankOne] ?
-
-lemma exists_nsmul_eq_integer (x : K) : ∃ (m : ℕ) (r : 𝓞 K), m ≠ 0 ∧  m • x = r := by
-    obtain ⟨a, r, ha, h⟩ := exists_zsmul_eq_integer x
-    refine ⟨a.natAbs, a.sign * r, Int.natAbs_ne_zero.mpr ha, ?_⟩
-    simp only [zsmul_eq_mul, nsmul_eq_mul, Nat.cast_natAbs, map_mul, map_intCast] at h ⊢
-    rw [← r.coe_eq_algebraMap, ← h, ← mul_assoc]
-    rw_mod_cast [Int.sign_mul_self_eq_abs a]
 
 namespace FinitePlace
 
@@ -189,7 +185,8 @@ open Module AddSubgroup LinearMap in
 lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
     ∃ n : ℕ, n ≠ 0 ∧ ∃ a : 𝓞 K, n * x = a ∧
       (span {(n : 𝓞 K), a}).absNorm = n ^ (Module.finrank ℚ K - 1) := by
-  obtain ⟨m, r, hm, hmr⟩ := exists_nsmul_eq_integer x
+  obtain ⟨m, r, hm, hmr⟩ := IsAlgebraic.exists_nsmul_eq (R := 𝓞 K) (.of_finite ℚ x)
+  rw [← RingOfIntegers.coe_eq_algebraMap r] at hmr
   have hI : (span {(m : 𝓞 K)}).toAddSubgroup ≤ (span {(m : 𝓞 K), r}).toAddSubgroup :=
     Submodule.toAddSubgroup_mono <| span_mono <| by grind
   set n := (span {(m : 𝓞 K)}).toAddSubgroup.relIndex (span {(m : 𝓞 K), r}).toAddSubgroup with hndef
@@ -205,7 +202,7 @@ lemma exists_nat_ne_zero_exists_integer_mul_eq_and_absNorm_span_eq_pow (x : K) :
   refine ⟨n, hn, a, ha, mul_left_cancel₀ hn ?_⟩
   nth_rewrite 1 [hndef]
   rw [absNorm_eq_index, ← pow_succ',
-    show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [one_le_finrank_rat], ← RingOfIntegers.rank,
+    show finrank ℚ K - 1 + 1 = finrank ℚ K by grind [finrank_pos], ← RingOfIntegers.rank,
     ← absNorm_span_natCast, absNorm_eq_index, ← relIndex_span_span_eq_relIndex_span_span hn hm ha']
   exact relIndex_mul_index <| Submodule.toAddSubgroup_mono <| span_mono <| by grind
 
