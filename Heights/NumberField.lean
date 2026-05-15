@@ -45,6 +45,15 @@ lemma exists_nsmul_eq {x : K} [IsIntegralClosure R ℤ K] (hx : IsAlgebraic ℤ 
 
 end IsAlgebraic
 
+namespace IsDedekindDomain.HeightOneSpectrum
+
+variable {R : Type*} [CommRing R]
+
+lemma asIdeal_injective : (fun v : HeightOneSpectrum R ↦ v.asIdeal).Injective :=
+  fun ⦃_ _⦄ h ↦ HeightOneSpectrum.ext h
+
+end IsDedekindDomain.HeightOneSpectrum
+
 namespace NumberField
 
 open IsDedekindDomain HeightOneSpectrum
@@ -52,11 +61,6 @@ open IsDedekindDomain HeightOneSpectrum
 variable {K : Type*} [Field K] [NumberField K]
 
 namespace FinitePlace
-
-lemma asIdeal_maximalIdeal_injective :
-    (fun v : FinitePlace K ↦ v.maximalIdeal.asIdeal).Injective :=
-  fun ⦃_ _⦄ h ↦ (FinitePlace.maximalIdeal_inj ..).mp <| HeightOneSpectrum.ext h
--- #find_home! injective_asIdeal_maximalIdeal -- [Mathlib.NumberTheory.NumberField.Completion.FinitePlace]
 
 lemma finprod_finitePlace_pow_multiplicity {I : Ideal (𝓞 K)} (hI : I ≠ 0) :
     ∏ᶠ v : FinitePlace K, v.maximalIdeal.asIdeal ^ multiplicity v.maximalIdeal.asIdeal I = I := by
@@ -81,7 +85,7 @@ lemma hasFiniteMulSupport_fun_pow_multiplicity {M : Type*} [CommMonoid M] {I : I
       (f v.maximalIdeal.asIdeal) ^ multiplicity v.maximalIdeal.asIdeal I).HasFiniteMulSupport := by
   simp only [← count_normalizedFactors_eq_multiplicity hI]
   exact Multiset.hasFiniteMulSupport_fun_pow_count (normalizedFactors I) f
-    |>.fun_comp_of_injective asIdeal_maximalIdeal_injective
+    |>.fun_comp_of_injective  <| asIdeal_injective.comp maximalIdeal_injective
 
 end NumberField.FinitePlace
 
