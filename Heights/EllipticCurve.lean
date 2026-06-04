@@ -16,160 +16,157 @@ and to show that there are only finitely many points in `E(K)` of bounded height
 when `K` has the Northcott property.
 -/
 
-namespace Height
-
-namespace EllipticCurve
+namespace WeierstrassCurve
 
 -- #36989
 /-!
 ### The addition-and-subtraction map on x-coordinates
 -/
 
-variable {K : Type*} [Field K] (a b : K)
+variable {R : Type*} [CommRing R] (W : WeierstrassCurve R) (a b : R)
 
 open MvPolynomial
 
+name_poly_vars s, t, u over R
+
 /-- The polynomial map on coordinate vectors giving
 `(x(P) * x(Q) : x(P) + x(Q) : 1) ↦ (x(P+Q) * x(P-Q) : x(P+Q) + x(P-Q) : 1)`
-for points `P`, `Q` on the elliptic curve `y² = x³ + a*x + b`. -/
-noncomputable def addSubMap : Fin 3 → MvPolynomial (Fin 3) K :=
-  letI s := X 0
-  letI t := X 1
-  letI u := X 2
-  ![s ^ 2 - C (2 * a) * s * u - C (4 * b) * t * u + C (a ^ 2) * u ^ 2,
-    C 2 * t * s + C (2 * a) * t * u + C (4 * b) * u ^ 2,
+for points `P`, `Q` on the elliptic curve `W`. -/
+noncomputable def addSubMap : Fin 3 → MvPolynomial (Fin 3) R :=
+  ![s ^ 2 - C W.b₄ * s * u - C W.b₆ * t * u - C W.b₈ * u ^ 2,
+    C 2 * t * s + C W.b₂ * s * u + C W.b₄ * t * u + C W.b₆ * u ^ 2,
     t ^ 2 - C 4 * s * u]
 
 /-- The coefficient polynomials in linear combinations of the polynomials in `addSubMap`
-that result in the fourth powers of the variables, multiplied by `32*a^3 + 216*b^2`. -/
-noncomputable def addSubMapCoeff : Fin 3 × Fin 3 → MvPolynomial (Fin 3) K :=
-  letI s := X (σ := Fin 3) 0
-  letI t := X (σ := Fin 3) 1
-  letI u := X (σ := Fin 3) 2
-  ![![C (-4 * a ^ 2 * b) * t * s + C (12 * a ^ 3 * b + 96 * b ^ 3) * t * u +
-        C (32 * a ^ 3 + 216 * b ^ 2) * s ^ 2 + C (24 * a ^ 4 + 176 * a * b ^ 2) * s * u,
-      C (5 * a ^ 4 + 32 * a * b ^ 2 ) * t * s + C (-3 * a ^ 5 - 24 * a ^ 2 * b ^ 2) * t * u +
-        C (2 * a ^ 2 * b) * s ^ 2 + C (52 * a ^ 3 * b + 384 * b ^ 3) * s * u,
-      C (-10 * a ^ 4 - 64 * a * b ^ 2) * s ^ 2 + C (-4 * a ^ 5 - 32 * a ^ 2 * b ^ 2) * s * u +
-        C (6 * a ^ 6 + 96 * a ^ 3 * b ^ 2 + 384 * b ^ 4) * u ^ 2],
-    ![C (128 * a * b) * t * u - C (128 * a ^ 2) * s * u + C (384 * b ^ 2) * u ^ 2,
-      C (16 * a ^ 2) * t * s + C (16 * a ^ 3 + 384 * b ^ 2) * t * u - C (64 * a * b) * s * u -
-        C (96 * a ^ 2 * b) * u ^ 2,
-      C (32 * a ^ 3 + 216 * b ^ 2) * t ^ 2 - C (32 * a ^ 2) * s ^ 2 +
-        C (64 * a ^ 3 + 96 * b ^ 2) * s * u + C (-32 * a ^ 4 - 256 * a * b ^ 2) * u ^ 2],
-    ![C 24 * s * u + C (32 * a) * u ^ 2,
-      C (-3) * t * s  + C (5 * a) * t * u + C (54 * b) * u ^ 2,
-      C 6 * s ^ 2 - C (4 * a) * s * u - C (10 * a ^ 2) * u ^ 2]].uncurry
+that result in the fourth powers of the variables, multiplied by `W.Δ`. -/
+noncomputable def addSubMapCoeff : Fin 3 × Fin 3 → MvPolynomial (Fin 3) R :=
+  ![![C (-W.b₂ ^ 2 * W.b₈ + 9 * W.b₂ * W.b₄ * W.b₆ - 8 * W.b₄ ^ 3 - 27 * W.b₆ ^ 2) * s ^ 2 +
+        C (2 * W.b₂ * W.b₄ * W.b₈ - 2 * W.b₄ ^ 2 * W.b₆ - 10 * W.b₆ * W.b₈) * s * t +
+        C (-W.b₂ * W.b₆ * W.b₈ + W.b₄ * W.b₆ ^ 2) * s * u +
+        C (3 * W.b₄ ^ 2 * W.b₈ - 3 * W.b₄ * W.b₆ ^ 2) * t ^ 2 +
+        C (3 * W.b₄ * W.b₆ * W.b₈ - 3 * W.b₆ ^ 3) * t * u,
+      C (-W.b₂ * W.b₄ * W.b₈ + W.b₄ ^ 2 * W.b₆ + 5 * W.b₆ * W.b₈) * s ^ 2 +
+        C (2 * W.b₂ * W.b₆ * W.b₈ - 2 * W.b₄ * W.b₆^2 - 10 * W.b₈ ^ 2) * s * t  +
+        C (-W.b₂ * W.b₈ ^ 2 + W.b₄ * W.b₆ * W.b₈) * s * u +
+        C (3 * W.b₄ * W.b₆ * W.b₈ - 3 * W.b₆ ^ 3) * t ^ 2 +
+        C (3 * W.b₄ * W.b₈ ^ 2 -3 * W.b₆ ^ 2 * W.b₈) * t * u,
+      C (W.b₂ * W.b₆ * W.b₈ - 8 * W.b₄ ^ 2 * W.b₈ + 7 * W.b₄ * W.b₆ ^ 2) * s ^ 2 +
+        C (-6 * W.b₄ * W.b₆ * W.b₈ + 6 * W.b₆ ^ 3) * s * t +
+        C (-8 * W.b₄ * W.b₈ ^ 2 + 8 * W.b₆ ^ 2 * W.b₈) * s * u],
+    ![C (96 * W.b₆) * s * t + C (12 * W.b₂ * W.b₆ - 64 * W.b₈) * t ^ 2 +
+        C (16 * W.b₄ * W.b₆) * t * u,
+      C (-48 * W.b₆) * s ^ 2 + C (32 * W.b₈) * s * t +
+        C (-4 * W.b₂ * W.b₈ + 16 * W.b₄ * W.b₆) * t ^ 2 + C (16 * W.b₄ * W.b₈) * t * u,
+      C (-12 * W.b₂ * W.b₆) * s ^ 2 + C (8 * W.b₂ * W.b₈ - 32 * W.b₄ * W.b₆) * s * t +
+        C (-12 * W.b₆ ^ 2) * s * u +
+        C (-W.b₂ ^ 2 * W.b₈ + 9 * W.b₂ * W.b₄ * W.b₆ - 8 * W.b₄ ^ 3 - 27 * W.b₆ ^ 2) * t ^ 2 +
+        C (4 * W.b₂ * W.b₄ * W.b₈ - 4 * W.b₂ * W.b₆ ^ 2 ) * t * u],
+    ![C (-12) * t ^ 2 + C (-4 * W.b₂) * t * u +  C (W.b₂ ^ 2 - 32 * W.b₄) * u ^ 2,
+      C 6 * s * t + C (-W.b₂) * s * u + C (-5 * W.b₄) * t * u + C (W.b₂ * W.b₄ - 27 * W.b₆) * u ^ 2,
+      C (-8 * W.b₄) * s * u + C (-12 * W.b₆) * t * u + C (W.b₄ ^ 2 - 28 * W.b₈) * u ^ 2]].uncurry
 
--- set_option Elab.async false in
--- #count_heartbeats in -- 1514
-lemma isHomogeneous_addSubMap (i : Fin 3) : (addSubMap a b i).IsHomogeneous 2 := by
+/-- The multiples of the relation `W.b_relation`, which is equivalent to
+`4*W.b₈ - W.b₂*W.b₆ + W.b₄^2 = 0`, that we have to add to show the equality in
+`addSubMapCoeff_condition` below. -/
+noncomputable def bRelationCoeffs : Fin 3 → MvPolynomial (Fin 3) R :=
+  ![C (-8 * W.b₄ ^ 2) * s ^ 3 * u + C (5 * W.b₈) * s ^ 2 * t ^ 2 +
+      C (3 * W.b₂ * W.b₈ - 11 * W.b₄ * W.b₆) * s ^ 2 * t * u +
+      C (-8 * W.b₄ * W.b₈) * s ^ 2 * u ^ 2 + C (3 * W.b₄ * W.b₈ - 3 * W.b₆ ^ 2) * s * t ^ 2 * u,
+    C (-32 * W.b₄) * s * t ^ 2 * u + C (16 * W.b₆) * s * t * u ^ 2 + C (-16 * W.b₆) * t ^ 3 * u +
+      C (-16 * W.b₈) * t ^ 2 * u ^ 2,
+    C (-28) * s * u ^ 3 + C 4 * t ^ 2 * u ^ 2 + C (-W.b₂) * t * u ^ 3 +  C (-8 * W.b₄) * u ^ 4]
+
+private lemma CXX {i : Fin 3} {a : R} : (C a * X (R := R) i ^ 2).IsHomogeneous 2 :=
+    isHomogeneous_C_mul_X_pow ..
+
+private lemma CXY {i j : Fin 3} {a : R} : (C a * X (R := R) i * X j).IsHomogeneous 2 :=
+    .mul (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+
+lemma isHomogeneous_addSubMap (i : Fin 3) : (addSubMap W i).IsHomogeneous 2 := by
   simp only [addSubMap]
   fin_cases i <;>
     simp only [Fin.isValue, Fin.mk_one, Fin.zero_eta, Fin.reduceFinMk, Matrix.cons_val,
       Matrix.cons_val_one, Matrix.cons_val_zero]
-  · refine .add (.sub (.sub (isHomogeneous_X_pow ..) ?_) ?_) (isHomogeneous_C_mul_X_pow ..) <;>
-      exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add (.add ?_ ?_) (isHomogeneous_C_mul_X_pow ..) <;>
-      exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · exact .sub (isHomogeneous_X_pow ..) <|
-      .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
+  · exact .sub (.sub (.sub (isHomogeneous_X_pow ..) CXY) CXY) CXX
+  · exact .add (.add (.add CXY CXY) CXY) CXX
+  · exact .sub (isHomogeneous_X_pow ..) CXY
 
--- set_option Elab.async false in
--- #count_heartbeats in -- 10007
-lemma isHomogenous_addSubMapCoeff (ij : Fin 3 × Fin 3) :
-    (addSubMapCoeff a b ij).IsHomogeneous 2 := by
+lemma isHomogenous_addSubMapCoeff (ij : Fin 3 × Fin 3) : (addSubMapCoeff W ij).IsHomogeneous 2 := by
   simp only [addSubMapCoeff]
   fin_cases ij <;>
     simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, Function.uncurry_apply_pair,
       Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_fin_one, neg_mul, Fin.mk_one,
       Matrix.cons_val_one, Fin.reduceFinMk, Matrix.cons_val, Fin.zero_eta]
-  · refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact isHomogeneous_C_mul_X_pow ..
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .sub ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .sub (isHomogeneous_C_mul_X_pow ..) (isHomogeneous_C_mul_X_pow ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .add ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .add ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-  · refine .sub ?_ (isHomogeneous_C_mul_X_pow ..)
-    refine .sub ?_ <| .mul (m := 1) (n := 1) (isHomogeneous_C_mul_X ..) (isHomogeneous_X ..)
-    exact isHomogeneous_C_mul_X_pow ..
+    -- The following works, but is slow (44883 vs. 11592 heartbeats):
+    -- <;> repeat first | refine .add ?_ CXY | refine .add ?_ CXX | exact CXX | exact CXY
+  · exact .add (.add (.add (.add CXX CXY) CXY) CXX) CXY
+  · exact .add (.add (.add (.add CXX CXY) CXY) CXX) CXY
+  · exact .add (.add CXX CXY) CXY
+  · exact .add (.add CXY CXX) CXY
+  · exact .add (.add (.add CXX CXY) CXX) CXY
+  · exact .add (.add (.add (.add CXX CXY) CXY) CXX) CXY
+  · exact .add (.add CXX CXY) CXX
+  · exact .add (.add (.add CXY CXY) CXY) CXX
+  · exact .add (.add CXY CXY) CXX
 
-variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0)
+variable [W.IsElliptic]
 
-variable {a b}
-
--- set_option Elab.async false in
--- #count_heartbeats in -- 81414
-include hab in
-lemma addSubMapCoeff_condition (x : Fin 3 → K) (i : Fin 3) :
-    ∑ j : Fin 3, (C ((32 * a ^ 3 + 216 * b ^ 2)⁻¹) * addSubMapCoeff a b (i, j)).eval x *
-      (addSubMap a b j).eval x = x i ^ (2 + 2) := by
+lemma addSubMapCoeff_condition (x : Fin 3 → R) (i : Fin 3) :
+    ∑ j : Fin 3, (C (↑W.Δ'⁻¹ : R) * addSubMapCoeff W (i, j)).eval x *
+      (addSubMap W j).eval x = x i ^ (2 + 2) := by
+  have hr : 4 * W.b₈ - W.b₂ * W.b₆ + W.b₄ ^ 2 = 0 := by linear_combination W.b_relation
   simp only [eval_mul, eval_C, mul_assoc]
-  rw [← Finset.mul_sum, inv_mul_eq_iff_eq_mul₀ hab, Fin.sum_univ_three]
+  rw [← Finset.mul_sum, Units.inv_mul_eq_iff_eq_mul, Fin.sum_univ_three]
   simp only [addSubMap, addSubMapCoeff, Function.uncurry_apply_pair]
+  have : -(bRelationCoeffs W i).eval x * (4 * W.b₈ - W.b₂ * W.b₆ + W.b₄ ^ 2) = 0 := by simp [hr]
   fin_cases i <;>
     simp only [Nat.succ_eq_add_one, Nat.reduceAdd, Fin.isValue, neg_mul, Fin.zero_eta,
       Matrix.cons_val_zero, Matrix.cons_val_one, map_sub, map_add, map_mul, eval_C, map_pow,
-      eval_X, map_neg, Fin.reduceFinMk, Matrix.cons_val, Fin.mk_one] <;>
-    ring
+      eval_X, map_neg, Fin.reduceFinMk, Matrix.cons_val, Fin.mk_one, coe_Δ', Δ] <;>
+    rw [← sub_eq_zero, ← this] <;> simp [bRelationCoeffs] <;> ring
 
-include hab in
-lemma addSubMap_ne_zero {x : Fin 3 → K} (hx : x ≠ 0) :
-    (fun i ↦ (addSubMap a b i).eval x) ≠ 0 := by
+lemma addSubMap_ne_zero [IsDomain R] {x : Fin 3 → R} (hx : x ≠ 0) :
+    (fun i ↦ (addSubMap W i).eval x) ≠ 0 := by
   contrapose! hx
-  ext1 i
-  replace hx i : (addSubMap a b i).eval x = 0 := by
-    rw [Pi.zero_def, _root_.funext_iff] at hx
+  ext i : 1
+  replace hx i : (addSubMap W i).eval x = 0 := by
+    rw [Pi.zero_def, funext_iff] at hx
     exact hx i
-  simpa [hx] using (addSubMapCoeff_condition hab x i).symm
+  simpa [hx] using (addSubMapCoeff_condition W x i).symm
 
-variable [AdmissibleAbsValues K]
+end WeierstrassCurve
 
-include hab in
-/-- If `a b : K` and  `D := 32*a^3 + 216*b^2` is nonzero, then the map `F : ℙ² → ℙ²` given by
-`(s : t : u) ↦ (s^2 - 2*a*s*u - 4*b*t*u + a²*u² : 2*s*t + 2*a*t*u + 4*b*u² : t² - 4*s*u)`
-(called `addSubMap` here) is a morphism.
+namespace WeierstrassCurve
+
+open Height
+
+variable {K : Type*} [Field K] [AdmissibleAbsValues K] (W : WeierstrassCurve K) [W.IsElliptic]
+
+open MvPolynomial
+
+/-- If `W` is an elliptic curve over `K`, then the map `F : ℙ² → ℙ²` given by `addSubMap W`
+is a morphism.
+
 This implies that `|logHeight (F x) - 2 * logHeight x| ≤ C` for a constant `C`,
 where `x = ![s, t, u]` and `F` acts on the coordinate vector. -/
 theorem abs_logHeight_addSubMap_sub_two_mul_logHeight_le :
     ∃ C, ∀ x : Fin 3 → K,
-      |logHeight (fun i ↦ (addSubMap a b i).eval x) - 2 * logHeight x| ≤ C := by
+      |logHeight (fun i ↦ (addSubMap W i).eval x) - 2 * logHeight x| ≤ C := by
   obtain ⟨C₁, hC₁⟩ : ∃ C₁, ∀ x : Fin 3 → K,
-      logHeight (fun i ↦ (addSubMap a b i).eval x) ≤ C₁ + 2 * logHeight x :=
-    logHeight_eval_le' <| isHomogeneous_addSubMap a b
+      logHeight (fun i ↦ (addSubMap W i).eval x) ≤ C₁ + 2 * logHeight x :=
+    logHeight_eval_le' <| isHomogeneous_addSubMap W
   obtain ⟨C₂, hC₂⟩ : ∃ C₂, ∀ x : Fin 3 → K,
-      logHeight (fun i ↦ (addSubMap a b i).eval x) ≥ C₂ + 2 * logHeight x := by
+      logHeight (fun i ↦ (addSubMap W i).eval x) ≥ C₂ + 2 * logHeight x := by
     have H (ij : Fin 3 × Fin 3) :
-        (C ((32 * a ^ 3 + 216 * b ^ 2)⁻¹) * addSubMapCoeff a b ij).IsHomogeneous 2 :=
-      IsHomogeneous.C_mul (isHomogenous_addSubMapCoeff a b ij) _
+        (C (↑W.Δ'⁻¹ : K) * addSubMapCoeff W ij).IsHomogeneous 2 :=
+      IsHomogeneous.C_mul (isHomogenous_addSubMapCoeff W ij) _
     obtain ⟨C₂, h⟩ := logHeight_eval_ge' H
-    exact ⟨C₂, fun x ↦ h _ <| addSubMapCoeff_condition hab x⟩
+    exact ⟨C₂, fun x ↦ h _ <| addSubMapCoeff_condition W x⟩
   refine ⟨max C₁ (-C₂), fun x ↦ abs_sub_le_iff.mpr ⟨?_, ?_⟩⟩ <;> grind
+
+end WeierstrassCurve
+
 -- end #36989
-
-end EllipticCurve
-
-end Height
 
 /-
 We work with affine points; this seems to be quite a bit less painful
@@ -178,9 +175,9 @@ than using projective points.
 
 namespace WeierstrassCurve.Affine
 
-open Height EllipticCurve
+open Height
 
-variable {K : Type*} [Field K] {a b : K} {W : Affine K}
+variable {K : Type*} [Field K] {W : Affine K}
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
 to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`.
@@ -245,87 +242,139 @@ We now assume that `W` is given by a short Weierstrass equation `y² = x³ + a *
 and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W`).
 -/
 
-variable (hab : 32 * a ^ 3 + 216 * b ^ 2 ≠ 0) (hW : W = (WeierstrassCurve.mk 0 0 0 a b).toAffine)
-
 open MvPolynomial Nat
 
 private
 lemma Point.sym2x_etc_P_zero [DecidableEq K] (P : W.Point) :
-    sym2x P P = fun i ↦ (addSubMap a b i).eval <| P.sym2x 0 := by
+    sym2x P P = fun i ↦ (addSubMap W i).eval <| P.sym2x 0 := by
   match P with
   | 0 =>
-    simp only [sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue, C_mul, C_pow]
+    simp only [sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue]
     ext i : 1
     fin_cases i <;> simp
   | some .. =>
-    simp only [sym2x_some_some, succ_eq_add_one, reduceAdd, sym2x_some_zero, addSubMap, Fin.isValue,
-      C_mul, C_pow]
+    simp only [sym2x_some_some, succ_eq_add_one, reduceAdd, sym2x_some_zero, addSubMap, Fin.isValue]
     ext i : 1
     fin_cases i <;> simp [pow_two, two_mul]
 
-include hW in
+section duplication
+
+open Polynomial
+
+variable (W)
+
+private noncomputable def den_duplication : Polynomial K :=
+  .C 4 * .X ^ 3 + .C W.b₂ * .X ^ 2 + .C (2 * W.b₄) * .X + .C W.b₆
+
+private noncomputable def num_duplication : Polynomial K :=
+  .X ^ 4 - .C W.b₄ * .X ^ 2 - .C (2 * W.b₆) * .X - .C W.b₈
+
+private lemma den_duplication_eval (x : K) :
+    W.den_duplication.eval x = 4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ := by
+  simp [den_duplication]
+
+private lemma num_duplication_eval (x : K) :
+    W.num_duplication.eval x = x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ := by
+  simp [num_duplication]
+
+private lemma sub_negY_eq (x y : K) : y - W.negY x y = 2 * y + W.a₁ * x + W.a₃ :=
+  by rw [negY]; ring
+
+end duplication
+
+private lemma aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by
+  field
+
+private lemma den_duplication_eq {x y : K} (h : W.Nonsingular x y) :
+    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = (2 * y + W.a₁ * x + W.a₃) ^ 2 := by
+  have Heq := (W.equation_iff x y).mp h.1
+  simp only [b₂, b₄, b₆]
+  linear_combination (norm := ring_nf) -4 * Heq
+
+private lemma den_duplication_eq_zero_iff {x y : K} (h : W.Nonsingular x y) :
+    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = 0 ↔ y = W.negY x y := by
+  rw [den_duplication_eq h, sq_eq_zero_iff, negY]
+  grind only
+
+private lemma Point.duplication_x [DecidableEq K] {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+    ∃ y' h', some x y h + some x y h =
+      some ((num_duplication W).eval x / (den_duplication W).eval x) y' h' := by
+  suffices W.addX x x (W.slope x x y y) = (num_duplication W).eval x / (den_duplication W).eval x by
+    simp only [add_self_of_Y_ne hn, ← this]
+    exact ⟨_, nonsingular_add h h <| by grind, rfl⟩
+  have hn' := (den_duplication_eq_zero_iff h).not.mpr hn
+  refine mul_left_cancel₀ hn' ?_
+  have hn'' : 2 * y + W.a₁ * x + W.a₃ ≠ 0 := by
+    rw [den_duplication_eq h] at hn'
+    grind
+  rw [num_duplication_eval, den_duplication_eval, mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub,
+    mul_sub, mul_add]
+  simp only [slope, ↓reduceIte, hn]
+  rw [sub_negY_eq, div_pow]
+  nth_rewrite 1 2 [den_duplication_eq h]
+  rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
+  linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h.1
+
 private
 lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap a b i).eval <| P.sym2x P := by
+    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
   rcases eq_or_ne P 0 with rfl | hP
   · refine ⟨1, one_ne_zero, ?_⟩
-    simp only [add_zero, sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue, C_mul,
-      C_pow]
+    simp only [add_zero, sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue]
     ext i : 1
     fin_cases i <;> simp
   match P with
   | some x y h =>
     have Heq := (W.equation_iff x y).mp h.1
-    simp only [hW, zero_mul, add_zero] at Heq
     by_cases! H : y = W.negY x y
-    · have H' : 4 * (x ^ 3 + a * x + b) = 0 := by
-        simp only [negY, hW, zero_mul, sub_zero] at H
-        grind only
-      have H'' : x ^ 4 - 2 * a * x ^ 2 - 8 * b * x + a ^ 2 ≠ 0 := by
-        have : -a + -(3 * x ^ 2) ≠ 0 ∨ 2 * y ≠ 0 := by
-          simpa [hW, polynomialX, polynomialY, Polynomial.evalEval_pow, Polynomial.evalEval_C] using h.2
-        rcases this with H₁ | H₁
-        · contrapose! H₁
-          rw [← sq_eq_zero_iff]
-          linear_combination 2 * x * H' + H₁
-        · grind only
+    · have HH : 2 * y + W.a₁ * x + W.a₃ = 0 := by
+        simp only [negY] at H
+        linear_combination H
+      -- The denominator of `x(2P)` vanishes...
+      have H' := (den_duplication_eq_zero_iff h).mpr H
+      -- but the numerator does not.
+      have H'' : x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ ≠ 0 := by
+        simp only [b₂, b₄, b₆, b₈] at H' ⊢
+        have : W.a₁ * y - (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) ≠ 0 := by
+          have := h.2
+          simp [polynomialX, polynomialY, Polynomial.evalEval_pow, Polynomial.evalEval_C] at this
+          grind
+        contrapose! this
+        rw [← sq_eq_zero_iff]
+        linear_combination
+          (6 * x * y + (W.a₁ ^ 2  + 4 * W.a₂) * y + 3 * W.a₃ * x - W.a₁ * W.a₄ + 2 * W.a₂ * W.a₃) * HH
+            - (x + W.a₂) * H' + this - (12 * x + 8 * W.a₂ + W.a₁ ^ 2) * Heq
+      -- The numerator of `x(2P)` is our `t`.
       refine ⟨_, H'', ?_⟩
       rw [add_self_of_Y_eq H, sym2x_zero_zero, sym2x_some_some, addSubMap]
       ext i : 1
       fin_cases i <;> { simp; grind only }
-    · have H' : 4 * (x ^ 3 + a * x + b) ≠ 0 := by
-        simp [negY, hW] at H
-        grind only
+    · -- In the general case, the denominator of `x(2P)` does not vanish.
+      have H' := (den_duplication_eq_zero_iff h).not.mpr H
+      -- This denominator is our `t`.
       refine ⟨_, H', ?_⟩
-      have Hsl : W.slope x x y y ^ 2 + W.a₁ * W.slope x x y y - W.a₂ =
-          (3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) := by
-        rw [slope_of_Y_ne_eq_evalEval rfl H, ← Heq]
-        suffices (2 * y) ^ 2 = 4 * y ^ 2 by
-          simp [polynomialX, polynomialY, hW, Polynomial.evalEval_C, div_pow, this]
-        ring
-      rw [add_self_of_Y_ne H, sym2x_some_zero, sym2x_some_some, addSubMap]
-      simp only [succ_eq_add_one, reduceAdd, addX, Hsl, Fin.isValue, C_mul, C_pow]
+      obtain ⟨_, _, h₂⟩ := duplication_x h H
+      simp_rw [h₂, num_duplication_eval, den_duplication_eval]
+      rw [sym2x_some_zero, sym2x_some_some, addSubMap]
+      simp only [succ_eq_add_one, reduceAdd, Matrix.smul_cons, smul_eq_mul, mul_one, mul_zero,
+        Matrix.smul_empty, Fin.isValue]
       ext i : 1
       fin_cases i
-      · suffices 4 * (x ^ 3 + a * x + b) * ((3 * x ^ 2 + a) ^ 2 / (4 * (x ^ 3 + a * x + b)) - x - x) =
-            (x * x) ^ 2 - 2 * a * (x * x) - 4 * b * (x + x) + a ^ 2 by
-          simpa using this
-        rw [mul_sub, mul_sub, mul_div_cancel₀ _ H']
+      · simp [mul_div_cancel₀ _ H']
         ring
       all_goals { simp; ring }
 
-include hW in
 lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap a b i).eval <| P.sym2x Q := by
+    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| P.sym2x Q := by
   rcases eq_or_ne Q 0 with rfl | hQ₀
   · exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
   rcases eq_or_ne P 0 with rfl | hP₀
   · refine ⟨1, one_ne_zero, ?_⟩
     simpa [sym2x_neg_right, Point.sym2x_comm _ Q] using Q.sym2x_etc_P_zero
   rcases eq_or_ne P Q with rfl | hPQ
-  · simpa using P.sym2x_etc_P_P hW
+  · simpa using P.sym2x_etc_P_P
   rcases eq_or_ne Q (-P) with rfl | hPQ'
-  · simpa [sym2x_neg_right, Point.sym2x_comm 0] using P.sym2x_etc_P_P hW
+  · simpa [sym2x_neg_right, Point.sym2x_comm 0] using P.sym2x_etc_P_P
   match P, Q with
   | some xP yP hP, some xQ yQ hQ =>
     have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [X_eq_iff.mp Heq]
@@ -333,27 +382,22 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
     refine ⟨_, hxPQ', ?_⟩
     have HeqP := (W.equation_iff xP yP).mp hP.1
     have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
-    simp only [hW, zero_mul, add_zero] at HeqP HeqQ
     rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some ..), neg_some hQ,
       add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
-    simp only [addX, slope, hxPQ, ↓reduceIte, hW, zero_mul, add_zero, sub_zero, addY, negY,
-      negAddY, neg_add_rev, sub_neg_eq_add, sym2x_some_some, succ_eq_add_one, reduceAdd, C_pow,
-      Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty, addSubMap, Fin.isValue, C_mul]
+    simp only [addX, slope, hxPQ, ↓reduceIte, addY, negY,
+      negAddY, neg_add_rev, sym2x_some_some, succ_eq_add_one, reduceAdd,
+      Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty, addSubMap, Fin.isValue]
     ext i : 1
     fin_cases i
-    · simp only [reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero, map_add, map_sub,
-        map_pow, eval_X, map_mul, eval_C, Matrix.cons_val, mul_one, Matrix.cons_val_one, one_pow]
-      rw [div_pow, div_pow, ← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _), mul_left_comm]
-      simp only [mul_sub, mul_div_cancel₀ _ hxPQ']
-      conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
-      rw [show yP ^ 4 = (yP ^ 2) ^ 2 by ring, show yQ ^ 4 = (yQ ^ 2) ^ 2 by ring, HeqP, HeqQ]
-      ring
-    · simp only [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', reduceAdd, Fin.mk_one,
-        Fin.isValue, Matrix.cons_val_one, Matrix.cons_val_zero, map_add, map_mul, eval_C, eval_X,
-        Matrix.cons_val, mul_one, map_pow, one_pow]
-      conv_lhs => ring_nf -- eliminate odd powers of `yP`, `yQ`
-      rw [HeqP, HeqQ]
-      ring
+    · simp only [reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero, Matrix.cons_val,
+        Matrix.cons_val_one, map_sub, map_pow, eval_X, map_mul, eval_C, mul_one, one_pow]
+      rw [← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _), mul_left_comm, b₄, b₆, b₈]
+      simp_rw [div_pow, sub_sub, mul_sub _ _ (W.a₂ + xP + xQ), mul_add _ (_ / _),
+        mul_div_cancel₀ _ hxPQ', aux <| sub_ne_zero.mpr hxPQ]
+      grobner
+    · simp [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', aux <| sub_ne_zero.mpr hxPQ,
+        b₂, b₄, b₆, b₈]
+      grobner
     · simp
       ring
 
@@ -378,7 +422,8 @@ lemma Point.naiveHeight_eq_logHeight₁ {P : W.Point} :
   | 0 => simp [naiveHeight, xRep]
   | some .. => simpa [naiveHeight] using (logHeight₁_eq_logHeight _).symm
 
-variable (W) in
+variable (W)
+
 lemma abs_logHeight_sym2x_sub_le :
     ∃ C, ∀ P Q : W.Point, |logHeight (P.sym2x Q) - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le K
@@ -391,16 +436,17 @@ lemma abs_logHeight_sym2x_sub_le :
   rw [H P.xRep, H Q.xRep] at *
   grind only [= abs.eq_1, = max_def]
 
-include hab hW in
+variable [W.toAffine.IsElliptic]
+
 /-- The "approximate parallelogram law" for the naïve height on an elliptic curve
 given by a short Weierstrass equation. -/
 theorem approx_parallelogram_law [DecidableEq K] :
     ∃ C, ∀ (P Q : W.Point),
       |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := abs_logHeight_sym2x_sub_le W
-  obtain ⟨C₂, hC₂⟩ := abs_logHeight_addSubMap_sub_two_mul_logHeight_le hab
+  obtain ⟨C₂, hC₂⟩ := abs_logHeight_addSubMap_sub_two_mul_logHeight_le W
   refine ⟨3 * C₁ + C₂, fun P Q ↦ ?_⟩
-  obtain ⟨t, ht₀, ht⟩ := Point.sym2x_add_sub_eq_addSubMap_sym2x hW P Q
+  obtain ⟨t, ht₀, ht⟩ := Point.sym2x_add_sub_eq_addSubMap_sym2x P Q
   replace ht := congrArg logHeight ht
   rw [Height.logHeight_smul_eq_logHeight _ ht₀] at ht
   have hPQ := hC₁ P Q
@@ -449,9 +495,8 @@ This is an important ingredient for the *Mordell-Weil Theorem*. -/
 lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Finite :=
   Northcott.finite_le B
 
-variable [DecidableEq K]
+variable [DecidableEq K] [W.toAffine.IsElliptic]
 
-include hab hW in
 /-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
 `E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
 field `K` that satisfies the Northcott property with respect to `logHeight₁`. -/
@@ -460,7 +505,7 @@ theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.
   have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
     rw [Point.naiveHeight_eq_logHeight P]
     positivity
-  obtain ⟨C, hC⟩ := approx_parallelogram_law hab hW
+  obtain ⟨C, hC⟩ := approx_parallelogram_law W
   exact AddCommGroup.fg_of_descent' weakMW H₂ hC
 
 end Northcott
