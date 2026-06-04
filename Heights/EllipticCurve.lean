@@ -244,8 +244,7 @@ and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W
 
 open MvPolynomial Nat
 
-private
-lemma Point.sym2x_etc_P_zero [DecidableEq K] (P : W.Point) :
+private lemma Point.sym2x_etc_P_zero (P : W.Point) :
     sym2x P P = fun i ↦ (addSubMap W i).eval <| P.sym2x 0 := by
   match P with
   | 0 =>
@@ -285,38 +284,42 @@ end duplication
 private lemma aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by
   field
 
-private lemma den_duplication_eq {x y : K} (h : W.Nonsingular x y) :
+private lemma den_duplication_eq {x y : K} (h : W.Equation x y) :
     4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = (2 * y + W.a₁ * x + W.a₃) ^ 2 := by
-  have Heq := (W.equation_iff x y).mp h.1
+  have Heq := (W.equation_iff x y).mp h
   simp only [b₂, b₄, b₆]
   linear_combination (norm := ring_nf) -4 * Heq
 
-private lemma den_duplication_eq_zero_iff {x y : K} (h : W.Nonsingular x y) :
+private lemma den_duplication_eq_zero_iff {x y : K} (h : W.Equation x y) :
     4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = 0 ↔ y = W.negY x y := by
   rw [den_duplication_eq h, sq_eq_zero_iff, negY]
   grind only
 
-private lemma Point.duplication_x [DecidableEq K] {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+section Decidable
+
+variable [DecidableEq K]
+
+private lemma Point.duplication_x {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
     ∃ y' h', some x y h + some x y h =
       some ((num_duplication W).eval x / (den_duplication W).eval x) y' h' := by
   suffices W.addX x x (W.slope x x y y) = (num_duplication W).eval x / (den_duplication W).eval x by
     simp only [add_self_of_Y_ne hn, ← this]
     exact ⟨_, nonsingular_add h h <| by grind, rfl⟩
-  have hn' := (den_duplication_eq_zero_iff h).not.mpr hn
+  have hn' := (den_duplication_eq_zero_iff h.1).not.mpr hn
   refine mul_left_cancel₀ hn' ?_
   have hn'' : 2 * y + W.a₁ * x + W.a₃ ≠ 0 := by
-    rw [den_duplication_eq h] at hn'
+    rw [den_duplication_eq h.1] at hn'
     grind
   rw [num_duplication_eval, den_duplication_eval, mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub,
     mul_sub, mul_add]
   simp only [slope, ↓reduceIte, hn]
   rw [sub_negY_eq, div_pow]
-  nth_rewrite 1 2 [den_duplication_eq h]
+  nth_rewrite 1 2 [den_duplication_eq h.1]
   rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
   linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h.1
 
 private
-lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
+lemma Point.sym2x_etc_P_P (P : W.Point) :
     ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
   rcases eq_or_ne P 0 with rfl | hP
   · refine ⟨1, one_ne_zero, ?_⟩
@@ -331,7 +334,7 @@ lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
         simp only [negY] at H
         linear_combination H
       -- The denominator of `x(2P)` vanishes...
-      have H' := (den_duplication_eq_zero_iff h).mpr H
+      have H' := (den_duplication_eq_zero_iff h.1).mpr H
       -- but the numerator does not.
       have H'' : x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ ≠ 0 := by
         simp only [b₂, b₄, b₆, b₈] at H' ⊢
@@ -350,7 +353,7 @@ lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
       ext i : 1
       fin_cases i <;> { simp; grind only }
     · -- In the general case, the denominator of `x(2P)` does not vanish.
-      have H' := (den_duplication_eq_zero_iff h).not.mpr H
+      have H' := (den_duplication_eq_zero_iff h.1).not.mpr H
       -- This denominator is our `t`.
       refine ⟨_, H', ?_⟩
       obtain ⟨_, _, h₂⟩ := duplication_x h H
@@ -364,7 +367,7 @@ lemma Point.sym2x_etc_P_P [DecidableEq K] (P : W.Point) :
         ring
       all_goals { simp; ring }
 
-lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
+lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
     ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| P.sym2x Q := by
   rcases eq_or_ne Q 0 with rfl | hQ₀
   · exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
@@ -400,6 +403,8 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x [DecidableEq K] (P Q : W.Point) :
       grobner
     · simp
       ring
+
+end Decidable
 
 /-!
 ### The naïve height
