@@ -256,30 +256,9 @@ private lemma Point.sym2x_etc_P_zero (P : W.Point) :
     ext i : 1
     fin_cases i <;> simp [pow_two, two_mul]
 
-section duplication
-
-open Polynomial
-
-variable (W)
-
-private noncomputable def den_duplication : Polynomial K :=
-  .C 4 * .X ^ 3 + .C W.b₂ * .X ^ 2 + .C (2 * W.b₄) * .X + .C W.b₆
-
-private noncomputable def num_duplication : Polynomial K :=
-  .X ^ 4 - .C W.b₄ * .X ^ 2 - .C (2 * W.b₆) * .X - .C W.b₈
-
-private lemma den_duplication_eval (x : K) :
-    W.den_duplication.eval x = 4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ := by
-  simp [den_duplication]
-
-private lemma num_duplication_eval (x : K) :
-    W.num_duplication.eval x = x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ := by
-  simp [num_duplication]
-
+variable (W) in
 private lemma sub_negY_eq (x y : K) : y - W.negY x y = 2 * y + W.a₁ * x + W.a₃ :=
   by rw [negY]; ring
-
-end duplication
 
 private lemma aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by
   field
@@ -299,44 +278,56 @@ section Decidable
 
 variable [DecidableEq K]
 
-private lemma Point.duplication_x {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
-    ∃ y' h', some x y h + some x y h =
-      some ((num_duplication W).eval x / (den_duplication W).eval x) y' h' := by
-  suffices W.addX x x (W.slope x x y y) = (num_duplication W).eval x / (den_duplication W).eval x by
-    simp only [add_self_of_Y_ne hn, ← this]
-    exact ⟨_, nonsingular_add h h <| by grind, rfl⟩
+private lemma addX_x_x_slope_eq {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+    W.addX x x (W.slope x x y y) =
+      (x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
+        (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆) := by
   have hn' := (den_duplication_eq_zero_iff h.1).not.mpr hn
   refine mul_left_cancel₀ hn' ?_
   have hn'' : 2 * y + W.a₁ * x + W.a₃ ≠ 0 := by
     rw [den_duplication_eq h.1] at hn'
     grind
-  rw [num_duplication_eval, den_duplication_eval, mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub,
-    mul_sub, mul_add]
+  rw [mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub, mul_sub, mul_add]
   simp only [slope, ↓reduceIte, hn]
   rw [sub_negY_eq, div_pow]
   nth_rewrite 1 2 [den_duplication_eq h.1]
   rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
   linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h.1
 
+private lemma Point.xRep_add_self_of_ne {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+    (some x y h + some x y h).xRep =
+      ![(x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
+        (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆), 1] := by
+  simp only [add_self_of_Y_ne hn, ← addX_x_x_slope_eq h hn, xRep_some]
+
+private lemma Point.xRep_add_self_of_eq {x y : K} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
+    (some x y h + some x y h).xRep = ![1, 0] := by
+  simp only [add_self_of_Y_eq hn, xRep_zero]
+
 private
 lemma Point.sym2x_etc_P_P (P : W.Point) :
     ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
-  rcases eq_or_ne P 0 with rfl | hP
-  · refine ⟨1, one_ne_zero, ?_⟩
+  match P with
+  | 0 =>
+    refine ⟨1, one_ne_zero, ?_⟩
     simp only [add_zero, sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue]
     ext i : 1
     fin_cases i <;> simp
-  match P with
   | some x y h =>
     have Heq := (W.equation_iff x y).mp h.1
+    have Hrs : (fun i ↦ (addSubMap W i).eval <| (some x y h).sym2x (some x y h)) =
+          ![x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈,
+            4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆, 0] := by
+      ext i : 1
+      fin_cases i <;> simp [addSubMap] <;> ring
+    simp only [Hrs]
     by_cases! H : y = W.negY x y
-    · have HH : 2 * y + W.a₁ * x + W.a₃ = 0 := by
-        simp only [negY] at H
-        linear_combination H
-      -- The denominator of `x(2P)` vanishes...
-      have H' := (den_duplication_eq_zero_iff h.1).mpr H
-      -- but the numerator does not.
-      have H'' : x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ ≠ 0 := by
+    · simp only [(den_duplication_eq_zero_iff h.1).mpr H]
+      refine ⟨x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈, ?_, ?_⟩
+      · have HH : 2 * y + W.a₁ * x + W.a₃ = 0 := by
+          simp only [negY] at H
+          linear_combination H
+        have H' := (den_duplication_eq_zero_iff h.1).mpr H
         simp only [b₂, b₄, b₆, b₈] at H' ⊢
         have : W.a₁ * y - (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) ≠ 0 := by
           have := h.2
@@ -344,41 +335,25 @@ lemma Point.sym2x_etc_P_P (P : W.Point) :
           grind
         contrapose! this
         rw [← sq_eq_zero_iff]
-        linear_combination
-          (6 * x * y + (W.a₁ ^ 2  + 4 * W.a₂) * y + 3 * W.a₃ * x - W.a₁ * W.a₄ + 2 * W.a₂ * W.a₃) * HH
-            - (x + W.a₂) * H' + this - (12 * x + 8 * W.a₂ + W.a₁ ^ 2) * Heq
-      -- The numerator of `x(2P)` is our `t`.
-      refine ⟨_, H'', ?_⟩
-      rw [add_self_of_Y_eq H, sym2x_zero_zero, sym2x_some_some, addSubMap]
-      ext i : 1
-      fin_cases i <;> { simp; grind only }
+        grobner
+      · simp [sym2x, xRep_add_self_of_eq h H]
     · -- In the general case, the denominator of `x(2P)` does not vanish.
       have H' := (den_duplication_eq_zero_iff h.1).not.mpr H
       -- This denominator is our `t`.
       refine ⟨_, H', ?_⟩
-      obtain ⟨_, _, h₂⟩ := duplication_x h H
-      simp_rw [h₂, num_duplication_eval, den_duplication_eval]
-      rw [sym2x_some_zero, sym2x_some_some, addSubMap]
-      simp only [succ_eq_add_one, reduceAdd, Matrix.smul_cons, smul_eq_mul, mul_one, mul_zero,
-        Matrix.smul_empty, Fin.isValue]
-      ext i : 1
-      fin_cases i
-      · simp [mul_div_cancel₀ _ H']
-        ring
-      all_goals { simp; ring }
+      simp [sym2x, Point.xRep_add_self_of_ne h H, mul_div_cancel₀ _ H']
 
 lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
     ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| P.sym2x Q := by
-  rcases eq_or_ne Q 0 with rfl | hQ₀
-  · exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
-  rcases eq_or_ne P 0 with rfl | hP₀
-  · refine ⟨1, one_ne_zero, ?_⟩
-    simpa [sym2x_neg_right, Point.sym2x_comm _ Q] using Q.sym2x_etc_P_zero
   rcases eq_or_ne P Q with rfl | hPQ
   · simpa using P.sym2x_etc_P_P
   rcases eq_or_ne Q (-P) with rfl | hPQ'
   · simpa [sym2x_neg_right, Point.sym2x_comm 0] using P.sym2x_etc_P_P
   match P, Q with
+  | P, 0 =>  exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
+  | 0, Q =>
+    refine ⟨1, one_ne_zero, ?_⟩
+    simpa [sym2x_neg_right, sym2x_comm _ Q] using Q.sym2x_etc_P_zero
   | some xP yP hP, some xQ yQ hQ =>
     have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [X_eq_iff.mp Heq]
     have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
