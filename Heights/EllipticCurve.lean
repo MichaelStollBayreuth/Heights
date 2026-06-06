@@ -175,8 +175,6 @@ than using projective points.
 
 namespace WeierstrassCurve.Affine
 
-open Height
-
 variable {K : Type*} [Field K] {W : Affine K}
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
@@ -444,6 +442,8 @@ end Decidable
 
 section AAV
 
+open Height
+
 variable [AdmissibleAbsValues K]
 
 /-- The naïve logarithmic height of an affine point on `W`. -/
@@ -498,6 +498,8 @@ theorem approx_parallelogram_law [DecidableEq K] :
 end AAV
 
 section Northcott
+
+open Height
 
 variable [AdmissibleAbsValues K]
 
