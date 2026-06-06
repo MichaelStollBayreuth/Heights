@@ -244,7 +244,22 @@ and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W
 
 open MvPolynomial Nat
 
-private lemma Point.sym2x_etc_P_zero (P : W.Point) :
+variable (W) in
+lemma sub_negY_eq (x y : K) : y - W.negY x y = 2 * y + W.a₁ * x + W.a₃ :=
+  by rw [negY]; ring
+
+lemma den_duplication_eq {x y : K} (h : W.Equation x y) :
+    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = (2 * y + W.a₁ * x + W.a₃) ^ 2 := by
+  have Heq := (W.equation_iff x y).mp h
+  simp only [b₂, b₄, b₆]
+  linear_combination -4 * Heq
+
+lemma den_duplication_eq_zero_iff {x y : K} (h : W.Equation x y) :
+    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = 0 ↔ y = W.negY x y := by
+  rw [den_duplication_eq h, sq_eq_zero_iff, negY]
+  grind only
+
+private lemma Point.sym2x_P_P_eq_addSubMap (P : W.Point) :
     sym2x P P = fun i ↦ (addSubMap W i).eval <| P.sym2x 0 := by
   match P with
   | 0 =>
@@ -256,61 +271,79 @@ private lemma Point.sym2x_etc_P_zero (P : W.Point) :
     ext i : 1
     fin_cases i <;> simp [pow_two, two_mul]
 
-variable (W) in
-private lemma sub_negY_eq (x y : K) : y - W.negY x y = 2 * y + W.a₁ * x + W.a₃ :=
-  by rw [negY]; ring
-
-private lemma aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by
-  field
-
-private lemma den_duplication_eq {x y : K} (h : W.Equation x y) :
-    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = (2 * y + W.a₁ * x + W.a₃) ^ 2 := by
-  have Heq := (W.equation_iff x y).mp h
-  simp only [b₂, b₄, b₆]
-  linear_combination (norm := ring_nf) -4 * Heq
-
-private lemma den_duplication_eq_zero_iff {x y : K} (h : W.Equation x y) :
-    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = 0 ↔ y = W.negY x y := by
-  rw [den_duplication_eq h, sq_eq_zero_iff, negY]
-  grind only
-
 section Decidable
 
 variable [DecidableEq K]
 
-private lemma addX_x_x_slope_eq {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+private lemma addX_x_x_slope_eq {x y : K} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
     W.addX x x (W.slope x x y y) =
       (x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆) := by
-  have hn' := (den_duplication_eq_zero_iff h.1).not.mpr hn
+  have aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by field
+  have hn' := (den_duplication_eq_zero_iff h).not.mpr hn
   refine mul_left_cancel₀ hn' ?_
   have hn'' : 2 * y + W.a₁ * x + W.a₃ ≠ 0 := by
-    rw [den_duplication_eq h.1] at hn'
+    rw [den_duplication_eq h] at hn'
     grind
   rw [mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub, mul_sub, mul_add]
   simp only [slope, ↓reduceIte, hn]
   rw [sub_negY_eq, div_pow]
-  nth_rewrite 1 2 [den_duplication_eq h.1]
+  nth_rewrite 1 2 [den_duplication_eq h]
   rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
-  linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h.1
+  linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h
 
-private lemma Point.xRep_add_self_of_ne {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+/-- We given an explicit expression for `xRep` of `P + P` when `2*P ≠ 0`. -/
+lemma Point.xRep_add_self_of_ne {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
     (some x y h + some x y h).xRep =
       ![(x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆), 1] := by
-  simp only [add_self_of_Y_ne hn, ← addX_x_x_slope_eq h hn, xRep_some]
+  simp only [add_self_of_Y_ne hn, ← addX_x_x_slope_eq h.1 hn, xRep_some]
 
-private lemma Point.xRep_add_self_of_eq {x y : K} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
+/-- We given an explicit expression for `xRep` of `P + P` when `P ≠ 0` and `2*P = 0`. -/
+lemma Point.xRep_add_self_of_eq {x y : K} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
     (some x y h + some x y h).xRep = ![1, 0] := by
   simp only [add_self_of_Y_eq hn, xRep_zero]
 
-private
-lemma Point.sym2x_etc_P_P (P : W.Point) :
+private lemma addX_slope_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
+     W.addX xP xQ (W.slope xP xQ yP yQ) =
+       ((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
+         (xP - xQ) ^ 2 := by
+  have hxPQ' : xP - xQ ≠ 0 := by grind only
+  simp [addX, slope, hn, div_pow]
+  field
+
+private lemma addX_slope_negY_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
+     W.addX xP xQ (W.slope xP xQ yP <| W.negY xQ yQ) =
+       ((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
+           - (W.a₂ + xP + xQ) * (xP - xQ) ^2) / (xP - xQ) ^ 2 := by
+  have hxPQ' : (xP - xQ) ≠ 0 := by grind only
+  simp [addX, slope, hn, div_pow]
+  field
+
+/-- We given an explicit expression for `xRep` of `P + Q` when `P ≠ ±Q`. -/
+lemma Point.xRep_add_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
+    (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
+    (some xP yP hP + some xQ yQ hQ).xRep =
+      ![((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
+         (xP - xQ) ^ 2, 1] := by
+  simp only [add_of_X_ne (h₁ := hP) (h₂ := hQ) hn, xRep_some, addX_slope_of_x_ne_x hn]
+
+/-- We given an explicit expression for `xRep` of `P - Q` when `P ≠ ±Q`. -/
+lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
+    (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
+    (some xP yP hP - some xQ yQ hQ).xRep =
+      ![((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
+           - (W.a₂ + xP + xQ) * (xP - xQ) ^2) / (xP - xQ) ^ 2, 1] := by
+  simp only [sub_eq_add_neg (some ..), neg_some hQ,
+    add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hn, xRep_some,
+    addX_slope_negY_of_x_ne_x hn]
+
+private lemma Point.sym2x_etc_P_P (P : W.Point) :
     ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
   match P with
   | 0 =>
     refine ⟨1, one_ne_zero, ?_⟩
-    simp only [add_zero, sym2x_zero_zero, succ_eq_add_one, reduceAdd, addSubMap, Fin.isValue]
+    rw [add_zero, sym2x_zero_zero, one_smul, addSubMap]
     ext i : 1
     fin_cases i <;> simp
   | some x y h =>
@@ -322,62 +355,51 @@ lemma Point.sym2x_etc_P_P (P : W.Point) :
       fin_cases i <;> simp [addSubMap] <;> ring
     simp only [Hrs]
     by_cases! H : y = W.negY x y
-    · simp only [(den_duplication_eq_zero_iff h.1).mpr H]
-      refine ⟨x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈, ?_, ?_⟩
-      · have HH : 2 * y + W.a₁ * x + W.a₃ = 0 := by
-          simp only [negY] at H
-          linear_combination H
-        have H' := (den_duplication_eq_zero_iff h.1).mpr H
-        simp only [b₂, b₄, b₆, b₈] at H' ⊢
-        have : W.a₁ * y - (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) ≠ 0 := by
-          have := h.2
-          simp [polynomialX, polynomialY, Polynomial.evalEval_pow, Polynomial.evalEval_C] at this
-          grind
-        contrapose! this
-        rw [← sq_eq_zero_iff]
-        grobner
-      · simp [sym2x, xRep_add_self_of_eq h H]
+    · have H₁ := (den_duplication_eq_zero_iff h.1).mpr H
+      simp only [H₁]
+      rw [add_self_of_Y_eq H, sym2x_zero_zero]
+      suffices x ^ 4 - b₄ W * x ^ 2 - 2 * b₆ W * x - b₈ W ≠ 0 by
+        simpa using this
+      simp only [b₂, b₄, b₆, b₈] at H₁ ⊢
+      have H₂ : 2 * y + W.a₁ * x + W.a₃ = 0 := by grind [negY]
+      have H₃ := (W.nonsingular_iff' x y).mp h
+      grind
     · -- In the general case, the denominator of `x(2P)` does not vanish.
       have H' := (den_duplication_eq_zero_iff h.1).not.mpr H
       -- This denominator is our `t`.
       refine ⟨_, H', ?_⟩
       simp [sym2x, Point.xRep_add_self_of_ne h H, mul_div_cancel₀ _ H']
 
+/-- `sym2x (P + Q) (P - Q)` is equal, up to scaling by a nonzero constant, to `addSubMap W`
+applied to `sym2x P Q`. -/
 lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| P.sym2x Q := by
+    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| sym2x P Q := by
   rcases eq_or_ne P Q with rfl | hPQ
   · simpa using P.sym2x_etc_P_P
   rcases eq_or_ne Q (-P) with rfl | hPQ'
   · simpa [sym2x_neg_right, Point.sym2x_comm 0] using P.sym2x_etc_P_P
   match P, Q with
-  | P, 0 =>  exact ⟨1, one_ne_zero, by simpa using P.sym2x_etc_P_zero⟩
+  | P, 0 =>  exact ⟨1, one_ne_zero, by simpa using P.sym2x_P_P_eq_addSubMap⟩
   | 0, Q =>
     refine ⟨1, one_ne_zero, ?_⟩
-    simpa [sym2x_neg_right, sym2x_comm _ Q] using Q.sym2x_etc_P_zero
+    simpa [sym2x_neg_right, sym2x_comm _ Q] using Q.sym2x_P_P_eq_addSubMap
   | some xP yP hP, some xQ yQ hQ =>
     have hxPQ : xP ≠ xQ := fun Heq ↦ by grind only [X_eq_iff.mp Heq]
-    have hxPQ' : (xP - xQ) ^ 2 ≠ 0 := by grind only
-    refine ⟨_, hxPQ', ?_⟩
+    have Hrs : (fun i ↦ (addSubMap W i).eval <| (some xP yP hP).sym2x (some xQ yQ hQ)) =
+        ![(xP * xQ) ^ 2 - W.b₄ * (xP * xQ) - W.b₆ * (xP + xQ) - W.b₈,
+          2 * (xP + xQ) * (xP * xQ) + W.b₂ * (xP * xQ) + W.b₄ * (xP + xQ) + W.b₆,
+          (xP - xQ) ^ 2] := by
+      ext i : 1
+      fin_cases i <;> simp [addSubMap]
+      ring
+    have : xP - xQ ≠ 0 := sub_ne_zero_of_ne hxPQ
+    refine ⟨(xP - xQ) ^ 2, pow_ne_zero 2 this, ?_⟩
+    -- The following relations are needed for the `grobner` calls below.
     have HeqP := (W.equation_iff xP yP).mp hP.1
     have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
-    rw [add_of_X_ne (h₁ := hP) (h₂ := hQ) hxPQ, sub_eq_add_neg (some ..), neg_some hQ,
-      add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hxPQ]
-    simp only [addX, slope, hxPQ, ↓reduceIte, addY, negY,
-      negAddY, neg_add_rev, sym2x_some_some, succ_eq_add_one, reduceAdd,
-      Matrix.smul_cons, smul_eq_mul, mul_one, Matrix.smul_empty, addSubMap, Fin.isValue]
+    rw [Hrs, sym2x, xRep_add_of_ne hP hQ hxPQ, xRep_add_neg_of_ne hP hQ hxPQ, b₂, b₄, b₆, b₈]
     ext i : 1
-    fin_cases i
-    · simp only [reduceAdd, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero, Matrix.cons_val,
-        Matrix.cons_val_one, map_sub, map_pow, eval_X, map_mul, eval_C, mul_one, one_pow]
-      rw [← mul_right_inj' hxPQ', ← mul_assoc _ (_ - _ - _), mul_left_comm, b₄, b₆, b₈]
-      simp_rw [div_pow, sub_sub, mul_sub _ _ (W.a₂ + xP + xQ), mul_add _ (_ / _),
-        mul_div_cancel₀ _ hxPQ', aux <| sub_ne_zero.mpr hxPQ]
-      grobner
-    · simp [div_pow, mul_sub, mul_add, mul_div_cancel₀ _ hxPQ', aux <| sub_ne_zero.mpr hxPQ,
-        b₂, b₄, b₆, b₈]
-      grobner
-    · simp
-      ring
+    fin_cases i <;> simp [field] <;> grobner
 
 end Decidable
 
@@ -418,8 +440,7 @@ lemma abs_logHeight_sym2x_sub_le :
 
 variable [W.toAffine.IsElliptic]
 
-/-- The "approximate parallelogram law" for the naïve height on an elliptic curve
-given by a short Weierstrass equation. -/
+/-- The "approximate parallelogram law" for the naïve height on an elliptic curve. -/
 theorem approx_parallelogram_law [DecidableEq K] :
     ∃ C, ∀ (P Q : W.Point),
       |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
