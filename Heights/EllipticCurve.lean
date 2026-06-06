@@ -346,6 +346,22 @@ lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
 
 end Decidable
 
+lemma finite_preimage_xRep (x : K) : {P : W.Point | P.xRep = ![x, 1]}.Finite := by
+  rcases Set.eq_empty_or_nonempty {P : W.Point | P.xRep = ![x, 1]} with h | h
+  · exact h ▸ Set.finite_empty
+  choose Q hQ using h
+  simp only [Set.mem_setOf_eq] at hQ
+  rw [show {P | P.xRep = ![x, 1]} = {Q, -Q} by ext : 1; simp [← hQ, Point.xRep_eq_xRep_iff]]
+  simp
+
+lemma finite_preimage_xRep0 (x : K) : {P : W.Point | P.xRep 0 = x}.Finite := by
+  have : {P : W.Point | P.xRep 0 = x} ⊆ {P | P.xRep = ![x, 1]} ∪ {0} := by
+    intro P hP
+    match P with
+    | 0 => simp
+    | .some x' y h => simp_all [Point.xRep_some]
+  exact (finite_preimage_xRep x).union (Set.finite_singleton 0) |>.subset this
+
 -- end #40303
 
 private lemma Point.sym2x_P_P_eq_addSubMap (P : W.Point) :
@@ -482,22 +498,6 @@ theorem approx_parallelogram_law [DecidableEq K] :
 end AAV
 
 section Northcott
-
-lemma finite_preimage_xRep (x : K) : {P : W.Point | P.xRep = ![x, 1]}.Finite := by
-  rcases Set.eq_empty_or_nonempty {P : W.Point | P.xRep = ![x, 1]} with h | h
-  · exact h ▸ Set.finite_empty
-  choose Q hQ using h
-  simp only [Set.mem_setOf_eq] at hQ
-  rw [show {P | P.xRep = ![x, 1]} = {Q, -Q} by ext : 1; simp [← hQ, Point.xRep_eq_xRep_iff]]
-  simp
-
-lemma finite_preimage_xRep0 (x : K) : {P : W.Point | P.xRep 0 = x}.Finite := by
-  have : {P : W.Point | P.xRep 0 = x} ⊆ {P | P.xRep = ![x, 1]} ∪ {0} := by
-    intro P hP
-    match P with
-    | 0 => simp
-    | .some x' y h => simp_all [Point.xRep_some]
-  exact (finite_preimage_xRep x).union (Set.finite_singleton 0) |>.subset this
 
 variable [AdmissibleAbsValues K]
 
