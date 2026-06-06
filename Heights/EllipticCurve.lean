@@ -381,10 +381,9 @@ private lemma Point.sym2x_etc_P_P (P : W.Point) :
       fin_cases i <;> simp [addSubMap] <;> ring
     rw [Hrs]
     by_cases! H : y = W.negY x y
-    · have H₁ := (den_duplication_eq_zero_iff h.1).mpr H
-      simp only [H₁]
-      rw [add_self_of_Y_eq H, sym2x_zero_zero]
-      refine ⟨_, den_duplication_ne_zero_or_num_duplication_ne_zero h |>.neg_resolve_left H₁, ?_⟩
+    · have H' := (den_duplication_eq_zero_iff h.1).mpr H
+      rw [H', add_self_of_Y_eq H, sym2x_zero_zero]
+      refine ⟨_, den_duplication_ne_zero_or_num_duplication_ne_zero h |>.neg_resolve_left H', ?_⟩
       simp
     · have H' := (den_duplication_eq_zero_iff h.1).not.mpr H
       refine ⟨_, H', ?_⟩
