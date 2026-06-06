@@ -175,54 +175,54 @@ than using projective points.
 
 namespace WeierstrassCurve.Affine
 
-variable {K : Type*} [Field K] {W : Affine K}
+variable {R : Type*} [CommRing R] {W' : Affine R}
 
 /-- This map sends a pair `P`, `Q` of affine points on `W`
 to a triple projectively equivalent to `![x(P) * x(Q), x(P) + x(Q), 1]`.
 
 In more geometric terms, this is the map `Sym² W → Sym² ℙ¹ ≃ ℙ²` induced by `x : W → ℙ¹`. -/
-noncomputable def Point.sym2x (P Q : W.Point) : Fin 3 → K :=
+noncomputable def Point.sym2x (P Q : W'.Point) : Fin 3 → R :=
   letI Px := P.xRep
   letI Qx := Q.xRep
   ![Px 0 * Qx 0, Px 0 * Qx 1 + Px 1 * Qx 0, Px 1 * Qx 1]
 
 @[simp]
-lemma Point.sym2x_zero_zero : (0 : W.Point).sym2x 0 = ![1, 0, 0] := by
+lemma Point.sym2x_zero_zero : (0 : W'.Point).sym2x 0 = ![1, 0, 0] := by
   simp [sym2x]
 
 @[simp]
-lemma Point.sym2x_zero_some {x y : K} (h : W.Nonsingular x y) :
-    (0 : W.Point).sym2x (some x y h) = ![x, 1, 0] := by
+lemma Point.sym2x_zero_some {x y : R} (h : W'.Nonsingular x y) :
+    (0 : W'.Point).sym2x (some x y h) = ![x, 1, 0] := by
   simp [sym2x]
 
 @[simp]
-lemma Point.sym2x_some_zero {x y : K} (h : W.Nonsingular x y) :
-    (some x y h : W.Point).sym2x 0 = ![x, 1, 0] := by
+lemma Point.sym2x_some_zero {x y : R} (h : W'.Nonsingular x y) :
+    (some x y h : W'.Point).sym2x 0 = ![x, 1, 0] := by
   simp [sym2x]
 
 @[simp]
-lemma Point.sym2x_some_some {x y x' y' : K} (h : W.Nonsingular x y) (h' : W.Nonsingular x' y') :
-    (some x y h : W.Point).sym2x (some x' y' h') = ![x * x', x + x', 1] := by
+lemma Point.sym2x_some_some {x y x' y' : R} (h : W'.Nonsingular x y) (h' : W'.Nonsingular x' y') :
+    (some x y h : W'.Point).sym2x (some x' y' h') = ![x * x', x + x', 1] := by
   simp [sym2x]
 
-lemma Point.sym2x_ne_zero (P Q : W.Point) : P.sym2x Q ≠ 0 := by
+lemma Point.sym2x_ne_zero [Nontrivial R] (P Q : W'.Point) : P.sym2x Q ≠ 0 := by
   match P, Q with
   | 0, 0 => simp
   | 0, some .. => simp
   | some .., 0 => simp
   | some .., some .. => simp
 
-lemma Point.sym2x_comm (P Q : W.Point) : P.sym2x Q = Q.sym2x P := by
+lemma Point.sym2x_comm (P Q : W'.Point) : P.sym2x Q = Q.sym2x P := by
   match P, Q with
   | 0, 0 => simp
   | 0, some .. => simp
   | some .., 0 => simp
   | some .., some .. => simp [mul_comm, add_comm]
 
-lemma Point.sym2x_neg_left (P Q : W.Point) : (-P).sym2x Q = P.sym2x Q := by
+lemma Point.sym2x_neg_left (P Q : W'.Point) : (-P).sym2x Q = P.sym2x Q := by
   simp only [sym2x, Fin.isValue, P.xRep_neg]
 
-lemma Point.sym2x_neg_right (P Q : W.Point) : P.sym2x (-Q) = P.sym2x Q := by
+lemma Point.sym2x_neg_right (P Q : W'.Point) : P.sym2x (-Q) = P.sym2x Q := by
   simp only [sym2x, Fin.isValue, Q.xRep_neg]
 
 /-!
@@ -244,21 +244,23 @@ and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W
 
 open MvPolynomial Nat
 
-lemma sub_negY_eq (x y : K) : y - W.negY x y = 2 * y + W.a₁ * x + W.a₃ :=
+lemma sub_negY_eq (x y : R) : y - W'.negY x y = 2 * y + W'.a₁ * x + W'.a₃ :=
   by rw [negY]; ring
 
-lemma den_duplication_eq {x y : K} (h : W.Equation x y) :
-    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = (2 * y + W.a₁ * x + W.a₃) ^ 2 := by
-  have Heq := (W.equation_iff x y).mp h
+lemma den_duplication_eq {x y : R} (h : W'.Equation x y) :
+    4 * x ^ 3 + W'.b₂ * x ^ 2 + 2 * W'.b₄ * x + W'.b₆ = (2 * y + W'.a₁ * x + W'.a₃) ^ 2 := by
+  have Heq := (W'.equation_iff x y).mp h
   simp only [b₂, b₄, b₆]
   linear_combination -4 * Heq
 
-lemma den_duplication_eq_zero_iff {x y : K} (h : W.Equation x y) :
-    4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ = 0 ↔ y = W.negY x y := by
+lemma den_duplication_eq_zero_iff [IsReduced R] {x y : R} (h : W'.Equation x y) :
+    4 * x ^ 3 + W'.b₂ * x ^ 2 + 2 * W'.b₄ * x + W'.b₆ = 0 ↔ y = W'.negY x y := by
   rw [den_duplication_eq h, sq_eq_zero_iff, negY]
   grind only
 
-lemma den_duplication_ne_zero_or_num_duplication_ne_zero {x y : K} (h : W.Nonsingular x y) :
+variable {F : Type*} [Field F] {W : Affine F}
+
+lemma den_duplication_ne_zero_or_num_duplication_ne_zero {x y : F} (h : W.Nonsingular x y) :
     4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆ ≠ 0 ∨
       x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈ ≠ 0 := by
   have ⟨h₁, h₂⟩ := (W.nonsingular_iff x y).mp h
@@ -277,13 +279,13 @@ lemma den_duplication_ne_zero_or_num_duplication_ne_zero {x y : K} (h : W.Nonsin
 
 section Decidable
 
-variable [DecidableEq K]
+variable [DecidableEq F]
 
-lemma addX_x_x_slope_eq {x y : K} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
+lemma addX_x_x_slope_eq {x y : F} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
     W.addX x x (W.slope x x y y) =
       (x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆) := by
-  have aux {a b c : K} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by field
+  have aux {a b c : F} (h : a ≠ 0) : a ^ 2 * (b * (c / a)) = a * b * c := by field
   have hn' := (den_duplication_eq_zero_iff h).not.mpr hn
   refine mul_left_cancel₀ hn' ?_
   have hn'' : 2 * y + W.a₁ * x + W.a₃ ≠ 0 := by
@@ -296,7 +298,7 @@ lemma addX_x_x_slope_eq {x y : K} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
   rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
   linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h
 
-lemma addX_slope_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
+lemma addX_slope_of_x_ne_x {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
      W.addX xP xQ (W.slope xP xQ yP yQ) =
        ((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
          (xP - xQ) ^ 2 := by
@@ -304,7 +306,7 @@ lemma addX_slope_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
   simp [addX, slope, hn, div_pow]
   field
 
-lemma addX_slope_negY_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
+lemma addX_slope_negY_of_x_ne_x {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
      W.addX xP xQ (W.slope xP xQ yP <| W.negY xQ yQ) =
        ((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
            - (W.a₂ + xP + xQ) * (xP - xQ) ^2) / (xP - xQ) ^ 2 := by
@@ -313,19 +315,19 @@ lemma addX_slope_negY_of_x_ne_x {xP yP xQ yQ : K} (hn : xP ≠ xQ) :
   field
 
 /-- We given an explicit expression for `xRep` of `P + P` when `2*P ≠ 0`. -/
-lemma Point.xRep_add_self_of_ne {x y : K} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+lemma Point.xRep_add_self_of_ne {x y : F} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
     (some x y h + some x y h).xRep =
       ![(x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆), 1] := by
   simp only [add_self_of_Y_ne hn, ← addX_x_x_slope_eq h.1 hn, xRep_some]
 
 /-- We given an explicit expression for `xRep` of `P + P` when `P ≠ 0` and `2*P = 0`. -/
-lemma Point.xRep_add_self_of_eq {x y : K} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
+lemma Point.xRep_add_self_of_eq {x y : F} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
     (some x y h + some x y h).xRep = ![1, 0] := by
   simp only [add_self_of_Y_eq hn, xRep_zero]
 
 /-- We given an explicit expression for `xRep` of `P + Q` when `P ≠ ±Q`. -/
-lemma Point.xRep_add_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
+lemma Point.xRep_add_of_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP + some xQ yQ hQ).xRep =
       ![((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
@@ -333,7 +335,7 @@ lemma Point.xRep_add_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
   simp only [add_of_X_ne (h₁ := hP) (h₂ := hQ) hn, xRep_some, addX_slope_of_x_ne_x hn]
 
 /-- We given an explicit expression for `xRep` of `P - Q` when `P ≠ ±Q`. -/
-lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
+lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP - some xQ yQ hQ).xRep =
       ![((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
@@ -344,7 +346,7 @@ lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : K} (hP : W.Nonsingular xP yP)
 
 end Decidable
 
-lemma finite_preimage_xRep (x : K) : {P : W.Point | P.xRep = ![x, 1]}.Finite := by
+lemma finite_preimage_xRep (x : F) : {P : W.Point | P.xRep = ![x, 1]}.Finite := by
   rcases Set.eq_empty_or_nonempty {P : W.Point | P.xRep = ![x, 1]} with h | h
   · exact h ▸ Set.finite_empty
   choose Q hQ using h
@@ -352,7 +354,7 @@ lemma finite_preimage_xRep (x : K) : {P : W.Point | P.xRep = ![x, 1]}.Finite := 
   rw [show {P | P.xRep = ![x, 1]} = {Q, -Q} by ext : 1; simp [← hQ, Point.xRep_eq_xRep_iff]]
   simp
 
-lemma finite_preimage_xRep0 (x : K) : {P : W.Point | P.xRep 0 = x}.Finite := by
+lemma finite_preimage_xRep0 (x : F) : {P : W.Point | P.xRep 0 = x}.Finite := by
   have : {P : W.Point | P.xRep 0 = x} ⊆ {P | P.xRep = ![x, 1]} ∪ {0} := by
     intro P hP
     match P with
@@ -376,10 +378,10 @@ private lemma Point.sym2x_P_P_eq_addSubMap (P : W.Point) :
 
 section Decidable
 
-variable [DecidableEq K]
+variable [DecidableEq F]
 
 private lemma Point.sym2x_etc_P_P (P : W.Point) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
+    ∃ t : F, t ≠ 0 ∧ t • sym2x (P + P) 0 = fun i ↦ (addSubMap W i).eval <| P.sym2x P := by
   match P with
   | 0 =>
     refine ⟨1, one_ne_zero, ?_⟩
@@ -406,7 +408,7 @@ private lemma Point.sym2x_etc_P_P (P : W.Point) :
 /-- `sym2x (P + Q) (P - Q)` is equal, up to scaling by a nonzero constant, to `addSubMap W`
 applied to `sym2x P Q`. -/
 lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
-    ∃ t : K, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| sym2x P Q := by
+    ∃ t : F, t ≠ 0 ∧ t • sym2x (P + Q) (P - Q) = fun i ↦ (addSubMap W i).eval <| sym2x P Q := by
   rcases eq_or_ne P Q with rfl | hPQ
   · simpa using P.sym2x_etc_P_P
   rcases eq_or_ne Q (-P) with rfl | hPQ'
@@ -444,7 +446,7 @@ section AAV
 
 open Height
 
-variable [AdmissibleAbsValues K]
+variable [AdmissibleAbsValues F]
 
 /-- The naïve logarithmic height of an affine point on `W`. -/
 noncomputable def Point.naiveHeight (P : W.Point) : ℝ :=
@@ -463,11 +465,11 @@ variable (W)
 
 lemma abs_logHeight_sym2x_sub_le :
     ∃ C, ∀ P Q : W.Point, |logHeight (P.sym2x Q) - (P.naiveHeight + Q.naiveHeight)| ≤ C := by
-  obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le K
+  obtain ⟨C, hC⟩ := abs_logHeight_sym2_sub_le F
   refine ⟨C, fun P Q ↦ ?_⟩
   rw [P.naiveHeight_eq_logHeight, Q.naiveHeight_eq_logHeight, Point.sym2x]
   have H₁ := logHeight_fun_mul_eq P.xRep_ne_zero Q.xRep_ne_zero
-  have H (v : Fin 2 → K) : ![v 0, v 1] = v := by ext i : 1; fin_cases i <;> simp
+  have H (v : Fin 2 → F) : ![v 0, v 1] = v := by ext i : 1; fin_cases i <;> simp
   have h₀ (P : W.Point) : ![P.xRep 0, P.xRep 1] ≠ 0 := H P.xRep ▸ P.xRep_ne_zero
   specialize hC (h₀ P) (h₀ Q)
   rw [H P.xRep, H Q.xRep] at *
@@ -476,7 +478,7 @@ lemma abs_logHeight_sym2x_sub_le :
 variable [W.toAffine.IsElliptic]
 
 /-- The "approximate parallelogram law" for the naïve height on an elliptic curve. -/
-theorem approx_parallelogram_law [DecidableEq K] :
+theorem approx_parallelogram_law [DecidableEq F] :
     ∃ C, ∀ (P Q : W.Point),
       |(P + Q).naiveHeight + (P - Q).naiveHeight - 2 * (P.naiveHeight + Q.naiveHeight)| ≤ C := by
   obtain ⟨C₁, hC₁⟩ := abs_logHeight_sym2x_sub_le W
@@ -501,15 +503,15 @@ section Northcott
 
 open Height
 
-variable [AdmissibleAbsValues K]
+variable [AdmissibleAbsValues F]
 
-instance [Northcott (logHeight₁ (K := K))] : Northcott (Point.naiveHeight (K := K) (W := W)) := by
+instance [Northcott (logHeight₁ (K := F))] : Northcott (Point.naiveHeight (F := F) (W := W)) := by
   eta_expand
   simp only [Point.naiveHeight_eq_logHeight₁]
   rw [← Function.comp_def]
   exact Northcott.comp_of_finite_fibers _ _ finite_preimage_xRep0
 
-variable [Northcott (logHeight₁ (K := K))]
+variable [Northcott (logHeight₁ (K := F))]
 
 variable (W) in
 /-- The set of `K`-points on `W` with naïve height bounded by `B` is finite.
@@ -517,7 +519,7 @@ This is an important ingredient for the *Mordell-Weil Theorem*. -/
 lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Finite :=
   Northcott.finite_le B
 
-variable [DecidableEq K] [W.toAffine.IsElliptic]
+variable [DecidableEq F] [W.toAffine.IsElliptic]
 
 /-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
 `E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
