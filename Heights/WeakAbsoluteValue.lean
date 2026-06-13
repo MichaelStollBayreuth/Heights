@@ -133,7 +133,7 @@ lemma abv_finsetSum_le_mul_max (f : ℕ → R) {N : ℕ} (hN : 0 < N) :
           max ((range (2 ^ n)).sup' hnr (fun i ↦ v (f i)))
             ((range (2 ^ n)).sup' hnr fun i ↦ v (f (2 ^ n + i))) := by
         have Hn : 2 ^ n ≠ 0 := NeZero.ne _
-        convert sup'_range_eq_max Hn Hn (v ∘ f) using 3
+        convert! sup'_range_eq_max Hn Hn (v ∘ f) using 3
         grind
       rw [this, mul_max_of_nonneg _ _ (mod_cast (2 ^ n).zero_le)]
       gcongr <;> exact ih _

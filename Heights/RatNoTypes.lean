@@ -68,7 +68,7 @@ lemma Int.heightOneSpectrum_aux₁ (I : IsDedekindDomain.HeightOneSpectrum ℤ) 
   have := (Submodule.IsPrincipal.principal I.asIdeal).choose_spec
   rw [submodule_span_eq] at this
   rw [this, span_natAbs]
-  convert rfl
+  convert! rfl
 
 lemma Int.heightOneSpectrum_aux₂ (p : Nat.Primes) :
     (Submodule.IsPrincipal.principal <| span {(p.val : ℤ)}).choose.natAbs = p := by
@@ -247,7 +247,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   have hg : Finset.univ.gcd R ≠ 0 := by
     rw [ne_eq, Finset.gcd_eq_zero_iff]
     push Not
-    simpa only [Finset.mem_univ, true_and] using Function.ne_iff.mp hR₀
+    simpa only [Finset.mem_univ, true_and, Pi.zero_def] using Function.ne_iff.mp hR₀
   have hR₃ : ((↑) : ℤ → ℚ) ∘ R' = ((d : ℚ) / Finset.univ.gcd R) • r := by
     have : R = Finset.univ.gcd R • R' := by
       simp only [Finset.mem_univ, forall_const] at hR₁
