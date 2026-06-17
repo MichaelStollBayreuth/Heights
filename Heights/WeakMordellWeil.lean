@@ -97,6 +97,18 @@ open Polynomial
 /-- The polynomial on the right hand side of a short Weierstrass equation. -/
 noncomputable abbrev f : K[X] := X ^ 3 + C W.a * X + C W.b
 
+lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
+  have hΔ : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
+  rw [f, separable_def',
+    show derivative (X ^ 3 + C W.a * X + C W.b) = C 3 * X ^ 2 + C W.a by simp [C_ofNat]; norm_num]
+  refine ⟨C (W.Δ)⁻¹ * (C (288 * W.a) * X - C (432 * W.b)),
+    C (W.Δ)⁻¹ * (C (-96 * W.a) * X ^ 2 + C (144 * W.b) * X + C (-64 * W.a ^ 2)), ?_⟩
+  rw [mul_assoc, mul_assoc, ← mul_add]
+  refine mul_left_cancel₀ (C_ne_zero.mpr hΔ) ?_
+  rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ hΔ, Δ_of_isShortNF, a, b]
+  simp only [C_eq_algebraMap]
+  algebra
+
 /-- The quotient of `f` by `X - x`. -/
 noncomputable abbrev fCofactor (x : K) : K[X] := X ^ 2 + C x * X + C (x ^ 2 + W.a)
 
@@ -134,23 +146,43 @@ lemma θ_eq : W.θ = (X : K[X]) • 1 := by
 /-- The étale algebra associated to the cofactor of `f`. -/
 noncomputable abbrev A' (x : K) : Type _ := K[X] ⧸ Ideal.span {W.fCofactor x}
 
+/-- The Chinese Remainder Theorem isomorphism `K[X]⧸f ≃ K × K[X]/cf`, where `cf` is the cofactor
+`f / (X - x)`. -/
+noncomputable def equivAKA' [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) :
+    W.A ≃+* K × W.A' x :=
+  letI eA : W.A ≃+* K[X] ⧸ (Ideal.span {X - C x} * Ideal.span {W.fCofactor x}) :=
+    Ideal.quotEquivOfEq <| by
+      rw [Ideal.span_singleton_mul_span_singleton, mul_comm, ← W.f_eq_mul_of_eval_eq_zero hx]
+  have H : IsCoprime (Ideal.span {X - C x}) (Ideal.span {W.fCofactor x}) :=
+    (Ideal.isCoprime_span_singleton_iff _ _).mpr <|
+      (W.f_eq_mul_of_eval_eq_zero hx ▸ separable_f W).isCoprime.symm
+  eA.trans <|
+    (Ideal.quotientMulEquivQuotientProd (Ideal.span {X - C x}) (Ideal.span {W.fCofactor x}) H).trans <|
+    RingEquiv.prodCongr (Polynomial.quotientSpanXSubCAlgEquiv x |>.toRingEquiv) (RingEquiv.refl _)
+
+lemma equivAKA'_apply [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) (p : K[X]) :
+    W.equivAKA' hx (algebraMap K[X] W.A p) = (p.eval x, algebraMap K[X] (W.A' x) p) :=
+  rfl
+
+example {R S : Type*} [Ring R] [Ring S] (f : R ≃+* S) (x y : R) : x = y ↔ f x = f y := by
+  exact Iff.symm (EquivLike.apply_eq_iff_eq f)
+
 lemma eq_in_A_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) {p q : K[X]} :
     algebraMap K[X] W.A p = algebraMap K[X] W.A q ↔
       p.eval x = q.eval x ∧ algebraMap K[X] (W.A' x) p = algebraMap K[X] (W.A' x) q := by
-  rw [← sub_eq_zero]; nth_rw 2 [← sub_eq_zero]; nth_rw 3 [← sub_eq_zero]
-  rw [← map_sub, ← eval_sub, ← map_sub, Ideal.Quotient.algebraMap_span_eq_zero_iff_dvd,
-    Ideal.Quotient.algebraMap_span_eq_zero_iff_dvd]
-  generalize p - q = r
-  refine ⟨fun H ↦ ⟨?_, dvd_trans ⟨_, f_eq_mul_of_eval_eq_zero W hx⟩ H⟩, fun ⟨H₁, H₂⟩ ↦ ?_⟩
-  · obtain ⟨p, rfl⟩ := H
-    simp [hx]
-  · rw [f_eq_mul_of_eval_eq_zero W hx]
-    refine IsCoprime.mul_dvd ?_ H₂ <| dvd_iff_isRoot.mpr H₁
-    refine ⟨C (3 * x ^ 2 + W.a)⁻¹, -(C (3 * x ^ 2 + W.a)⁻¹ * (X + C (2 * x))), ?_⟩
-    rw [fCofactor, neg_mul, ← sub_eq_add_neg, mul_assoc, ← mul_sub,
-      show X ^ 2 + C x * X + C (x ^ 2 + W.a) - (X + C (2 * x)) * (X - C x) = C (3 * x ^ 2 + W.a) by
-        simp only [C_eq_algebraMap]; algebra,
-      ← C_mul, inv_mul_cancel₀ <| W.three_sq_add_a_ne_zero hx, map_one]
+  rw [← EquivLike.apply_eq_iff_eq <| W.equivAKA' hx]
+  simpa only [equivAKA'_apply] using Prod.mk_inj
+
+lemma isUnit_in_A_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) {p : K[X]} :
+    IsUnit (algebraMap K[X] W.A p) ↔ IsUnit (p.eval x) ∧ IsUnit (algebraMap K[X] (W.A' x) p) := by
+  let e := W.equivAKA' hx
+  refine ⟨fun H ↦ ?_, fun H ↦ ?_⟩
+  · have : IsUnit (e _) := e.toRingHom.isUnit_map H
+    rwa [W.equivAKA'_apply hx, Prod.isUnit_iff] at this
+  · have : IsUnit (eval x p, algebraMap K[X] (W.A' x) p) := by rwa [Prod.isUnit_iff]
+    have : IsUnit (e.symm _) := e.symm.toRingHom.isUnit_map this
+    convert this
+    rw [RingEquiv.eq_symm_apply, W.equivAKA'_apply hx]
 
 variable {W}
 
@@ -202,6 +234,31 @@ variable [W.IsElliptic]
 
 lemma isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 0) :
     IsUnit <| algebraMap K[X] W.A <| C x - X + W.fCofactor x := by
+  rw [isUnit_in_A_iff W h]
+  have H₀ : 3 * x ^ 2 + W.a ≠ 0 := three_sq_add_a_ne_zero W h
+  have H₁ : eval x (C x - X + W.fCofactor x) = 3 * x ^ 2 + W.a := by
+    simp; ring
+  have H₂ : (algebraMap K[X] (W.A' x)) (C x - X + W.fCofactor x) =
+      algebraMap K[X] (W.A' x) (C x - X) := by
+    simp
+  rw [H₁, H₂, isUnit_iff_ne_zero]
+  refine ⟨H₀, ?_⟩
+  let u := algebraMap K[X] (W.A' x) <| C (3 * x ^ 2 + W.a)⁻¹ * (X + C (2 * x))
+  rw [isUnit_iff_exists_inv]
+  refine ⟨u, ?_⟩
+  rw [← map_mul]
+  have : (C x - X) * (C (3 * x ^ 2 + a W)⁻¹ * (X + C (2 * x))) = C (3 * x ^ 2 + a W)⁻¹ * (-W.fCofactor x) + 1 := by
+    rw [mul_left_comm]
+    apply_fun (C (3 * x ^ 2 + W.a) * ·) using mul_right_injective₀ <| C_ne_zero.mpr H₀
+    dsimp only
+    rw [mul_add _ _ 1]
+    simp_rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ H₀, map_one, one_mul, mul_one]
+    simp only [C_eq_algebraMap, fCofactor]
+    algebra
+  rw [this, map_add, map_one, map_mul, map_neg]
+  simp
+
+  /-
   let u : K[X] :=
     C (-48 * x ^ 2 + 48 * W.a * x - 64 * W.a - 144 * W.b) * X ^ 2 +
       C (-48 * W.a * x ^ 2 - 16 * W.a * x - 64 * W.a ^ 2 + 48 * W.b) * X +
@@ -230,7 +287,7 @@ lemma isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eva
   refine .of_mul_eq_one (algebraMap K[X] W.A <| C (W.Δ⁻¹) * u) ?_
   rw [map_mul]; nth_rewrite 2 [mul_comm]
   apply_fun (· * algebraMap K[X] W.A (C W.Δ⁻¹)) at H
-  rw [← mul_assoc, H, ← map_mul, ← C_mul, mul_inv_cancel₀ h', map_one, map_one]
+  rw [← mul_assoc, H, ← map_mul, ← C_mul, mul_inv_cancel₀ h', map_one, map_one] -/
 
 end
 
