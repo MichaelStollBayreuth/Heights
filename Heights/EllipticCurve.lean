@@ -357,7 +357,9 @@ instance [Northcott (logHeight₁ (K := F))] : Northcott (Point.naiveHeight (F :
   eta_expand
   simp only [Point.naiveHeight_eq_logHeight₁]
   rw [← Function.comp_def]
-  exact Northcott.comp_of_finite_fibers _ _ finite_preimage_xRep0
+  have : Filter.TendstoCofinite fun P : W.Point ↦ P.xRep 0 :=
+    (Filter.tendstoCofinite_iff_finite_preimage_singleton _).mpr finite_preimage_xRep0
+  exact Northcott.comp_of_finite_fibers ..
 
 variable [Northcott (logHeight₁ (K := F))]
 
