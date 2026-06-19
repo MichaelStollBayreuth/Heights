@@ -76,6 +76,17 @@ lemma Ideal.Quotient.algebraMap_span_eq_zero_iff_dvd {a : R} {r : R} :
 
 end RingQuotient
 
+section Polynomial
+
+variable {K : Type*} [Field K]
+
+lemma Polynomial.isRelPrime_X_sub_C_X_sub_C_of_ne {a b : K} (h : a ≠ b) :
+    IsRelPrime (X - C a) (X - C b) := by
+  rwa [isRelPrime_comm, Irreducible.isRelPrime_iff_not_dvd (irreducible_X_sub_C b), dvd_iff_isRoot,
+    root_X_sub_C]
+
+end Polynomial
+
 end API
 
 namespace WeierstrassCurve
@@ -386,11 +397,64 @@ private lemma xQ_ne_xP_of_eq_zero (h : W.f.eval xP = 0) : xQ ≠ xP := by
   rw [add_self_of_Y_eq <| by simp [negY], zero_add]
   exact some_ne_zero hR
 
+lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero (h₁ : W.f.eval xP = 0)
+    (h₂ : W.f.eval xQ = 0) :
+    μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
+  have hPQ : xQ ≠ xP := xQ_ne_xP_of_eq_zero hP hQ hR hPQR h₁
+  have hPR : xR ≠ xP := by
+    rw [add_right_comm] at hPQR
+    exact xQ_ne_xP_of_eq_zero hP hR hQ hPQR h₁
+  have hQR : xR ≠ xQ := by
+    rw [add_rotate] at hPQR
+    exact xQ_ne_xP_of_eq_zero hQ hR hP hPQR h₂
+  have h₃ : W.f.eval xR = 0 := by
+    sorry
+  have hfcP : W.fCofactor xP = (X - C xQ) * (X - C xR) := sorry
+  have hfcQ : W.fCofactor xQ = (X - C xP) * (X - C xR) := sorry
+  have hfcR : W.fCofactor xR = (X - C xP) * (X - C xQ) := sorry
+  have hrp₁ : IsRelPrime ((X - C xP) * (X - C xQ)) (X - C xR) := by
+    rw [IsRelPrime.mul_left_iff]
+    exact ⟨isRelPrime_X_sub_C_X_sub_C_of_ne hPR.symm,
+      isRelPrime_X_sub_C_X_sub_C_of_ne hQR.symm⟩
+  have hf : W.f = (X - C xP) * (X - C xQ) * (X - C xR) := by
+    refine eq_of_monic_of_associated ?_ ?_  <| dvd_dvd_iff_associated.mp ⟨?_, ?_⟩
+    · rw [f]
+      monicity!
+    · monicity!
+    · sorry
+    · refine IsRelPrime.mul_dvd hrp₁ ?_ ?_
+      · refine IsRelPrime.mul_dvd ?_ ?_ ?_
+        · exact isRelPrime_X_sub_C_X_sub_C_of_ne hPQ.symm
+        · rwa [dvd_iff_isRoot, IsRoot.def]
+        · rwa [dvd_iff_isRoot, IsRoot.def]
+      · rwa [dvd_iff_isRoot, IsRoot.def]
+  rw [μ₀_some_of_f_eval_eq_zero hP h₁, μ₀_some_of_f_eval_eq_zero hQ h₂,
+    μ₀_some_of_f_eval_eq_zero hR h₃]
+  refine (QuotientGroup.eq_one_iff _).mpr ?_
+  simp only [MonoidHom.mem_range, powMonoidHom_apply, ← IsUnit.unit_mul,
+    exists_unit_pow_eq_isUnitUnit_iff]
+  refine ⟨0, ?_⟩ -- this is not correct...
+  simp only [zero_pow two_ne_zero, ← map_mul]
+  rw [hfcP, hfcQ, hfcR, eq_comm]
+  simp only [Ideal.Quotient.algebraMap_eq]
+  rw [Ideal.Quotient.eq_zero_iff_dvd, hf]
+  simp only [show ∀ (a b c : K), C a - X + (X - C b) * (X - C c) =
+    (X - C b) * (X - C c) - (X - C a) by intro a b c; ring]
+  refine IsRelPrime.mul_dvd hrp₁ ?_ ?_
+  · refine IsRelPrime.mul_dvd (isRelPrime_X_sub_C_X_sub_C_of_ne hPQ.symm) ?_ ?_
+    · rw [mul_assoc, sub_mul]
+      refine dvd_sub ?_ ?_
+      ·
+      sorry
+    · sorry
+  · sorry
+
 lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero (h : W.f.eval xP = 0) :
     μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
   have hPQ : xQ ≠ xP := xQ_ne_xP_of_eq_zero hP hQ hR hPQR h
   have hPR : xR ≠ xP := by rw [add_right_comm] at hPQR; exact xQ_ne_xP_of_eq_zero hP hR hQ hPQR h
-
+  by_cases hQ₀ : W.f.eval xQ = 0
+  · sorry
 
   sorry
 
