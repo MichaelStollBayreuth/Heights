@@ -133,6 +133,50 @@ lemma f_eq_mul_of_eval_eq_zero {x : K} (hx : W.f.eval x = 0) :
     W.f = W.fCofactor x * (X - C x) := by
   simp [fCofactor_mul_eq, hx]
 
+lemma f_eq_mul_mul_and {xP xQ xR : K} (hP' : W.f.eval xP = 0) (hQ' : W.f.eval xQ = 0)
+    (hR' : W.f.eval xR = 0) (hPQ : xQ ≠ xP) (hPR : xR ≠ xP) (hQR : xR ≠ xQ) :
+    W.f = (X - C xP) * (X - C xQ) * (X - C xR) ∧ W.fCofactor xP = (X - C xQ) * (X - C xR) ∧
+      W.fCofactor xQ = (X - C xP) * (X - C xR) ∧ W.fCofactor xR = (X - C xP) * (X - C xQ) := by
+  have hP₀ := hP' -- save for later
+  have hQ₀ := hQ'
+  have hR₀ := hR'
+  rw [← IsRoot.def, ← dvd_iff_isRoot] at hP' hQ' hR'
+  obtain ⟨f₁, hf₁⟩ := hP'
+  rw [hf₁] at hQ' hR' ⊢
+  replace hQ' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPQ) hQ'
+  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPR) hR'
+  obtain ⟨f₂, hf₂⟩ := hQ'
+  rw [hf₂] at hR' hf₁ ⊢
+  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hQR) hR'
+  obtain ⟨f₃, hf₃⟩ := hR'
+  rw [hf₃, f] at hf₁
+  have H : f₃ = 1 := by
+    refine eq_one_of_monic_natDegree_zero ?_ ?_
+    · have : ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))).Monic := by
+        rw [← hf₁]
+        monicity!
+      simp_rw [← mul_assoc] at this
+      exact Monic.of_mul_monic_left (by monicity!) this
+    · have : natDegree ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))) = 3 := by
+        rw [← hf₁]
+        compute_degree!
+      have hf₃₀ : f₃ ≠ 0 := by
+        contrapose hf₁
+        simpa [hf₁] using Monic.ne_zero <| by monicity!
+      repeat rw [natDegree_mul] at this
+      grind [natDegree_sub_C, natDegree_X]
+      -- side goals (slow)
+      all_goals grind [X_sub_C_ne_zero, mul_ne_zero]
+  rw [H, mul_one] at hf₁ hf₃
+  rw [hf₃, ← mul_assoc]
+  refine ⟨rfl, ?_, ?_, ?_⟩
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xP) ?_
+    rw [← hf₁, ← f, W.f_eq_mul_of_eval_eq_zero hP₀, mul_comm]
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xQ) ?_
+    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hQ₀, f, hf₁, mul_left_comm]
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xR) ?_
+    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hR₀, f, hf₁, ← mul_rotate']
+
 lemma three_sq_add_a_ne_zero [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) :
     3 * x ^ 2 + W.a ≠ 0 := by
   simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C] at hx
@@ -199,7 +243,7 @@ lemma isUnit_in_A_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0)
 
 variable {W}
 
-lemma isUnit_sub_theta_of_eval_f_ne_zero {x : K} (h : W.f.eval x ≠ 0) :
+lemma isUnit_algebraMap_sub_X_of_eval_f_ne_zero {x : K} (h : W.f.eval x ≠ 0) :
     IsUnit <| algebraMap K[X] W.A (C x - X) := by
   refine .of_mul_eq_one
     (algebraMap K[X] W.A (C (W.f.eval x)⁻¹ * (X ^ 2 + C x * X + C (x ^2 + W.a)))) ?_
@@ -245,7 +289,7 @@ lemma Point.y_eq_zero_of_eval_f_x_eq_zero {x y : K} (h : W.Equation x y) (hf : W
 
 variable [W.IsElliptic]
 
-lemma isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 0) :
+lemma isUnit_algebraMap_sub_X_add_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 0) :
     IsUnit <| algebraMap K[X] W.A <| C x - X + W.fCofactor x := by
   rw [isUnit_in_A_iff W h]
   have H₀ : 3 * x ^ 2 + W.a ≠ 0 := three_sq_add_a_ne_zero W h
@@ -270,37 +314,6 @@ lemma isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eva
     algebra
   rw [this, map_add, map_one, map_mul, map_neg]
   simp
-
-  /-
-  let u : K[X] :=
-    C (-48 * x ^ 2 + 48 * W.a * x - 64 * W.a - 144 * W.b) * X ^ 2 +
-      C (-48 * W.a * x ^ 2 - 16 * W.a * x - 64 * W.a ^ 2 + 48 * W.b) * X +
-      C ((-64 * W.a + 144 * W.b) * x ^ 2 + (64 * W.a ^ 2 + 48 * W.b) * x - 64 * W.a ^ 2)
-  let q : K[X] :=
-    C (-48 * x ^ 2 + 48 * W.a * x - 64 * W.a - 144 * W.b) * X +
-      C (48 * x ^ 2 + (-80 * W.a - 144 * W.b) * x - 64 * W.a ^ 2 + 64 * W.a + 240 * W.b)
-  simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C] at h
-  have : C x - X + (X ^ 2 + C x * X + C (x ^ 2 + a W)) = X ^ 2 + C (x - 1) * X + C (x ^ 2 + x + W.a) := by
-    simp
-    ring
-  have H : (C x - X + W.fCofactor x) * u = q * W.f + C W.Δ := by
-    simp only [Δ_of_isShortNF W, show W.a₄ = W.a from rfl, show W.a₆ = W.b from rfl, f, fCofactor, q, u]
-    rw [this]
-    simp only [add_mul, sub_mul, mul_add, ← mul_assoc, mul_comm (X ^ _) (C _),
-      mul_right_comm (C _ ) X (C _), ← C_mul]
-    simp_rw [mul_assoc, ← pow_add, ← pow_succ, ← pow_succ', ← sq]
-    norm_num1
-    simp only [C_mul']
-    simp_rw [C_eq_algebraMap, Algebra.algebraMap_eq_smul_one]
-    match_scalars <;> grobner
-  have h' : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
-  apply_fun Algebra.algebraMap K[X] W.A at H
-  rw [map_mul] at H; nth_rewrite 3 [map_add] at H; rw [map_mul] at H
-  rw [show algebraMap K[X] W.A W.f = 0 by simp [A], mul_zero, zero_add] at H
-  refine .of_mul_eq_one (algebraMap K[X] W.A <| C (W.Δ⁻¹) * u) ?_
-  rw [map_mul]; nth_rewrite 2 [mul_comm]
-  apply_fun (· * algebraMap K[X] W.A (C W.Δ⁻¹)) at H
-  rw [← mul_assoc, H, ← map_mul, ← C_mul, mul_inv_cancel₀ h', map_one, map_one] -/
 
 end
 
@@ -335,17 +348,17 @@ noncomputable def μ₀ : W.Point → W.M
   | 0 => 1
   | .some x _ _ =>
     if hx : W.f.eval x = 0
-      then (isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero hx).unit
-      else (isUnit_sub_theta_of_eval_f_ne_zero hx).unit
+      then (isUnit_algebraMap_sub_X_add_fCofactor_of_eval_f_eq_zero hx).unit
+      else (isUnit_algebraMap_sub_X_of_eval_f_ne_zero hx).unit
 
 @[simp] lemma μ₀_zero : W.μ₀ 0 = 1 := rfl
 
 @[simp] lemma μ₀_some_of_f_eval_eq_zero {x y : K} (h : W.Nonsingular x y) (hx : W.f.eval x = 0) :
-    W.μ₀ (.some x y h) = (isUnit_sub_theta_add_eval_fCofactor_of_eval_f_eq_zero hx).unit := by
+    W.μ₀ (.some x y h) = (isUnit_algebraMap_sub_X_add_fCofactor_of_eval_f_eq_zero hx).unit := by
   simp only [μ₀, dif_pos hx]
 
 @[simp] lemma μ₀_some_of_f_eval_ne_zero {x y : K} (h : W.Nonsingular x y) (hx : W.f.eval x ≠ 0) :
-    W.μ₀ (.some x y h) = (isUnit_sub_theta_of_eval_f_ne_zero hx).unit := by
+    W.μ₀ (.some x y h) = (isUnit_algebraMap_sub_X_of_eval_f_ne_zero hx).unit := by
   simp only [μ₀, dif_neg hx]
 
 end μ₀
@@ -401,51 +414,6 @@ private lemma xQ_ne_xP_of_eq_zero (h : W.f.eval xP = 0) : xQ ≠ xP := by
   rw [add_self_of_Y_eq <| by simp [negY], zero_add]
   exact some_ne_zero hR
 
-omit [DecidableEq K] [IsShortNF W] [WeierstrassCurve.IsElliptic W] hPQR in
-lemma f_eq_mul_mul_and (hP' : W.f.eval xP = 0) (hQ' : W.f.eval xQ = 0) (hR' : W.f.eval xR = 0)
-    (hPQ : xQ ≠ xP) (hPR : xR ≠ xP) (hQR : xR ≠ xQ) :
-    W.f = (X - C xP) * (X - C xQ) * (X - C xR) ∧ W.fCofactor xP = (X - C xQ) * (X - C xR) ∧
-      W.fCofactor xQ = (X - C xP) * (X - C xR) ∧ W.fCofactor xR = (X - C xP) * (X - C xQ) := by
-  have hP₀ := hP' -- save for later
-  have hQ₀ := hQ'
-  have hR₀ := hR'
-  rw [← IsRoot.def, ← dvd_iff_isRoot] at hP' hQ' hR'
-  obtain ⟨f₁, hf₁⟩ := hP'
-  rw [hf₁] at hQ' hR' ⊢
-  replace hQ' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPQ) hQ'
-  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPR) hR'
-  obtain ⟨f₂, hf₂⟩ := hQ'
-  rw [hf₂] at hR' hf₁ ⊢
-  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hQR) hR'
-  obtain ⟨f₃, hf₃⟩ := hR'
-  rw [hf₃, f] at hf₁
-  have H : f₃ = 1 := by
-    refine eq_one_of_monic_natDegree_zero ?_ ?_
-    · have : ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))).Monic := by
-        rw [← hf₁]
-        monicity!
-      simp_rw [← mul_assoc] at this
-      exact Monic.of_mul_monic_left (by monicity!) this
-    · have : natDegree ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))) = 3 := by
-        rw [← hf₁]
-        compute_degree!
-      have hf₃₀ : f₃ ≠ 0 := by
-        contrapose hf₁
-        simpa [hf₁] using Monic.ne_zero <| by monicity!
-      repeat rw [natDegree_mul] at this
-      grind [natDegree_sub_C, natDegree_X]
-      -- side goals
-      all_goals grind [X_sub_C_ne_zero, mul_ne_zero]
-  rw [H, mul_one] at hf₁ hf₃
-  rw [hf₃, ← mul_assoc]
-  refine ⟨rfl, ?_, ?_, ?_⟩
-  · refine mul_left_cancel₀ (X_sub_C_ne_zero xP) ?_
-    rw [← hf₁, ← f, W.f_eq_mul_of_eval_eq_zero hP₀, mul_comm]
-  · refine mul_left_cancel₀ (X_sub_C_ne_zero xQ) ?_
-    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hQ₀, f, hf₁, mul_left_comm]
-  · refine mul_left_cancel₀ (X_sub_C_ne_zero xR) ?_
-    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hR₀, f, hf₁, ← mul_rotate']
-
 lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero (h₁ : W.f.eval xP = 0)
     (h₂ : W.f.eval xQ = 0) :
     μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
@@ -470,7 +438,7 @@ lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero (h₁ : W.f
     rw [← hpol]
     simp
   -- there is some duplication here --> remove!
-  obtain ⟨hf, hfcP, hfcQ, hfcR⟩ := f_eq_mul_mul_and h₁ h₂ h₃ hPQ hPR hQR
+  obtain ⟨hf, hfcP, hfcQ, hfcR⟩ := W.f_eq_mul_mul_and h₁ h₂ h₃ hPQ hPR hQR
   have hrp₁ : IsRelPrime ((X - C xP) * (X - C xQ)) (X - C xR) := by
     rw [IsRelPrime.mul_left_iff]
     exact ⟨isRelPrime_X_sub_C_X_sub_C_of_ne hPR.symm,
