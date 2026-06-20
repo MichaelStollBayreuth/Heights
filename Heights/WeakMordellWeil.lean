@@ -11,10 +11,12 @@ We will use the `x-T` map approach. At least for now, we will restrict to ellipt
 given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`.
 
 1. Let `A := K[X]/⟨f(X)⟩` be the étale algebra defined by `f`.
-   We write `θ` for the image of `X` in `A`.
+   => done.
 2. Define `M := Aˣ⧸squares` and the map `μ : E(K) → M` given by `μ 0 = 1`,
    `μ (x, y) = (x-θ) mod squares` if `f(x) ≠ 0`, else `f'(θ) mod squares`.
+   => done (the bare map is defined as `μ₀`).
 3. Show that `μ` is a group homomorphism.
+   => done.
 4. Show that `ker μ = 2E(K)`.
 5. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
@@ -355,18 +357,20 @@ end μ₀
 lemma Point.some_add_some_add_some_eq_zero {xP yP xQ yQ xR yR : K}
     (hP : W.Nonsingular xP yP) (hQ : W.Nonsingular xQ yQ) (hR : W.Nonsingular xR yR)
     (hPQR : some xP yP hP + some xQ yQ hQ + some xR yR hR = 0) :
-    ∃ pol, (X - C xP) * (X - C xQ) * (X - C xR) = W.f - pol ^ 2 := by
-  refine ⟨linePolynomial xP yP <| W.slope xP xQ yP yQ, ?_⟩
-  have hgeneric : ¬(xP = xQ ∧ yP = W.negY xQ yQ) := by
-    by_contra H
-    simp [add_of_Y_eq H.1 H.2] at hPQR
-  have := addPolynomial_slope hP.1 hQ.1 hgeneric |>.symm
-  rw [neg_eq_iff_eq_neg] at this
-  convert this using 1
-  · congr
-    rw [add_eq_zero_iff_eq_neg, neg_some, add_some hgeneric] at hPQR
-    grind
-  · simp [addPolynomial, polynomial]
+    ∃ pol, (X - C xP) * (X - C xQ) * (X - C xR) = W.f - pol ^ 2 ∧ pol.natDegree ≤ 1 := by
+  refine ⟨linePolynomial xP yP <| W.slope xP xQ yP yQ, ?_, ?_⟩
+  · have hgeneric : ¬(xP = xQ ∧ yP = W.negY xQ yQ) := by
+      by_contra H
+      simp [add_of_Y_eq H.1 H.2] at hPQR
+    have := addPolynomial_slope hP.1 hQ.1 hgeneric |>.symm
+    rw [neg_eq_iff_eq_neg] at this
+    convert this using 1
+    · congr
+      rw [add_eq_zero_iff_eq_neg, neg_some, add_some hgeneric] at hPQR
+      grind
+    · simp [addPolynomial, polynomial]
+  · simp only [linePolynomial, natDegree_add_C]
+    compute_degree
 
 variable [W.IsElliptic]
 
@@ -397,6 +401,51 @@ private lemma xQ_ne_xP_of_eq_zero (h : W.f.eval xP = 0) : xQ ≠ xP := by
   rw [add_self_of_Y_eq <| by simp [negY], zero_add]
   exact some_ne_zero hR
 
+omit [DecidableEq K] [IsShortNF W] [WeierstrassCurve.IsElliptic W] hPQR in
+lemma f_eq_mul_mul_and (hP' : W.f.eval xP = 0) (hQ' : W.f.eval xQ = 0) (hR' : W.f.eval xR = 0)
+    (hPQ : xQ ≠ xP) (hPR : xR ≠ xP) (hQR : xR ≠ xQ) :
+    W.f = (X - C xP) * (X - C xQ) * (X - C xR) ∧ W.fCofactor xP = (X - C xQ) * (X - C xR) ∧
+      W.fCofactor xQ = (X - C xP) * (X - C xR) ∧ W.fCofactor xR = (X - C xP) * (X - C xQ) := by
+  have hP₀ := hP' -- save for later
+  have hQ₀ := hQ'
+  have hR₀ := hR'
+  rw [← IsRoot.def, ← dvd_iff_isRoot] at hP' hQ' hR'
+  obtain ⟨f₁, hf₁⟩ := hP'
+  rw [hf₁] at hQ' hR' ⊢
+  replace hQ' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPQ) hQ'
+  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hPR) hR'
+  obtain ⟨f₂, hf₂⟩ := hQ'
+  rw [hf₂] at hR' hf₁ ⊢
+  replace hR' := IsRelPrime.dvd_of_dvd_mul_left (isRelPrime_X_sub_C_X_sub_C_of_ne hQR) hR'
+  obtain ⟨f₃, hf₃⟩ := hR'
+  rw [hf₃, f] at hf₁
+  have H : f₃ = 1 := by
+    refine eq_one_of_monic_natDegree_zero ?_ ?_
+    · have : ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))).Monic := by
+        rw [← hf₁]
+        monicity!
+      simp_rw [← mul_assoc] at this
+      exact Monic.of_mul_monic_left (by monicity!) this
+    · have : natDegree ((X - C xP) * ((X - C xQ) * ((X - C xR) * f₃))) = 3 := by
+        rw [← hf₁]
+        compute_degree!
+      have hf₃₀ : f₃ ≠ 0 := by
+        contrapose hf₁
+        simpa [hf₁] using Monic.ne_zero <| by monicity!
+      repeat rw [natDegree_mul] at this
+      grind [natDegree_sub_C, natDegree_X]
+      -- side goals
+      all_goals grind [X_sub_C_ne_zero, mul_ne_zero]
+  rw [H, mul_one] at hf₁ hf₃
+  rw [hf₃, ← mul_assoc]
+  refine ⟨rfl, ?_, ?_, ?_⟩
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xP) ?_
+    rw [← hf₁, ← f, W.f_eq_mul_of_eval_eq_zero hP₀, mul_comm]
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xQ) ?_
+    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hQ₀, f, hf₁, mul_left_comm]
+  · refine mul_left_cancel₀ (X_sub_C_ne_zero xR) ?_
+    rw [mul_comm, ← W.f_eq_mul_of_eval_eq_zero hR₀, f, hf₁, ← mul_rotate']
+
 lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero (h₁ : W.f.eval xP = 0)
     (h₂ : W.f.eval xQ = 0) :
     μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
@@ -408,55 +457,92 @@ lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero (h₁ : W.f
     rw [add_rotate] at hPQR
     exact xQ_ne_xP_of_eq_zero hQ hR hP hPQR h₂
   have h₃ : W.f.eval xR = 0 := by
-    sorry
-  have hfcP : W.fCofactor xP = (X - C xQ) * (X - C xR) := sorry
-  have hfcQ : W.fCofactor xQ = (X - C xP) * (X - C xR) := sorry
-  have hfcR : W.fCofactor xR = (X - C xP) * (X - C xQ) := sorry
+    obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
+    have hpol₀ : pol = 0 := by
+      refine pol.eq_zero_of_natDegree_lt_card_of_eval_eq_zero' {xP, xQ} (fun x hx ↦ ?_) ?_
+      · simp only [Finset.mem_insert, Finset.mem_singleton] at hx
+        apply_fun (·.eval x) at hpol
+        rcases hx with rfl | rfl <;>
+          rw [eval_sub, ‹eval x (f W) = 0›] at hpol <;>
+          simpa using hpol
+      · grind
+    rw [hpol₀, zero_pow two_ne_zero, sub_zero] at hpol
+    rw [← hpol]
+    simp
+  -- there is some duplication here --> remove!
+  obtain ⟨hf, hfcP, hfcQ, hfcR⟩ := f_eq_mul_mul_and h₁ h₂ h₃ hPQ hPR hQR
   have hrp₁ : IsRelPrime ((X - C xP) * (X - C xQ)) (X - C xR) := by
     rw [IsRelPrime.mul_left_iff]
     exact ⟨isRelPrime_X_sub_C_X_sub_C_of_ne hPR.symm,
       isRelPrime_X_sub_C_X_sub_C_of_ne hQR.symm⟩
-  have hf : W.f = (X - C xP) * (X - C xQ) * (X - C xR) := by
-    refine eq_of_monic_of_associated ?_ ?_  <| dvd_dvd_iff_associated.mp ⟨?_, ?_⟩
-    · rw [f]
-      monicity!
-    · monicity!
-    · sorry
-    · refine IsRelPrime.mul_dvd hrp₁ ?_ ?_
-      · refine IsRelPrime.mul_dvd ?_ ?_ ?_
-        · exact isRelPrime_X_sub_C_X_sub_C_of_ne hPQ.symm
-        · rwa [dvd_iff_isRoot, IsRoot.def]
-        · rwa [dvd_iff_isRoot, IsRoot.def]
-      · rwa [dvd_iff_isRoot, IsRoot.def]
   rw [μ₀_some_of_f_eval_eq_zero hP h₁, μ₀_some_of_f_eval_eq_zero hQ h₂,
     μ₀_some_of_f_eval_eq_zero hR h₃]
   refine (QuotientGroup.eq_one_iff _).mpr ?_
   simp only [MonoidHom.mem_range, powMonoidHom_apply, ← IsUnit.unit_mul,
-    exists_unit_pow_eq_isUnitUnit_iff]
-  refine ⟨0, ?_⟩ -- this is not correct...
-  simp only [zero_pow two_ne_zero, ← map_mul]
-  rw [hfcP, hfcQ, hfcR, eq_comm]
-  simp only [Ideal.Quotient.algebraMap_eq]
-  rw [Ideal.Quotient.eq_zero_iff_dvd, hf]
+    exists_unit_pow_eq_isUnitUnit_iff, hfcP, hfcQ, hfcR]
   simp only [show ∀ (a b c : K), C a - X + (X - C b) * (X - C c) =
     (X - C b) * (X - C c) - (X - C a) by intro a b c; ring]
-  refine IsRelPrime.mul_dvd hrp₁ ?_ ?_
-  · refine IsRelPrime.mul_dvd (isRelPrime_X_sub_C_X_sub_C_of_ne hPQ.symm) ?_ ?_
-    · rw [mul_assoc, sub_mul]
-      refine dvd_sub ?_ ?_
-      ·
-      sorry
-    · sorry
-  · sorry
+  rw [map_sub, map_sub _ _ (X - C xQ), map_sub _ _ (X - C xR)]
+  simp only [map_mul]
+  have key {a b c : W.A} (h : a * b * c = 0) :
+      (a * b + a * c + b * c) ^ 2 = ((b * c - a) * (a * c - b) * (a * b - c)) := by
+    have : (a ^ 2 - a * b * c + 2 * a + b ^ 2 + 2 * b + c ^ 2 + 2 * c + 1) * (a * b * c) = 0 := by
+      simp [h]
+    conv_rhs => rw [← add_zero (_ * _ * _), ← this]
+    ring
+  have : algebraMap K[X] W.A (X - C xP) * algebraMap K[X] W.A (X - C xQ) *
+      algebraMap K[X] W.A (X - C xR) = 0 := by
+    rw [← map_mul, ← map_mul, ← hf]
+    simp
+  rw [← key this]
+  refine ⟨_, rfl⟩
 
 lemma μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero (h : W.f.eval xP = 0) :
     μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
   have hPQ : xQ ≠ xP := xQ_ne_xP_of_eq_zero hP hQ hR hPQR h
   have hPR : xR ≠ xP := by rw [add_right_comm] at hPQR; exact xQ_ne_xP_of_eq_zero hP hR hQ hPQR h
   by_cases hQ₀ : W.f.eval xQ = 0
-  · sorry
-
-  sorry
+  · exact μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero hP hQ hR hPQR h hQ₀
+  by_cases hR₀ : W.f.eval xR = 0
+  · rw [mul_right_comm]
+    rw [add_right_comm] at hPQR
+    exact μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero_of_eq_zero hP hR hQ hPQR h hR₀
+  rw [μ₀_some_of_f_eval_eq_zero hP h, μ₀_some_of_f_eval_ne_zero hQ hQ₀,
+    μ₀_some_of_f_eval_ne_zero hR hR₀]
+  obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
+  refine (QuotientGroup.eq_one_iff _).mpr ?_
+  simp only [MonoidHom.mem_range, powMonoidHom_apply, ← IsUnit.unit_mul,
+    exists_unit_pow_eq_isUnitUnit_iff]
+  obtain ⟨γ, rfl⟩ : ∃ γ, pol = C γ * (X - C xP) := by
+    apply_fun (·.eval xP) at hpol
+    rw [eval_sub, h] at hpol
+    have : eval xP pol = 0 := by simpa using hpol
+    rw [← IsRoot.def, ← dvd_iff_isRoot] at this
+    obtain ⟨p, rfl⟩ := this
+    rw [mul_comm]
+    suffices p.natDegree = 0 by
+      rw [natDegree_eq_zero] at this
+      obtain ⟨γ, rfl⟩ := this
+      exact ⟨_, rfl⟩
+    contrapose! hpol₁
+    replace hpol₁ : 1 ≤ p.natDegree := by lia
+    rw [natDegree_mul (X_sub_C_ne_zero _) (ne_zero_of_natDegree_gt hpol₁), natDegree_X_sub_C xP]
+    lia
+  rw [W.f_eq_mul_of_eval_eq_zero h, mul_assoc, mul_comm (W.fCofactor _),
+    show (C γ * (X - C xP)) ^ 2 = (X - C xP) * (C γ ^ 2 * (X - C xP)) by ring, ← mul_sub] at hpol
+  replace hpol := mul_left_cancel₀ (X_sub_C_ne_zero xP) hpol
+  simp only [← map_mul]
+  have key {a b c d e : W.A} (had : a * d = 0) (h : b * c = d - e ^ 2 * a) :
+      (d + e * a) ^ 2 = (d - a) * b * c := by
+    grobner
+  rw [show (C xP - X + fCofactor W xP) * (C xQ - X) * (C xR - X) =
+    (fCofactor W xP - (X - C xP)) * (X - C xQ) * (X - C xR) by ring, map_mul, map_mul, map_sub]
+  rw [← key (e := algebraMap K[X] W.A (C γ)) ?H₁ ?H₂]
+  case H₁ =>
+    rw [← map_mul, mul_comm, ← f_eq_mul_of_eval_eq_zero W h]
+    simp
+  case H₂ => simp only [← map_mul, ← map_pow, ← map_sub, hpol]
+  exact ⟨_, rfl⟩
 
 lemma μ₀_some_mul_μ₀_some_mul_μ₀_some :
     μ₀ (some xP yP hP) * μ₀ (some xQ yQ hQ) * μ₀ (some xR yR hR) = 1 := by
@@ -472,7 +558,7 @@ lemma μ₀_some_mul_μ₀_some_mul_μ₀_some :
     exact μ₀_some_mul_μ₀_some_mul_μ₀_some_of_eq_zero hR hP hQ hPQR HR
   rw [μ₀_some_of_f_eval_ne_zero hP HP, μ₀_some_of_f_eval_ne_zero hQ HQ,
     μ₀_some_of_f_eval_ne_zero hR HR]
-  obtain ⟨pol, hpol⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
+  obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
   refine (QuotientGroup.eq_one_iff _).mpr ?_
   simp only [MonoidHom.mem_range, powMonoidHom_apply, ← IsUnit.unit_mul,
     exists_unit_pow_eq_isUnitUnit_iff]
