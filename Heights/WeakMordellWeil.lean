@@ -93,11 +93,19 @@ end API
 
 namespace WeierstrassCurve
 
-/-!
-### Step 1: define `A` and `θ`
--/
-
 variable {K : Type*} [Field K] (W : WeierstrassCurve K)
+
+lemma ringChar_ne_two_of_isElliptic_of_isShortNF [W.IsElliptic] [W.IsShortNF] :
+    ringChar K ≠ 2 := by
+  have := W.isUnit_Δ.ne_zero
+  contrapose! this
+  rw [Δ_of_isShortNF W, show (16 : K) = (2 :) * 8 by norm_num]
+  nth_rewrite 1 [← this]
+  simp
+
+/-!
+### Step 1: define `A`
+-/
 
 /-- The `a` coefficient of a short Weierstrass curve. -/
 abbrev a : K := W.a₄
@@ -121,6 +129,11 @@ lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
   rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ hΔ, Δ_of_isShortNF, a, b]
   simp only [C_eq_algebraMap]
   algebra
+
+lemma equation_iff_eval_f_x_eq_y_pow_two {W : Affine K} [W.IsElliptic] [W.IsShortNF] (x y : K) :
+    W.Equation x y ↔ W.f.eval x = y ^ 2 := by
+  rw [Affine.equation_iff x y, eq_comm]
+  simp [f, a, b]
 
 /-- The quotient of `f` by `X - x`. -/
 noncomputable abbrev fCofactor (x : K) : K[X] := X ^ 2 + C x * X + C (x ^ 2 + W.a)
@@ -525,6 +538,71 @@ noncomputable def μ : Multiplicative W.Point →* W.M :=
   .ofMapMulMulEqOne (f := μ₀ ∘ Multiplicative.toAdd) (by simp) fun P' Q' R' ↦ by
     simp_rw [← toAdd_eq_zero, toAdd_mul, Function.comp_apply]
     exact μ₀_mul_mul_eq_one_of_add_add_eq_zero
+
+/-!
+### Step 4: show that `μ` has kernel `2 • W(K)`.
+-/
+
+/-- A criterion for a nonsingular point in affine coordinates to be divisble by 2. -/
+lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
+    (∃ P, Point.some x y h = 2 • P) ↔
+      ∃ ξ l m, (X - C ξ) ^ 2 * (X - C x) = W.f - (C l * X + C m) ^ 2 := by
+  refine ⟨fun ⟨P, hP⟩ ↦ ?_, fun ⟨ξ, l, m, H⟩ ↦ ?_⟩
+  · match P with
+    | 0 => simp at hP -- cannot occur
+    | .some ξ η h' =>
+      rw [← sub_eq_zero, sub_eq_add_neg, two_smul, neg_add, ← add_assoc, add_rotate, Point.neg_some] at hP
+      have H : W.Nonsingular ξ (W.negY ξ η) := (nonsingular_neg ξ η).mpr h'
+      obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero H H h hP
+      rw [← sq] at hpol
+      obtain ⟨a, b, rfl⟩ := exists_eq_X_add_C_of_natDegree_le_one hpol₁
+      exact ⟨_, _, _, hpol⟩
+  · have : ringChar K ≠ 2 := ringChar_ne_two_of_isElliptic_of_isShortNF W
+    have h20 : (2 : K) ≠ 0 := Ring.two_ne_zero this
+    have H' : X ^ 3 - C (x + 2 * ξ) * X ^ 2 + C (2 * x * ξ + ξ ^ 2) * X - C (x * ξ ^ 2) =
+        X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a - 2 * l * m) * X - C (-W.b + m ^ 2) := by
+      simp only [f] at H
+      convert H using 1 <;> simp only [C_eq_algebraMap] <;> algebra
+    have H₂ : x + 2 * ξ = l ^ 2 := by
+      apply_fun (fun p ↦ -(p.coeff 2)) at H'
+      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
+      simpa using H'
+    have H₁ : 2 * x * ξ + ξ ^ 2 = W.a - 2 * l * m := by
+      apply_fun (fun p ↦ p.coeff 1) at H'
+      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
+      simpa using H'
+    have H₀ : x * ξ ^ 2 = -W.b + m ^ 2 := by
+      apply_fun (fun p ↦ -(p.coeff 0)) at H'
+      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
+      simpa using H'
+    have hy₀ : l * ξ + m ≠ 0 := by
+      have hΔ := W.isUnit_Δ.ne_zero
+      rw [Δ_of_isShortNF W, show W.a₄ = W.a from rfl, show W.a₆ = W.b from rfl] at hΔ
+      contrapose! hΔ
+      grobner
+    have hy : l * ξ + m ≠ W.negY ξ (l * ξ + m) := by
+      simp only [negY, a₁_of_isShortNF, a₃_of_isShortNF, zero_mul, sub_zero]
+      grind
+    have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
+      rw [slope_of_Y_ne rfl hy]
+      simp only [a₂_of_isShortNF, mul_zero, zero_mul, add_zero, a₁_of_isShortNF,
+        sub_zero, negY, a₃_of_isShortNF]
+      rw [sub_neg_eq_add, ← two_mul, show W.a₄ = W.a from rfl]
+      rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
+      field_simp
+      grobner
+    have heq : W.Equation ξ (l * ξ + m) := by
+      rw [equation_iff_eval_f_x_eq_y_pow_two, ← sub_eq_zero, eq_comm]
+      apply_fun (·.eval ξ) at H
+      simpa using H
+    let P : W.Point := .some ξ (l * ξ + m) <| equation_iff_nonsingular.mp heq
+    suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) by
+      rcases this with hyp | hyp <;> exact ⟨_, hyp⟩
+    conv => enter [2]; rw [smul_neg]
+    simp only [P]
+    rw [two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX, a₁_of_isShortNF,
+      a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
+    linear_combination H₂
 
 end Affine
 
