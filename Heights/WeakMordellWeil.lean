@@ -73,9 +73,19 @@ lemma Ideal.Quotient.algebraMap_eq_zero_iff_mem {I : Ideal R} {r : R} :
     algebraMap R (R ⧸ I) r = 0 ↔ r ∈ I := by
   rw [algebraMap_eq, eq_zero_iff_mem]
 
-lemma Ideal.Quotient.algebraMap_span_eq_zero_iff_dvd {a : R} {r : R} :
+lemma Ideal.Quotient.algebraMap_span_eq_zero_iff_dvd {a r : R} :
     algebraMap R (R ⧸ Ideal.span {a}) r = 0 ↔ a ∣ r := by
   rw [algebraMap_eq_zero_iff_mem, mem_span_singleton]
+
+lemma Ideal.Quotient.algebraMap_span_eq_iff_exists {a r s : R} :
+    algebraMap R (R ⧸ Ideal.span {a}) r = algebraMap R (R ⧸ Ideal.span {a}) s ↔
+      ∃ q, q * a = r - s := by
+  rw [← sub_eq_zero, ← map_sub, algebraMap_span_eq_zero_iff_dvd, dvd_iff_exists_eq_mul_left]
+  simp only [eq_comm]
+
+lemma Ideal.Quotient.algebraMap_self_eq_zero {a : R} :
+    algebraMap R (R ⧸ Ideal.span {a}) a = 0 := by
+  simp
 
 end RingQuotient
 
@@ -672,8 +682,7 @@ lemma exists_eq_two_smul_iff' {x y : K} (h : W.Nonsingular x y) :
   refine ⟨fun ⟨ξ, l, m, H⟩ ↦ ⟨ξ, l, m, ?_⟩, fun ⟨ξ, l, m, H⟩ ↦ ⟨ξ, l, m, ?_⟩⟩
   · rw [H, map_sub, sub_eq_add_neg, map_neg, add_eq_right]
     simp
-  · simp only [Ideal.Quotient.algebraMap_eq, Ideal.Quotient.eq, Ideal.mem_span_singleton',
-      sub_neg_eq_add] at H
+  · simp only [Ideal.Quotient.algebraMap_span_eq_iff_exists, sub_neg_eq_add] at H
     obtain ⟨q, hq⟩ := H
     suffices q = 1 by
       rwa [this, eq_comm, one_mul, ← eq_sub_iff_add_eq] at hq
@@ -711,8 +720,8 @@ lemma eq_two_smul_of_μ_eq_one_of_ne (hμ : (μ <| .ofAdd <| .some x y h) = 1) (
   rw [hrst] at hz
   have hr : r ≠ 0 := by
     intro hr₀
-    simp only [hr₀, map_zero, zero_mul, zero_add, Ideal.Quotient.algebraMap_eq, ← map_pow] at hz
-    rw [Ideal.Quotient.eq, Ideal.mem_span_singleton'] at hz
+    simp only [hr₀, map_zero, zero_mul, zero_add, ← map_pow] at hz
+    rw [Ideal.Quotient.algebraMap_span_eq_iff_exists] at hz
     obtain ⟨q, hq⟩ := hz
     have : natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 1 ∨
         natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 2 := by
@@ -744,20 +753,19 @@ lemma eq_two_smul_of_μ_eq_one_of_eq (hμ : (μ <| .ofAdd <| .some x y h) = 1) (
   push_cast at hz
   rw [IsUnit.unit_spec, ← Ideal.Quotient.algebraMap_eq] at hz
   obtain ⟨p, hp⟩ := Ideal.Quotient.mk_surjective (↑z : K[X] ⧸ Ideal.span {W.f})
+  rw [← Ideal.Quotient.algebraMap_eq] at hp
   obtain ⟨r, s, hrs⟩ := W.exists_algebraMap_eq' (algebraMap K[X] (W.A' x) p)
-  rw [← hp, ← map_pow, Ideal.Quotient.algebraMap_eq, Ideal.Quotient.eq,
-    Ideal.mem_span_singleton'] at hz
+  rw [← hp, ← map_pow, Ideal.Quotient.algebraMap_span_eq_iff_exists] at hz
   conv at hz => enter [1, q]; rw [W.f_eq_mul_of_eval_eq_zero hx, mul_comm _ (X - _), ← mul_assoc]
   have hz' : ∃ q, q * fCofactor W x = p ^ 2 - (C x - X + fCofactor W x) := by
     obtain ⟨q', hq'⟩ := hz
     exact ⟨_, hq'⟩
-  rw [Ideal.Quotient.algebraMap_eq] at hrs
-  rw [← Ideal.mem_span_singleton', ← Ideal.Quotient.eq, map_pow, hrs,
+  rw [← Ideal.Quotient.algebraMap_span_eq_iff_exists, map_pow, hrs,
     map_add _ _ (fCofactor ..)] at hz'
-  conv_rhs at hz' => rw [Ideal.Quotient.mk_singleton_self, add_zero]
+  conv_rhs at hz' => rw [Ideal.Quotient.algebraMap_self_eq_zero, add_zero]
   have hr₀ : r ≠ 0 := by
     intro rfl
-    rw [← map_pow, Ideal.Quotient.eq, Ideal.mem_span_singleton', map_zero, zero_mul,
+    rw [← map_pow, Ideal.Quotient.algebraMap_span_eq_iff_exists, map_zero, zero_mul,
       zero_add] at hz'
     obtain ⟨q, hq⟩ := hz'
     apply_fun natDegree at hq
@@ -768,9 +776,8 @@ lemma eq_two_smul_of_μ_eq_one_of_eq (hμ : (μ <| .ofAdd <| .some x y h) = 1) (
     rw [natDegree_mul hq₀ (W.monic_fCofactor x).ne_zero, natDegree_fCofactor] at hq
     lia
   refine ⟨-s / r, 1 / r, -x / r, ?_⟩
-  rw [Ideal.Quotient.algebraMap_eq]
   rw [← map_pow] at hz'
-  rw [Ideal.Quotient.eq, Ideal.mem_span_singleton'] at hz' ⊢
+  rw [Ideal.Quotient.algebraMap_span_eq_iff_exists] at hz' ⊢
   obtain ⟨q, hq⟩ := hz'
   apply_fun (· * (X - C x)) at hq
   rw [mul_assoc, ← f_eq_mul_of_eval_eq_zero _ hx] at hq
