@@ -555,14 +555,14 @@ lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
       have H : W.Nonsingular ξ (W.negY ξ η) := (nonsingular_neg ξ η).mpr h'
       obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero H H h hP
       rw [← sq] at hpol
-      obtain ⟨a, b, rfl⟩ := exists_eq_X_add_C_of_natDegree_le_one hpol₁
+      obtain ⟨l, m, rfl⟩ := exists_eq_X_add_C_of_natDegree_le_one hpol₁
       exact ⟨_, _, _, hpol⟩
   · have : ringChar K ≠ 2 := ringChar_ne_two_of_isElliptic_of_isShortNF W
     have h20 : (2 : K) ≠ 0 := Ring.two_ne_zero this
     have H' : X ^ 3 - C (x + 2 * ξ) * X ^ 2 + C (2 * x * ξ + ξ ^ 2) * X - C (x * ξ ^ 2) =
         X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a - 2 * l * m) * X - C (-W.b + m ^ 2) := by
       simp only [f] at H
-      convert H using 1 <;> simp only [C_eq_algebraMap] <;> algebra
+      convert H using 1 <;> { simp only [C_eq_algebraMap]; algebra }
     replace H' n := congrArg (fun p ↦ p.coeff n) H'
     simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
     have H₂ : x + 2 * ξ = l ^ 2 := by simpa using congrArg (-·) (H' 2)
@@ -577,24 +577,19 @@ lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
       simp only [negY, a₁_of_isShortNF, a₃_of_isShortNF, zero_mul, sub_zero]
       grind
     have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
-      rw [slope_of_Y_ne rfl hy]
-      simp only [a₂_of_isShortNF, mul_zero, zero_mul, add_zero, a₁_of_isShortNF,
-        sub_zero, negY, a₃_of_isShortNF]
-      rw [sub_neg_eq_add, ← two_mul, show W.a₄ = W.a from rfl]
+      simp only [slope_of_Y_ne rfl hy, a₂_of_isShortNF, mul_zero, zero_mul, add_zero,
+        a₁_of_isShortNF, a₃_of_isShortNF, sub_zero, negY, sub_neg_eq_add, ← two_mul,
+        show W.a₄ = W.a from rfl]
       rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
       field_simp
       grobner
     have heq : W.Equation ξ (l * ξ + m) := by
       rw [equation_iff_eval_f_x_eq_y_pow_two, ← sub_eq_zero, eq_comm]
-      apply_fun (·.eval ξ) at H
-      simpa using H
+      simpa using congrArg (·.eval ξ) H
     let P : W.Point := .some ξ (l * ξ + m) <| equation_iff_nonsingular.mp heq
-    suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) by
-      rcases this with hyp | hyp <;> exact ⟨_, hyp⟩
-    conv => enter [2]; rw [smul_neg]
-    simp only [P]
-    rw [two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX, a₁_of_isShortNF,
-      a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
+    suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) from this.casesOn (⟨_, ·⟩) (⟨_, ·⟩)
+    simp only [smul_neg, P, two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX,
+      a₁_of_isShortNF, a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
     linear_combination H₂
 
 end Affine
