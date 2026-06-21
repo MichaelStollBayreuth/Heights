@@ -18,6 +18,7 @@ given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`.
 3. Show that `μ` is a group homomorphism.
    => done.
 4. Show that `ker μ = 2E(K)`.
+   => done.
 5. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
 6. Show that `A(S,2)` is finite. (There is some preliminary stuff in
@@ -118,6 +119,14 @@ open Polynomial
 /-- The polynomial on the right hand side of a short Weierstrass equation. -/
 noncomputable abbrev f : K[X] := X ^ 3 + C W.a * X + C W.b
 
+lemma natDegree_f : W.f.natDegree = 3 := by
+  simp only [f]
+  compute_degree!
+
+lemma monic_f : W.f.Monic := by
+  simp only [f]
+  monicity!
+
 lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
   have hΔ : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
   rw [f, separable_def',
@@ -137,6 +146,14 @@ lemma equation_iff_eval_f_x_eq_y_pow_two {W : Affine K} [W.IsElliptic] [W.IsShor
 
 /-- The quotient of `f` by `X - x`. -/
 noncomputable abbrev fCofactor (x : K) : K[X] := X ^ 2 + C x * X + C (x ^ 2 + W.a)
+
+lemma natDegree_fCofactor (x : K) : (W.fCofactor x).natDegree = 2 := by
+  simp only [fCofactor]
+  compute_degree!
+
+lemma monic_fCofactor (x : K) : (W.fCofactor x).Monic := by
+  simp only [fCofactor]
+  monicity!
 
 lemma fCofactor_mul_eq (x : K) : W.fCofactor x * (X - C x) = W.f - C (W.f.eval x) := by
   simp [fCofactor, f]
@@ -171,6 +188,42 @@ lemma three_sq_add_a_ne_zero [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval
 /-- The étale algebra associated to a short Weierstrass curve. -/
 noncomputable abbrev A : Type _ := K[X] ⧸ Ideal.span {W.f}
 
+lemma exists_algebraMap_eq (a : W.A) :
+    ∃ r s t, a = algebraMap K[X] W.A (C r * X ^ 2 + C s * X + C t) := by
+  simp only [Ideal.Quotient.algebraMap_eq]
+  obtain ⟨p, hp⟩ := Ideal.Quotient.mk_surjective a
+  simp only [← hp, Ideal.Quotient.eq, Ideal.mem_span_singleton']
+  set R := p % W.f with hR
+  refine ⟨R.coeff 2, R.coeff 1, R.coeff 0, p / W.f, ?_⟩
+  nth_rewrite 2 [← EuclideanDomain.div_add_mod' p W.f]
+  rw [eq_sub_iff_add_eq, add_right_inj, ← hR]
+  refine (eq_quadratic_of_degree_le_two ?_).symm
+  have := Polynomial.degree_mod_lt p W.monic_f.ne_zero
+  rw [degree_eq_natDegree W.monic_f.ne_zero, natDegree_f, ← hR] at this
+  rwa [← Order.lt_succ_iff]
+
+lemma exists_X_sub_C_mul_eq (r s t : K) (hr : r ≠ 0) :
+    ∃ ξ l m, algebraMap K[X] W.A (X - C ξ) * algebraMap K[X] W.A (C r * X ^ 2 + C s * X + C t) =
+       algebraMap K[X] W.A (C l * X + C m) := by
+  conv => enter [1, ξ, 1, l, 1, m]; rw [← map_mul, ← sub_eq_zero, ← map_sub]
+  have H (ξ l m : K) : (X - C ξ) * (C r * X ^ 2 + C s * X + C t) - (C l * X + C m) =
+      C r * W.f + (C (-ξ * r + s) * X ^ 2 + C (-ξ * s - l - W.a * r + t) * X
+        + C (-ξ * t - m - W.b * r)) := by
+    simp only [f, C_eq_algebraMap]
+    algebra
+  conv =>
+    enter [1, ξ, 1, l, 1, m]
+    rw [H, map_add, map_mul]
+    enter [1, 1, 2]
+    simp only [Ideal.Quotient.algebraMap_eq, Ideal.Quotient.mk_singleton_self]
+  simp only [mul_zero, zero_add]
+  suffices ∃ ξ l m, -ξ * r + s = 0 ∧ -ξ * s - l - W.a * r + t = 0 ∧ -ξ * t - m - W.b * r = 0 by
+    obtain ⟨ξ, l, m, h₂, h₁, h₀⟩ := this
+    refine ⟨ξ, l, m, ?_⟩
+    rw [h₂, h₁, h₀]
+    simp
+  refine ⟨s / r, t - W.a * r - s ^ 2 / r, -W.b * r - t * s / r, ?_, ?_, ?_⟩ <;> field
+
 /- /-- The generator of `W.A`, which is the image of `X` under the canonical map. -/
 noncomputable abbrev θ : W.A := Ideal.Quotient.mk _ X
 
@@ -185,6 +238,21 @@ lemma θ_eq : W.θ = (X : K[X]) • 1 := by
 
 /-- The étale algebra associated to the cofactor of `f`. -/
 noncomputable abbrev A' (x : K) : Type _ := K[X] ⧸ Ideal.span {W.fCofactor x}
+
+lemma exists_algebraMap_eq' {x : K} (a : W.A' x) :
+    ∃ r s, a = algebraMap K[X] (W.A' x) (C r * X + C s) := by
+  simp only [Ideal.Quotient.algebraMap_eq]
+  obtain ⟨p, hp⟩ := Ideal.Quotient.mk_surjective a
+  simp only [← hp, Ideal.Quotient.eq, Ideal.mem_span_singleton']
+  set R := p % W.fCofactor x with hR
+  refine ⟨R.coeff 1, R.coeff 0, p / W.fCofactor x, ?_⟩
+  nth_rewrite 2 [← EuclideanDomain.div_add_mod' p (W.fCofactor x)]
+  rw [eq_sub_iff_add_eq, add_right_inj, ← hR]
+  refine (eq_X_add_C_of_natDegree_le_one ?_).symm
+  have := Polynomial.degree_mod_lt p (W.monic_fCofactor x).ne_zero
+  rw [degree_eq_natDegree (W.monic_fCofactor x).ne_zero, natDegree_fCofactor, ← hR,
+    show ((2 :) : WithBot ℕ) = Order.succ ↑1 from rfl, Order.lt_succ_iff] at this
+  exact Polynomial.natDegree_le_of_degree_le this
 
 /-- The Chinese Remainder Theorem isomorphism `K[X]⧸f ≃ K × K[X]/cf`, where `cf` is the cofactor
 `f / (X - x)`. -/
@@ -539,6 +607,9 @@ noncomputable def μ : Multiplicative W.Point →* W.M :=
     simp_rw [← toAdd_eq_zero, toAdd_mul, Function.comp_apply]
     exact μ₀_mul_mul_eq_one_of_add_add_eq_zero
 
+@[simp]
+lemma μ_apply (P : W.Point) : μ (.ofAdd P) = μ₀ P := rfl
+
 /-!
 ### Step 4: show that `μ` has kernel `2 • W(K)`.
 -/
@@ -591,6 +662,163 @@ lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
     simp only [smul_neg, P, two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX,
       a₁_of_isShortNF, a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
     linear_combination H₂
+
+/-- A criterion for a nonsingular point in affine coordinates to be divisble by 2. -/
+lemma exists_eq_two_smul_iff' {x y : K} (h : W.Nonsingular x y) :
+    (∃ P, Point.some x y h = 2 • P) ↔
+      ∃ ξ l m, algebraMap K[X] W.A ((X - C ξ) ^ 2 * (X - C x)) =
+        algebraMap K[X] W.A (-(C l * X + C m) ^ 2) := by
+  rw [exists_eq_two_smul_iff]
+  refine ⟨fun ⟨ξ, l, m, H⟩ ↦ ⟨ξ, l, m, ?_⟩, fun ⟨ξ, l, m, H⟩ ↦ ⟨ξ, l, m, ?_⟩⟩
+  · rw [H, map_sub, sub_eq_add_neg, map_neg, add_eq_right]
+    simp
+  · simp only [Ideal.Quotient.algebraMap_eq, Ideal.Quotient.eq, Ideal.mem_span_singleton',
+      sub_neg_eq_add] at H
+    obtain ⟨q, hq⟩ := H
+    suffices q = 1 by
+      rwa [this, eq_comm, one_mul, ← eq_sub_iff_add_eq] at hq
+    have hdeg : natDegree ((X - C ξ) ^ 2 * (X - C x) + (C l * X + C m) ^ 2) = 3 := by
+      compute_degree!
+    have hmon : ((X - C ξ) ^ 2 * (X - C x) + (C l * X + C m) ^ 2).Monic := by monicity!
+    have hq₀ : q ≠ 0 := by
+      intro rfl
+      rw [zero_mul] at hq
+      rw [← hq] at hmon
+      simp at hmon
+    have hq₁ : q.natDegree = 0 := by
+      apply_fun natDegree at hq
+      rw [natDegree_mul hq₀ W.monic_f.ne_zero, hdeg, W.natDegree_f] at hq
+      lia
+    refine (Monic.natDegree_eq_zero ?_).mp hq₁
+    exact Polynomial.Monic.of_mul_monic_right W.monic_f <| hq ▸ hmon
+
+section kernel
+
+variable {x y : K} (h : W.Nonsingular x y)
+
+include h
+
+lemma eq_two_smul_of_μ_eq_one_of_ne (hμ : (μ <| .ofAdd <| .some x y h) = 1) (hx : W.f.eval x ≠ 0) :
+    ∃ P : W.Point, .some x y h = 2 • P := by
+  rw [exists_eq_two_smul_iff']
+  simp only [μ_apply, μ₀_some_of_f_eval_ne_zero h hx, Ideal.Quotient.algebraMap_eq, map_sub,
+    QuotientGroup.eq_one_iff, MonoidHom.mem_range, powMonoidHom_apply] at hμ
+  obtain ⟨z, hz⟩ := hμ
+  rw [Units.ext_iff] at hz
+  push_cast at hz
+  rw [IsUnit.unit_spec, ← map_sub, ← Ideal.Quotient.algebraMap_eq] at hz
+  obtain ⟨r, s, t, hrst⟩ := W.exists_algebraMap_eq z
+  rw [hrst] at hz
+  have hr : r ≠ 0 := by
+    intro hr₀
+    simp only [hr₀, map_zero, zero_mul, zero_add, Ideal.Quotient.algebraMap_eq, ← map_pow] at hz
+    rw [Ideal.Quotient.eq, Ideal.mem_span_singleton'] at hz
+    obtain ⟨q, hq⟩ := hz
+    have : natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 1 ∨
+        natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 2 := by
+      rcases eq_or_ne s 0 with rfl | hs
+      · exact .inl <| by simp only [map_zero, zero_mul, zero_add]; compute_degree!
+      · exact .inr <| by compute_degree!
+    apply_fun natDegree at hq
+    rcases eq_or_ne q 0 with rfl | hq₀
+    · simp at hq
+      lia
+    · rw [natDegree_mul hq₀ W.monic_f.ne_zero, natDegree_f] at hq
+      lia
+  obtain ⟨ξ, l, m, H⟩ := W.exists_X_sub_C_mul_eq r s t hr
+  rw [← map_mul] at H
+  refine ⟨ξ, l, m, ?_⟩
+  apply_fun (fun p ↦ algebraMap K[X] W.A (X - C ξ) ^ 2 * p) at hz
+  rw [← neg_inj, eq_comm, ← map_pow, ← map_mul, ← map_neg] at hz
+  conv_rhs at hz => rw [← map_pow, ← map_mul, ← mul_pow, map_pow, H, ← map_pow, ← map_neg]
+  convert hz
+  ring
+
+lemma eq_two_smul_of_μ_eq_one_of_eq (hμ : (μ <| .ofAdd <| .some x y h) = 1) (hx : W.f.eval x = 0) :
+    ∃ P : W.Point, .some x y h = 2 • P := by
+  rw [exists_eq_two_smul_iff']
+  simp only [μ_apply, μ₀_some_of_f_eval_eq_zero h hx, Ideal.Quotient.algebraMap_eq,
+    QuotientGroup.eq_one_iff, MonoidHom.mem_range, powMonoidHom_apply] at hμ
+  obtain ⟨z, hz⟩ := hμ
+  rw [Units.ext_iff] at hz
+  push_cast at hz
+  rw [IsUnit.unit_spec, ← Ideal.Quotient.algebraMap_eq] at hz
+  obtain ⟨p, hp⟩ := Ideal.Quotient.mk_surjective (↑z : K[X] ⧸ Ideal.span {W.f})
+  obtain ⟨r, s, hrs⟩ := W.exists_algebraMap_eq' (algebraMap K[X] (W.A' x) p)
+  rw [← hp, ← map_pow, Ideal.Quotient.algebraMap_eq, Ideal.Quotient.eq,
+    Ideal.mem_span_singleton'] at hz
+  conv at hz => enter [1, q]; rw [W.f_eq_mul_of_eval_eq_zero hx, mul_comm _ (X - _), ← mul_assoc]
+  have hz' : ∃ q, q * fCofactor W x = p ^ 2 - (C x - X + fCofactor W x) := by
+    obtain ⟨q', hq'⟩ := hz
+    exact ⟨_, hq'⟩
+  rw [Ideal.Quotient.algebraMap_eq] at hrs
+  rw [← Ideal.mem_span_singleton', ← Ideal.Quotient.eq, map_pow, hrs,
+    map_add _ _ (fCofactor ..)] at hz'
+  conv_rhs at hz' => rw [Ideal.Quotient.mk_singleton_self, add_zero]
+  have hr₀ : r ≠ 0 := by
+    intro rfl
+    rw [← map_pow, Ideal.Quotient.eq, Ideal.mem_span_singleton', map_zero, zero_mul,
+      zero_add] at hz'
+    obtain ⟨q, hq⟩ := hz'
+    apply_fun natDegree at hq
+    have : (C s ^ 2 - (C x - X)).natDegree = 1 := by compute_degree!
+    rw [this] at hq; clear this
+    rcases eq_or_ne q 0 with rfl | hq₀
+    · simp at hq
+    rw [natDegree_mul hq₀ (W.monic_fCofactor x).ne_zero, natDegree_fCofactor] at hq
+    lia
+  refine ⟨-s / r, 1 / r, -x / r, ?_⟩
+  rw [Ideal.Quotient.algebraMap_eq]
+  rw [← map_pow] at hz'
+  rw [Ideal.Quotient.eq, Ideal.mem_span_singleton'] at hz' ⊢
+  obtain ⟨q, hq⟩ := hz'
+  apply_fun (· * (X - C x)) at hq
+  rw [mul_assoc, ← f_eq_mul_of_eval_eq_zero _ hx] at hq
+  refine ⟨C (1 / r ^ 2) * q, ?_⟩
+  apply_fun (C (r ^ 2) * ·) using mul_right_injective₀ <| by simp [hr₀]
+  dsimp only
+  rw [← mul_assoc, ← mul_assoc, ← map_mul]
+  rw [mul_one_div_cancel <| pow_ne_zero 2 hr₀, map_one, one_mul, hq]
+  conv_rhs =>
+    rw [sub_neg_eq_add, mul_add, ← mul_assoc, map_pow, ← mul_pow, mul_sub (C r), ← map_mul,
+      mul_div_cancel₀ _ hr₀]
+    enter [2]
+    rw [← mul_pow, mul_add, ← mul_assoc, ← map_mul, mul_one_div_cancel hr₀, map_one, one_mul,
+      ← map_mul, mul_div_cancel₀ _ hr₀]
+  simp only [C_eq_algebraMap]
+  algebra
+
+end kernel
+
+/- Maybe it is better to define `μ : W.Point →+ Additive M`
+instead of `Multiplicative W.Point →* M`? -/
+
+/-- The kernel of `μ` is exactly `2 • W(K)`. -/
+lemma ker_μ_eq : (μ (W := W)).ker = (nsmulAddMonoidHom 2).range.toSubgroup := by
+  refine le_antisymm ?_ ?_
+  · intro P' hP'
+    set P : W.Point := Multiplicative.toAdd P' with hP
+    match P with
+    | 0 =>
+      rw [Multiplicative.mem_toSubgroup, ← hP]
+      exact AddSubgroup.zero_mem _
+    | .some x y h =>
+      replace hP' : μ (.ofAdd (.some x y h)) = 1 := by
+        rw [MonoidHom.mem_ker] at hP'
+        rwa [hP, ofAdd_toAdd]
+      rw [Multiplicative.mem_toSubgroup, ← hP, AddMonoidHom.mem_range]
+      conv => enter [1, Q]; rw [nsmulAddMonoidHom_apply, eq_comm]
+      rcases eq_or_ne (W.f.eval x) 0 with hx | hx
+      · exact eq_two_smul_of_μ_eq_one_of_eq h hP' hx
+      · exact eq_two_smul_of_μ_eq_one_of_ne h hP' hx
+  · intro P' hP'
+    set P : W.Point := Multiplicative.toAdd P' with hP
+    rw [Multiplicative.mem_toSubgroup, ← hP, AddMonoidHom.mem_range] at hP'
+    conv at hP' => enter [1, Q]; rw [nsmulAddMonoidHom_apply, eq_comm]
+    obtain ⟨Q, hQ⟩ := hP'
+    rw [hP] at hQ
+    rw [MonoidHom.mem_ker, ← ofAdd_toAdd P', hQ, ofAdd_nsmul, map_pow, sq]
+    exact M_mul_self _
 
 end Affine
 
