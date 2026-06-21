@@ -820,6 +820,14 @@ lemma ker_μ_eq : (μ (W := W)).ker = (nsmulAddMonoidHom 2).range.toSubgroup := 
     rw [MonoidHom.mem_ker, ← ofAdd_toAdd P', hQ, ofAdd_nsmul, map_pow, sq]
     exact M_mul_self _
 
+/-- A criterion for the validity of the weak Mordell-Weil Theorem. -/
+lemma finite_index_range_nsmulAddMonoidHom_two_iff :
+    (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex ↔ Finite (μ (W := W)).range := by
+  rw [← AddSubgroup.finiteIndex_toSubgroup_iff, ← ker_μ_eq]
+  let e := QuotientGroup.quotientKerEquivRange (μ (W := W))
+  rw [Equiv.finite_iff e.symm.toEquiv]
+  exact Subgroup.finiteIndex_iff_finite_quotient
+
 end Affine
 
 end WeierstrassCurve
