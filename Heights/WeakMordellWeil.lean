@@ -563,18 +563,11 @@ lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
         X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a - 2 * l * m) * X - C (-W.b + m ^ 2) := by
       simp only [f] at H
       convert H using 1 <;> simp only [C_eq_algebraMap] <;> algebra
-    have H₂ : x + 2 * ξ = l ^ 2 := by
-      apply_fun (fun p ↦ -(p.coeff 2)) at H'
-      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
-      simpa using H'
-    have H₁ : 2 * x * ξ + ξ ^ 2 = W.a - 2 * l * m := by
-      apply_fun (fun p ↦ p.coeff 1) at H'
-      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
-      simpa using H'
-    have H₀ : x * ξ ^ 2 = -W.b + m ^ 2 := by
-      apply_fun (fun p ↦ -(p.coeff 0)) at H'
-      simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
-      simpa using H'
+    replace H' n := congrArg (fun p ↦ p.coeff n) H'
+    simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
+    have H₂ : x + 2 * ξ = l ^ 2 := by simpa using congrArg (-·) (H' 2)
+    have H₁ : 2 * x * ξ + ξ ^ 2 = W.a - 2 * l * m := by simpa using H' 1
+    have H₀ : x * ξ ^ 2 = -W.b + m ^ 2 := by simpa using congrArg (-·) (H' 0)
     have hy₀ : l * ξ + m ≠ 0 := by
       have hΔ := W.isUnit_Δ.ne_zero
       rw [Δ_of_isShortNF W, show W.a₄ = W.a from rfl, show W.a₆ = W.b from rfl] at hΔ
