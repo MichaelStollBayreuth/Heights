@@ -43,9 +43,6 @@ and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W
 
 open MvPolynomial Nat
 
-lemma sub_negY_eq (x y : R) : y - W'.negY x y = 2 * y + W'.a₁ * x + W'.a₃ :=
-  by rw [negY]; ring
-
 lemma den_duplication_eq {x y : R} (h : W'.Equation x y) :
     4 * x ^ 3 + W'.b₂ * x ^ 2 + 2 * W'.b₄ * x + W'.b₆ = (2 * y + W'.a₁ * x + W'.a₃) ^ 2 := by
   have Heq := (W'.equation_iff x y).mp h
@@ -80,7 +77,7 @@ section Decidable
 
 variable [DecidableEq F]
 
-lemma addX_x_x_slope_eq {x y : F} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
+lemma addX_self_of_Y_ne {x y : F} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
     W.addX x x (W.slope x x y y) =
       (x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆) := by
@@ -92,12 +89,12 @@ lemma addX_x_x_slope_eq {x y : F} (h : W.Equation x y) (hn : y ≠ W.negY x y) :
     grind
   rw [mul_div_cancel₀ _ hn', addX, sub_sub, sub_sub, mul_sub, mul_add]
   simp only [slope, ↓reduceIte, hn]
-  rw [sub_negY_eq, div_pow]
+  rw [negY, show y - (-y - W.a₁ * x - W.a₃) = 2 * y + W.a₁ * x + W.a₃ by ring, div_pow]
   nth_rewrite 1 2 [den_duplication_eq h]
   rw [mul_div_cancel₀ _ <| pow_ne_zero 2 hn'', aux hn'', b₂, b₄, b₆, b₈]
   linear_combination -W.a₁ ^ 2 * (W.equation_iff x y).mp h
 
-lemma addX_slope_of_x_ne_x {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
+lemma addX_of_X_ne {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
      W.addX xP xQ (W.slope xP xQ yP yQ) =
        ((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
          (xP - xQ) ^ 2 := by
@@ -105,43 +102,36 @@ lemma addX_slope_of_x_ne_x {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
   simp [addX, slope, hn, div_pow]
   field
 
-lemma addX_slope_negY_of_x_ne_x {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
-     W.addX xP xQ (W.slope xP xQ yP <| W.negY xQ yQ) =
-       ((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
-           - (W.a₂ + xP + xQ) * (xP - xQ) ^2) / (xP - xQ) ^ 2 := by
-  have hxPQ' : (xP - xQ) ≠ 0 := by grind only
-  simp [addX, slope, hn, div_pow]
-  field
-
 /-- We given an explicit expression for `xRep` of `P + P` when `2*P ≠ 0`. -/
-lemma Point.xRep_add_self_of_ne {x y : F} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
+lemma Point.xRep_add_self_of_Y_ne {x y : F} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
     (some x y h + some x y h).xRep =
       ![(x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆), 1] := by
-  simp only [add_self_of_Y_ne hn, ← addX_x_x_slope_eq h.1 hn, xRep_some]
+  simp only [add_self_of_Y_ne hn, ← addX_self_of_Y_ne h.1 hn, xRep_some]
 
 /-- We given an explicit expression for `xRep` of `P + P` when `P ≠ 0` and `2*P = 0`. -/
-lemma Point.xRep_add_self_of_eq {x y : F} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
+lemma Point.xRep_add_self_of_Y_eq {x y : F} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
     (some x y h + some x y h).xRep = ![1, 0] := by
   simp only [add_self_of_Y_eq hn, xRep_zero]
 
 /-- We given an explicit expression for `xRep` of `P + Q` when `P ≠ ±Q`. -/
-lemma Point.xRep_add_of_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
+lemma Point.xRep_add_of_X_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP + some xQ yQ hQ).xRep =
       ![((yP - yQ) ^ 2 + W.a₁ * (yP - yQ) * (xP - xQ) - (W.a₂ + xP + xQ) * (xP - xQ) ^2) /
          (xP - xQ) ^ 2, 1] := by
-  simp only [add_of_X_ne (h₁ := hP) (h₂ := hQ) hn, xRep_some, addX_slope_of_x_ne_x hn]
+  simp only [add_of_X_ne (h₁ := hP) (h₂ := hQ) hn, xRep_some, addX_of_X_ne hn]
 
 /-- We given an explicit expression for `xRep` of `P - Q` when `P ≠ ±Q`. -/
-lemma Point.xRep_add_neg_of_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
+lemma Point.xRep_sub_of_X_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP - some xQ yQ hQ).xRep =
       ![((yP + yQ + W.a₁ * xQ + W.a₃) ^ 2 + W.a₁ * (yP + yQ + W.a₁ * xQ + W.a₃) * (xP - xQ)
            - (W.a₂ + xP + xQ) * (xP - xQ) ^2) / (xP - xQ) ^ 2, 1] := by
   simp only [sub_eq_add_neg (some ..), neg_some hQ,
     add_of_X_ne (h₁ := hP) (h₂ := (nonsingular_neg ..).mpr hQ) hn, xRep_some,
-    addX_slope_negY_of_x_ne_x hn]
+    addX_of_X_ne hn]
+  grind only [negY]
 
 end Decidable
 
@@ -202,7 +192,7 @@ private lemma Point.sym2x_P_add_P_zero (P : W.Point) :
       simp
     · have H' := (den_duplication_eq_zero_iff h.1).not.mpr H
       refine ⟨_, H', ?_⟩
-      simp [sym2x, Point.xRep_add_self_of_ne h H, mul_div_cancel₀ _ H']
+      simp [sym2x, Point.xRep_add_self_of_Y_ne h H, mul_div_cancel₀ _ H']
 
 /-- `sym2x (P + Q) (P - Q)` is equal, up to scaling by a nonzero constant, to `addSubMap W`
 applied to `sym2x P Q`. -/
@@ -231,7 +221,7 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
     -- The following relations are needed for the `grobner` calls below.
     have HeqP := (W.equation_iff xP yP).mp hP.1
     have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
-    rw [Hrs, sym2x, xRep_add_of_ne hP hQ hxPQ, xRep_add_neg_of_ne hP hQ hxPQ, b₂, b₄, b₆, b₈]
+    rw [Hrs, sym2x, Point.xRep_add_of_X_ne hP hQ hxPQ, Point.xRep_sub_of_X_ne hP hQ hxPQ, b₂, b₄, b₆, b₈]
     ext i : 1
     fin_cases i <;> simp [field] <;> grobner
 
