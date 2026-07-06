@@ -29,20 +29,16 @@ section descent
 open Subgroup QuotientGroup in
 /--
 If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
-* for all `g x : G`, `h x ≤ a * h (g * x) + c g`,
 * for all `x : G`, `h (x ^ n) ≥ b * h x - c₀`,
 * for all `B : ℝ`, there are only finitely many `x : G` such that `h x ≤ B`,
 
-where `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`, then the torsion subgroup of `G`
-is finite.
+where `1 < b` and `c₀` are real numbers, then the torsion subgroup of `G` is finite.
 -/
 @[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
-* for all `g x : G`, `h x ≤ a * h (g + x) + c g`,
 * for all `x : G`, `h (n • x) ≥ b * h x - c₀`,
 * for all `B : ℝ`, there are only finitely many `x : G` such that `h x ≤ B`,
 
-where `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`, then the torsion subgroup of `G`
-is finite. -/]
+where `1 < b` and `c₀` are real numbers, then the torsion subgroup of `G` is finite. -/]
 theorem CommGroup.finite_torsion_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → ℝ}
     {b c₀ : ℝ} (H₀ : 1 < b) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n)) [Northcott h] :
     Finite (torsion G) := by
@@ -75,20 +71,18 @@ theorem CommGroup.finite_torsion_of_descent {G : Type*} [CommGroup G] {n : ℕ} 
 
 /--
 If `G` is a commutative group and `n : ℕ`, `h : G → ℝ` satisfy
-* `G / G ^ 2` is finite,
 * `0 ≤ h x` for all `x : G`,
 * there is `C : ℝ` such that for all `x y : G`, `|h (x * y) + h(x / y) - 2 * (h x + h y)| ≤ C`,
 * for all `B : ℝ`, there are only finitely many `x : G` such that `h x ≤ B`,
 
-then `G` is finitely generated.
+then the torsion subgroup of `G` is finite.
 -/
 @[to_additive /-- If `G` is a commutative additive group and `n : ℕ`, `h : G → ℝ` satisfy
-* `G / 2 • G` is finite,
 * `0 ≤ h x` for all `x : G`,
 * there is `C : ℝ` such that for all `x y : G`, `|h (x + y) + h(x - y) - 2 * (h x + h y)| ≤ C`,
 * for all `B : ℝ`, there are only finitely many `x : G` such that `h x ≤ B`,
 
-then `G` is finitely generated. -/]
+then the torsion subgroup of `G` is finite. -/]
 theorem CommGroup.finite_torsion_of_descent' {G : Type*} [CommGroup G] {h : G → ℝ} {C : ℝ}
     (H₃ : ∀ x y, |h (x * y) + h (x / y) - 2 * (h x + h y)| ≤ C) [Northcott h] :
     Finite (torsion G) := by
