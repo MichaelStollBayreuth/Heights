@@ -56,24 +56,18 @@ theorem CommGroup.finite_torsion_of_descent {G : Type*} [CommGroup G] {n : ℕ} 
     exact instFiniteSubtypeMem _
   suffices ∀ t ∈ torsion G, h t ≤ c₀ / (b - 1) by
     have H' := Northcott.finite_le (h := h) (c₀ / (b - 1))
-    replace H' : {t | t ∈ torsion G}.Finite :=
-      .subset (Set.finite_coe_iff.mp H') this
-    rw [← Set.finite_coe_iff] at H'
-    convert! H'
+    exact Set.Finite.subset (Set.finite_coe_iff.mp H') this
   intro t ht
   rw [mem_torsion, ← finite_powers] at ht
-  have ht' : Finite ↥(Submonoid.powers t) := by convert! ht
+  have ht' : Finite ↥(Submonoid.powers t) := ht
   let C : ℝ := ⨆ g : Submonoid.powers t, h g
-  have hC : ∀ g ∈ Submonoid.powers t, h g ≤ C := by
-    intro g hg
-    convert Finite.le_ciSup (fun g : Submonoid.powers t ↦ h g) ⟨g, hg⟩
+  have hC : ∀ g ∈ Submonoid.powers t, h g ≤ C :=
+    fun g hg ↦ Finite.le_ciSup (fun g : Submonoid.powers t ↦ h g) ⟨g, hg⟩
   have hC' : C ≤ c₀ / (b - 1) := by
     obtain ⟨t₀, ht₀⟩ : ∃ g : Submonoid.powers t, h g = C := exists_eq_ciSup_of_finite
-    specialize H₃ t₀
     have ht₀n : (t₀ : G) ^ n ∈ Submonoid.powers t :=
       Submonoid.pow_mem (Submonoid.powers t) (SetLike.coe_mem t₀) n
-    specialize hC _ ht₀n
-    replace H₃ := H₃.trans hC
+    replace H₃ := (H₃ t₀).trans <| hC _ ht₀n
     rw [ht₀] at H₃
     rw [le_div_iff₀' (by grind)]
     grind
