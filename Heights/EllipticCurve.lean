@@ -44,8 +44,7 @@ is finite.
 where `0 ≤ a < b` and `c₀` are real numbers, `c : G → ℝ`, then the torsion subgroup of `G`
 is finite. -/]
 theorem CommGroup.finite_torsion_of_descent {G : Type*} [CommGroup G] {n : ℕ} {h : G → ℝ}
-    {a b c₀ : ℝ} {c : G → ℝ} (H₀ : a < b) (H₂ : ∀ g x, h x ≤ a * h (g * x) + c g)
-    (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n)) [Northcott h] :
+    {b c₀ : ℝ} (H₀ : 1 < b) (H₃ : ∀ x, b * h x - c₀ ≤ h (x ^ n)) [Northcott h] :
     Finite (torsion G) := by
   by_cases! H : ∃ C, ∀ x, h x ≤ C
   · obtain ⟨C, hC⟩ := H
@@ -55,19 +54,6 @@ theorem CommGroup.finite_torsion_of_descent {G : Type*} [CommGroup G] {n : ℕ} 
         exact Set.finite_univ_iff.mp this
       exact Northcott.finite_le C
     exact instFiniteSubtypeMem _
-  have ha₁ : 1 ≤ a := by
-    refine le_of_forall_lt_imp_le_of_dense fun x hx ↦ ?_
-    obtain ⟨g, hg⟩ := H <| max 0 (c 1 / (1 - x))
-    have hg' : c 1 / (1 - x) < h g := by grind
-    rw [div_lt_iff₀' (by grind)] at hg'
-    specialize H₂ 1 g
-    simp only [one_mul] at H₂
-    grw [hg'.le] at H₂
-    have hg₀ : 0 < h g := by grind
-    have : 0 ≤ (a - x) * h g := by grind
-    rw [← sub_nonneg]
-    exact (mul_nonneg_iff_of_pos_right hg₀).mp this
-  have hb : 1 < b := by grind
   suffices ∀ t ∈ torsion G, h t ≤ c₀ / (b - 1) by
     have H' := Northcott.finite_le (h := h) (c₀ / (b - 1))
     replace H' : {t | t ∈ torsion G}.Finite :=
@@ -110,11 +96,10 @@ then `G` is finitely generated.
 
 then `G` is finitely generated. -/]
 theorem CommGroup.finite_torsion_of_descent' {G : Type*} [CommGroup G] {h : G → ℝ} {C : ℝ}
-    (H₂ : ∀ x, 0 ≤ h x) (H₃ : ∀ x y, |h (x * y) + h (x / y) - 2 * (h x + h y)| ≤ C) [Northcott h] :
+    (H₃ : ∀ x y, |h (x * y) + h (x / y) - 2 * (h x + h y)| ≤ C) [Northcott h] :
     Finite (torsion G) := by
   have H₃' x : 4 * h x - (h 1 + C) ≤ h (x ^ 2) := by grind [pow_two, div_self']
-  have H₂' g x : h x ≤ 2 * h (g * x) + (2 * h g⁻¹ + C) := by grind [mul_inv_cancel_comm]
-  exact finite_torsion_of_descent (b := 4) (by norm_num) H₂' H₃'
+  exact finite_torsion_of_descent (b := 4) (by norm_num) H₃'
 
 end descent
 
@@ -424,11 +409,8 @@ theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.
 /-- The torsion subgroup of the group of `K`-rational point on an elliptic curve over a
 number field `K` is finite. -/
 theorem finite_torsion : Finite (AddCommGroup.torsion W.Point) := by
-  have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
-    rw [Point.naiveHeight_eq_logHeight P]
-    positivity
   obtain ⟨C, hC⟩ := approx_parallelogram_law W
-  exact AddCommGroup.finite_torsion_of_descent' H₂ hC
+  exact AddCommGroup.finite_torsion_of_descent' hC
 
 end Northcott
 
