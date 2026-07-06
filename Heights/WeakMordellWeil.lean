@@ -19,9 +19,10 @@ given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`.
    => done.
 4. Show that `ker μ = 2E(K)`.
    => done.
-5. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
+5. Show that `im μ` is contained in the kernel of the norm map on square classes.
+6. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
-6. Show that `A(S,2)` is finite. (There is some preliminary stuff in
+7. Show that `A(S,2)` is finite. (There is some preliminary stuff in
    `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, but finiteness is still a TODO there.)
 -/
 
@@ -834,6 +835,12 @@ lemma finite_index_range_nsmulAddMonoidHom_two_iff :
   let e := QuotientGroup.quotientKerEquivRange (μ (W := W))
   rw [Equiv.finite_iff e.symm.toEquiv]
   exact Subgroup.finiteIndex_iff_finite_quotient
+
+/-!
+### Step 5: show that `im μ` is contained in the kernel of the norm map.
+-/
+
+
 
 end Affine
 
