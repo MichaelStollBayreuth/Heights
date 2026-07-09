@@ -24,8 +24,9 @@ given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`, where `a = a
    `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p`.
 6. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
-   => scaffolded at the end of the file, for `E` over the fraction field of a Dedekind domain.
-   It is blocked on the decomposition of `A` into a product of fields ("Step 5.5").
+   => `range_μ_le_selmerGroupA` at the end of the file, for `E` over the fraction field of a
+   Dedekind domain, modulo one `sorry`: the two-case valuation computation
+   `μX_component_mem_selmerGroupFactor`.
 7. Show that `A(S,2)` is finite. (There is some preliminary stuff in
    `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, but finiteness is still a TODO there.)
    This is where number fields, rather than general Dedekind domains, become necessary.
@@ -150,6 +151,41 @@ noncomputable def piEquiv {ι : Type*} (α : ι → Type*) [(i : ι) → CommMon
 end Units.modPow
 
 end modPow
+
+section DedekindDomain
+
+open IsDedekindDomain
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+/-- A nonzero element of the fraction field of a Dedekind domain has trivial valuation at all
+but finitely many primes. -/
+lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (hx : x ≠ 0) :
+    {v : HeightOneSpectrum R | v.valuation K x ≠ 1}.Finite := by
+  refine ((Support.finite R x).union (Support.finite R x⁻¹)).subset fun v hv ↦ ?_
+  rcases lt_or_gt_of_ne hv with h | h
+  · refine .inr ?_
+    rw [Support, Set.mem_setOf_eq, map_inv₀,
+      one_lt_inv₀ (zero_lt_iff.mpr ((Valuation.ne_zero_iff _).mpr hx))]
+    exact h
+  · exact .inl h
+
+variable (R) (B : Type*) [CommRing B] [IsDedekindDomain B] [Algebra R B]
+
+/-- The primes of `B` lying above a set `S` of primes of `R`. -/
+def IsDedekindDomain.HeightOneSpectrum.primesAbove (S : Set (HeightOneSpectrum R)) :
+    Set (HeightOneSpectrum B) :=
+  {w | ∃ v ∈ S, v.asIdeal = w.asIdeal.under R}
+
+/-- The `S`-Selmer group of `L`, where `B` is a Dedekind domain with fraction field `L` and `S`
+is a set of primes of `R`: the classes of `Lˣ` modulo `n`-th powers whose valuation is divisible
+by `n` at every prime of `B` not lying above `S`. -/
+def IsDedekindDomain.selmerGroupAbove (L : Type*) [Field L] [Algebra B L] [IsFractionRing B L]
+    (S : Set (HeightOneSpectrum R)) (n : ℕ) : Subgroup (Units.modPow L n) :=
+  selmerGroup (R := B) (K := L) (S := HeightOneSpectrum.primesAbove R B S) (n := n)
+
+end DedekindDomain
 
 namespace Polynomial
 
@@ -481,6 +517,10 @@ lemma coe_mem (p : f.Factors) : (p : K[X]) ∈ normalizedFactors f :=
 lemma irreducible (p : f.Factors) : Irreducible (p : K[X]) :=
   (prime_of_normalized_factor _ p.coe_mem).irreducible
 
+lemma monic (p : f.Factors) : (p : K[X]).Monic := by
+  rw [← normalize_normalized_factor _ p.coe_mem]
+  exact monic_normalize p.irreducible.ne_zero
+
 lemma separable (hf : f.Separable) (p : f.Factors) : (p : K[X]).Separable :=
   hf.of_dvd <| dvd_of_mem_normalizedFactors p.coe_mem
 
@@ -525,6 +565,24 @@ instance instFactIrreducible (p : f.Factors) : Fact (Irreducible (p : K[X])) := 
 instance instFiniteDimensional (p : f.Factors) : FiniteDimensional K (AdjoinRoot (p : K[X])) :=
   (powerBasis p.irreducible.ne_zero).finite
 
+/-- The minimal polynomial of the root of a monic irreducible factor is the factor itself. -/
+lemma minpoly_root_factor (p : f.Factors) : minpoly K (root (p : K[X])) = (p : K[X]) := by
+  rw [minpoly_root p.irreducible.ne_zero, p.monic.leadingCoeff, inv_one, map_one, mul_one]
+
+open IntermediateField in
+/-- If `f` is separable, then each field factor of `K[X]/(f)` is a separable extension of `K`.
+This is what `IsIntegralClosure.isDedekindDomain` needs. -/
+lemma isSeparable_of_separable (hf : f.Separable) (p : f.Factors) :
+    Algebra.IsSeparable K (AdjoinRoot (p : K[X])) := by
+  have hsep : IsSeparable K (root (p : K[X])) := by
+    rw [IsSeparable, minpoly_root_factor p]
+    exact p.separable hf
+  have htop : K⟮root (p : K[X])⟯ = ⊤ :=
+    adjoin_eq_top_of_algebra (F := K) (S := {root (p : K[X])}) adjoinRoot_eq_top
+  have h := (isSeparable_adjoin_simple_iff_isSeparable K (AdjoinRoot (p : K[X]))).2 hsep
+  rw [htop] at h
+  exact (isSeparable_top (F := K) (E := AdjoinRoot (p : K[X]))).mp h
+
 /-- **Chinese Remainder Theorem** for `AdjoinRoot`: for `f` nonzero and squarefree,
 `K[X]/(f)` is the product of the fields `K[X]/(p)` over the monic irreducible factors `p`
 of `f`. -/
@@ -535,6 +593,21 @@ noncomputable def equivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) :
       Ideal.quotientInfRingEquivPiQuotient _ fun _ _ hpq ↦ Factors.isCoprime_span hpq)
     fun _ ↦ rfl
 
+@[simp]
+lemma equivPiFactors_mk (hf : f ≠ 0) (hsq : Squarefree f) (q : K[X]) (p : f.Factors) :
+    equivPiFactors hf hsq (mk f q) p = mk (p : K[X]) q :=
+  rfl
+
+/-- The projection of `K[X]/(f)` onto the field factor `K[X]/(p)`. -/
+noncomputable def projFactor (hf : f ≠ 0) (hsq : Squarefree f) (p : f.Factors) :
+    AdjoinRoot f →+* AdjoinRoot (p : K[X]) :=
+  (Pi.evalRingHom _ p).comp (equivPiFactors hf hsq).toRingEquiv.toRingHom
+
+@[simp]
+lemma projFactor_mk (hf : f ≠ 0) (hsq : Squarefree f) (q : K[X]) (p : f.Factors) :
+    projFactor hf hsq p (mk f q) = mk (p : K[X]) q :=
+  rfl
+
 /-- The `n`-th power classes of units of `K[X]/(f)` are the product of those of its
 field factors. -/
 noncomputable def modPowEquivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ) :
@@ -542,6 +615,18 @@ noncomputable def modPowEquivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) (n : 
       ((p : f.Factors) → Units.modPow (AdjoinRoot (p : K[X])) n) :=
   (Units.modPow.congr (equivPiFactors hf hsq).toMulEquiv n).trans <|
     Units.modPow.piEquiv (fun p : f.Factors ↦ AdjoinRoot (p : K[X])) n
+
+/-- On the class of a unit, `modPowEquivPiFactors` is componentwise projection to the factors. -/
+@[simp]
+lemma modPowEquivPiFactors_unit (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ) {a : AdjoinRoot f}
+    (ha : IsUnit a) (p : f.Factors) :
+    modPowEquivPiFactors hf hsq n (ha.unit : Units.modPow (AdjoinRoot f) n) p =
+      ((ha.map (projFactor hf hsq p)).unit :
+        Units.modPow (AdjoinRoot (p : K[X])) n) := by
+  simp only [modPowEquivPiFactors, MulEquiv.trans_apply, Units.modPow.congr,
+    QuotientGroup.congrRangePowMonoidHom, QuotientGroup.congr_mk, Units.modPow.piEquiv,
+    QuotientGroup.mulEquivPiModRangePowMonoidHom_apply]
+  exact congrArg _ (Units.ext rfl)
 
 end AdjoinRoot
 
@@ -1332,9 +1417,8 @@ With that in hand:
 * for each `i`, `R i := integralClosure R (L i)` is again a Dedekind domain
   (`IsIntegralClosure.isDedekindDomain`) with fraction field `L i`, so
   `IsDedekindDomain.selmerGroup` applies;
-* `A(S,2)` is the preimage under the above isomorphism of
-  `(i : ι) → selmerGroup (S := S i) (n := 2)`,
-  where `S i` is the set of primes of `R i` above `S`;
+* `A(S,2)` is the preimage under the above isomorphism of the product of the
+  `selmerGroup (S := S i) (n := 2)`, where `S i` is the set of primes of `R i` above `S`;
 * the containment `im μ ⊆ A(S,2)` is checked factor by factor: for `P = (x, y)` and `w` a prime
   of `R i` not above `S`, the valuation `w (x - θ i)` is even. The two cases are
   `v x < 0` (then `v x = -2k`, `v y = -3k` and `w (x - θ i) = -2k` for every `w ∣ v`) and
@@ -1345,7 +1429,12 @@ Step 7 (finiteness of `A(S,2)`) then reduces to finiteness of each `L i ⟮S i, 
 `S i` finite, the class group of `R i` finite, and `(R i)ˣ` finitely generated — i.e. number
 fields. Mathlib lists finiteness of `selmerGroup` as a TODO.
 
-Only `badPrimes` and its finiteness are set up below; the decomposition is the design fork.
+All the structure is in place below: `badPrimes` (`S`) and its finiteness,
+`AdjoinRoot.isSeparable_of_separable` (so that `IsIntegralClosure.isDedekindDomain` applies to
+each factor), `IsDedekindDomain.HeightOneSpectrum.primesAbove` (the `S i`),
+`IsDedekindDomain.selmerGroupAbove`, `selmerGroupA` (`A(S,2)`, as a subgroup of `W.M`), and
+`range_μ_le_selmerGroupA` (Step 6 itself). The one remaining gap is the arithmetic input
+`μX_component_mem_selmerGroupFactor`, the two-case valuation computation.
 -/
 
 namespace WeierstrassCurve.Affine
@@ -1357,21 +1446,92 @@ open IsDedekindDomain Polynomial
 variable {K : Type*} [Field K] (W : Affine K)
 
 /-- The set of "bad" primes of `R`: those dividing `2` or the discriminant of `W`, and those
-occurring in a denominator of `a₄` or of `a₆`. Away from these, the `x - T` map lands in the
-`2`-Selmer group. -/
+occurring in a denominator of `a₄` or of `a₆` (the latter two are the supports of `a₄` and `a₆`
+in the sense of `IsDedekindDomain.HeightOneSpectrum.Support`). Away from these, the `x - T` map
+lands in the `2`-Selmer group. -/
 def badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K] :
     Set (HeightOneSpectrum R) :=
-  {v | v.valuation K 2 ≠ 1 ∨ v.valuation K W.Δ ≠ 1 ∨
-    1 < v.valuation K W.a₄ ∨ 1 < v.valuation K W.a₆}
+  {v | v.valuation K 2 ≠ 1} ∪ {v | v.valuation K W.Δ ≠ 1} ∪
+    HeightOneSpectrum.Support R W.a₄ ∪ HeightOneSpectrum.Support R W.a₆
 
-/-- There are only finitely many bad primes.
-
-TODO: each of the four conditions cuts out a finite set, because `x ≠ 0` has `v x ≠ 1` for only
-finitely many `v`. Here `(2 : K) ≠ 0` by `ringChar_ne_two_of_isElliptic_of_isShortNF` and
-`W.Δ ≠ 0` by `W.isUnit_Δ.ne_zero`; for `a₄`, `a₆` note `1 < v.valuation K x` fails for all `v`
-when `x = 0`. -/
+/-- There are only finitely many bad primes: `2` and `W.Δ` are nonzero, and the support of any
+element of `K` is finite. -/
 lemma finite_badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
     [IsFractionRing R K] [W.IsElliptic] [W.IsShortNF] : (W.badPrimes R).Finite :=
+  have h2 : (2 : K) ≠ 0 := Ring.two_ne_zero (ringChar_ne_two_of_isElliptic_of_isShortNF W)
+  (((HeightOneSpectrum.finite_setOf_valuation_ne_one h2).union
+    (HeightOneSpectrum.finite_setOf_valuation_ne_one W.isUnit_Δ.ne_zero)).union
+      (HeightOneSpectrum.Support.finite R W.a₄)).union (HeightOneSpectrum.Support.finite R W.a₆)
+
+lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
+
+lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f W).squarefree
+
+section Selmer
+
+variable [DecidableEq K] [W.IsElliptic] [W.IsShortNF]
+  (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K]
+
+/-- The `2`-Selmer group of the field factor `AdjoinRoot p` of `W.A`, relative to the primes of
+its ring of integers lying above the bad primes of `R`. -/
+noncomputable def selmerGroupFactor (p : W.f.Factors) :
+    Subgroup (Units.modPow (AdjoinRoot (p : K[X])) 2) :=
+  have := AdjoinRoot.isSeparable_of_separable (separable_f W) p
+  have := IsIntegralClosure.isDedekindDomain R K (AdjoinRoot (p : K[X]))
+    (integralClosure R (AdjoinRoot (p : K[X])))
+  have := IsIntegralClosure.isFractionRing_of_finite_extension R K (AdjoinRoot (p : K[X]))
+    (integralClosure R (AdjoinRoot (p : K[X])))
+  IsDedekindDomain.selmerGroupAbove R (integralClosure R (AdjoinRoot (p : K[X])))
+    (AdjoinRoot (p : K[X])) (W.badPrimes R) 2
+
+/-- `A(S,2)` in the product decomposition: the product of the `2`-Selmer groups of the field
+factors of `W.A`. -/
+noncomputable def selmerGroupPi :
+    Subgroup ((p : W.f.Factors) → Units.modPow (AdjoinRoot (p : K[X])) 2) :=
+  Subgroup.pi Set.univ (W.selmerGroupFactor R)
+
+/-- `A(S,2)`, as a subgroup of `W.M`: the classes whose image in each field factor lies in the
+`2`-Selmer group of that factor. Step 6 asserts that `im μ ≤ A(S,2)`. -/
+noncomputable def selmerGroupA : Subgroup W.M :=
+  (W.selmerGroupPi R).comap
+    (AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2).toMonoidHom
+
+lemma mem_selmerGroupA_iff (m : W.M) :
+    m ∈ W.selmerGroupA R ↔ ∀ p : W.f.Factors,
+      AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2 m p ∈
+        W.selmerGroupFactor R p := by
+  simp [selmerGroupA, selmerGroupPi, Subgroup.mem_pi]
+
+/-- The heart of Step 6: for a point `(x, y)` of `W` and a field factor `K[X]/(p)` of `W.A`,
+the square class of the image of the `x - T` map lies in the `2`-Selmer group of that factor.
+
+TODO: prove. Let `θ` be the root of `p` and `𝓞` the integral closure of `R` in `K[X]/(p)`, and
+let `w` be a prime of `𝓞` not lying above a bad prime `v` of `R`. One shows `w (x - θ)` is even,
+distinguishing two cases according to the sign of `v x`:
+
+* `v x < 0`. Then, from `y ^ 2 = f x` and `v` being coprime to the denominators of `a₄`, `a₆`,
+  one gets `v x = -2 k` and `v y = -3 k` for some `k > 0`, and `w (x - θ) = e * v x = -2 e k`
+  for every `w ∣ v`, since `w θ ≥ 0`.
+* `v x ≥ 0`. Then `x` and `y` are `v`-integral and `∏ q (x - θ q) = f x = y ^ 2` has even
+  valuation at every `w`. The factors `x - θ q` are pairwise coprime at every `w` not dividing
+  the discriminant of `f`, which divides `Δ`; since `v ∉ badPrimes`, `w (x - θ)` is therefore
+  itself even. -/
+lemma μX_component_mem_selmerGroupFactor {x y : K} (h : W.Equation x y) (p : W.f.Factors) :
+    AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2 (W.μX x) p ∈
+      W.selmerGroupFactor R p :=
   sorry
+
+/-- **Step 6**: the image of `μ` is contained in `A(S,2)`. -/
+theorem range_μ_le_selmerGroupA : (μ (W := W)).range ≤ W.selmerGroupA R := by
+  rintro _ ⟨P, rfl⟩
+  obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P
+  rw [μ_apply]
+  match P with
+  | 0 => rw [μ₀_zero]; exact one_mem _
+  | .some x y h =>
+    rw [μ₀_some, mem_selmerGroupA_iff]
+    exact fun p ↦ W.μX_component_mem_selmerGroupFactor R h.1 p
+
+end Selmer
 
 end WeierstrassCurve.Affine
