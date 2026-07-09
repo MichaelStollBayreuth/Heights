@@ -24,8 +24,11 @@ given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`, where `a = a
    `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p`.
 6. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
+   => scaffolded at the end of the file, for `E` over the fraction field of a Dedekind domain.
+   It is blocked on the decomposition of `A` into a product of fields ("Step 5.5").
 7. Show that `A(S,2)` is finite. (There is some preliminary stuff in
    `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, but finiteness is still a TODO there.)
+   This is where number fields, rather than general Dedekind domains, become necessary.
 -/
 
 section API
@@ -76,9 +79,9 @@ lemma IsUnit.exists_pow_eq_unit_iff {a : α} (h : IsUnit a) (n : ℕ) :
   refine ⟨fun ⟨x, hx⟩ ↦ ⟨x, ?_⟩, fun ⟨x, hx⟩ ↦ ?_⟩
   · apply_fun Units.val at hx
     simpa using hx
-  · match n with
-    | 0 => exact ⟨1, Units.ext (by simpa using hx)⟩
-    | _ + 1 => exact ⟨(isUnit_pow_succ_iff.mp (hx ▸ h)).unit, Units.ext hx⟩
+  · cases n with
+    | zero => exact ⟨1, Units.ext (by simpa using hx)⟩
+    | succ _ => exact ⟨(isUnit_pow_succ_iff.mp (hx ▸ h)).unit, Units.ext hx⟩
 
 end Units
 
@@ -90,37 +93,59 @@ as a local notation. -/
 abbrev Units.modPow (α : Type*) [CommMonoid α] (n : ℕ) : Type _ :=
   αˣ ⧸ (powMonoidHom n : αˣ →* αˣ).range
 
+/-- A multiplicative equivalence of commutative groups induces one on the quotients by the
+subgroups of `n`-th powers. -/
+def QuotientGroup.congrRangePowMonoidHom {G H : Type*} [CommGroup G] [CommGroup H]
+    (e : G ≃* H) (n : ℕ) :
+    G ⧸ (powMonoidHom n : G →* G).range ≃* H ⧸ (powMonoidHom n : H →* H).range :=
+  QuotientGroup.congr _ _ e <| by
+    ext x
+    simp only [Subgroup.mem_map, MonoidHom.mem_range, powMonoidHom_apply]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨_, ⟨u, rfl⟩, rfl⟩
+      exact ⟨e u, by simp⟩
+    · rintro ⟨u, rfl⟩
+      exact ⟨e.symm u ^ n, ⟨_, rfl⟩, by simp⟩
+
 namespace Units.modPow
 
-variable {α β : Type*} [CommMonoid α] [CommMonoid β] {a b c : α} (φ : α →* β) (n : ℕ)
+variable {α β : Type*} [CommMonoid α] [CommMonoid β] {a b c : α}
 
 /-- A unit class in `Units.modPow α n` is trivial if and only if the representative
 is an `n`-th power. -/
-lemma unit_eq_one_iff (ha : IsUnit a) : (ha.unit : Units.modPow α n) = 1 ↔ ∃ z, z ^ n = a := by
+lemma unit_eq_one_iff (ha : IsUnit a) (n : ℕ) :
+    (ha.unit : Units.modPow α n) = 1 ↔ ∃ z, z ^ n = a := by
   rw [QuotientGroup.eq_one_iff]
   simp only [MonoidHom.mem_range, powMonoidHom_apply, IsUnit.exists_pow_eq_unit_iff]
 
 /-- A product of three unit classes in `Units.modPow α n` is trivial if and only if the
 product of the representatives is an `n`-th power. -/
-lemma unit_mul_unit_mul_unit_eq_one_iff (ha : IsUnit a) (hb : IsUnit b) (hc : IsUnit c) :
+lemma unit_mul_unit_mul_unit_eq_one_iff (ha : IsUnit a) (hb : IsUnit b) (hc : IsUnit c) (n : ℕ) :
     (ha.unit : Units.modPow α n) * hb.unit * hc.unit = 1 ↔ ∃ z, z ^ n = a * b * c := by
-  rw [← QuotientGroup.mk_mul, ← QuotientGroup.mk_mul, QuotientGroup.eq_one_iff]
-  simp only [MonoidHom.mem_range, powMonoidHom_apply, ← IsUnit.unit_mul,
-    IsUnit.exists_pow_eq_unit_iff]
+  rw [← QuotientGroup.mk_mul, ← QuotientGroup.mk_mul, ← IsUnit.unit_mul, ← IsUnit.unit_mul]
+  exact unit_eq_one_iff ((ha.mul hb).mul hc) n
 
 /-- A monoid homomorphism `α →* β` induces a homomorphism on `n`-th power classes of units. -/
-def map : Units.modPow α n →* Units.modPow β n :=
+def map (φ : α →* β) (n : ℕ) : Units.modPow α n →* Units.modPow β n :=
   QuotientGroup.map _ _ (Units.map φ) <| by
     rintro _ ⟨u, rfl⟩
     exact ⟨Units.map φ u, by simp [powMonoidHom]⟩
 
 @[simp]
-lemma map_unit (ha : IsUnit a) :
+lemma map_unit (φ : α →* β) (n : ℕ) (ha : IsUnit a) :
     map φ n (ha.unit : Units.modPow α n) = ((ha.map φ).unit : Units.modPow β n) := by
   rw [map, ← QuotientGroup.mk'_apply, QuotientGroup.map_mk']
-  congr 1
-  ext
-  simp
+  exact congrArg _ (Units.ext rfl)
+
+/-- A multiplicative equivalence `α ≃* β` induces one on `n`-th power classes of units. -/
+def congr (e : α ≃* β) (n : ℕ) : Units.modPow α n ≃* Units.modPow β n :=
+  QuotientGroup.congrRangePowMonoidHom (Units.mapEquiv e) n
+
+/-- Taking `n`-th power classes of units commutes with products. -/
+noncomputable def piEquiv {ι : Type*} (α : ι → Type*) [(i : ι) → CommMonoid (α i)] (n : ℕ) :
+    Units.modPow ((i : ι) → α i) n ≃* ((i : ι) → Units.modPow (α i) n) :=
+  (QuotientGroup.congrRangePowMonoidHom MulEquiv.piUnits n).trans <|
+    QuotientGroup.mulEquivPiModRangePowMonoidHom (fun i ↦ (α i)ˣ) n
 
 end Units.modPow
 
@@ -408,9 +433,8 @@ lemma norm_mk_eq_resultant [Nontrivial R] (hg : g.Monic) (p : R[X]) :
   set b₂ := degreeLT.basis R (m + k)
   have hΨ : (sylvesterMap g 1 le_rfl (by simp)) ∘ₗ sylvesterBlock hg p le_rfl =
       sylvesterMap g p le_rfl le_rfl := by
-    rw [sylvesterBlock, ← LinearMap.comp_assoc, ← coe_sylvesterEquivOne hg k,
-      comp_coe, symm_trans_self, refl_toLinearMap,
-      id_comp]
+    rw [sylvesterBlock, ← LinearMap.comp_assoc, ← coe_sylvesterEquivOne hg k, comp_coe,
+      symm_trans_self, refl_toLinearMap, id_comp]
   have key : (sylvesterMap g p le_rfl le_rfl).toMatrix b₁ b₂ =
       (sylvesterMap g 1 le_rfl (by simp)).toMatrix b₁ b₂ *
         (sylvesterBlock hg p le_rfl).toMatrix b₁ b₁ := by
@@ -421,6 +445,107 @@ lemma norm_mk_eq_resultant [Nontrivial R] (hg : g.Monic) (p : R[X]) :
     hg.resultant_one_right, one_mul]
 
 end AdjoinRoot
+
+section EtaleDecomposition
+
+/-!
+### Decomposition of `K[X]/(f)` into a product of fields
+
+For a nonzero squarefree `f` over a field `K`, the étale algebra `AdjoinRoot f` is the product
+of the fields `AdjoinRoot p`, where `p` runs over the distinct irreducible factors of `f`.
+This is what lets one talk about the primes, and hence the Selmer group, of `AdjoinRoot f`:
+they are those of the factors.
+
+If moreover `f` is separable, each factor is separable, so each `AdjoinRoot p` is a finite
+separable extension of `K` and its integral closure over a Dedekind domain is again Dedekind.
+-/
+
+open Polynomial UniqueFactorizationMonoid
+
+namespace Polynomial
+
+variable {K : Type*} [Field K] [DecidableEq K] {f : K[X]}
+
+/-- The distinct monic irreducible factors of `f`, as an index type.
+
+`DecidableEq K` is what gives `K[X]` its monic normalization, via
+`CommGroupWithZero.instNormalizedGCDMonoid` and `Polynomial.instNormalizationMonoid`;
+it also provides the `DecidableEq K[X]` that `Multiset.toFinset` needs. -/
+abbrev Factors (f : K[X]) : Type _ := {p : K[X] // p ∈ (normalizedFactors f).toFinset}
+
+namespace Factors
+
+lemma coe_mem (p : f.Factors) : (p : K[X]) ∈ normalizedFactors f :=
+  Multiset.mem_toFinset.mp p.2
+
+lemma irreducible (p : f.Factors) : Irreducible (p : K[X]) :=
+  (prime_of_normalized_factor _ p.coe_mem).irreducible
+
+lemma separable (hf : f.Separable) (p : f.Factors) : (p : K[X]).Separable :=
+  hf.of_dvd <| dvd_of_mem_normalizedFactors p.coe_mem
+
+/-- Distinct monic irreducible factors of `f` are coprime. -/
+lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=
+  (Ideal.isCoprime_span_singleton_iff _ _).mp <| Ideal.isCoprime_iff_sup_eq.mpr <|
+    Ideal.IsMaximal.coprime_of_ne
+      (PrincipalIdealRing.isMaximal_of_irreducible p.irreducible)
+      (PrincipalIdealRing.isMaximal_of_irreducible q.irreducible)
+      fun h ↦ hne <| Subtype.ext <| by
+        have hass := Ideal.span_singleton_eq_span_singleton.mp h
+        rw [← normalize_normalized_factor _ p.coe_mem, ← normalize_normalized_factor _ q.coe_mem,
+          normalize_eq_normalize hass.dvd hass.symm.dvd]
+
+/-- Distinct monic irreducible factors of `f` generate coprime ideals. -/
+lemma isCoprime_span {p q : f.Factors} (hne : p ≠ q) :
+    IsCoprime (Ideal.span {(p : K[X])}) (Ideal.span {(q : K[X])}) :=
+  (Ideal.isCoprime_span_singleton_iff _ _).mpr (isCoprime hne)
+
+/-- For `f` nonzero and squarefree, `(f)` is the intersection of the `(p)` for `p` a factor. -/
+lemma span_eq_iInf_span (hf : f ≠ 0) (hsq : Squarefree f) :
+    Ideal.span {f} = ⨅ p : f.Factors, Ideal.span {(p : K[X])} := by
+  rw [Ideal.iInf_span_singleton fun _ _ hpq ↦ isCoprime hpq]
+  refine Ideal.span_singleton_eq_span_singleton.mpr <|
+    (prod_normalizedFactors hf).symm.trans (.of_eq ?_)
+  have hcoe : ∏ p : f.Factors, (p : K[X]) = ∏ p ∈ (normalizedFactors f).toFinset, p :=
+    Finset.prod_coe_sort _ fun x ↦ x
+  rw [hcoe, Finset.prod_eq_multiset_prod, Multiset.toFinset_val,
+    Multiset.dedup_eq_self.mpr ((squarefree_iff_nodup_normalizedFactors hf).mp hsq),
+    Multiset.map_id']
+
+end Factors
+
+end Polynomial
+
+namespace AdjoinRoot
+
+variable {K : Type*} [Field K] [DecidableEq K] {f : K[X]}
+
+instance instFactIrreducible (p : f.Factors) : Fact (Irreducible (p : K[X])) := ⟨p.irreducible⟩
+
+instance instFiniteDimensional (p : f.Factors) : FiniteDimensional K (AdjoinRoot (p : K[X])) :=
+  (powerBasis p.irreducible.ne_zero).finite
+
+/-- **Chinese Remainder Theorem** for `AdjoinRoot`: for `f` nonzero and squarefree,
+`K[X]/(f)` is the product of the fields `K[X]/(p)` over the monic irreducible factors `p`
+of `f`. -/
+noncomputable def equivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) :
+    AdjoinRoot f ≃ₐ[K] ((p : f.Factors) → AdjoinRoot (p : K[X])) :=
+  AlgEquiv.ofRingEquiv (f :=
+    (Ideal.quotEquivOfEq (Factors.span_eq_iInf_span hf hsq)).trans <|
+      Ideal.quotientInfRingEquivPiQuotient _ fun _ _ hpq ↦ Factors.isCoprime_span hpq)
+    fun _ ↦ rfl
+
+/-- The `n`-th power classes of units of `K[X]/(f)` are the product of those of its
+field factors. -/
+noncomputable def modPowEquivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ) :
+    Units.modPow (AdjoinRoot f) n ≃*
+      ((p : f.Factors) → Units.modPow (AdjoinRoot (p : K[X])) n) :=
+  (Units.modPow.congr (equivPiFactors hf hsq).toMulEquiv n).trans <|
+    Units.modPow.piEquiv (fun p : f.Factors ↦ AdjoinRoot (p : K[X])) n
+
+end AdjoinRoot
+
+end EtaleDecomposition
 
 end API
 
@@ -1172,5 +1297,81 @@ lemma range_μ_le_ker_normM : (μ (W := W)).range ≤ (normM (W := W)).ker := by
 
 end Step5
 
+
+end WeierstrassCurve.Affine
+
+/-!
+## Step 6: `im μ ⊆ A(S,2)`
+
+The right level of generality is: `R` a Dedekind domain, `K = Frac R`, and `E/K` given by a
+short Weierstrass equation. Everything Step 6 needs — a height-one spectrum, the `v`-adic
+valuations, and unique factorization of fractional ideals — is exactly the Dedekind package.
+Number fields are *not* needed until Step 7.
+
+`Mathlib.RingTheory.DedekindDomain.SelmerGroup` already defines, for a Dedekind domain `R` with
+fraction field `K`, the group `IsDedekindDomain.selmerGroup : Subgroup (Units.modPow K n)`,
+namely the classes whose valuation is `≡ 0 mod n` at every `v ∉ S`. Note that its ambient group
+is literally our `Units.modPow K n` (that file has it only as a local notation). So the target
+`A(S,2)` should be assembled out of `selmerGroup`s, not defined from scratch.
+
+The obstruction is that `A = AdjoinRoot f` is an étale algebra, not a field, so it has no
+`HeightOneSpectrum`. The unavoidable intermediate step is therefore:
+
+**Step 5.5 (decomposition).** `f` is separable, so `A ≃ₐ[K] ((i : ι) → L i)`, a finite product of
+finite separable field extensions `L i` of `K`, indexed by the irreducible factors of `f`.
+Consequently `W.M = Units.modPow A 2 ≃* ((i : ι) → Units.modPow (L i) 2)`.
+
+This is set up in the API section under "Decomposition of `K[X]/(f)` into a product of fields":
+the index type is `Polynomial.Factors f`, the decomposition is `AdjoinRoot.equivPiFactors`, and
+the induced isomorphism on `n`-th power classes is `AdjoinRoot.modPowEquivPiFactors`. Each factor
+already gets `Field`, `Algebra K`, and `FiniteDimensional K` instances, and
+`Polynomial.Factors.separable` supplies separability of the factors.
+
+With that in hand:
+
+* for each `i`, `R i := integralClosure R (L i)` is again a Dedekind domain
+  (`IsIntegralClosure.isDedekindDomain`) with fraction field `L i`, so
+  `IsDedekindDomain.selmerGroup` applies;
+* `A(S,2)` is the preimage under the above isomorphism of
+  `(i : ι) → selmerGroup (S := S i) (n := 2)`,
+  where `S i` is the set of primes of `R i` above `S`;
+* the containment `im μ ⊆ A(S,2)` is checked factor by factor: for `P = (x, y)` and `w` a prime
+  of `R i` not above `S`, the valuation `w (x - θ i)` is even. The two cases are
+  `v x < 0` (then `v x = -2k`, `v y = -3k` and `w (x - θ i) = -2k` for every `w ∣ v`) and
+  `v x ≥ 0` (then `x, y` are `v`-integral, `∏ᵢ (x - θ i) = f x = y²`, and the factors are
+  pairwise coprime away from primes dividing `disc f`, which divides `Δ`).
+
+Step 7 (finiteness of `A(S,2)`) then reduces to finiteness of each `L i ⟮S i, 2⟯`, which needs
+`S i` finite, the class group of `R i` finite, and `(R i)ˣ` finitely generated — i.e. number
+fields. Mathlib lists finiteness of `selmerGroup` as a TODO.
+
+Only `badPrimes` and its finiteness are set up below; the decomposition is the design fork.
+-/
+
+namespace WeierstrassCurve.Affine
+
+open IsDedekindDomain Polynomial
+
+-- Step 6 needs neither `DecidableEq K` nor the group structure on points, so we re-declare the
+-- variables rather than inheriting the ones used for Steps 2-5.
+variable {K : Type*} [Field K] (W : Affine K)
+
+/-- The set of "bad" primes of `R`: those dividing `2` or the discriminant of `W`, and those
+occurring in a denominator of `a₄` or of `a₆`. Away from these, the `x - T` map lands in the
+`2`-Selmer group. -/
+def badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K] :
+    Set (HeightOneSpectrum R) :=
+  {v | v.valuation K 2 ≠ 1 ∨ v.valuation K W.Δ ≠ 1 ∨
+    1 < v.valuation K W.a₄ ∨ 1 < v.valuation K W.a₆}
+
+/-- There are only finitely many bad primes.
+
+TODO: each of the four conditions cuts out a finite set, because `x ≠ 0` has `v x ≠ 1` for only
+finitely many `v`. Here `(2 : K) ≠ 0` by `ringChar_ne_two_of_isElliptic_of_isShortNF` and
+`W.Δ ≠ 0` by `W.isUnit_Δ.ne_zero`; for `a₄`, `a₆` note `1 < v.valuation K x` fails for all `v`
+when `x = 0`. -/
+lemma finite_badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
+    [IsFractionRing R K] [W.IsElliptic] [W.IsShortNF] : (W.badPrimes R).Finite :=
+  sorry
 
 end WeierstrassCurve.Affine
