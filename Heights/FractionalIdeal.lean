@@ -150,4 +150,55 @@ lemma exists_pow_eq (n : ℕ) {I : (FractionalIdeal R⁰ K)ˣ}
   rw [mul_comm]
   exact Int.ediv_mul_cancel (h v)
 
+/-!
+### The `n`-th root as a homomorphism
+
+On the subgroup of fractional ideals all of whose valuations are divisible by `n`, the `n`-th
+root is a genuine group homomorphism (not merely an existence statement): dividing every
+valuation by `n` is additive there.
+-/
+
+section NthRoot
+
+variable (R K)
+
+/-- The subgroup of fractional ideals whose valuations are all divisible by `n`. -/
+def nDivisible (n : ℕ) : Subgroup (FractionalIdeal R⁰ K)ˣ where
+  carrier := {I | ∀ v, (n : ℤ) ∣ count K v (I : FractionalIdeal R⁰ K)}
+  one_mem' v := by rw [Units.val_one, count_one]; exact dvd_zero _
+  mul_mem' {I J} hI hJ v := by
+    rw [Units.val_mul, count_mul K v (Units.ne_zero I) (Units.ne_zero J)]
+    exact dvd_add (hI v) (hJ v)
+  inv_mem' {I} hI v := by
+    rw [Units.val_inv_eq_inv_val, count_inv]; exact (hI v).neg_right
+
+/-- The `n`-th root ideal of `I`: its valuations divided by `n`. -/
+noncomputable def nthRootFun (n : ℕ) (I : (FractionalIdeal R⁰ K)ˣ) : (FractionalIdeal R⁰ K)ˣ :=
+  ofFinsupp (Finsupp.mapRange (· / (n:ℤ)) (by simp) (toFinsupp I))
+
+lemma count_nthRootFun (n : ℕ) (I : (FractionalIdeal R⁰ K)ˣ) (v : HeightOneSpectrum R) :
+    count K v (nthRootFun R K n I : FractionalIdeal R⁰ K) =
+      count K v (I : FractionalIdeal R⁰ K) / n := by
+  rw [nthRootFun, count_ofFinsupp, Finsupp.mapRange_apply, toFinsupp_apply]
+
+/-- The `n`-th root as a group homomorphism on the `n`-divisible subgroup. -/
+noncomputable def nthRootHom (n : ℕ) : nDivisible R K n →* (FractionalIdeal R⁰ K)ˣ where
+  toFun I := nthRootFun R K n (I : (FractionalIdeal R⁰ K)ˣ)
+  map_one' := count_injective fun v => by
+    simp only [count_nthRootFun, Subgroup.coe_one, Units.val_one, count_one, Int.zero_ediv]
+  map_mul' I J := count_injective fun v => by
+    rw [count_nthRootFun, Units.val_mul, count_mul K v (Units.ne_zero _) (Units.ne_zero _),
+      count_nthRootFun, count_nthRootFun, Subgroup.coe_mul, Units.val_mul,
+      count_mul K v (Units.ne_zero _) (Units.ne_zero _), Int.add_ediv_of_dvd_left (I.2 v)]
+
+/-- The `n`-th root homomorphism is a genuine `n`-th root. -/
+lemma nthRootHom_pow (n : ℕ) (I : nDivisible R K n) :
+    (nthRootHom R K n I) ^ n = (I : (FractionalIdeal R⁰ K)ˣ) := by
+  apply count_injective
+  intro v
+  rw [Units.val_pow_eq_pow_val, count_pow, nthRootHom, MonoidHom.coe_mk, OneHom.coe_mk,
+    count_nthRootFun, Int.mul_ediv_cancel' (I.2 v)]
+
+end NthRoot
+
 end FractionalIdeal
