@@ -151,6 +151,36 @@ lemma exists_pow_eq (n : ℕ) {I : (FractionalIdeal R⁰ K)ˣ}
   exact Int.ediv_mul_cancel (h v)
 
 /-!
+### The kernel of the principal-ideal map
+
+The principal fractional ideal `(x)` is trivial exactly when `x` comes from a unit of `R`. This
+identifies `ker toPrincipalIdeal` with the units of `R`, the left end of the ideal class exact
+sequence.
+-/
+
+/-- A principal fractional ideal `(x)` (with `x ≠ 0`) equals `1` exactly when `x` is (the image
+of) a unit of `R`. -/
+lemma spanSingleton_eq_one_iff {x : K} (hx : x ≠ 0) :
+    spanSingleton R⁰ x = 1 ↔ ∃ a : Rˣ, algebraMap R K a = x := by
+  constructor
+  · intro h
+    have hinv : spanSingleton R⁰ x⁻¹ = 1 := by rw [← spanSingleton_inv, h, inv_one]
+    obtain ⟨a, ha⟩ := (mem_one_iff R⁰).mp (h ▸ mem_spanSingleton_self R⁰ x)
+    obtain ⟨b, hb⟩ := (mem_one_iff R⁰).mp (hinv ▸ mem_spanSingleton_self R⁰ x⁻¹)
+    have hab : a * b = 1 := IsFractionRing.injective R K (by
+      rw [map_mul, ha, hb, mul_inv_cancel₀ hx, map_one])
+    exact ⟨⟨a, b, hab, by rw [mul_comm]; exact hab⟩, ha⟩
+  · rintro ⟨a, rfl⟩
+    rw [← coeIdeal_span_singleton, Ideal.span_singleton_eq_top.mpr a.isUnit, coeIdeal_top]
+
+/-- `toPrincipalIdeal x = 1` exactly when `x` is a unit of `R`: the kernel of the principal-ideal
+map is the image of `Rˣ`. -/
+lemma toPrincipalIdeal_eq_one_iff (u : Kˣ) :
+    toPrincipalIdeal R K u = 1 ↔ ∃ a : Rˣ, Units.map (algebraMap R K : R →* K) a = u := by
+  rw [← Units.val_inj, coe_toPrincipalIdeal, Units.val_one, spanSingleton_eq_one_iff u.ne_zero]
+  exact ⟨fun ⟨a, ha⟩ => ⟨a, Units.ext ha⟩, fun ⟨a, ha⟩ => ⟨a, by rw [← ha]; rfl⟩⟩
+
+/-!
 ### The `n`-th root as a homomorphism
 
 On the subgroup of fractional ideals all of whose valuations are divisible by `n`, the `n`-th
