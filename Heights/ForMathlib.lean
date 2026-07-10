@@ -25,6 +25,9 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
   with `map`, `congr` and `piEquiv`.
 * Division with remainder by a monic polynomial: `Polynomial.Monic.divByMonic_mul_add`,
   `.modByMonic_mul_add`, `modByMonic_mem_degreeLT`, `divByMonic_mem_degreeLT`.
+* `isIntegralClosure_int_integralClosure`, `NumberField.finite_classGroup_integralClosure` and
+  `NumberField.fg_units_integralClosure`: the class number theorem and the finite generation of
+  the unit group for the integral closure of `𝓞 K` in a finite extension of a number field `K`.
 * `AdjoinRoot.norm_mk_eq_resultant`: for monic `g`, the norm of `AdjoinRoot.mk g p` is the
   resultant of `g` and `p`. This links `Polynomial.resultant` to `Algebra.norm`.
 * `AdjoinRoot.equivPiFactors`: for nonzero squarefree `f`, `K[X]/(f)` is the product of the
@@ -751,3 +754,53 @@ lemma modPowEquivPiFactors_unit (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ) {a
 end AdjoinRoot
 
 end EtaleDecomposition
+
+/-!
+### Rings of integers in finite extensions of number fields
+
+The integral closure of `𝓞 K` in a finite extension `L` of a number field `K` is (isomorphic to)
+the ring of integers of `L`; consequently the class number theorem and (the finite-generation
+part of) Dirichlet's unit theorem apply to it.
+-/
+
+section NumberField
+
+open NumberField
+
+variable (K L : Type*) [Field K] [Field L] [Algebra K L]
+
+/-- The integral closure of `𝓞 K` in an extension `L` of `K` is the integral closure of `ℤ`
+in `L`. -/
+theorem isIntegralClosure_int_integralClosure :
+    IsIntegralClosure (integralClosure (𝓞 K) L) ℤ L := by
+  refine ⟨Subtype.val_injective, fun {x} => ⟨fun hx => ?_, fun ⟨y, hy⟩ => ?_⟩⟩
+  · exact ⟨⟨x, IsIntegral.tower_top (A := 𝓞 K) hx⟩, rfl⟩
+  · have hyint : IsIntegral (𝓞 K) (y : L) := y.2
+    have := isIntegral_trans (R := ℤ) (y : L) hyint
+    rwa [show ((y : L)) = x from hy] at this
+
+variable [NumberField K] [FiniteDimensional K L]
+
+/-- The **class number theorem** for the integral closure of `𝓞 K` in a finite extension `L`
+of the number field `K`: its class group is finite. -/
+theorem NumberField.finite_classGroup_integralClosure :
+    Finite (ClassGroup (integralClosure (𝓞 K) L)) := by
+  have : NumberField L := .of_module_finite K L
+  have := isIntegralClosure_int_integralClosure K L
+  have := ClassGroup.fintypeOfAdmissibleOfFinite ℚ L
+    (S := integralClosure (𝓞 K) L) AbsoluteValue.absIsAdmissible
+  exact Finite.of_fintype _
+
+/-- **Dirichlet's unit theorem** (finite generation) for the integral closure of `𝓞 K` in a
+finite extension `L` of the number field `K`: its unit group is finitely generated. -/
+theorem NumberField.fg_units_integralClosure :
+    Group.FG (integralClosure (𝓞 K) L)ˣ := by
+  have : NumberField L := .of_module_finite K L
+  have e : integralClosure (𝓞 K) L ≃ₐ[𝓞 K] (𝓞 L) :=
+    IsIntegralClosure.equiv (𝓞 K) (integralClosure (𝓞 K) L) L (𝓞 L)
+  have : Group.FG (𝓞 L)ˣ := Group.fg_iff_monoid_fg.mpr inferInstance
+  exact Group.fg_of_surjective
+    (f := (Units.mapEquiv e.symm.toRingEquiv.toMulEquiv).toMonoidHom)
+    (Units.mapEquiv e.symm.toRingEquiv.toMulEquiv).surjective
+
+end NumberField

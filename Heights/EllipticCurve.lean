@@ -1,6 +1,7 @@
 import Mathlib
 import Heights.Basic
 import Heights.MvPolynomial
+import Heights.WeakMordellWeil
 
 /-!
 # The approximate parallelogram law on elliptic curves
@@ -13,6 +14,12 @@ The goal of this file is to show the approximate parallelogram law:
 where `h` denotes the (logarithmic) naïve height on `E(K)`,
 and to show that there are only finitely many points in `E(K)` of bounded height
 when `K` has the Northcott property.
+
+Combining this with the Weak Mordell-Weil Theorem of `Heights.WeakMordellWeil`, the file
+culminates in the **Mordell-Weil Theorem**: `E(K)` is finitely generated, both in a general
+version (`mordell_weil`, for `K` the fraction field of a Dedekind domain, with the Northcott
+property and the needed class-group and unit-group finiteness as hypotheses) and for number
+fields (`mordell_weil_of_numberField`, where all hypotheses are theorems).
 -/
 
 /-
@@ -329,6 +336,39 @@ theorem finite_torsion : Finite (AddCommGroup.torsion W.Point) := by
   obtain ⟨C, hC⟩ := approx_parallelogram_law W
   exact AddCommGroup.finite_torsion_of_descent' hC
 
+/-- **The Mordell-Weil Theorem**, general version: `E(K)` is finitely generated, for an
+elliptic curve `E` in short normal form over a field `K` such that
+* `K` has admissible absolute values satisfying the Northcott property (so heights work);
+* `K` is the fraction field of a Dedekind domain `R`; and
+* for each irreducible factor `p` of the `2`-division polynomial of `E`, the integral closure
+  of `R` in `K[X]/(p)` has finite class group and finitely generated unit group.
+
+For `K` a number field all of these hold; see `mordell_weil_of_numberField`. -/
+theorem mordell_weil (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
+    [IsFractionRing R F] [W.IsShortNF]
+    [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))]
+    [(p : W.f.Factors) → Group.FG (W.ringOfIntegersFactor R p)ˣ] :
+    AddGroup.FG W.Point :=
+  weakMW_implies_MW (W.finite_index_range_nsmulAddMonoidHom_two R)
+
 end Northcott
+
+section NumberField
+
+open NumberField
+
+variable {F : Type*} [Field F] [NumberField F] [DecidableEq F] {W : Affine F}
+  [W.toAffine.IsElliptic] [W.IsShortNF]
+
+/-- **The Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
+curve `E` in short normal form over a number field `K` is finitely generated. -/
+theorem mordell_weil_of_numberField : AddGroup.FG W.Point := by
+  have (p : W.f.Factors) : Finite (ClassGroup (W.ringOfIntegersFactor (𝓞 F) p)) :=
+    NumberField.finite_classGroup_integralClosure F (AdjoinRoot (p : Polynomial F))
+  have (p : W.f.Factors) : Group.FG (W.ringOfIntegersFactor (𝓞 F) p)ˣ :=
+    NumberField.fg_units_integralClosure F (AdjoinRoot (p : Polynomial F))
+  exact mordell_weil (𝓞 F)
+
+end NumberField
 
 end WeierstrassCurve.Affine
