@@ -1,4 +1,5 @@
 import Heights.ForMathlib
+import Heights.SelmerGroup
 import Mathlib
 
 /-!
@@ -29,9 +30,13 @@ curves, lives in `Heights.ForMathlib`.
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
    => done, as `range_μ_le_selmerGroupA` at the end of the file, for `E` over the fraction field
    of a Dedekind domain.
-7. Show that `A(S,2)` is finite. (There is some preliminary stuff in
-   `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, but finiteness is still a TODO there.)
-   This is where number fields, rather than general Dedekind domains, become necessary.
+7. Show that `A(S,2)` is finite, and conclude that `E(K)/2E(K)` is finite.
+   => done, as `finite_index_range_nsmulAddMonoidHom_two` at the end of the file. The
+   finiteness of the `2`-Selmer group of each field factor is
+   `IsDedekindDomain.finite_selmerGroup` (in `Heights.SelmerGroup`); it requires the class
+   group of the factor's ring of integers to be finite and its unit group to be finitely
+   generated, which are taken as hypotheses (for number fields they are the class number
+   theorem and Dirichlet's unit theorem, both in Mathlib).
 -/
 
 namespace WeierstrassCurve.Affine
@@ -1369,6 +1374,57 @@ theorem range_μ_le_selmerGroupA : (μ (W := W)).range ≤ W.selmerGroupA R := b
   | .some x y h =>
     rw [μ₀_some, mem_selmerGroupA_iff]
     exact fun p ↦ W.μX_component_mem_selmerGroupFactor R h.1 p
+
+/-!
+### Step 7: `A(S,2)` is finite, hence `E(K)/2E(K)` is finite
+
+The finiteness of the `2`-Selmer group of each field factor is
+`IsDedekindDomain.finite_selmerGroup` from `Heights.SelmerGroup`. It requires the class group
+of the factor's ring of integers to be finite and its unit group to be finitely generated;
+these are taken as hypotheses here (for `K` a number field they are the class number theorem
+and Dirichlet's unit theorem). The relevant set of primes, those above the bad primes, is
+finite by `HeightOneSpectrum.primesAbove_finite` and `finite_badPrimes`.
+-/
+
+section Step7
+
+variable [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))]
+  [(p : W.f.Factors) → Group.FG (W.ringOfIntegersFactor R p)ˣ]
+
+/-- The `2`-Selmer group of each field factor of `W.A` is finite. -/
+theorem finite_selmerGroupFactor (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) := by
+  have := W.isDedekindDomain_ringOfIntegersFactor R p
+  have := W.isFractionRing_ringOfIntegersFactor R p
+  exact finite_selmerGroup (W.ringOfIntegersFactor R p) (AdjoinRoot (p : K[X]))
+    (HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) 2
+    (HeightOneSpectrum.primesAbove_finite R (W.ringOfIntegersFactor R p)
+      (W.finite_badPrimes R))
+
+/-- **Step 7**: `A(S,2)` is finite. -/
+theorem finite_selmerGroupA : Finite (W.selmerGroupA R) := by
+  have hfac (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) :=
+    W.finite_selmerGroupFactor R p
+  refine Finite.of_injective (β := (p : W.f.Factors) → W.selmerGroupFactor R p)
+    (fun x p ↦ ⟨AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2 x.1 p,
+      (W.mem_selmerGroupA_iff R x.1).mp x.2 p⟩) fun x y hxy ↦ ?_
+  refine Subtype.ext ((AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2).injective
+    (funext fun p ↦ ?_))
+  exact congrArg Subtype.val (congrFun hxy p)
+
+include R in
+/-- **The Weak Mordell-Weil Theorem**: `E(K)/2E(K)` is finite, for an elliptic curve `E` in
+short normal form over the fraction field `K` of a Dedekind domain `R` such that for each
+irreducible factor `p` of the `2`-division polynomial, the ring of integers of `K[X]/(p)` has
+finite class group and finitely generated unit group.
+
+This is the form of the statement expected by `weakMW_implies_MW` in `Heights.EllipticCurve`. -/
+theorem finite_index_range_nsmulAddMonoidHom_two :
+    (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex := by
+  rw [finite_index_range_nsmulAddMonoidHom_two_iff]
+  have := W.finite_selmerGroupA R
+  exact ((W.selmerGroupA R : Set W.M).toFinite.subset (W.range_μ_le_selmerGroupA R)).to_subtype
+
+end Step7
 
 end Selmer
 

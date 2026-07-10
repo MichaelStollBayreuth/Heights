@@ -12,7 +12,8 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
   leading term of a monic cubic, and integrality of its roots. `Valuation.eq_one_of_mul_eq_one`:
   a factor of a unit is a unit, provided both factors are integral.
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
-  `.below` (the prime lying below a prime of an integral extension), `.primesAbove`,
+  `.below` (the prime lying below a prime of an integral extension), `.primesAbove` and its
+  finiteness `.primesAbove_finite`,
   `IsDedekindDomain.selmerGroupAbove`, `.classGroupMk`, `.valuationOfNeZero_eq_iff`,
   `.dvd_toAdd_valuationOfNeZero` and
   `.valuationOfNeZeroMod_mk_eq_one_iff`, which turns the Selmer condition into a
@@ -282,6 +283,20 @@ lemma IsDedekindDomain.HeightOneSpectrum.mem_primesAbove_iff [Algebra.IsIntegral
     w ∈ primesAbove R B S ↔ w.below R ∈ S := by
   refine ⟨fun ⟨v, hv, hva⟩ ↦ ?_, fun hw ↦ ⟨w.below R, hw, rfl⟩⟩
   rwa [show w.below R = v from HeightOneSpectrum.ext hva.symm]
+
+/-- Only finitely many primes of `B` lie above a finite set of primes of `R`: each fiber
+injects into `Ideal.primesOver`, which is finite for a Dedekind extension. -/
+lemma IsDedekindDomain.HeightOneSpectrum.primesAbove_finite [Algebra.IsIntegral R B]
+    [Module.IsTorsionFree R B] {S : Set (HeightOneSpectrum R)} (hS : S.Finite) :
+    (primesAbove R B S).Finite := by
+  have hsub : primesAbove R B S ⊆
+      ⋃ v ∈ S, {w : HeightOneSpectrum B | w.asIdeal ∈ v.asIdeal.primesOver B} := by
+    rintro w ⟨v, hv, hva⟩
+    exact Set.mem_biUnion hv ⟨w.isPrime, ⟨hva⟩⟩
+  refine (hS.biUnion fun v _ => ?_).subset hsub
+  have := v.isMaximal
+  exact (IsDedekindDomain.primesOver_finite v.asIdeal B).preimage
+    (fun a _ b _ hab => HeightOneSpectrum.ext hab)
 
 /-- The `S`-Selmer group of `L`, where `B` is a Dedekind domain with fraction field `L` and `S`
 is a set of primes of `R`: the classes of `Lˣ` modulo `n`-th powers whose valuation is divisible
