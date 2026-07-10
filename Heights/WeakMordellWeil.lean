@@ -970,6 +970,61 @@ lemma valuation_root_le_one
     (W.valuation_a₆_le_one_of_notMem_primesAbove R p hw)
     (W.root_cubic_eq_zero p)
 
+/-- An element of `K` with trivial valuation at the prime below `w` has trivial valuation
+at `w`. -/
+lemma valuation_algebraMap_eq_one {z : K} (hz : (w.below R).valuation K z = 1) :
+    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) z) = 1 := by
+  rw [← W.valuation_algebraMap_eq R p w z, hz, one_pow]
+
+/-- At a prime `w` not above a bad prime, `f' θ = 3 θ ^ 2 + a₄` is a unit.
+
+This is where `Δ` earns its place in `badPrimes`: evaluating the Bézout identity behind
+`separable_f` at `θ` gives `(-96 a₄ θ ^ 2 + 144 a₆ θ - 64 a₄ ^ 2) * f' θ = Δ`. Both factors are
+integral at `w` and the product is a unit, so both are units. -/
+lemma valuation_deriv_root_eq_one [W.IsShortNF]
+    (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
+    w.valuation (AdjoinRoot (p : K[X]))
+      (3 * AdjoinRoot.root (p : K[X]) ^ 2 + algebraMap K (AdjoinRoot (p : K[X])) W.a₄) = 1 := by
+  set L := AdjoinRoot (p : K[X])
+  set ν := w.valuation L with hνdef
+  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set A := algebraMap K L W.a₄ with hAdef
+  set B := algebraMap K L W.a₆ with hBdef
+  have hA : ν A ≤ 1 := W.valuation_a₄_le_one_of_notMem_primesAbove R p hw
+  have hB : ν B ≤ 1 := W.valuation_a₆_le_one_of_notMem_primesAbove R p hw
+  have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
+  have hnat (n : ℕ) : ν ((n : L)) ≤ 1 := ν.map_natCast_le_one n
+  -- the Bézout identity, evaluated at `θ`
+  have hΔ : algebraMap K L W.Δ = -16 * (4 * A ^ 3 + 27 * B ^ 2) := by
+    rw [Δ_of_isShortNF W]
+    simp only [map_neg, map_mul, map_add, map_pow, map_ofNat, hAdef, hBdef]
+  have hid : (-96 * A * t ^ 2 + 144 * B * t - 64 * A ^ 2) * (3 * t ^ 2 + A) =
+      algebraMap K L W.Δ := by
+    rw [hΔ]
+    linear_combination (-288 * A * t + 432 * B) * W.root_cubic_eq_zero p
+  have hΔ1 : ν (algebraMap K L W.Δ) = 1 :=
+    W.valuation_algebraMap_eq_one R p
+      (W.valuation_Δ_eq_one_of_notMem_badPrimes R (W.below_notMem_badPrimes R p hw))
+  -- both factors are integral
+  have hsq : ν (t ^ 2) ≤ 1 := by rw [map_pow]; exact pow_le_one₀ zero_le ht
+  have hD : ν (3 * t ^ 2 + A) ≤ 1 := by
+    refine ν.map_add_le (le_trans (le_of_eq (map_mul ..)) ?_) hA
+    exact mul_le_one₀ (by simpa using hnat 3) zero_le hsq
+  have hC : ν (-96 * A * t ^ 2 + 144 * B * t - 64 * A ^ 2) ≤ 1 := by
+    refine ν.map_sub_le (ν.map_add_le ?_ ?_) ?_
+    · rw [map_mul, map_mul, Valuation.map_neg]
+      exact mul_le_one₀ (mul_le_one₀ (by simpa using hnat 96) zero_le hA) zero_le hsq
+    · rw [map_mul, map_mul]
+      exact mul_le_one₀ (mul_le_one₀ (by simpa using hnat 144) zero_le hB) zero_le ht
+    · rw [map_mul, map_pow]
+      exact mul_le_one₀ (by simpa using hnat 64) zero_le (pow_le_one₀ zero_le hA)
+  -- a product of two integral elements that is a unit has both factors units
+  have hmul : ν (-96 * A * t ^ 2 + 144 * B * t - 64 * A ^ 2) * ν (3 * t ^ 2 + A) = 1 := by
+    rw [← map_mul, hid, hΔ1]
+  refine le_antisymm hD ?_
+  rw [← hmul]
+  simpa using mul_le_mul_left hC (ν (3 * t ^ 2 + A))
+
 end RingOfIntegers
 
 section Core
@@ -1064,8 +1119,72 @@ hence the discriminant of `f`, which divides `Δ`; and `v ∉ Support Δ` since 
 Hence `ord w (x - θ q) = 0` for `q ≠ p`, and `ord w (x - θ p)` is itself even. -/
 lemma even_valuationOfNeZero_sub_root_of_le_one
     (hx' : w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x) ≤ 1) :
-    (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) :=
-  sorry
+    (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
+  set L := AdjoinRoot (p : K[X])
+  set ν := w.valuation L with hνdef
+  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set A := algebraMap K L W.a₄ with hAdef
+  set B := algebraMap K L W.a₆ with hBdef
+  have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
+  have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
+  -- `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₄)` over `L`
+  have hK : y ^ 2 = x ^ 3 + W.a₄ * x + W.a₆ := by
+    have hfx := (equation_iff_eval_f_eq_sq W x y).mp h
+    simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C] at hfx
+    exact hfx.symm
+  have heqL : (algebraMap K L y) ^ 2 =
+      (algebraMap K L x) ^ 3 + A * algebraMap K L x + B := by
+    rw [hAdef, hBdef, ← map_pow, ← map_pow, ← map_mul, ← map_add, ← map_add, hK]
+  have hfac : ((u : L)) * (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2 + A) =
+      (algebraMap K L y) ^ 2 := by
+    rw [hu]
+    linear_combination -W.root_cubic_eq_zero p - heqL
+  -- `x - θ` and `y` are integral at `w`
+  have hu1 : ν (u : L) ≤ 1 := by
+    rw [hu]
+    exact ν.map_sub_le hx' ht
+  by_cases hlt : ν (u : L) = 1
+  · -- `x - θ` is a unit, so its valuation is trivially even
+    have : (w.valuationOfNeZero u : Multiplicative ℤ) = 1 := by
+      refine WithZero.coe_inj.mp ?_
+      rw [HeightOneSpectrum.valuationOfNeZero_eq w u, hlt, WithZero.coe_one]
+    simp [this]
+  -- otherwise `w` divides `x - θ`, and then it cannot divide the cofactor
+  replace hlt : ν (u : L) < 1 := lt_of_le_of_ne hu1 hlt
+  have hcof : ν (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2 + A) = 1 := by
+    have hsplit : algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2 + A =
+        (u : L) * (algebraMap K L x + 2 * t) + (3 * t ^ 2 + A) := by
+      rw [hu]; ring
+    have hlt' : ν ((u : L) * (algebraMap K L x + 2 * t)) < ν (3 * t ^ 2 + A) := by
+      rw [hderiv, map_mul]
+      refine lt_of_le_of_lt (mul_le_of_le_one_right' ?_) hlt
+      refine ν.map_add_le hx' ?_
+      rw [map_mul]
+      exact mul_le_one₀ (by simpa using ν.map_natCast_le_one 2) zero_le ht
+    rw [hsplit, ν.map_add_eq_of_lt_right hlt', hderiv]
+  -- `ν (x - θ) = ν y ^ 2`
+  have hy0 : algebraMap K L y ≠ 0 := by
+    intro h0
+    refine hx ?_
+    rw [(equation_iff_eval_f_eq_sq W x y).mp h]
+    have : y = 0 := (map_eq_zero (algebraMap K L)).mp h0
+    simp [this]
+  have hval : ν (u : L) = ν (algebraMap K L y) ^ 2 := by
+    have := congrArg ν hfac
+    rw [map_mul, hcof, mul_one, map_pow] at this
+    exact this
+  -- pass to `Multiplicative ℤ`
+  set uy : Lˣ := Units.mk0 _ hy0 with huy
+  have hcy : ((w.valuationOfNeZero uy : Multiplicative ℤ) : WithZero (Multiplicative ℤ)) =
+      ν (algebraMap K L y) := HeightOneSpectrum.valuationOfNeZero_eq w uy
+  have hcu : ((w.valuationOfNeZero u : Multiplicative ℤ) : WithZero (Multiplicative ℤ)) =
+      ν (u : L) := HeightOneSpectrum.valuationOfNeZero_eq w u
+  have hequ : w.valuationOfNeZero u = w.valuationOfNeZero uy ^ 2 := by
+    refine WithZero.coe_inj.mp ?_
+    push_cast
+    rw [hcu, hcy, hval]
+  rw [hequ]
+  exact ⟨Multiplicative.toAdd (w.valuationOfNeZero uy), by simp [toAdd_pow]⟩
 
 /-- The arithmetic core of Step 6, generic case, with all the group theory stripped away:
 for `(x, y)` on `W` with `f x ≠ 0`, and `w` a prime of the ring of integers of the field factor

@@ -152,6 +152,15 @@ section Valuation
 variable {L Γ : Type*} [Field L] [LinearOrderedCommGroupWithZero Γ] (ν : Valuation L Γ)
   {t a b : L}
 
+/-- A natural number has valuation at most `1`. -/
+lemma Valuation.map_natCast_le_one {R : Type*} [Ring R] (ν : Valuation R Γ) (n : ℕ) :
+    ν (n : R) ≤ 1 := by
+  induction n with
+  | zero => simp
+  | succ k ih =>
+    rw [Nat.cast_succ]
+    exact (ν.map_add _ _).trans (max_le ih ν.map_one.le)
+
 /-- If `1 < ν t` and `a`, `b` are integral, the leading term of the cubic dominates. -/
 lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
     ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
