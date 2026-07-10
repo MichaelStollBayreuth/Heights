@@ -27,9 +27,8 @@ curves, lives in `Heights.ForMathlib`.
    `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p` (in `Heights.ForMathlib`).
 6. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
-   => `range_μ_le_selmerGroupA` at the end of the file, for `E` over the fraction field of a
-   Dedekind domain, modulo the two cases of the valuation computation,
-   `mem_selmerGroupFactor_of_eval_f_{ne,eq}_zero`.
+   => done, as `range_μ_le_selmerGroupA` at the end of the file, for `E` over the fraction field
+   of a Dedekind domain.
 7. Show that `A(S,2)` is finite. (There is some preliminary stuff in
    `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, but finiteness is still a TODO there.)
    This is where number fields, rather than general Dedekind domains, become necessary.
@@ -830,12 +829,17 @@ factor, which needs the primes above `S` to be finite in number, the class group
 `ringOfIntegersFactor R p` to be finite, and its unit group to be finitely generated — i.e.
 number fields. Mathlib lists finiteness of `selmerGroup` as a TODO.
 
-All the structure is in place below: `badPrimes` (`S`) and its finiteness,
+All of this is carried out below: `badPrimes` (`S`) and its finiteness,
 `AdjoinRoot.isSeparable_of_separable` (so that `IsIntegralClosure.isDedekindDomain` applies to
 each factor), `IsDedekindDomain.HeightOneSpectrum.primesAbove` (the `S i`),
 `IsDedekindDomain.selmerGroupAbove`, `selmerGroupA` (`A(S,2)`, as a subgroup of `W.M`), and
-`range_μ_le_selmerGroupA` (Step 6 itself). The remaining gaps are the two cases of the arithmetic
-input, `mem_selmerGroupFactor_of_eval_f_ne_zero` and `mem_selmerGroupFactor_of_eval_f_eq_zero`.
+finally `range_μ_le_selmerGroupA`.
+
+The valuation computation is carried out entirely inside a single field factor `K[X]/(p)`,
+without passing to a splitting field: writing `θ` for the root of `p`, the cubic factors as
+`f x = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₄)` and the cofactor is `f' θ` modulo `x - θ`. That
+`f' θ` is a unit at every good prime (`valuation_deriv_root_eq_one`) is what `Δ ∈ badPrimes`
+buys, via the Bézout identity behind `separable_f`.
 -/
 
 namespace WeierstrassCurve.Affine
@@ -1024,6 +1028,67 @@ lemma valuation_deriv_root_eq_one [W.IsShortNF]
   refine le_antisymm hD ?_
   rw [← hmul]
   simpa using mul_le_mul_left hC (ν (3 * t ^ 2 + A))
+
+/-- If `x` is a root of `f`, then at a prime `w` not above a bad prime the `p`-component of the
+`x - T` representative is a unit.
+
+Both `x` and `θ` are roots of `f`, so `(x - θ) * (θ² + xθ + x² + a₄) = 0` and, `L` being a field,
+one of the two factors vanishes. If `x = θ` the component is `f' θ`; if the cofactor vanishes the
+component is `x - θ` and `f' θ = -(x - θ)(x + 2θ)`. Either way `valuation_deriv_root_eq_one`
+makes it a unit. -/
+lemma valuation_projFactor_torsion_eq_one [W.IsShortNF] {x : K} (hx : W.f.eval x = 0)
+    (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
+    w.valuation (AdjoinRoot (p : K[X]))
+      (algebraMap K (AdjoinRoot (p : K[X])) x - AdjoinRoot.root (p : K[X]) +
+        AdjoinRoot.mk (p : K[X]) (W.fCofactor x)) = 1 := by
+  set L := AdjoinRoot (p : K[X])
+  set ν := w.valuation L with hνdef
+  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set s := algebraMap K L x with hsdef
+  set A := algebraMap K L W.a₄ with hAdef
+  set B := algebraMap K L W.a₆ with hBdef
+  have hA : ν A ≤ 1 := W.valuation_a₄_le_one_of_notMem_primesAbove R p hw
+  have hB : ν B ≤ 1 := W.valuation_a₆_le_one_of_notMem_primesAbove R p hw
+  have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
+  have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
+  have hroot : t ^ 3 + A * t + B = 0 := W.root_cubic_eq_zero p
+  -- `x` is a root of the cubic too, hence integral at `w`
+  have hK : x ^ 3 + W.a₄ * x + W.a₆ = 0 := by
+    have := hx
+    simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C] at this
+    exact this
+  have hs : s ^ 3 + A * s + B = 0 := by
+    rw [hsdef, hAdef, hBdef, ← map_pow, ← map_mul, ← map_add, ← map_add, hK, map_zero]
+  have hs1 : ν s ≤ 1 := ν.le_one_of_root_cubic hA hB hs
+  -- the cofactor, computed in `L`
+  have hQ : AdjoinRoot.mk (p : K[X]) (W.fCofactor x) = t ^ 2 + s * t + (s ^ 2 + A) := by
+    rw [htdef, hsdef, hAdef]
+    simp only [fCofactor, map_add, map_mul, map_pow, AdjoinRoot.mk_X, AdjoinRoot.mk_C,
+      ← AdjoinRoot.algebraMap_eq]
+    ring
+  have hprod : (s - t) * (t ^ 2 + s * t + (s ^ 2 + A)) = 0 := by linear_combination hs - hroot
+  have hsplit : t ^ 2 + s * t + (s ^ 2 + A) = (s - t) * (s + 2 * t) + (3 * t ^ 2 + A) := by ring
+  rw [hQ]
+  rcases mul_eq_zero.mp hprod with h0 | h0
+  · -- `x = θ`: the component is `f' θ`
+    rw [h0, zero_add, hsplit, h0, zero_mul, zero_add, hderiv]
+  · -- the cofactor vanishes: the component is `x - θ`, and `f' θ = -(x - θ)(x + 2θ)`
+    rw [h0, add_zero]
+    have hfd : (s - t) * (s + 2 * t) = -(3 * t ^ 2 + A) := by
+      rw [hsplit] at h0
+      linear_combination h0
+    have hne : ν ((s - t) * (s + 2 * t)) = 1 := by
+      rw [hfd, Valuation.map_neg, hderiv]
+    rw [map_mul] at hne
+    have h2t : ν (s + 2 * t) ≤ 1 := by
+      refine ν.map_add_le hs1 ?_
+      rw [map_mul]
+      exact mul_le_one₀ (by simpa using ν.map_natCast_le_one 2) zero_le ht
+    have hst : ν (s - t) ≤ 1 := ν.map_sub_le hs1 ht
+    refine le_antisymm hst ?_
+    calc (1 : WithZero (Multiplicative ℤ)) = ν (s - t) * ν (s + 2 * t) := hne.symm
+    _ ≤ ν (s - t) * 1 := by gcongr
+    _ = ν (s - t) := mul_one _
 
 end RingOfIntegers
 
@@ -1332,22 +1397,27 @@ lemma mem_selmerGroupFactor_of_eval_f_ne_zero {x y : K} (h : W.Equation x y)
 
 /-- `2`-torsion case of the arithmetic input: `f x = 0`.
 
-By `projFactor_mk_C_sub_X_add_fCofactor` the `p`-component of `μX x` is the class of
-`x - θ + fCofactor x`, and by `mk_fCofactor_eq_zero` there are two possibilities:
-
-* `p = X - x`. Then `θ = x`, so the component is `fCofactor x` evaluated at `x`, namely
-  `3 x ^ 2 + a₄ = f' x` (`eval_fCofactor_self`), an element of `K` itself. Its square class is
-  trivial away from the primes dividing `f' x`; and `f' x` divides the discriminant of `f`,
-  which divides `Δ`, so those primes are bad.
-* `p ≠ X - x`. Then `fCofactor x` maps to `0` and the component is `x - θ`, and one argues as in
-  `mem_selmerGroupFactor_of_eval_f_ne_zero` with `v x ≥ 0`: here `f x = 0`, so `y = 0`, `x` is
-  `v`-integral for `v ∉ badPrimes`, and `∏_{q ≠ X - x} (x - θ q) = f' x` divides `Δ`. -/
-lemma mem_selmerGroupFactor_of_eval_f_eq_zero {x y : K} (h : W.Equation x y)
-    (hx : W.f.eval x = 0) (p : W.f.Factors) :
+By `projFactor_mk_C_sub_X_add_fCofactor` the `p`-component of `μX x` is `x - θ + fCofactor x`,
+which by `valuation_projFactor_torsion_eq_one` is a unit at every prime `w` not lying above a bad
+prime. Its valuation is therefore `0`, in particular even. -/
+lemma mem_selmerGroupFactor_of_eval_f_eq_zero {x : K} (hx : W.f.eval x = 0)
+    (p : W.f.Factors) :
     (((isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero hx).map
       (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p)).unit :
-        Units.modPow (AdjoinRoot (p : K[X])) 2) ∈ W.selmerGroupFactor R p :=
-  sorry
+        Units.modPow (AdjoinRoot (p : K[X])) 2) ∈ W.selmerGroupFactor R p := by
+  have := W.isDedekindDomain_ringOfIntegersFactor R p
+  have := W.isFractionRing_ringOfIntegersFactor R p
+  rw [W.mem_selmerGroupFactor_unit_iff R p]
+  intro w hw
+  set u := ((isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero hx).map
+    (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p)).unit with hudef
+  have hval : w.valuation (AdjoinRoot (p : K[X])) (u : AdjoinRoot (p : K[X])) = 1 := by
+    rw [hudef, IsUnit.unit_spec, W.projFactor_mk_C_sub_X_add_fCofactor x p]
+    exact W.valuation_projFactor_torsion_eq_one R p hx hw
+  have : (w.valuationOfNeZero u : Multiplicative ℤ) = 1 := by
+    refine WithZero.coe_inj.mp ?_
+    rw [HeightOneSpectrum.valuationOfNeZero_eq w u, hval, WithZero.coe_one]
+  simp [this]
 
 /-- The heart of Step 6: for a point `(x, y)` of `W` and a field factor `K[X]/(p)` of `W.A`,
 the square class of the image of the `x - T` map lies in the `2`-Selmer group of that factor. -/
@@ -1356,7 +1426,7 @@ lemma μX_component_mem_selmerGroupFactor {x y : K} (h : W.Equation x y) (p : W.
       W.selmerGroupFactor R p := by
   rcases eq_or_ne (W.f.eval x) 0 with hx | hx
   · rw [μX_of_eval_f_eq_zero hx, AdjoinRoot.modPowEquivPiFactors_unit]
-    exact W.mem_selmerGroupFactor_of_eval_f_eq_zero R h hx p
+    exact W.mem_selmerGroupFactor_of_eval_f_eq_zero R hx p
   · rw [μX_of_eval_f_ne_zero hx, AdjoinRoot.modPowEquivPiFactors_unit]
     exact W.mem_selmerGroupFactor_of_eval_f_ne_zero R h hx p
 
