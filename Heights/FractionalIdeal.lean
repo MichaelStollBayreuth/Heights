@@ -221,14 +221,96 @@ noncomputable def nthRootHom (n : ℕ) : nDivisible R K n →* (FractionalIdeal 
       count_nthRootFun, count_nthRootFun, Subgroup.coe_mul, Units.val_mul,
       count_mul K v (Units.ne_zero _) (Units.ne_zero _), Int.add_ediv_of_dvd_left (I.2 v)]
 
+variable {R K} in
+@[simp] lemma nthRootHom_apply (n : ℕ) (I : nDivisible R K n) :
+    nthRootHom R K n I = nthRootFun R K n (I : (FractionalIdeal R⁰ K)ˣ) := rfl
+
 /-- The `n`-th root homomorphism is a genuine `n`-th root. -/
 lemma nthRootHom_pow (n : ℕ) (I : nDivisible R K n) :
     (nthRootHom R K n I) ^ n = (I : (FractionalIdeal R⁰ K)ˣ) := by
   apply count_injective
   intro v
-  rw [Units.val_pow_eq_pow_val, count_pow, nthRootHom, MonoidHom.coe_mk, OneHom.coe_mk,
+  rw [Units.val_pow_eq_pow_val, count_pow, nthRootHom_apply,
     count_nthRootFun, Int.mul_ediv_cancel' (I.2 v)]
 
 end NthRoot
+
+/-!
+### The `n`-th-root class map and its kernel
+
+For a unit `u : Kˣ` whose principal ideal has all valuations divisible by `n`, the `n`-th root
+`𝔞` of `(u)` has a well-defined class in `ClassGroup R`. The class vanishes exactly when `u` is
+a unit of `R` times an `n`-th power in `Kˣ` — the exactness of the fundamental sequence
+`1 → Rˣ/(Rˣ)ⁿ → K(∅,n) → Cl(R)[n]` at the middle spot, stated here before any quotients are
+taken.
+-/
+
+section NthRootClass
+
+/-- `ClassGroup.mk I = 1` exactly when the unit fractional ideal `I` is principal, with the
+generator provided as a unit of `K`. Variant of `ClassGroup.mk_eq_one_iff` avoiding
+`Submodule.IsPrincipal`. -/
+lemma _root_.ClassGroup.mk_eq_one_iff_exists {I : (FractionalIdeal R⁰ K)ˣ} :
+    ClassGroup.mk K I = 1 ↔ ∃ x : Kˣ, toPrincipalIdeal R K x = I := by
+  rw [ClassGroup.mk_eq_one_iff]
+  constructor
+  · intro hI
+    obtain ⟨x, hx⟩ := hI.principal
+    have hx' : (I : FractionalIdeal R⁰ K) = spanSingleton R⁰ x := by
+      apply Subtype.coe_injective
+      simp only [val_eq_coe, hx, coe_spanSingleton]
+    have hx0 : x ≠ 0 := fun h => Units.ne_zero I (by rw [hx', h, spanSingleton_zero])
+    exact ⟨Units.mk0 x hx0, by rw [← Units.val_inj, coe_toPrincipalIdeal, hx']; rfl⟩
+  · rintro ⟨x, rfl⟩
+    exact ⟨⟨(x : K), by rw [coe_toPrincipalIdeal, coe_spanSingleton]⟩⟩
+
+variable (R K)
+
+/-- The units of `K` whose principal fractional ideal has all valuations divisible by `n`. -/
+def unitsNDivisible (n : ℕ) : Subgroup Kˣ :=
+  Subgroup.comap (toPrincipalIdeal R K) (nDivisible R K n)
+
+/-- The restriction of `toPrincipalIdeal` to `unitsNDivisible`, into the `n`-divisible
+subgroup. -/
+noncomputable def unitsNDivisibleToNDivisible (n : ℕ) :
+    unitsNDivisible R K n →* nDivisible R K n :=
+  ((toPrincipalIdeal R K).comp (unitsNDivisible R K n).subtype).codRestrict _ (fun x => x.2)
+
+@[simp] lemma coe_unitsNDivisibleToNDivisible (n : ℕ) (u : unitsNDivisible R K n) :
+    (unitsNDivisibleToNDivisible R K n u : (FractionalIdeal R⁰ K)ˣ) =
+      toPrincipalIdeal R K (u : Kˣ) := rfl
+
+/-- The `n`-th-root class map: the class of the `n`-th root of the principal ideal `(u)`. -/
+noncomputable def nthRootClass (n : ℕ) : unitsNDivisible R K n →* ClassGroup R :=
+  (ClassGroup.mk K).comp ((nthRootHom R K n).comp (unitsNDivisibleToNDivisible R K n))
+
+/-- **Exactness of the fundamental sequence at the middle spot**: the `n`-th-root class of `u`
+vanishes exactly when `u` is a unit of `R` times an `n`-th power. -/
+lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K n) :
+    nthRootClass R K n u = 1 ↔
+      ∃ (a : Rˣ) (w : Kˣ), Units.map (algebraMap R K : R →* K) a * w ^ n = (u : Kˣ) := by
+  rw [nthRootClass, MonoidHom.comp_apply, MonoidHom.comp_apply, ClassGroup.mk_eq_one_iff_exists]
+  constructor
+  · rintro ⟨w, hw⟩
+    -- the `n`-th power of the found generator `w` generates `(u)`, so `u / wⁿ` is a unit of `R`
+    have hpow : toPrincipalIdeal R K (w ^ n) = toPrincipalIdeal R K (u : Kˣ) := by
+      rw [map_pow, hw, nthRootHom_pow, coe_unitsNDivisibleToNDivisible]
+    have h1 : toPrincipalIdeal R K ((u : Kˣ) * (w ^ n)⁻¹) = 1 := by
+      rw [map_mul, map_inv, hpow, mul_inv_cancel]
+    obtain ⟨a, ha⟩ := (toPrincipalIdeal_eq_one_iff _).mp h1
+    exact ⟨a, w, by rw [ha]; group⟩
+  · rintro ⟨a, w, hw⟩
+    -- `w` generates the `n`-th root: its valuations are `count (u) / n`
+    refine ⟨w, count_injective fun v => ?_⟩
+    have hcu : count K v ((toPrincipalIdeal R K (u : Kˣ) : (FractionalIdeal R⁰ K)ˣ) :
+        FractionalIdeal R⁰ K) = n * count K v
+          ((toPrincipalIdeal R K w : (FractionalIdeal R⁰ K)ˣ) : FractionalIdeal R⁰ K) := by
+      rw [← hw, map_mul, map_pow, Units.val_mul, Units.val_pow_eq_pow_val,
+        count_mul K v (Units.ne_zero _) (pow_ne_zero _ (Units.ne_zero _)), count_pow,
+        (toPrincipalIdeal_eq_one_iff _).mpr ⟨a, rfl⟩, Units.val_one, count_one, zero_add]
+    rw [nthRootHom_apply, count_nthRootFun, coe_unitsNDivisibleToNDivisible, hcu,
+      Int.mul_ediv_cancel_left _ (Int.natCast_ne_zero.mpr hn)]
+
+end NthRootClass
 
 end FractionalIdeal
