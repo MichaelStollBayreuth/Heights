@@ -13,7 +13,7 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
   a factor of a unit is a unit, provided both factors are integral.
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
   `.below` (the prime lying below a prime of an integral extension), `.primesAbove`,
-  `IsDedekindDomain.selmerGroupAbove`, `.valuationOfNeZero_eq_iff`,
+  `IsDedekindDomain.selmerGroupAbove`, `.classGroupMk`, `.valuationOfNeZero_eq_iff`,
   `.dvd_toAdd_valuationOfNeZero` and
   `.valuationOfNeZeroMod_mk_eq_one_iff`, which turns the Selmer condition into a
   divisibility of valuations. (`Mathlib.RingTheory.DedekindDomain.SelmerGroup` has a
@@ -217,6 +217,11 @@ lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (
       one_lt_inv₀ (zero_lt_iff.mpr ((Valuation.ne_zero_iff _).mpr hx))]
     exact h
   · exact .inl h
+
+/-- The class of a height one prime in the class group. -/
+noncomputable def IsDedekindDomain.HeightOneSpectrum.classGroupMk (v : HeightOneSpectrum R) :
+    ClassGroup R :=
+  ClassGroup.mk0 ⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩
 
 /-- The `Multiplicative ℤ`-valued valuation of a unit is determined by the `ℤᵐ⁰`-valued one. -/
 lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZero_eq_iff (v : HeightOneSpectrum R)

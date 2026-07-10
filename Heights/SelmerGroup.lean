@@ -44,7 +44,6 @@ Note that `[NeZero n]` cannot be dropped: `K(S,0) = Kˣ`.
 
 ## Main definitions
 
-* `IsDedekindDomain.HeightOneSpectrum.classGroupMk`: the class of a height one prime.
 * `IsDedekindDomain.sClassGroup`: the `S`-class group `Cl(R)` modulo the classes of primes in `S`.
 * `IsDedekindDomain.sUnitValuation`: the tuple of `v`-adic valuations of an `S`-unit,
   for `v ∈ S`.
@@ -153,14 +152,6 @@ in `S`; equivalently, the class group of the ring `𝒪_S(K)` of `S`-integers. O
 description is used here, as Mathlib does not yet know that `Set.integer S K` is a Dedekind
 domain with class group the quotient.
 -/
-
-namespace HeightOneSpectrum
-
-/-- The class of a height one prime in the class group. -/
-noncomputable def classGroupMk (v : HeightOneSpectrum R) : ClassGroup R :=
-  ClassGroup.mk0 ⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩
-
-end HeightOneSpectrum
 
 variable (R) in
 /-- The `S`-class group: the class group of `R` modulo the classes of the primes in `S`. -/
