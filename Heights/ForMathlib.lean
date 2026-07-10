@@ -9,10 +9,12 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
 * `MonoidHom.ofMapMulMulEqOne`: build a `MonoidHom` from `f 1 = 1` and
   `a * b * c = 1 → f a * f b * f c = 1`.
 * `Valuation.map_cubic_of_one_lt` and `Valuation.le_one_of_root_cubic`: dominance of the
-  leading term of a monic cubic, and integrality of its roots.
+  leading term of a monic cubic, and integrality of its roots. `Valuation.eq_one_of_mul_eq_one`:
+  a factor of a unit is a unit, provided both factors are integral.
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
   `.below` (the prime lying below a prime of an integral extension), `.primesAbove`,
-  `IsDedekindDomain.selmerGroupAbove`, and
+  `IsDedekindDomain.selmerGroupAbove`, `.valuationOfNeZero_eq_iff`,
+  `.dvd_toAdd_valuationOfNeZero` and
   `.valuationOfNeZeroMod_mk_eq_one_iff`, which turns the Selmer condition into a
   divisibility of valuations. (`Mathlib.RingTheory.DedekindDomain.SelmerGroup` has a
   `TODO` about the `Multiplicative`/`Additive` defeq abuse in `valuationOfNeZeroMod`
@@ -161,6 +163,14 @@ lemma Valuation.map_natCast_le_one {R : Type*} [Ring R] (ν : Valuation R Γ) (n
     rw [Nat.cast_succ]
     exact (ν.map_add _ _).trans (max_le ih ν.map_one.le)
 
+/-- If a product of two integral elements is a unit, then each factor is a unit. -/
+lemma Valuation.eq_one_of_mul_eq_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hab : ν (a * b) = 1) :
+    ν a = 1 := by
+  refine le_antisymm ha ?_
+  calc (1 : Γ) = ν a * ν b := by rw [← map_mul, hab]
+  _ ≤ ν a * 1 := by gcongr
+  _ = ν a := mul_one _
+
 /-- If `1 < ν t` and `a`, `b` are integral, the leading term of the cubic dominates. -/
 lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
     ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
@@ -207,6 +217,23 @@ lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (
       one_lt_inv₀ (zero_lt_iff.mpr ((Valuation.ne_zero_iff _).mpr hx))]
     exact h
   · exact .inl h
+
+/-- The `Multiplicative ℤ`-valued valuation of a unit is determined by the `ℤᵐ⁰`-valued one. -/
+lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZero_eq_iff (v : HeightOneSpectrum R)
+    (u : Kˣ) (m : Multiplicative ℤ) :
+    v.valuationOfNeZero u = m ↔ v.valuation K (u : K) = (m : WithZero (Multiplicative ℤ)) := by
+  rw [← WithZero.coe_inj, valuationOfNeZero_eq]
+
+/-- If the valuation of a unit `u` is the `n`-th power of the valuation of a unit `z`, then the
+`v`-adic order of `u` is divisible by `n`. -/
+lemma IsDedekindDomain.HeightOneSpectrum.dvd_toAdd_valuationOfNeZero (v : HeightOneSpectrum R)
+    {n : ℕ} {u z : Kˣ} (h : v.valuation K (u : K) = v.valuation K (z : K) ^ n) :
+    (n : ℤ) ∣ Multiplicative.toAdd (v.valuationOfNeZero u) := by
+  have hu : v.valuationOfNeZero u = v.valuationOfNeZero z ^ n := by
+    rw [valuationOfNeZero_eq_iff]
+    push_cast
+    rw [valuationOfNeZero_eq, h]
+  exact ⟨Multiplicative.toAdd (v.valuationOfNeZero z), by rw [hu]; simp [toAdd_pow]⟩
 
 /-- The class of a unit `u` in `Units.modPow K n` has trivial image under the `v`-adic valuation
 mod `n` exactly when the `v`-adic valuation of `u` is divisible by `n`. -/
