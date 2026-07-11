@@ -864,6 +864,13 @@ open IsDedekindDomain Polynomial UniqueFactorizationMonoid
 -- inheriting the ones used for Steps 2-5.
 variable {K : Type*} [Field K] (W : Affine K)
 
+/- Notation local to Step 6: for a monic irreducible factor `p` of `f`, `𝕃 p` is the field
+factor `K[X]/(p)` of `W.A`, `ι p : K →+* 𝕃 p` is the canonical embedding, and `θ p` is the
+image of the root `T` of `f` in `𝕃 p`. -/
+local notation:max "𝕃" p:max => AdjoinRoot (p : K[X])
+local notation:max "ι" p:max => algebraMap K (AdjoinRoot (p : K[X]))
+local notation:max "θ" p:max => AdjoinRoot.root (p : K[X])
+
 /-- The set of "bad" primes of `R`: those dividing `2` or the discriminant of `W`, and those
 occurring in a denominator of `a₄` or of `a₆` (the latter two are the supports of `a₄` and `a₆`
 in the sense of `IsDedekindDomain.HeightOneSpectrum.Support`). Away from these, the `x - T` map
@@ -912,28 +919,28 @@ variable (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
 
 /-- The ring of integers of the field factor `K[X]/(p)` over `R`. -/
 noncomputable abbrev ringOfIntegersFactor (p : W.f.Factors) : Type _ :=
-  integralClosure R (AdjoinRoot (p : K[X]))
+  integralClosure R (𝕃 p)
 
 /-- The ring of integers of a field factor is a Dedekind domain: it is the integral closure
 of `R` in a finite separable extension of the fraction field `K`. -/
 instance isDedekindDomain_ringOfIntegersFactor [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors) :
     IsDedekindDomain (W.ringOfIntegersFactor R p) :=
   have := AdjoinRoot.isSeparable_of_separable (separable_f W) p
-  IsIntegralClosure.isDedekindDomain R K (AdjoinRoot (p : K[X])) _
+  IsIntegralClosure.isDedekindDomain R K (𝕃 p) _
 
 /-- A field factor is the fraction field of its ring of integers. -/
 instance isFractionRing_ringOfIntegersFactor [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors) :
-    IsFractionRing (W.ringOfIntegersFactor R p) (AdjoinRoot (p : K[X])) :=
+    IsFractionRing (W.ringOfIntegersFactor R p) (𝕃 p) :=
   have := AdjoinRoot.isSeparable_of_separable (separable_f W) p
-  IsIntegralClosure.isFractionRing_of_finite_extension R K (AdjoinRoot (p : K[X])) _
+  IsIntegralClosure.isFractionRing_of_finite_extension R K (𝕃 p) _
 
 /-- The ring of integers of a field factor is torsion-free over `R`, as `R` embeds into it. -/
 instance instIsTorsionFreeRingOfIntegersFactor (p : W.f.Factors) :
     Module.IsTorsionFree R (W.ringOfIntegersFactor R p) := by
   rw [Module.isTorsionFree_iff_algebraMap_injective]
-  have hinj : Function.Injective (algebraMap R (AdjoinRoot (p : K[X]))) := by
-    rw [IsScalarTower.algebraMap_eq R K (AdjoinRoot (p : K[X]))]
-    exact (algebraMap K (AdjoinRoot (p : K[X]))).injective.comp (IsFractionRing.injective R K)
+  have hinj : Function.Injective (algebraMap R (𝕃 p)) := by
+    rw [IsScalarTower.algebraMap_eq R K (𝕃 p)]
+    exact (ι p).injective.comp (IsFractionRing.injective R K)
   exact fun a b hab ↦ hinj (congrArg Subtype.val hab)
 
 /-- The `w`-adic valuation of an element of `K` is the `v`-adic valuation of the prime `v`
@@ -941,14 +948,14 @@ below `w`, raised to the ramification index. -/
 lemma valuation_algebraMap_eq [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor R p)) (z : K) :
     (w.below R).valuation K z ^ ((w.below R).asIdeal.ramificationIdx' w.asIdeal) =
-      w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) z) :=
+      w.valuation (𝕃 p) (ι p z) :=
   HeightOneSpectrum.valuation_liesOver _ _ _ z
 
 /-- If `z` is integral at the prime below `w`, then it is integral at `w`. -/
 lemma valuation_algebraMap_le_one [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor R p)) {z : K}
     (hz : (w.below R).valuation K z ≤ 1) :
-    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) z) ≤ 1 := by
+    w.valuation (𝕃 p) (ι p z) ≤ 1 := by
   rw [← W.valuation_algebraMap_eq R p w z]
   simpa using pow_le_pow_left' hz _
 
@@ -961,18 +968,15 @@ lemma below_notMem_badPrimes [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
 
 /-- `θ` satisfies the Weierstrass cubic in the field factor `K[X]/(p)`. -/
 lemma root_cubic_eq_zero (p : W.f.Factors) :
-    AdjoinRoot.root (p : K[X]) ^ 3 +
-      algebraMap K (AdjoinRoot (p : K[X])) W.a₄ * AdjoinRoot.root (p : K[X]) +
-      algebraMap K (AdjoinRoot (p : K[X])) W.a₆ = 0 := by
+    θ p ^ 3 + ι p W.a₄ * θ p + ι p W.a₆ = 0 := by
   have hz : AdjoinRoot.mk (p : K[X]) W.f = 0 :=
     AdjoinRoot.mk_eq_zero.mpr p.dvd
   simpa [f, AdjoinRoot.algebraMap_eq] using hz
 
 /-- The cofactor `f / (X - x)`, computed in the field factor `K[X]/(p)`. -/
 lemma mk_fCofactor_eq (p : W.f.Factors) (x : K) :
-    AdjoinRoot.mk (p : K[X]) (W.fCofactor x) = AdjoinRoot.root (p : K[X]) ^ 2 +
-      algebraMap K (AdjoinRoot (p : K[X])) x * AdjoinRoot.root (p : K[X]) +
-      (algebraMap K (AdjoinRoot (p : K[X])) x ^ 2 + algebraMap K (AdjoinRoot (p : K[X])) W.a₄) := by
+    AdjoinRoot.mk (p : K[X]) (W.fCofactor x) =
+      θ p ^ 2 + ι p x * θ p + (ι p x ^ 2 + ι p W.a₄) := by
   simp only [fCofactor, map_add, map_mul, map_pow, AdjoinRoot.mk_X, AdjoinRoot.mk_C,
     ← AdjoinRoot.algebraMap_eq]
 
@@ -982,14 +986,14 @@ variable [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
 /-- At a prime `w` not above a bad prime, `a₄` is integral. -/
 lemma valuation_a₄_le_one_of_notMem_primesAbove
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) W.a₄) ≤ 1 :=
+    w.valuation (𝕃 p) (ι p W.a₄) ≤ 1 :=
   W.valuation_algebraMap_le_one R p w
     (W.valuation_a₄_le_one_of_notMem_badPrimes R (W.below_notMem_badPrimes R p hw))
 
 /-- At a prime `w` not above a bad prime, `a₆` is integral. -/
 lemma valuation_a₆_le_one_of_notMem_primesAbove
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) W.a₆) ≤ 1 :=
+    w.valuation (𝕃 p) (ι p W.a₆) ≤ 1 :=
   W.valuation_algebraMap_le_one R p w
     (W.valuation_a₆_le_one_of_notMem_badPrimes R (W.below_notMem_badPrimes R p hw))
 
@@ -997,7 +1001,7 @@ lemma valuation_a₆_le_one_of_notMem_primesAbove
 cubic `f`, whose coefficients are integral at `w`. -/
 lemma valuation_root_le_one
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (AdjoinRoot (p : K[X])) (AdjoinRoot.root (p : K[X])) ≤ 1 :=
+    w.valuation (𝕃 p) (θ p) ≤ 1 :=
   Valuation.le_one_of_root_cubic _
     (W.valuation_a₄_le_one_of_notMem_primesAbove R p hw)
     (W.valuation_a₆_le_one_of_notMem_primesAbove R p hw)
@@ -1006,7 +1010,7 @@ lemma valuation_root_le_one
 /-- An element of `K` with trivial valuation at the prime below `w` has trivial valuation
 at `w`. -/
 lemma valuation_algebraMap_eq_one {z : K} (hz : (w.below R).valuation K z = 1) :
-    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) z) = 1 := by
+    w.valuation (𝕃 p) (ι p z) = 1 := by
   rw [← W.valuation_algebraMap_eq R p w z, hz, one_pow]
 
 /-- At a prime `w` not above a bad prime, `f' θ = 3 θ ^ 2 + a₄` is a unit.
@@ -1016,11 +1020,10 @@ This is where `Δ` earns its place in `badPrimes`: evaluating the Bézout identi
 integral at `w` and the product is a unit, so both are units. -/
 lemma valuation_deriv_root_eq_one
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (AdjoinRoot (p : K[X]))
-      (3 * AdjoinRoot.root (p : K[X]) ^ 2 + algebraMap K (AdjoinRoot (p : K[X])) W.a₄) = 1 := by
-  set L := AdjoinRoot (p : K[X])
+    w.valuation (𝕃 p) (3 * θ p ^ 2 + ι p W.a₄) = 1 := by
+  set L := 𝕃 p
   set ν := w.valuation L with hνdef
-  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set t := θ p with htdef
   set A := algebraMap K L W.a₄ with hAdef
   set B := algebraMap K L W.a₆ with hBdef
   have hA : ν A ≤ 1 := W.valuation_a₄_le_one_of_notMem_primesAbove R p hw
@@ -1048,15 +1051,12 @@ lemma valuation_deriv_root_eq_one
 then the cofactor `x ^ 2 + θ x + θ ^ 2 + a₄` is a `w`-unit: modulo `x - θ` it equals `f' θ`. -/
 lemma valuation_cofactor_eq_one {x : K}
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R))
-    (hx : w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x) ≤ 1)
-    (hlt : w.valuation (AdjoinRoot (p : K[X]))
-      (algebraMap K (AdjoinRoot (p : K[X])) x - AdjoinRoot.root (p : K[X])) < 1) :
-    w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x ^ 2 +
-      AdjoinRoot.root (p : K[X]) * algebraMap K (AdjoinRoot (p : K[X])) x +
-      AdjoinRoot.root (p : K[X]) ^ 2 + algebraMap K (AdjoinRoot (p : K[X])) W.a₄) = 1 := by
-  set L := AdjoinRoot (p : K[X])
+    (hx : w.valuation (𝕃 p) (ι p x) ≤ 1)
+    (hlt : w.valuation (𝕃 p) (ι p x - θ p) < 1) :
+    w.valuation (𝕃 p) (ι p x ^ 2 + θ p * ι p x + θ p ^ 2 + ι p W.a₄) = 1 := by
+  set L := 𝕃 p
   set ν := w.valuation L with hνdef
-  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set t := θ p with htdef
   set s := algebraMap K L x with hsdef
   set A := algebraMap K L W.a₄ with hAdef
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
@@ -1077,13 +1077,11 @@ component is `x - θ` and `f' θ = -(x - θ)(x + 2θ)`. Either way `valuation_de
 makes it a unit. -/
 lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (AdjoinRoot (p : K[X]))
-      (algebraMap K (AdjoinRoot (p : K[X])) x - AdjoinRoot.root (p : K[X]) +
-        AdjoinRoot.mk (p : K[X]) (W.fCofactor x)) = 1 := by
+    w.valuation (𝕃 p) (ι p x - θ p + AdjoinRoot.mk (p : K[X]) (W.fCofactor x)) = 1 := by
   rw [W.mk_fCofactor_eq p x]
-  set L := AdjoinRoot (p : K[X])
+  set L := 𝕃 p
   set ν := w.valuation L with hνdef
-  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set t := θ p with htdef
   set s := algebraMap K L x with hsdef
   set A := algebraMap K L W.a₄ with hAdef
   set B := algebraMap K L W.a₆ with hBdef
@@ -1131,9 +1129,9 @@ The coefficients `a₄`, `a₆` and the root `θ` are `w`-integral, so `1 < ν x
 term of the cubic dominate: `ν (f x) = ν x ^ 3`, hence `ν y ^ 2 = ν x ^ 3`. Also `ν θ ≤ 1 < ν x`
 gives `ν (x - θ) = ν x`. Therefore `ν (x - θ) = ν (y / x) ^ 2` is an even power. -/
 lemma even_valuationOfNeZero_sub_root_of_one_lt
-    (hx' : 1 < w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x)) :
+    (hx' : 1 < w.valuation (𝕃 p) (ι p x)) :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
-  set L := AdjoinRoot (p : K[X])
+  set L := 𝕃 p
   set ν := w.valuation L with hνdef
   have hx0 : algebraMap K L x ≠ 0 := by
     intro h0
@@ -1164,11 +1162,11 @@ If `x - θ` is a `w`-unit there is nothing to do. Otherwise `ν (x - θ) < 1`, a
 `x ^ 2 + θ x + θ ^ 2 + a₄ = (x - θ) * (x + 2 θ) + f' θ` with `f' θ` a `w`-unit, the cofactor is
 a `w`-unit. Hence `ν (x - θ) = ν y ^ 2` is an even power. -/
 lemma even_valuationOfNeZero_sub_root_of_le_one
-    (hx' : w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x) ≤ 1) :
+    (hx' : w.valuation (𝕃 p) (ι p x) ≤ 1) :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
-  set L := AdjoinRoot (p : K[X])
+  set L := 𝕃 p
   set ν := w.valuation L with hνdef
-  set t := AdjoinRoot.root (p : K[X]) with htdef
+  set t := θ p with htdef
   set A := algebraMap K L W.a₄ with hAdef
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
   have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
@@ -1202,7 +1200,7 @@ for `(x, y)` on `W` with `f x ≠ 0`, and `w` a prime of the ring of integers of
 The proof splits on whether `x` has a pole at the prime of `R` below `w`. -/
 lemma even_valuationOfNeZero_sub_root :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
-  by_cases hx' : 1 < w.valuation (AdjoinRoot (p : K[X])) (algebraMap K (AdjoinRoot (p : K[X])) x)
+  by_cases hx' : 1 < w.valuation (𝕃 p) (ι p x)
   · exact W.even_valuationOfNeZero_sub_root_of_one_lt R p h hx u hu w hw hx'
   · exact W.even_valuationOfNeZero_sub_root_of_le_one R p h hx u hu w hw (not_lt.mp hx')
 
@@ -1231,7 +1229,7 @@ variable [W.IsElliptic] [W.IsShortNF]
 /-- The image of the generic `x - T` representative in the field factor `K[X]/(p)` is `x - θ`. -/
 lemma projFactor_mk_C_sub_X (x : K) (p : W.f.Factors) :
     AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p (AdjoinRoot.mk W.f (C x - X)) =
-      algebraMap K (AdjoinRoot (p : K[X])) x - AdjoinRoot.root (p : K[X]) := by
+      ι p x - θ p := by
   rw [AdjoinRoot.projFactor_mk, map_sub, AdjoinRoot.mk_X, AdjoinRoot.mk_C,
     AdjoinRoot.algebraMap_eq]
 
@@ -1239,8 +1237,7 @@ lemma projFactor_mk_C_sub_X (x : K) (p : W.f.Factors) :
 lemma projFactor_mk_C_sub_X_add_fCofactor (x : K) (p : W.f.Factors) :
     AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p
         (AdjoinRoot.mk W.f (C x - X + W.fCofactor x)) =
-      algebraMap K (AdjoinRoot (p : K[X])) x - AdjoinRoot.root (p : K[X]) +
-        AdjoinRoot.mk (p : K[X]) (W.fCofactor x) := by
+      ι p x - θ p + AdjoinRoot.mk (p : K[X]) (W.fCofactor x) := by
   rw [AdjoinRoot.projFactor_mk, map_add, map_sub, AdjoinRoot.mk_X, AdjoinRoot.mk_C,
     AdjoinRoot.algebraMap_eq]
 
@@ -1249,14 +1246,14 @@ variable (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFraction
 /-- The `2`-Selmer group of the field factor `AdjoinRoot p` of `W.A`, relative to the primes of
 its ring of integers lying above the bad primes of `R`. -/
 noncomputable def selmerGroupFactor (p : W.f.Factors) :
-    Subgroup (Units.modPow (AdjoinRoot (p : K[X])) 2) :=
+    Subgroup (Units.modPow (𝕃 p) 2) :=
   IsDedekindDomain.selmerGroupAbove R (W.ringOfIntegersFactor R p)
-    (AdjoinRoot (p : K[X])) (W.badPrimes R) 2
+    (𝕃 p) (W.badPrimes R) 2
 
 /-- `A(S,2)` in the product decomposition: the product of the `2`-Selmer groups of the field
 factors of `W.A`. -/
 noncomputable def selmerGroupPi :
-    Subgroup ((p : W.f.Factors) → Units.modPow (AdjoinRoot (p : K[X])) 2) :=
+    Subgroup ((p : W.f.Factors) → Units.modPow (𝕃 p) 2) :=
   Subgroup.pi Set.univ (W.selmerGroupFactor R)
 
 /-- `A(S,2)`, as a subgroup of `W.M`: the classes whose image in each field factor lies in the
@@ -1291,8 +1288,8 @@ The two cases are split off as `mem_selmerGroupFactor_of_eval_f_ne_zero` and
 
 /-- Membership of the class of a unit in the `2`-Selmer group of a field factor: its valuation
 is even at every prime of the ring of integers not lying above a bad prime. -/
-lemma mem_selmerGroupFactor_unit_iff (p : W.f.Factors) (u : (AdjoinRoot (p : K[X]))ˣ) :
-    (QuotientGroup.mk u : Units.modPow (AdjoinRoot (p : K[X])) 2) ∈ W.selmerGroupFactor R p ↔
+lemma mem_selmerGroupFactor_unit_iff (p : W.f.Factors) (u : (𝕃 p)ˣ) :
+    (QuotientGroup.mk u : Units.modPow (𝕃 p) 2) ∈ W.selmerGroupFactor R p ↔
       ∀ w : HeightOneSpectrum (W.ringOfIntegersFactor R p),
         w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R) →
           (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) :=
@@ -1304,7 +1301,7 @@ lemma mem_selmerGroupFactor_of_eval_f_ne_zero {x y : K} (h : W.Equation x y)
     (hx : W.f.eval x ≠ 0) (p : W.f.Factors) :
     (((isUnit_mk_sub_X_of_eval_f_ne_zero hx).map
       (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p)).unit :
-        Units.modPow (AdjoinRoot (p : K[X])) 2) ∈ W.selmerGroupFactor R p := by
+        Units.modPow (𝕃 p) 2) ∈ W.selmerGroupFactor R p := by
   rw [W.mem_selmerGroupFactor_unit_iff R p]
   refine W.even_valuationOfNeZero_sub_root R p h hx _ ?_
   exact W.projFactor_mk_C_sub_X x p
@@ -1318,12 +1315,12 @@ lemma mem_selmerGroupFactor_of_eval_f_eq_zero {x : K} (hx : W.f.eval x = 0)
     (p : W.f.Factors) :
     (((isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero hx).map
       (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p)).unit :
-        Units.modPow (AdjoinRoot (p : K[X])) 2) ∈ W.selmerGroupFactor R p := by
+        Units.modPow (𝕃 p) 2) ∈ W.selmerGroupFactor R p := by
   rw [W.mem_selmerGroupFactor_unit_iff R p]
   intro w hw
   set u := ((isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero hx).map
     (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p)).unit with hudef
-  have hval : w.valuation (AdjoinRoot (p : K[X])) (u : AdjoinRoot (p : K[X])) = 1 := by
+  have hval : w.valuation (𝕃 p) (u : 𝕃 p) = 1 := by
     rw [hudef, IsUnit.unit_spec, W.projFactor_mk_C_sub_X_add_fCofactor x p]
     exact W.valuation_projFactor_torsion_eq_one R p hx hw
   simpa using w.dvd_toAdd_valuationOfNeZero (n := 2) (z := 1) (by simp [hval])
@@ -1374,7 +1371,7 @@ variable [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))
 
 /-- The `2`-Selmer group of each field factor of `W.A` is finite. -/
 theorem finite_selmerGroupFactor (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) :=
-  finite_selmerGroup (W.ringOfIntegersFactor R p) (AdjoinRoot (p : K[X]))
+  finite_selmerGroup (W.ringOfIntegersFactor R p) (𝕃 p)
     (HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) 2
     (HeightOneSpectrum.primesAbove_finite R (W.ringOfIntegersFactor R p)
       (W.finite_badPrimes R))
