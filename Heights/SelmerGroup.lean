@@ -71,7 +71,8 @@ Note that `toSClassGroup` is *not* surjective onto `Cl(𝒪_S)` in general: its 
 
 ## Main statements
 
-* `IsDedekindDomain.fg_sUnit`: finite generation of the `S`-unit group.
+* `IsDedekindDomain.fg_sUnit`: finite generation of the `S`-unit group, and `finrank_sUnit`:
+  its rank is `rank Rˣ + |S|` when moreover the class group of `R` is finite.
 * `IsDedekindDomain.ker_toSClassGroup`: exactness of the fundamental sequence in the middle.
 * `IsDedekindDomain.range_toSClassGroup`: exactness on the right; the image is the `n`-torsion
   of the class group.
@@ -224,6 +225,165 @@ theorem fg_sUnit [Group.FG Rˣ] (hS : S.Finite) : Group.FG (S.unit K) := by
   exact Group.fg_of_surjective
     (f := (Subgroup.subgroupOfEquivOfLe hle).symm.toMonoidHom)
     (Subgroup.subgroupOfEquivOfLe hle).symm.surjective
+
+/-!
+### The rank of the `S`-unit group
+
+Strengthening `fg_sUnit`: if moreover the class group of `R` is finite, then the rank of the
+`S`-unit group is exactly `rank Rˣ + |S|` (**Dirichlet's `S`-unit theorem**, rank version).
+The point is that the valuation map `sUnitValuation` then has full-rank image: for each
+`v ∈ S`, some power `v ^ n` is principal (`HeightOneSpectrum.exists_pow_eq_span`), and its
+generator is an `S`-unit whose valuation vector is a nonzero multiple of the `v`-th standard
+basis vector.
+-/
+
+section Rank
+
+open Module
+
+/-- The logarithmic valuation map on `S`-units, with values in `ℤ ^ S`: the additive form of
+`sUnitValuation`. This is the `S`-unit analogue of `NumberField.Units.logEmbedding`. -/
+noncomputable def sUnitLog : Additive (S.unit K) →ₗ[ℤ] (S → ℤ) :=
+  AddMonoidHom.toIntLinearMap
+    { toFun := fun x w ↦ Multiplicative.toAdd (sUnitValuation K S (Additive.toMul x) w)
+      map_zero' := by ext w; simp
+      map_add' := fun x y ↦ by ext w; simp }
+
+@[simp]
+lemma sUnitLog_apply (x : Additive (S.unit K)) (w : S) :
+    sUnitLog K S x w = Multiplicative.toAdd (sUnitValuation K S (Additive.toMul x) w) :=
+  rfl
+
+/-- The kernel of `sUnitLog` is the kernel of `sUnitValuation`, i.e. the `∅`-units. -/
+lemma mem_ker_sUnitLog_iff (x : Additive (S.unit K)) :
+    x ∈ LinearMap.ker (sUnitLog K S) ↔
+      Additive.toMul x ∈ MonoidHom.ker (sUnitValuation K S) := by
+  simp only [LinearMap.mem_ker, MonoidHom.mem_ker]
+  refine ⟨fun hx ↦ ?_, fun hx ↦ ?_⟩
+  · ext w
+    have h2 : Multiplicative.toAdd (sUnitValuation K S (Additive.toMul x) w) = 0 :=
+      congrFun hx w
+    simpa using toAdd_eq_zero.mp h2
+  · ext w
+    show Multiplicative.toAdd (sUnitValuation K S (Additive.toMul x) w) = 0
+    rw [hx]
+    rfl
+
+/-- The kernel of `sUnitLog` is (additively) the unit group of `R`. -/
+noncomputable def sUnitLogKerEquiv : ↥(LinearMap.ker (sUnitLog K S)) ≃ₗ[ℤ] Additive Rˣ :=
+  have ekermul : ↥(MonoidHom.ker (sUnitValuation K S)) ≃* Rˣ :=
+    ((unitsEquivEmptyUnit R K).trans <|
+      ((Subgroup.subgroupOfEquivOfLe (Set.unit_mono S.empty_subset)).symm.trans
+        (MulEquiv.subgroupCongr (ker_sUnitValuation K S)).symm)).symm
+  AddEquiv.toIntLinearEquiv <|
+    AddEquiv.trans
+      { toFun := fun x ↦ Additive.ofMul (⟨Additive.toMul x.1, (mem_ker_sUnitLog_iff K S _).mp x.2⟩ :
+          ↥(MonoidHom.ker (sUnitValuation K S)))
+        invFun := fun y ↦ ⟨Additive.ofMul ((Additive.toMul y : _) : S.unit K),
+          (mem_ker_sUnitLog_iff K S _).mpr (Additive.toMul y).2⟩
+        left_inv := fun _ ↦ rfl
+        right_inv := fun _ ↦ rfl
+        map_add' := fun _ _ ↦ rfl }
+      (MulEquiv.toAdditive ekermul)
+
+variable [Finite (ClassGroup R)]
+
+/-- Each prime `v ∈ S` supports an `S`-unit whose valuation vector is a nonzero multiple of the
+standard basis vector at `v` (a generator of a principal power of `v`). -/
+lemma exists_sUnit_valuation_single (v : S) :
+    ∃ (x : S.unit K) (n : ℤ), n ≠ 0 ∧ sUnitValuation K S x v = Multiplicative.ofAdd n ∧
+      ∀ w : S, w ≠ v → sUnitValuation K S x w = 1 := by
+  classical
+  obtain ⟨h, π, hpos, hπ0, hπ⟩ := (v : HeightOneSpectrum R).exists_pow_eq_span
+  have hπK : algebraMap R K π ≠ 0 :=
+    fun h0 ↦ hπ0 (IsFractionRing.injective R K (h0.trans (map_zero _).symm))
+  -- `π` is an `S`-unit
+  have hmem : Units.mk0 (algebraMap R K π) hπK ∈ S.unit K := by
+    intro w hw
+    refine w.valuation_eq_one_iff_notMem.mpr fun hmemw ↦ ?_
+    have hle : (v : HeightOneSpectrum R).asIdeal ^ h ≤ w.asIdeal := by
+      rw [hπ, Ideal.span_le, Set.singleton_subset_iff]
+      exact hmemw
+    have hvw : (v : HeightOneSpectrum R) = w := HeightOneSpectrum.ext
+      ((v : HeightOneSpectrum R).isMaximal.eq_of_le w.isPrime.ne_top
+        (Ideal.IsPrime.le_of_pow_le hle))
+    exact hw (hvw ▸ v.2)
+  -- its valuation vector is `-h` at `v` and `0` elsewhere
+  have hcount (w : S) : count K (w : HeightOneSpectrum R)
+      (spanSingleton R⁰ (algebraMap R K π)) =
+        if (w : HeightOneSpectrum R) = v then (h : ℤ) else 0 := by
+    rw [← coeIdeal_span_singleton, ← hπ, coeIdeal_pow, count_pow, count_maximal]
+    simp only [mul_ite, mul_one, mul_zero]
+    exact if_congr eq_comm rfl rfl
+  refine ⟨⟨Units.mk0 (algebraMap R K π) hπK, hmem⟩, -(h : ℤ),
+    neg_ne_zero.mpr (Int.natCast_ne_zero.mpr hpos.ne'), ?_, fun w hne ↦ ?_⟩
+  · refine Multiplicative.toAdd.injective ?_
+    rw [toAdd_ofAdd]
+    show Multiplicative.toAdd
+      ((v : HeightOneSpectrum R).valuationOfNeZero (Units.mk0 (algebraMap R K π) hπK)) = _
+    rw [toAdd_valuationOfNeZero, Units.val_mk0, hcount v, if_pos rfl]
+  · refine Multiplicative.toAdd.injective ?_
+    rw [toAdd_one]
+    show Multiplicative.toAdd
+      ((w : HeightOneSpectrum R).valuationOfNeZero (Units.mk0 (algebraMap R K π) hπK)) = _
+    rw [toAdd_valuationOfNeZero, Units.val_mk0, hcount w,
+      if_neg (fun hc ↦ hne (Subtype.ext hc)), neg_zero]
+
+open Module in
+/-- The range of `sUnitLog` has full rank `|S|`: it contains the diagonal family of `S`-units
+provided by `exists_sUnit_valuation_single`. -/
+lemma finrank_range_sUnitLog (hS : S.Finite) :
+    finrank ℤ ↥(LinearMap.range (sUnitLog K S)) = Nat.card S := by
+  classical
+  have hSfin : Finite S := hS.to_subtype
+  have hSfin' : Fintype S := Fintype.ofFinite S
+  choose x n hn hxv hxw using fun v : S ↦ exists_sUnit_valuation_single K S v
+  have hψx (v w : S) : sUnitLog K S (Additive.ofMul (x v)) w = if w = v then n v else 0 := by
+    rw [sUnitLog_apply]
+    rcases eq_or_ne w v with rfl | hne
+    · rw [if_pos rfl, toMul_ofMul, hxv w, toAdd_ofAdd]
+    · rw [if_neg hne, toMul_ofMul, hxw v w hne, toAdd_one]
+  have hfam : LinearIndependent ℤ fun v : S ↦ sUnitLog K S (Additive.ofMul (x v)) := by
+    rw [Fintype.linearIndependent_iff]
+    intro g hg i
+    have hgi := congrFun hg i
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul, hψx, mul_ite, mul_zero,
+      Finset.sum_ite_eq, Finset.mem_univ, if_true, Pi.zero_apply] at hgi
+    exact (mul_eq_zero.mp hgi).resolve_right (hn i)
+  rw [Nat.card_eq_fintype_card]
+  refine le_antisymm ?_ ?_
+  · have h := Submodule.finrank_le (LinearMap.range (sUnitLog K S))
+    rwa [finrank_fintype_fun_eq_card] at h
+  · have hfam' : LinearIndependent ℤ fun v : S ↦
+        (⟨sUnitLog K S (Additive.ofMul (x v)), LinearMap.mem_range_self _ _⟩ :
+          ↥(LinearMap.range (sUnitLog K S))) :=
+      hfam.of_comp (LinearMap.range (sUnitLog K S)).subtype
+    exact hfam'.fintype_card_le_finrank
+
+open Module in
+/-- **Dirichlet's `S`-unit theorem**, rank version: if the class group of `R` is finite, `Rˣ` is
+finitely generated and `S` is finite, then the `S`-unit group has rank `rank Rˣ + |S|`. -/
+theorem finrank_sUnit [Group.FG Rˣ] (hS : S.Finite) :
+    finrank ℤ (Additive (S.unit K)) = finrank ℤ (Additive Rˣ) + Nat.card S := by
+  have hFG : Group.FG (S.unit K) := fg_sUnit K S hS
+  have hMfin : Module.Finite ℤ (Additive (S.unit K)) := Module.finite_int_additive _
+  -- rank additivity along `sUnitLog`
+  have hadd := Submodule.rank_quotient_add_rank (LinearMap.ker (sUnitLog K S))
+  have hM := rank_lt_aleph0 ℤ (Additive (S.unit K))
+  rw [← hadd] at hM
+  have htn := congrArg Cardinal.toNat hadd
+  rw [Cardinal.toNat_add (le_self_add.trans_lt hM) (le_add_self.trans_lt hM)] at htn
+  -- the quotient is the range, the kernel is `Rˣ`
+  have h₁ := congrArg Cardinal.toNat (LinearMap.quotKerEquivRange (sUnitLog K S)).lift_rank_eq
+  have h₂ := congrArg Cardinal.toNat (sUnitLogKerEquiv K S).lift_rank_eq
+  simp only [Cardinal.toNat_lift] at h₁ h₂
+  rw [h₁, h₂] at htn
+  rw [show Cardinal.toNat (Module.rank ℤ ↥(LinearMap.range (sUnitLog K S))) =
+      finrank ℤ ↥(LinearMap.range (sUnitLog K S)) from rfl, finrank_range_sUnitLog K S hS] at htn
+  have htn' : Nat.card S + finrank ℤ (Additive Rˣ) = finrank ℤ (Additive (S.unit K)) := htn
+  rw [← htn', Nat.add_comm]
+
+end Rank
 
 /-!
 ### The fundamental exact sequence
@@ -536,6 +696,13 @@ instance instGroupFGUnitsRingOfIntegers : Group.FG (𝓞 F)ˣ :=
 theorem finite_selmerGroup_of_numberField [NeZero n] (hS : S.Finite) :
     Finite (selmerGroup (K := F) (S := S) (n := n)) :=
   finite_selmerGroup (𝓞 F) F S n hS
+
+open Module in
+/-- **Dirichlet's `S`-unit theorem** for number fields, rank version: the group of `S`-units of
+a number field `F` has rank `rank F + |S|`, where `rank F = r₁ + r₂ - 1` is the unit rank. -/
+theorem finrank_sUnit_of_numberField (hS : S.Finite) :
+    finrank ℤ (Additive (S.unit F)) = NumberField.Units.rank F + Nat.card S := by
+  rw [finrank_sUnit F S hS, NumberField.Units.finrank_eq]
 
 end NumberField
 
