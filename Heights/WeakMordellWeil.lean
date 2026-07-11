@@ -1418,7 +1418,7 @@ irreducible factor `p` of the `2`-division polynomial, the ring of integers of `
 finite class group and finitely generated unit group.
 
 This is the input to the descent argument (`AddCommGroup.fg_of_descent'`) in the proof of the
-Mordell-Weil theorem, `mordell_weil` in `Heights.EllipticCurve`. -/
+Mordell-Weil theorem, `fg_point` in `Heights.EllipticCurve`. -/
 theorem finite_index_range_nsmulAddMonoidHom_two :
     (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex := by
   rw [finite_index_range_nsmulAddMonoidHom_two_iff]

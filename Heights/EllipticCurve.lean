@@ -17,9 +17,9 @@ when `K` has the Northcott property.
 
 Combining this with the Weak Mordell-Weil Theorem of `Heights.WeakMordellWeil`, the file
 culminates in the **Mordell-Weil Theorem**: `E(K)` is finitely generated, both in a general
-version (`mordell_weil`, for `K` the fraction field of a Dedekind domain, with the Northcott
+version (`fg_point`, for `K` the fraction field of a Dedekind domain, with the Northcott
 property and the needed class-group and unit-group finiteness as hypotheses) and for number
-fields (`mordell_weil_of_numberField`, where all hypotheses are theorems).
+fields (`fg_point_of_numberField`, where all hypotheses are theorems).
 -/
 
 /-
@@ -332,8 +332,16 @@ elliptic curve `E` in short normal form over a field `K` such that
 * for each irreducible factor `p` of the `2`-division polynomial of `E`, the integral closure
   of `R` in `K[X]/(p)` has finite class group and finitely generated unit group.
 
-For `K` a number field all of these hold; see `mordell_weil_of_numberField`. -/
-theorem mordell_weil (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
+For `K` a number field all of these hold; see `fg_point_of_numberField`.
+
+Note that the per-factor hypotheses cannot be replaced by the corresponding hypotheses on `R`
+itself: by a theorem of Claborn, refined by Leedham-Green and by Clark
+(*Elliptic Dedekind domains revisited*, Enseign. Math. 55 (2009)), **every** abelian group is
+the class group of the integral closure of a PID in a separable *quadratic* field extension,
+so `Finite (ClassGroup R)` gives no control over the class groups of the factors. (Whether
+adding `Group.FG Rˣ` rescues the implication appears to be unknown; all known proofs of the
+per-factor statements require `K` to be a global field.) -/
+theorem fg_point (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
     [IsFractionRing R F] [W.IsShortNF]
     [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))]
     [(p : W.f.Factors) → Group.FG (W.ringOfIntegersFactor R p)ˣ] :
@@ -355,12 +363,12 @@ variable {F : Type*} [Field F] [NumberField F] [DecidableEq F] {W : Affine F}
 
 /-- **The Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
 curve `E` in short normal form over a number field `K` is finitely generated. -/
-theorem mordell_weil_of_numberField : AddGroup.FG W.Point := by
+theorem fg_point_of_numberField : AddGroup.FG W.Point := by
   have (p : W.f.Factors) : Finite (ClassGroup (W.ringOfIntegersFactor (𝓞 F) p)) :=
     NumberField.finite_classGroup_integralClosure F (AdjoinRoot (p : Polynomial F))
   have (p : W.f.Factors) : Group.FG (W.ringOfIntegersFactor (𝓞 F) p)ˣ :=
     NumberField.fg_units_integralClosure F (AdjoinRoot (p : Polynomial F))
-  exact mordell_weil (𝓞 F)
+  exact fg_point (𝓞 F)
 
 end NumberField
 
