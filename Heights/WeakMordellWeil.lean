@@ -889,8 +889,9 @@ namespace WeierstrassCurve.Affine
 
 open IsDedekindDomain Polynomial UniqueFactorizationMonoid
 
--- Step 6 needs neither `DecidableEq K` nor the group structure on points, so we re-declare the
--- variables rather than inheriting the ones used for Steps 2-5.
+-- Step 6 needs neither `DecidableEq K` (except where the `x - T` map `μX` enters at the very
+-- end) nor the group structure on points, so we re-declare the variables rather than
+-- inheriting the ones used for Steps 2-5.
 variable {K : Type*} [Field K] (W : Affine K)
 
 /-- The set of "bad" primes of `R`: those dividing `2` or the discriminant of `W`, and those
@@ -936,7 +937,7 @@ end BadPrimes
 
 section RingOfIntegers
 
-variable [DecidableEq K] (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
+variable (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
   [IsFractionRing R K]
 
 /-- The ring of integers of the field factor `K[X]/(p)` over `R`. -/
@@ -1135,7 +1136,7 @@ end RingOfIntegers
 
 section Core
 
-variable [DecidableEq K] [W.IsShortNF]
+variable [W.IsShortNF]
   (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K]
   (p : W.f.Factors) [IsDedekindDomain (W.ringOfIntegersFactor R p)]
   [IsFractionRing (W.ringOfIntegersFactor R p) (AdjoinRoot (p : K[X]))]
@@ -1237,8 +1238,6 @@ lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f
 
 section Selmer
 
-variable [DecidableEq K]
-
 /-- If `x` is a root of `f`, then every irreducible factor of `f` other than `X - x` divides
 the cofactor `f / (X - x)`. -/
 lemma dvd_fCofactor_of_ne {x : K} (hx : W.f.eval x = 0) (p : W.f.Factors)
@@ -1246,11 +1245,9 @@ lemma dvd_fCofactor_of_ne {x : K} (hx : W.f.eval x = 0) (p : W.f.Factors)
   have hdvd : (p : K[X]) ∣ W.fCofactor x * (X - C x) := by
     rw [← W.f_eq_mul_of_eval_eq_zero hx]
     exact p.dvd
-  refine ((prime_of_normalized_factor _ p.coe_mem).2.2 _ _ hdvd).resolve_right fun h ↦ hp ?_
-  have hass : Associated (p : K[X]) (X - C x) :=
-    p.irreducible.associated_of_dvd (irreducible_X_sub_C x) h
-  rw [← normalize_normalized_factor _ p.coe_mem, ← (monic_X_sub_C x).normalize_eq_self,
-    normalize_eq_normalize hass.dvd hass.symm.dvd]
+  refine (p.prime.2.2 _ _ hdvd).resolve_right fun h ↦ hp ?_
+  exact eq_of_monic_of_associated p.monic (monic_X_sub_C x)
+    (p.irreducible.associated_of_dvd (irreducible_X_sub_C x) h)
 
 /-- Consequently the cofactor dies in every field factor except the one coming from `X - x`. -/
 lemma mk_fCofactor_eq_zero {x : K} (hx : W.f.eval x = 0) (p : W.f.Factors)
@@ -1378,6 +1375,10 @@ lemma mem_selmerGroupFactor_of_eval_f_eq_zero {x : K} (hx : W.f.eval x = 0)
     exact W.valuation_projFactor_torsion_eq_one R p hx hw
   simpa using w.dvd_toAdd_valuationOfNeZero (n := 2) (z := 1) (by simp [hval])
 
+section
+
+variable [DecidableEq K]
+
 /-- The heart of Step 6: for a point `(x, y)` of `W` and a field factor `K[X]/(p)` of `W.A`,
 the square class of the image of the `x - T` map lies in the `2`-Selmer group of that factor. -/
 lemma μX_component_mem_selmerGroupFactor {x y : K} (h : W.Equation x y) (p : W.f.Factors) :
@@ -1399,6 +1400,8 @@ theorem range_μ_le_selmerGroupA : (μ (W := W)).range ≤ W.selmerGroupA R := b
   | .some x y h =>
     rw [μ₀_some, mem_selmerGroupA_iff]
     exact fun p ↦ W.μX_component_mem_selmerGroupFactor R h.1 p
+
+end
 
 /-!
 ### Step 7: `A(S,2)` is finite, hence `E(K)/2E(K)` is finite
@@ -1427,6 +1430,7 @@ theorem finite_selmerGroupFactor (p : W.f.Factors) : Finite (W.selmerGroupFactor
 
 /-- **Step 7**: `A(S,2)` is finite. -/
 theorem finite_selmerGroupA : Finite (W.selmerGroupA R) := by
+  have := Polynomial.Factors.finite W.f_ne_zero
   have hfac (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) :=
     W.finite_selmerGroupFactor R p
   refine Finite.of_injective (β := (p : W.f.Factors) → W.selmerGroupFactor R p)
@@ -1435,6 +1439,8 @@ theorem finite_selmerGroupA : Finite (W.selmerGroupA R) := by
   refine Subtype.ext ((AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2).injective
     (funext fun p ↦ ?_))
   exact congrArg Subtype.val (congrFun hxy p)
+
+variable [DecidableEq K]
 
 include R in
 /-- **The Weak Mordell-Weil Theorem**: `E(K)/2E(K)` is finite, for an elliptic curve `E` in

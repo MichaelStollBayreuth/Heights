@@ -726,35 +726,45 @@ open Polynomial UniqueFactorizationMonoid
 
 namespace Polynomial
 
-variable {K : Type*} [Field K] [DecidableEq K] {f : K[X]}
+variable {K : Type*} [Field K] {f : K[X]}
 
 /-- The distinct monic irreducible factors of `f`, as an index type.
 
-`DecidableEq K` is what gives `K[X]` its monic normalization, via
-`CommGroupWithZero.instNormalizedGCDMonoid` and `Polynomial.instNormalizationMonoid`;
-it also provides the `DecidableEq K[X]` that `Multiset.toFinset` needs. -/
-abbrev Factors (f : K[X]) : Type _ := {p : K[X] // p ∈ (normalizedFactors f).toFinset}
+Note that this is *not* defined via `normalizedFactors` (which would require `DecidableEq K`);
+membership in `normalizedFactors f` is characterized by `Factors.mem_normalizedFactors_iff`. -/
+abbrev Factors (f : K[X]) : Type _ := {p : K[X] // p.Monic ∧ Irreducible p ∧ p ∣ f}
 
 namespace Factors
 
-lemma coe_mem (p : f.Factors) : (p : K[X]) ∈ normalizedFactors f :=
-  Multiset.mem_toFinset.mp p.2
+lemma monic (p : f.Factors) : (p : K[X]).Monic := p.2.1
 
-lemma dvd (p : f.Factors) : (p : K[X]) ∣ f :=
-  dvd_of_mem_normalizedFactors p.coe_mem
+lemma irreducible (p : f.Factors) : Irreducible (p : K[X]) := p.2.2.1
 
-lemma irreducible (p : f.Factors) : Irreducible (p : K[X]) :=
-  (prime_of_normalized_factor _ p.coe_mem).irreducible
+lemma dvd (p : f.Factors) : (p : K[X]) ∣ f := p.2.2.2
 
-lemma ne_zero (p : f.Factors) : (p : K[X]) ≠ 0 :=
-  p.irreducible.ne_zero
+lemma ne_zero (p : f.Factors) : (p : K[X]) ≠ 0 := p.irreducible.ne_zero
 
-lemma monic (p : f.Factors) : (p : K[X]).Monic := by
-  rw [← normalize_normalized_factor _ p.coe_mem]
-  exact monic_normalize p.irreducible.ne_zero
+lemma prime (p : f.Factors) : Prime (p : K[X]) := p.irreducible.prime
 
 lemma separable (hf : f.Separable) (p : f.Factors) : (p : K[X]).Separable :=
   hf.of_dvd p.dvd
+
+/-- Membership in `normalizedFactors` (with its normalization from `DecidableEq K`) is
+equivalent to being a monic irreducible factor. -/
+lemma mem_normalizedFactors_iff [DecidableEq K] (hf : f ≠ 0) {p : K[X]} :
+    p ∈ normalizedFactors f ↔ p.Monic ∧ Irreducible p ∧ p ∣ f := by
+  rw [UniqueFactorizationMonoid.mem_normalizedFactors_iff' hf]
+  refine ⟨fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂ ▸ monic_normalize h₁.ne_zero, h₁, h₃⟩,
+    fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂, h₁.normalize_eq_self, h₃⟩⟩
+
+/-- A nonzero polynomial has finitely many monic irreducible factors. -/
+lemma finite (hf : f ≠ 0) : Finite f.Factors := by
+  classical
+  have h : Finite {p : K[X] // p ∈ normalizedFactors f} :=
+    (normalizedFactors f).finite_toSet.to_subtype
+  exact Finite.of_injective _
+    (Subtype.impEmbedding _ (· ∈ normalizedFactors f)
+      fun p hp ↦ (mem_normalizedFactors_iff hf).mpr hp).injective
 
 /-- Distinct monic irreducible factors of `f` are coprime. -/
 lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=
@@ -762,27 +772,39 @@ lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[
     Ideal.IsMaximal.coprime_of_ne
       (PrincipalIdealRing.isMaximal_of_irreducible p.irreducible)
       (PrincipalIdealRing.isMaximal_of_irreducible q.irreducible)
-      fun h ↦ hne <| Subtype.ext <| by
-        have hass := Ideal.span_singleton_eq_span_singleton.mp h
-        rw [← normalize_normalized_factor _ p.coe_mem, ← normalize_normalized_factor _ q.coe_mem,
-          normalize_eq_normalize hass.dvd hass.symm.dvd]
+      fun h ↦ hne <| Subtype.ext <| eq_of_monic_of_associated p.monic q.monic <|
+        Ideal.span_singleton_eq_span_singleton.mp h
 
 /-- Distinct monic irreducible factors of `f` generate coprime ideals. -/
 lemma isCoprime_span {p q : f.Factors} (hne : p ≠ q) :
     IsCoprime (Ideal.span {(p : K[X])}) (Ideal.span {(q : K[X])}) :=
   (Ideal.isCoprime_span_singleton_iff _ _).mpr (isCoprime hne)
 
+/-- For `f` nonzero and squarefree, `f` is associated to the product of its distinct monic
+irreducible factors. -/
+lemma associated_prod [Fintype f.Factors] (hf : f ≠ 0) (hsq : Squarefree f) :
+    Associated (∏ p : f.Factors, (p : K[X])) f := by
+  classical
+  -- identify `f.Factors` with the subtype of the `Finset` of normalized factors
+  have hprod : ∏ p : f.Factors, (p : K[X]) =
+      ∏ p : {p : K[X] // p ∈ (normalizedFactors f).toFinset}, (p : K[X]) :=
+    Fintype.prod_equiv (Equiv.subtypeEquivRight fun p ↦ by
+        rw [Multiset.mem_toFinset, mem_normalizedFactors_iff hf]) _ _
+      fun x ↦ by rw [Equiv.subtypeEquivRight_apply]
+  have hcoe : ∏ p : {p : K[X] // p ∈ (normalizedFactors f).toFinset}, (p : K[X]) =
+      ∏ p ∈ (normalizedFactors f).toFinset, p :=
+    Finset.prod_coe_sort _ fun x ↦ x
+  rw [hprod, hcoe, Finset.prod_eq_multiset_prod, Multiset.toFinset_val,
+    Multiset.dedup_eq_self.mpr ((squarefree_iff_nodup_normalizedFactors hf).mp hsq),
+    Multiset.map_id']
+  exact prod_normalizedFactors hf
+
 /-- For `f` nonzero and squarefree, `(f)` is the intersection of the `(p)` for `p` a factor. -/
 lemma span_eq_iInf_span (hf : f ≠ 0) (hsq : Squarefree f) :
     Ideal.span {f} = ⨅ p : f.Factors, Ideal.span {(p : K[X])} := by
+  have : Fintype f.Factors := @Fintype.ofFinite _ (finite hf)
   rw [Ideal.iInf_span_singleton fun _ _ hpq ↦ isCoprime hpq]
-  refine Ideal.span_singleton_eq_span_singleton.mpr <|
-    (prod_normalizedFactors hf).symm.trans (.of_eq ?_)
-  have hcoe : ∏ p : f.Factors, (p : K[X]) = ∏ p ∈ (normalizedFactors f).toFinset, p :=
-    Finset.prod_coe_sort _ fun x ↦ x
-  rw [hcoe, Finset.prod_eq_multiset_prod, Multiset.toFinset_val,
-    Multiset.dedup_eq_self.mpr ((squarefree_iff_nodup_normalizedFactors hf).mp hsq),
-    Multiset.map_id']
+  exact (Ideal.span_singleton_eq_span_singleton.mpr (associated_prod hf hsq)).symm
 
 end Factors
 
@@ -790,7 +812,7 @@ end Polynomial
 
 namespace AdjoinRoot
 
-variable {K : Type*} [Field K] [DecidableEq K] {f : K[X]}
+variable {K : Type*} [Field K] {f : K[X]}
 
 instance instFactIrreducible (p : f.Factors) : Fact (Irreducible (p : K[X])) := ⟨p.irreducible⟩
 
@@ -820,6 +842,7 @@ lemma isSeparable_of_separable (hf : f.Separable) (p : f.Factors) :
 of `f`. -/
 noncomputable def equivPiFactors (hf : f ≠ 0) (hsq : Squarefree f) :
     AdjoinRoot f ≃ₐ[K] ((p : f.Factors) → AdjoinRoot (p : K[X])) :=
+  have : Finite f.Factors := Factors.finite hf
   AlgEquiv.ofRingEquiv (f :=
     (Ideal.quotEquivOfEq (Factors.span_eq_iInf_span hf hsq)).trans <|
       Ideal.quotientInfRingEquivPiQuotient _ fun _ _ hpq ↦ Factors.isCoprime_span hpq)
