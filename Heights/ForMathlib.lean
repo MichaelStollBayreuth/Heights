@@ -16,7 +16,7 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
   `.below` (the prime lying below a prime of an integral extension), `.primesAbove` and its
   finiteness `.primesAbove_finite`,
-  `IsDedekindDomain.selmerGroupAbove`, `.classGroupMk`, `.valuationOfNeZero_eq_iff`,
+  `IsDedekindDomain.selmerGroupAbove`, `.valuationOfNeZero_eq_iff`,
   `.dvd_toAdd_valuationOfNeZero` and
   `.valuationOfNeZeroMod_mk_eq_one_iff`, which turns the Selmer condition into a
   divisibility of valuations; `Set.integer_mono` and `Set.unit_mono`, monotonicity of the
@@ -294,24 +294,22 @@ lemma Set.integer_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) :
 lemma Set.unit_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) : S.unit K ≤ T.unit K :=
   fun _ hx v hv ↦ hx v fun hvS ↦ hv (hST hvS)
 
+/-- Ideal-level divisibility characterization of `Associates.count`: the multiplicity of `v` in
+`J` is at least `k` iff `v ^ k` divides `J`. -/
+lemma IsDedekindDomain.HeightOneSpectrum.le_count_iff_le {A : Type*} [CommRing A]
+    [IsDedekindDomain A] (v : HeightOneSpectrum A) {J : Ideal A} (hJ : J ≠ ⊥) (k : ℕ) :
+    k ≤ (Associates.mk v.asIdeal).count (Associates.mk J).factors ↔ J ≤ v.asIdeal ^ k := by
+  rw [← Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero.mpr hJ) v.associates_irreducible,
+    ← Associates.mk_pow, Associates.mk_le_mk_iff_dvd, Ideal.dvd_iff_le]
+
 /-- Divisibility characterization of `Associates.count` for a height one prime: the `v`-adic
 valuation of `x` is at least `k` iff `x ∈ v ^ k`. -/
 lemma IsDedekindDomain.HeightOneSpectrum.le_count_iff {A : Type*} [CommRing A]
     [IsDedekindDomain A] (v : HeightOneSpectrum A) {x : A} (hx : x ≠ 0) (k : ℕ) :
     k ≤ Associates.count (Associates.mk v.asIdeal) (Associates.mk (Ideal.span {x})).factors ↔
       x ∈ v.asIdeal ^ k := by
-  rw [← Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hx) v.associates_irreducible,
-    ← Associates.le_singleton_iff]
-
-/-- The class of a height one prime in the class group. -/
-noncomputable def IsDedekindDomain.HeightOneSpectrum.classGroupMk (v : HeightOneSpectrum R) :
-    ClassGroup R :=
-  ClassGroup.mk0 ⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩
-
-/-- The class of a height one prime is trivial exactly when the prime is principal. -/
-lemma IsDedekindDomain.HeightOneSpectrum.classGroupMk_eq_one_iff (v : HeightOneSpectrum R) :
-    v.classGroupMk = 1 ↔ v.asIdeal.IsPrincipal :=
-  ClassGroup.mk0_eq_one_iff _
+  rw [v.le_count_iff_le (fun h ↦ hx (Ideal.span_singleton_eq_bot.mp h)) k,
+    Ideal.span_singleton_le_iff_mem]
 
 /-- The `Multiplicative ℤ`-valued valuation of a unit is determined by the `ℤᵐ⁰`-valued one. -/
 lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZero_eq_iff (v : HeightOneSpectrum R)
