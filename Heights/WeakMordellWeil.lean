@@ -39,6 +39,31 @@ curves, lives in `Heights.ForMathlib`.
    theorem and Dirichlet's unit theorem, both in Mathlib).
 -/
 
+/-!
+### Two commutative-ring identities
+
+These are used in Step 3 (`μ` is a homomorphism); they encode the multiplicativity of the
+`x - T` map on the level of coordinates.
+-/
+
+section CommRing
+
+variable {R : Type*} [CommRing R]
+
+/-- If `a * b * c = 0`, then `a * b + a * c + b * c` is a square root of the product
+of the `b * c - a` and its two analogues. -/
+lemma sq_add_add_eq_mul_mul_of_mul_mul_eq_zero {a b c : R} (h : a * b * c = 0) :
+    (a * b + a * c + b * c) ^ 2 = (b * c - a) * (a * c - b) * (a * b - c) := by
+  linear_combination (a ^ 2 - a * b * c + 2 * a + b ^ 2 + 2 * b + c ^ 2 + 2 * c + 1) * h
+
+/-- If `a * d = 0` and `b * c = d - e ^ 2 * a`, then `d + e * a` is a square root
+of `(d - a) * b * c`. -/
+lemma sq_add_mul_eq_mul_mul_of_mul_eq_zero {a b c d e : R} (had : a * d = 0)
+    (h : b * c = d - e ^ 2 * a) : (d + e * a) ^ 2 = (d - a) * b * c := by
+  grobner
+
+end CommRing
+
 namespace WeierstrassCurve.Affine
 
 variable {K : Type*} [Field K] (W : Affine K)
@@ -979,7 +1004,7 @@ lemma root_cubic_eq_zero :
       algebraMap K (AdjoinRoot (p : K[X])) W.a₄ * AdjoinRoot.root (p : K[X]) +
       algebraMap K (AdjoinRoot (p : K[X])) W.a₆ = 0 := by
   have hz : AdjoinRoot.mk (p : K[X]) W.f = 0 :=
-    AdjoinRoot.mk_eq_zero.mpr (dvd_of_mem_normalizedFactors p.coe_mem)
+    AdjoinRoot.mk_eq_zero.mpr p.dvd
   simpa [f, AdjoinRoot.algebraMap_eq] using hz
 
 /-- The cofactor `f / (X - x)`, computed in the field factor `K[X]/(p)`. -/
@@ -1220,7 +1245,7 @@ lemma dvd_fCofactor_of_ne {x : K} (hx : W.f.eval x = 0) (p : W.f.Factors)
     (hp : (p : K[X]) ≠ X - C x) : (p : K[X]) ∣ W.fCofactor x := by
   have hdvd : (p : K[X]) ∣ W.fCofactor x * (X - C x) := by
     rw [← W.f_eq_mul_of_eval_eq_zero hx]
-    exact dvd_of_mem_normalizedFactors p.coe_mem
+    exact p.dvd
   refine ((prime_of_normalized_factor _ p.coe_mem).2.2 _ _ hdvd).resolve_right fun h ↦ hp ?_
   have hass : Associated (p : K[X]) (X - C x) :=
     p.irreducible.associated_of_dvd (irreducible_X_sub_C x) h

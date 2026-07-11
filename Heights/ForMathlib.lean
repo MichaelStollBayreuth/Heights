@@ -8,16 +8,19 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
 
 * `MonoidHom.ofMapMulMulEqOne`: build a `MonoidHom` from `f 1 = 1` and
   `a * b * c = 1 → f a * f b * f c = 1`.
-* `Valuation.map_cubic_of_one_lt` and `Valuation.le_one_of_root_cubic`: dominance of the
-  leading term of a monic cubic, and integrality of its roots. `Valuation.eq_one_of_mul_eq_one`:
-  a factor of a unit is a unit, provided both factors are integral.
+* `Valuation.map_eval_eq_of_one_lt` and `Valuation.le_one_of_root_monic`: dominance of the
+  leading term of a monic polynomial with integral coefficients, and integrality of its roots
+  (with the special cases `map_cubic_of_one_lt`, `le_one_of_root_cubic` for depressed cubics).
+  `Valuation.eq_one_of_mul_eq_one`: a factor of a unit is a unit, provided both factors are
+  integral.
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
   `.below` (the prime lying below a prime of an integral extension), `.primesAbove` and its
   finiteness `.primesAbove_finite`,
   `IsDedekindDomain.selmerGroupAbove`, `.classGroupMk`, `.valuationOfNeZero_eq_iff`,
   `.dvd_toAdd_valuationOfNeZero` and
   `.valuationOfNeZeroMod_mk_eq_one_iff`, which turns the Selmer condition into a
-  divisibility of valuations. (`Mathlib.RingTheory.DedekindDomain.SelmerGroup` has a
+  divisibility of valuations; `Set.integer_mono` and `Set.unit_mono`, monotonicity of the
+  `S`-integers and `S`-units in `S`. (`Mathlib.RingTheory.DedekindDomain.SelmerGroup` has a
   `TODO` about the `Multiplicative`/`Additive` defeq abuse in `valuationOfNeZeroMod`
   and provides no API for it.)
 * `Units.modPow`, the group of `n`-th power classes of units, which
@@ -51,25 +54,13 @@ def MonoidHom.ofMapMulMulEqOne {f : G → H} (hf₁ : f 1 = 1)
     rw [eq_mul_inv_iff_mul_eq, eq_comm, ← inv_mul_eq_one, ← mul_assoc, ← this]
     exact hf _ _ _ <| by group
 
+@[to_additive (attr := simp)]
+lemma MonoidHom.coe_ofMapMulMulEqOne {f : G → H} (hf₁ : f 1 = 1)
+    (hf : ∀ a b c, a * b * c = 1 → f a * f b * f c = 1) :
+    ⇑(ofMapMulMulEqOne hf₁ hf) = f :=
+  rfl
+
 end Group
-
-section CommRing
-
-variable {R : Type*} [CommRing R]
-
-/-- If `a * b * c = 0`, then `a * b + a * c + b * c` is a square root of the product
-of the `b * c - a` and its two analogues. -/
-lemma sq_add_add_eq_mul_mul_of_mul_mul_eq_zero {a b c : R} (h : a * b * c = 0) :
-    (a * b + a * c + b * c) ^ 2 = (b * c - a) * (a * c - b) * (a * b - c) := by
-  linear_combination (a ^ 2 - a * b * c + 2 * a + b ^ 2 + 2 * b + c ^ 2 + 2 * c + 1) * h
-
-/-- If `a * d = 0` and `b * c = d - e ^ 2 * a`, then `d + e * a` is a square root
-of `(d - a) * b * c`. -/
-lemma sq_add_mul_eq_mul_mul_of_mul_eq_zero {a b c d e : R} (had : a * d = 0)
-    (h : b * c = d - e ^ 2 * a) : (d + e * a) ^ 2 = (d - a) * b * c := by
-  grobner
-
-end CommRing
 
 section Units
 
@@ -127,11 +118,39 @@ lemma unit_mul_unit_mul_unit_eq_one_iff (ha : IsUnit a) (hb : IsUnit b) (hc : Is
   rw [← QuotientGroup.mk_mul, ← QuotientGroup.mk_mul, ← IsUnit.unit_mul, ← IsUnit.unit_mul]
   exact unit_eq_one_iff ((ha.mul hb).mul hc) n
 
+/-- The class of a unit in `Units.modPow α n` is trivial iff the unit is an `n`-th power. -/
+lemma mk_eq_one_iff {u : αˣ} (n : ℕ) :
+    (QuotientGroup.mk u : Units.modPow α n) = 1 ↔ ∃ w : αˣ, w ^ n = u := by
+  rw [QuotientGroup.eq_one_iff]
+  simp only [MonoidHom.mem_range, powMonoidHom_apply]
+
+/-- Two units have the same class in `Units.modPow α n` iff they differ by an `n`-th power. -/
+lemma mk_eq_mk_iff {u v : αˣ} (n : ℕ) :
+    (QuotientGroup.mk u : Units.modPow α n) = QuotientGroup.mk v ↔ ∃ w : αˣ, v = u * w ^ n := by
+  rw [QuotientGroup.eq]
+  simp only [MonoidHom.mem_range, powMonoidHom_apply]
+  exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩, fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩⟩
+
 /-- A monoid homomorphism `α →* β` induces a homomorphism on `n`-th power classes of units. -/
 def map (φ : α →* β) (n : ℕ) : Units.modPow α n →* Units.modPow β n :=
   QuotientGroup.map _ _ (Units.map φ) <| by
     rintro _ ⟨u, rfl⟩
     exact ⟨Units.map φ u, by simp [powMonoidHom]⟩
+
+@[simp]
+lemma map_mk (φ : α →* β) (n : ℕ) (u : αˣ) :
+    map φ n (QuotientGroup.mk u) = QuotientGroup.mk (Units.map φ u) :=
+  rfl
+
+@[simp]
+lemma map_id (n : ℕ) : map (MonoidHom.id α) n = MonoidHom.id (Units.modPow α n) := by
+  ext u
+  simp
+
+lemma map_comp {γ : Type*} [CommMonoid γ] (ψ : β →* γ) (φ : α →* β) (n : ℕ) :
+    (map ψ n).comp (map φ n) = map (ψ.comp φ) n := by
+  ext u
+  simp [Units.map_comp]
 
 @[simp]
 lemma map_unit (φ : α →* β) (n : ℕ) (ha : IsUnit a) :
@@ -149,13 +168,22 @@ noncomputable def piEquiv {ι : Type*} (α : ι → Type*) [(i : ι) → CommMon
   (QuotientGroup.congrRangePowMonoidHom MulEquiv.piUnits n).trans <|
     QuotientGroup.mulEquivPiModRangePowMonoidHom (fun i ↦ (α i)ˣ) n
 
+@[simp]
+lemma piEquiv_mk {ι : Type*} (α : ι → Type*) [(i : ι) → CommMonoid (α i)] (n : ℕ)
+    (u : ((i : ι) → α i)ˣ) (i : ι) :
+    piEquiv α n (QuotientGroup.mk u) i = QuotientGroup.mk (MulEquiv.piUnits u i) := by
+  simp [piEquiv, QuotientGroup.congrRangePowMonoidHom,
+    QuotientGroup.mulEquivPiModRangePowMonoidHom_apply]
+
 end Units.modPow
 
 end modPow
 
 section Valuation
 
-variable {L Γ : Type*} [Field L] [LinearOrderedCommGroupWithZero Γ] (ν : Valuation L Γ)
+open Polynomial
+
+variable {L Γ : Type*} [CommRing L] [LinearOrderedCommGroupWithZero Γ] (ν : Valuation L Γ)
   {t a b : L}
 
 /-- A natural number has valuation at most `1`. -/
@@ -175,31 +203,66 @@ lemma Valuation.eq_one_of_mul_eq_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hab : 
   _ ≤ ν a * 1 := by gcongr
   _ = ν a := mul_one _
 
+/-- If `p` is monic with coefficients that are integral for the valuation `ν` and `1 < ν t`,
+then the value of `p` at `t` is dominated by the leading term: `ν (p.eval t) = ν t ^ p.natDegree`.
+In particular, `p.eval t ≠ 0`. -/
+lemma Valuation.map_eval_eq_of_one_lt {p : L[X]} (hp : p.Monic)
+    (hcoeff : ∀ i < p.natDegree, ν (p.coeff i) ≤ 1) (ht : 1 < ν t) :
+    ν (p.eval t) = ν t ^ p.natDegree := by
+  set n := p.natDegree with hn
+  have h0 : ν t ≠ 0 := (zero_lt_one.trans ht).ne'
+  have heval : p.eval t = (∑ i ∈ Finset.range n, p.coeff i * t ^ i) + t ^ n := by
+    rw [eval_eq_sum_range, Finset.sum_range_succ, hp.coeff_natDegree, one_mul]
+  have hlt : ν (∑ i ∈ Finset.range n, p.coeff i * t ^ i) < ν (t ^ n) := by
+    rw [map_pow]
+    refine ν.map_sum_lt (pow_ne_zero n h0) fun i hi ↦ ?_
+    rw [Finset.mem_range] at hi
+    calc ν (p.coeff i * t ^ i) ≤ 1 * ν t ^ i := by
+          rw [map_mul, map_pow]; gcongr; exact hcoeff i hi
+    _ = ν t ^ i := one_mul _
+    _ < ν t ^ n := pow_lt_pow_right₀ ht hi
+  rw [heval, ν.map_add_eq_of_lt_right hlt, map_pow]
+
+/-- A root of a monic polynomial of positive degree with coefficients that are integral for the
+valuation `ν` is itself integral. (This is a concrete form of the fact that valuation rings are
+integrally closed.) -/
+lemma Valuation.le_one_of_root_monic {p : L[X]} (hp : p.Monic)
+    (hcoeff : ∀ i < p.natDegree, ν (p.coeff i) ≤ 1) (hdeg : p.natDegree ≠ 0)
+    (heq : p.eval t = 0) : ν t ≤ 1 := by
+  by_contra! hlt
+  have h := ν.map_eval_eq_of_one_lt hp hcoeff hlt
+  rw [heq, map_zero] at h
+  exact (zero_lt_one.trans hlt).ne' (pow_eq_zero_iff hdeg |>.mp h.symm)
+
+section Cubic
+
+variable [Nontrivial L]
+
+private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) :
+    ∀ i < (X ^ 3 + C a * X + C b).natDegree, ν ((X ^ 3 + C a * X + C b).coeff i) ≤ 1 := by
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  intro i hi
+  rw [hdeg] at hi
+  interval_cases i <;> simp [ha, hb]
+
 /-- If `1 < ν t` and `a`, `b` are integral, the leading term of the cubic dominates. -/
 lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
     ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
-  have h3 : ν t < ν t ^ 3 := by
-    calc ν t = ν t ^ 1 := (pow_one _).symm
-    _ < ν t ^ 3 := pow_lt_pow_right₀ ht (by norm_num)
-  have h1 : ν (a * t) < ν (t ^ 3) := by
-    rw [map_mul, map_pow]
-    calc ν a * ν t ≤ 1 * ν t := by gcongr
-    _ = ν t := one_mul _
-    _ < ν t ^ 3 := h3
-  have h2 : ν b < ν (t ^ 3) := by
-    rw [map_pow]
-    exact hb.trans_lt (one_lt_pow₀ ht (by norm_num))
-  have h4 := ν.map_add_eq_of_lt_left h1
-  rw [ν.map_add_eq_of_lt_left (by rwa [h4]), h4, map_pow]
+  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  have h := ν.map_eval_eq_of_one_lt hp (cubic_coeff_le_one ν ha hb) ht
+  rw [hdeg] at h
+  simpa using h
 
 /-- A root of a monic cubic with integral coefficients is integral. -/
 lemma Valuation.le_one_of_root_cubic (ha : ν a ≤ 1) (hb : ν b ≤ 1)
     (heq : t ^ 3 + a * t + b = 0) : ν t ≤ 1 := by
-  by_contra hlt
-  rw [not_le] at hlt
-  have := ν.map_cubic_of_one_lt ha hb hlt
-  rw [heq, map_zero] at this
-  exact ne_of_gt (zero_lt_one.trans hlt) (pow_eq_zero_iff (by norm_num) |>.mp this.symm)
+  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  refine ν.le_one_of_root_monic hp (cubic_coeff_le_one ν ha hb) (by rw [hdeg]; norm_num) ?_
+  simpa using heq
+
+end Cubic
 
 end Valuation
 
@@ -222,10 +285,33 @@ lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (
     exact h
   · exact .inl h
 
+/-- The ring of `S`-integers is monotone in `S`. -/
+lemma Set.integer_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) :
+    S.integer K ≤ T.integer K :=
+  fun _ hx v hv ↦ hx v fun hvS ↦ hv (hST hvS)
+
+/-- The group of `S`-units is monotone in `S`. -/
+lemma Set.unit_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) : S.unit K ≤ T.unit K :=
+  fun _ hx v hv ↦ hx v fun hvS ↦ hv (hST hvS)
+
+/-- Divisibility characterization of `Associates.count` for a height one prime: the `v`-adic
+valuation of `x` is at least `k` iff `x ∈ v ^ k`. -/
+lemma IsDedekindDomain.HeightOneSpectrum.le_count_iff {A : Type*} [CommRing A]
+    [IsDedekindDomain A] (v : HeightOneSpectrum A) {x : A} (hx : x ≠ 0) (k : ℕ) :
+    k ≤ Associates.count (Associates.mk v.asIdeal) (Associates.mk (Ideal.span {x})).factors ↔
+      x ∈ v.asIdeal ^ k := by
+  rw [← Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hx) v.associates_irreducible,
+    ← Associates.le_singleton_iff]
+
 /-- The class of a height one prime in the class group. -/
 noncomputable def IsDedekindDomain.HeightOneSpectrum.classGroupMk (v : HeightOneSpectrum R) :
     ClassGroup R :=
   ClassGroup.mk0 ⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩
+
+/-- The class of a height one prime is trivial exactly when the prime is principal. -/
+lemma IsDedekindDomain.HeightOneSpectrum.classGroupMk_eq_one_iff (v : HeightOneSpectrum R) :
+    v.classGroupMk = 1 ↔ v.asIdeal.IsPrincipal :=
+  ClassGroup.mk0_eq_one_iff _
 
 /-- The `Multiplicative ℤ`-valued valuation of a unit is determined by the `ℤᵐ⁰`-valued one. -/
 lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZero_eq_iff (v : HeightOneSpectrum R)
@@ -263,6 +349,14 @@ variable (R) (B : Type*) [CommRing B] [IsDedekindDomain B] [Algebra R B]
 def IsDedekindDomain.HeightOneSpectrum.primesAbove (S : Set (HeightOneSpectrum R)) :
     Set (HeightOneSpectrum B) :=
   {w | ∃ v ∈ S, v.asIdeal = w.asIdeal.under R}
+
+-- The `IsDedekindDomain` instances are needed to *state* this (they are parameters of
+-- `HeightOneSpectrum`), but are erased from the proof term (`nolint unusedArguments`),
+-- which makes the linter fire spuriously.
+set_option linter.unusedSectionVars false in
+lemma IsDedekindDomain.HeightOneSpectrum.primesAbove_mono {S T : Set (HeightOneSpectrum R)}
+    (hST : S ⊆ T) : primesAbove R B S ⊆ primesAbove R B T :=
+  fun _ ⟨v, hv, hva⟩ ↦ ⟨v, hST hv, hva⟩
 
 /-- The prime of `R` lying below a prime `w` of an integral extension `B`. -/
 def IsDedekindDomain.HeightOneSpectrum.below [Algebra.IsIntegral R B] (w : HeightOneSpectrum B) :
@@ -307,6 +401,15 @@ by `n` at every prime of `B` not lying above `S`. -/
 def IsDedekindDomain.selmerGroupAbove (L : Type*) [Field L] [Algebra B L] [IsFractionRing B L]
     (S : Set (HeightOneSpectrum R)) (n : ℕ) : Subgroup (Units.modPow L n) :=
   selmerGroup (R := B) (K := L) (S := HeightOneSpectrum.primesAbove R B S) (n := n)
+
+set_option linter.unusedSectionVars false in
+/-- Membership in the `S`-Selmer group of `L`: the valuation is trivial mod `n`-th powers at
+every prime of `B` not lying above `S`. -/
+lemma IsDedekindDomain.mem_selmerGroupAbove_iff (L : Type*) [Field L] [Algebra B L]
+    [IsFractionRing B L] (S : Set (HeightOneSpectrum R)) (n : ℕ) (x : Units.modPow L n) :
+    x ∈ selmerGroupAbove R B L S n ↔
+      ∀ w ∉ HeightOneSpectrum.primesAbove R B S, w.valuationOfNeZeroMod n x = 1 :=
+  Iff.rfl
 
 end DedekindDomain
 
@@ -637,15 +740,21 @@ namespace Factors
 lemma coe_mem (p : f.Factors) : (p : K[X]) ∈ normalizedFactors f :=
   Multiset.mem_toFinset.mp p.2
 
+lemma dvd (p : f.Factors) : (p : K[X]) ∣ f :=
+  dvd_of_mem_normalizedFactors p.coe_mem
+
 lemma irreducible (p : f.Factors) : Irreducible (p : K[X]) :=
   (prime_of_normalized_factor _ p.coe_mem).irreducible
+
+lemma ne_zero (p : f.Factors) : (p : K[X]) ≠ 0 :=
+  p.irreducible.ne_zero
 
 lemma monic (p : f.Factors) : (p : K[X]).Monic := by
   rw [← normalize_normalized_factor _ p.coe_mem]
   exact monic_normalize p.irreducible.ne_zero
 
 lemma separable (hf : f.Separable) (p : f.Factors) : (p : K[X]).Separable :=
-  hf.of_dvd <| dvd_of_mem_normalizedFactors p.coe_mem
+  hf.of_dvd p.dvd
 
 /-- Distinct monic irreducible factors of `f` are coprime. -/
 lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=

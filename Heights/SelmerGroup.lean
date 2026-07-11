@@ -98,27 +98,43 @@ theorem Group.fg_of_module_finite_int {G : Type*} [CommGroup G]
   AddGroup.fg_iff_mul_fg.mp (Module.Finite.iff_addGroup_fg.mp h)
 
 /-- A subgroup of a finitely generated commutative group is finitely generated, as `ℤ` is a
-Noetherian ring. -/
+Noetherian ring. (The proof passes through `Additive G`, so `to_additive` cannot translate it;
+an additive version would have to be stated by hand.) -/
 theorem Subgroup.fg_of_commGroup_fg {G : Type*} [CommGroup G] [Group.FG G] (H : Subgroup G) :
     Group.FG H :=
   have : Module.Finite ℤ (Additive G) := Module.finite_int_additive G
   Group.fg_of_module_finite_int <| Module.Finite.iff_fg.mpr <|
     IsNoetherian.noetherian (R := ℤ) (AddSubgroup.toIntSubmodule H.toAddSubgroup)
 
-/-- An extension of finitely generated commutative groups is finitely generated. -/
-theorem CommGroup.fg_of_fg_ker_of_fg_range {G H : Type*} [CommGroup G] [CommGroup H] (φ : G →* H)
+/-- An extension of finitely generated groups is finitely generated: if the kernel and the range
+of `φ : G →* H` are finitely generated, then so is `G`. Generators: preimages of generators of
+the range together with generators of the kernel. -/
+@[to_additive]
+theorem Group.fg_of_fg_ker_of_fg_range {G H : Type*} [Group G] [Group H] (φ : G →* H)
     (hker : Group.FG φ.ker) (hrange : Group.FG φ.range) : Group.FG G := by
-  have h₁ : Module.Finite ℤ (Additive φ.ker) := Module.finite_int_additive _
-  have h₂ : Module.Finite ℤ (Additive φ.range) := Module.finite_int_additive _
-  refine Group.fg_of_module_finite_int (Module.Finite.of_exact
-    (f := (MonoidHom.toAdditive φ.ker.subtype).toIntLinearMap)
-    (g := (MonoidHom.toAdditive φ.rangeRestrict).toIntLinearMap) (fun x ↦ ?_)
-    φ.rangeRestrict_surjective)
-  simp only [AddMonoidHom.coe_toIntLinearMap, MonoidHom.coe_toAdditive]
-  refine ⟨fun hx ↦ ⟨⟨Additive.toMul x, ?_⟩, rfl⟩, ?_⟩
-  · simpa [Subtype.ext_iff] using hx
-  · rintro ⟨y, rfl⟩
-    exact Subtype.ext y.2
+  obtain ⟨T, hT, hTfin⟩ := Group.fg_iff.mp hrange
+  obtain ⟨S, hS, hSfin⟩ := Group.fg_iff.mp hker
+  set σ : φ.range → G := Function.surjInv φ.rangeRestrict_surjective with hσ
+  set U : Set G := σ '' T ∪ (φ.ker.subtype '' S) with hU
+  refine Group.fg_iff.mpr ⟨U, ?_, (hTfin.image σ).union (hSfin.image _)⟩
+  -- the kernel is contained in the closure of `U`
+  have hkerle : φ.ker ≤ Subgroup.closure U := by
+    calc φ.ker = (⊤ : Subgroup φ.ker).map φ.ker.subtype := by
+          rw [← MonoidHom.range_eq_map, Subgroup.range_subtype]
+    _ = (Subgroup.closure S).map φ.ker.subtype := by rw [hS]
+    _ = Subgroup.closure (φ.ker.subtype '' S) := MonoidHom.map_closure ..
+    _ ≤ Subgroup.closure U := Subgroup.closure_mono Set.subset_union_right
+  -- the closure of `U` surjects onto the range
+  have hmap : (Subgroup.closure U).map φ.rangeRestrict = ⊤ := by
+    rw [eq_top_iff, ← hT]
+    refine (Subgroup.closure_mono ?_).trans_eq (MonoidHom.map_closure ..).symm
+    rintro t ht
+    exact ⟨σ t, Set.mem_union_left _ ⟨t, ht, rfl⟩, Function.surjInv_eq _ t⟩
+  -- conclude via `comap_map_eq`
+  have h := Subgroup.comap_map_eq φ.rangeRestrict (Subgroup.closure U)
+  rw [hmap, Subgroup.comap_top, MonoidHom.ker_rangeRestrict,
+    sup_eq_left.mpr hkerle] at h
+  exact h.symm
 
 /-- A finitely generated commutative group of finite exponent is finite. -/
 theorem CommGroup.finite_of_fg_of_pow_eq_one {G : Type*} [CommGroup G] [Group.FG G] (n : ℕ)
@@ -190,10 +206,6 @@ noncomputable def unitsEquivEmptyUnit : Rˣ ≃* (∅ : Set (HeightOneSpectrum R
     Subalgebra.equivOfEq _ _ (IsDedekindDomain.integer_empty R K).symm
   (Units.mapEquiv (e₁.trans e₂).toRingEquiv.toMulEquiv).trans (Set.unitEquivUnitsInteger _ K).symm
 
-/-- The `∅`-units are contained in the `S`-units. -/
-theorem emptyUnit_le_unit : (∅ : Set (HeightOneSpectrum R)).unit K ≤ S.unit K :=
-  fun _ hx v _ ↦ hx v (Set.notMem_empty v)
-
 /-- **Dirichlet's `S`-unit theorem**, weak form: if `Rˣ` is finitely generated and `S` is finite,
 then the group of `S`-units is finitely generated.
 
@@ -203,14 +215,15 @@ The map `sUnitValuation` has finitely generated image (a subgroup of the free ab
 group is finitely generated. -/
 theorem fg_sUnit [Group.FG Rˣ] (hS : S.Finite) : Group.FG (S.unit K) := by
   have : Finite S := hS.to_subtype
-  refine CommGroup.fg_of_fg_ker_of_fg_range (sUnitValuation K S) ?_ (Subgroup.fg_of_commGroup_fg _)
+  refine Group.fg_of_fg_ker_of_fg_range (sUnitValuation K S) ?_ (Subgroup.fg_of_commGroup_fg _)
   rw [ker_sUnitValuation]
   have : Group.FG ((∅ : Set (HeightOneSpectrum R)).unit K) :=
     Group.fg_of_surjective (f := (unitsEquivEmptyUnit R K).toMonoidHom)
       (unitsEquivEmptyUnit R K).surjective
+  have hle : (∅ : Set (HeightOneSpectrum R)).unit K ≤ S.unit K := Set.unit_mono S.empty_subset
   exact Group.fg_of_surjective
-    (f := (Subgroup.subgroupOfEquivOfLe (emptyUnit_le_unit K S)).symm.toMonoidHom)
-    (Subgroup.subgroupOfEquivOfLe (emptyUnit_le_unit K S)).symm.surjective
+    (f := (Subgroup.subgroupOfEquivOfLe hle).symm.toMonoidHom)
+    (Subgroup.subgroupOfEquivOfLe hle).symm.surjective
 
 /-!
 ### The fundamental exact sequence
@@ -227,6 +240,11 @@ noncomputable def sUnitToSelmer : S.unit K →* selmerGroup (K := K) (S := S) (n
     simp [this]⟩
   map_one' := rfl
   map_mul' _ _ := rfl
+
+@[simp]
+lemma coe_sUnitToSelmer (x : S.unit K) :
+    (sUnitToSelmer K S n x : Units.modPow K n) = QuotientGroup.mk (x : Kˣ) :=
+  rfl
 
 /-- The left-hand map of the fundamental exact sequence: an `S`-unit modulo `n`-th powers of
 `S`-units maps to the Selmer group `K(S,n)`. -/
@@ -479,6 +497,12 @@ noncomputable def selmerGroupOfEquiv
     Subgroup (Units.modPow A n) :=
   (selmerGroupPi L B S n).comap e.toMonoidHom
 
+lemma mem_selmerGroupOfEquiv_iff (e : Units.modPow A n ≃* ((i : ι) → Units.modPow (L i) n))
+    (x : Units.modPow A n) :
+    x ∈ selmerGroupOfEquiv L B S n e ↔
+      ∀ i, e x i ∈ selmerGroup (R := B i) (K := L i) (S := S i) (n := n) := by
+  simp [selmerGroupOfEquiv, selmerGroupPi, Subgroup.mem_pi]
+
 /-- The Selmer group of a finite étale algebra is finite. -/
 theorem finite_selmerGroupOfEquiv [Finite ι] [(i : ι) → Finite (ClassGroup (B i))]
     [(i : ι) → Group.FG (B i)ˣ] (hS : ∀ i, (S i).Finite) [NeZero n]
@@ -503,9 +527,14 @@ open NumberField
 
 variable (F : Type*) [Field F] [NumberField F] (S : Set (HeightOneSpectrum (𝓞 F))) (n : ℕ)
 
-instance : Group.FG (𝓞 F)ˣ := Group.fg_iff_monoid_fg.mpr inferInstance
+/-- **Dirichlet's unit theorem**, `Group.FG` version: the unit group of the ring of integers of
+a number field is finitely generated. -/
+instance instGroupFGUnitsRingOfIntegers : Group.FG (𝓞 F)ˣ :=
+  Group.fg_iff_monoid_fg.mpr inferInstance
 
-example [NeZero n] (hS : S.Finite) : Finite (selmerGroup (K := F) (S := S) (n := n)) :=
+/-- The Selmer group `K(S,n)` of a number field is finite for `S` finite and `n ≠ 0`. -/
+theorem finite_selmerGroup_of_numberField [NeZero n] (hS : S.Finite) :
+    Finite (selmerGroup (K := F) (S := S) (n := n)) :=
   finite_selmerGroup (𝓞 F) F S n hS
 
 end NumberField
