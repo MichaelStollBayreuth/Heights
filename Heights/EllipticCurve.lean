@@ -319,17 +319,6 @@ lemma finite_naiveHeight_le (B : ℝ) : {P : W.Point | P.naiveHeight ≤ B}.Fini
 
 variable [DecidableEq F] [W.toAffine.IsElliptic]
 
-/-- The **Weak Mordell-Weil Theorem** `(E(K) : 2*E(K)) < ∞` implies the **Mordell-Weil Theorem**:
-`E(K)` is finitely generated, for an elliptic curve `E` in short Weierstrass form over a
-field `K` that satisfies the Northcott property with respect to `logHeight₁`. -/
-theorem weakMW_implies_MW (weakMW : (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex) :
-    AddGroup.FG W.Point := by
-  have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
-    rw [Point.naiveHeight_eq_logHeight P]
-    positivity
-  obtain ⟨C, hC⟩ := approx_parallelogram_law W
-  exact AddCommGroup.fg_of_descent' weakMW H₂ hC
-
 /-- The torsion subgroup of the group of `K`-rational point on an elliptic curve over a
 number field `K` is finite. -/
 theorem finite_torsion : Finite (AddCommGroup.torsion W.Point) := by
@@ -348,8 +337,12 @@ theorem mordell_weil (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
     [IsFractionRing R F] [W.IsShortNF]
     [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))]
     [(p : W.f.Factors) → Group.FG (W.ringOfIntegersFactor R p)ˣ] :
-    AddGroup.FG W.Point :=
-  weakMW_implies_MW (W.finite_index_range_nsmulAddMonoidHom_two R)
+    AddGroup.FG W.Point := by
+  have H₂ (P : W.Point) : 0 ≤ P.naiveHeight := by
+    rw [Point.naiveHeight_eq_logHeight P]
+    positivity
+  obtain ⟨C, hC⟩ := approx_parallelogram_law W
+  exact AddCommGroup.fg_of_descent' (W.finite_index_range_nsmulAddMonoidHom_two R) H₂ hC
 
 end Northcott
 

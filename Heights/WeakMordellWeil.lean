@@ -1417,7 +1417,8 @@ short normal form over the fraction field `K` of a Dedekind domain `R` such that
 irreducible factor `p` of the `2`-division polynomial, the ring of integers of `K[X]/(p)` has
 finite class group and finitely generated unit group.
 
-This is the form of the statement expected by `weakMW_implies_MW` in `Heights.EllipticCurve`. -/
+This is the input to the descent argument (`AddCommGroup.fg_of_descent'`) in the proof of the
+Mordell-Weil theorem, `mordell_weil` in `Heights.EllipticCurve`. -/
 theorem finite_index_range_nsmulAddMonoidHom_two :
     (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex := by
   rw [finite_index_range_nsmulAddMonoidHom_two_iff]
