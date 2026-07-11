@@ -165,6 +165,32 @@ lemma f_eq_mul_of_eval_eq_zero {x : K} (hx : W.f.eval x = 0) :
     W.f = W.fCofactor x * (X - C x) := by
   simp [fCofactor_mul_eq, hx]
 
+/-- Dividing the relation `(r X + s)² ≡ x - X mod (fCofactor x)` by `r²` yields the polynomial
+identity certifying that a point with `2`-torsion `x`-coordinate `x` is divisible by `2`
+(used in Step 4). -/
+private lemma f_dvd_of_fCofactor_dvd {x r s : K} (hx : W.f.eval x = 0) (hr : r ≠ 0)
+    (hdvd : W.fCofactor x ∣ (C r * X + C s) ^ 2 - (C x - X)) :
+    W.f ∣ (X - C (-s / r)) ^ 2 * (X - C x) - -(C (1 / r) * X + C (-x / r)) ^ 2 := by
+  obtain ⟨q, hq⟩ := hdvd
+  apply_fun (· * (X - C x)) at hq
+  rw [mul_right_comm, ← f_eq_mul_of_eval_eq_zero _ hx] at hq
+  replace hq : q * W.f = ((C r * X + C s) ^ 2 - (C x - X)) * (X - C x) := by
+    rw [mul_comm]; exact hq.symm
+  refine ⟨C (1 / r ^ 2) * q, ?_⟩
+  rw [eq_comm, mul_comm W.f]
+  apply_fun (C (r ^ 2) * ·) using mul_right_injective₀ <| by simp [hr]
+  dsimp only
+  rw [← mul_assoc, ← mul_assoc, ← map_mul]
+  rw [mul_one_div_cancel <| pow_ne_zero 2 hr, map_one, one_mul, hq]
+  conv_rhs =>
+    rw [sub_neg_eq_add, mul_add, ← mul_assoc, map_pow, ← mul_pow, mul_sub (C r), ← map_mul,
+      mul_div_cancel₀ _ hr]
+    enter [2]
+    rw [← mul_pow, mul_add, ← mul_assoc, ← map_mul, mul_one_div_cancel hr, map_one, one_mul,
+      ← map_mul, mul_div_cancel₀ _ hr]
+  simp only [C_eq_algebraMap]
+  algebra
+
 lemma fCofactor_eq_of_f_eq {xP xQ xR : K} (hf : W.f = (X - C xP) * (X - C xQ) * (X - C xR)) :
     W.fCofactor xP = (X - C xQ) * (X - C xR) ∧ W.fCofactor xQ = (X - C xP) * (X - C xR) ∧
       W.fCofactor xR = (X - C xP) * (X - C xQ) := by
@@ -439,6 +465,42 @@ private lemma xQ_ne_xP_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsing
   rw [add_self_of_Y_eq <| by simp [negY], zero_add]
   exact some_ne_zero hR
 
+open Point in
+/-- If two of three collinear points have distinct `2`-torsion `x`-coordinates, then the line
+through them is horizontal, and `f` splits off all three `x`-coordinates. -/
+private lemma f_eq_prod_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsingular xP yP)
+    (hQ : W.Nonsingular xQ yQ) (hR : W.Nonsingular xR yR)
+    (hPQR : some xP yP hP + some xQ yQ hQ + some xR yR hR = 0) (h₁ : W.f.eval xP = 0)
+    (h₂ : W.f.eval xQ = 0) :
+    W.f = (X - C xP) * (X - C xQ) * (X - C xR) := by
+  have hPQ : xQ ≠ xP := xQ_ne_xP_of_eval_f_eq_zero hP hQ hR hPQR h₁
+  obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
+  have hpol₀ : pol = 0 := by
+    refine pol.eq_zero_of_natDegree_lt_card_of_eval_eq_zero' {xP, xQ} (fun x hx ↦ ?_) ?_
+    · simp only [Finset.mem_insert, Finset.mem_singleton] at hx
+      apply_fun (·.eval x) at hpol
+      rcases hx with rfl | rfl <;>
+        rw [eval_sub, ‹eval x (f W) = 0›] at hpol <;>
+        simpa using hpol
+    · grind
+  rwa [hpol₀, zero_pow two_ne_zero, sub_zero, eq_comm] at hpol
+
+/-- Forward direction of `exists_eq_two_smul_iff`: if `(x, y)` is divisible by `2`, then the
+polynomial identity holds, with `ξ` the `x`-coordinate of a halving point. -/
+private lemma exists_pol_of_eq_two_smul {x y : K} (h : W.Nonsingular x y) {P : W.Point}
+    (hP : Point.some x y h = 2 • P) :
+    ∃ ξ l m, (X - C ξ) ^ 2 * (X - C x) = W.f - (C l * X + C m) ^ 2 := by
+  match P with
+  | 0 => simp at hP -- cannot occur
+  | .some ξ η h' =>
+    rw [← sub_eq_zero, sub_eq_add_neg, two_smul, neg_add, ← add_assoc, add_rotate,
+      Point.neg_some] at hP
+    have H : W.Nonsingular ξ (W.negY ξ η) := (nonsingular_neg ξ η).mpr h'
+    obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero H H h hP
+    rw [← sq] at hpol
+    obtain ⟨l, m, rfl⟩ := exists_eq_X_add_C_of_natDegree_le_one hpol₁
+    exact ⟨_, _, _, hpol⟩
+
 variable [W.IsElliptic]
 
 section μ₀_helper_lemmas
@@ -458,18 +520,7 @@ include hPQR
 private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero (h₁ : W.f.eval xP = 0)
     (h₂ : W.f.eval xQ = 0) :
     W.μX xP * W.μX xQ * W.μX xR = 1 := by
-  have hPQ : xQ ≠ xP := xQ_ne_xP_of_eval_f_eq_zero hP hQ hR hPQR h₁
-  have hf : W.f = (X - C xP) * (X - C xQ) * (X - C xR) := by
-    obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
-    have hpol₀ : pol = 0 := by
-      refine pol.eq_zero_of_natDegree_lt_card_of_eval_eq_zero' {xP, xQ} (fun x hx ↦ ?_) ?_
-      · simp only [Finset.mem_insert, Finset.mem_singleton] at hx
-        apply_fun (·.eval x) at hpol
-        rcases hx with rfl | rfl <;>
-          rw [eval_sub, ‹eval x (f W) = 0›] at hpol <;>
-          simpa using hpol
-      · grind
-    rwa [hpol₀, zero_pow two_ne_zero, sub_zero, eq_comm] at hpol
+  have hf := f_eq_prod_of_eval_f_eq_zero hP hQ hR hPQR h₁ h₂
   have h₃ : W.f.eval xR = 0 := by rw [hf]; simp
   obtain ⟨hfcP, hfcQ, hfcR⟩ := W.fCofactor_eq_of_f_eq hf
   rw [μX_of_eval_f_eq_zero h₁, μX_of_eval_f_eq_zero h₂, μX_of_eval_f_eq_zero h₃,
@@ -482,32 +533,17 @@ private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero (h₁ : W.f
   rw [← sq_add_add_eq_mul_mul_of_mul_mul_eq_zero <| by rw [← map_mul, ← map_mul, ← hf]; simp]
   exact ⟨_, rfl⟩
 
-private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero (h : W.f.eval xP = 0) :
+/-- The case where only `xP` is a `2`-torsion `x`-coordinate. -/
+private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero_of_ne_of_ne (h : W.f.eval xP = 0)
+    (hQ₀ : W.f.eval xQ ≠ 0) (hR₀ : W.f.eval xR ≠ 0) :
     W.μX xP * W.μX xQ * W.μX xR = 1 := by
-  by_cases hQ₀ : W.f.eval xQ = 0
-  · exact μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero hP hQ hR hPQR h hQ₀
-  by_cases hR₀ : W.f.eval xR = 0
-  · rw [mul_right_comm]
-    rw [add_right_comm] at hPQR
-    exact μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero hP hR hQ hPQR h hR₀
   rw [μX_of_eval_f_eq_zero h, μX_of_eval_f_ne_zero hQ₀, μX_of_eval_f_ne_zero hR₀,
     Units.modPow.unit_mul_unit_mul_unit_eq_one_iff]
   obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero hP hQ hR hPQR
   obtain ⟨γ, rfl⟩ : ∃ γ, pol = C γ * (X - C xP) := by
     apply_fun (·.eval xP) at hpol
     rw [eval_sub, h] at hpol
-    have : eval xP pol = 0 := by simpa using hpol
-    rw [← IsRoot.def, ← dvd_iff_isRoot] at this
-    obtain ⟨p, rfl⟩ := this
-    rw [mul_comm]
-    suffices p.natDegree = 0 by
-      rw [natDegree_eq_zero] at this
-      obtain ⟨γ, rfl⟩ := this
-      exact ⟨_, rfl⟩
-    contrapose! hpol₁
-    replace hpol₁ : 1 ≤ p.natDegree := by lia
-    rw [natDegree_mul (X_sub_C_ne_zero _) (ne_zero_of_natDegree_gt hpol₁), natDegree_X_sub_C xP]
-    lia
+    exact exists_eq_C_mul_X_sub_C_of_natDegree_le_one hpol₁ (by simpa using hpol)
   rw [W.f_eq_mul_of_eval_eq_zero h, mul_assoc, mul_comm (W.fCofactor _),
     show (C γ * (X - C xP)) ^ 2 = (X - C xP) * (C γ ^ 2 * (X - C xP)) by ring, ← mul_sub] at hpol
   replace hpol := mul_left_cancel₀ (X_sub_C_ne_zero xP) hpol
@@ -520,6 +556,16 @@ private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero (h : W.f.eval xP = 0) :
     simp
   case H₂ => simp only [← map_mul, ← map_pow, ← map_sub, hpol]
   exact ⟨_, rfl⟩
+
+private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero (h : W.f.eval xP = 0) :
+    W.μX xP * W.μX xQ * W.μX xR = 1 := by
+  by_cases hQ₀ : W.f.eval xQ = 0
+  · exact μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero hP hQ hR hPQR h hQ₀
+  by_cases hR₀ : W.f.eval xR = 0
+  · rw [mul_right_comm]
+    rw [add_right_comm] at hPQR
+    exact μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero hP hR hQ hPQR h hR₀
+  exact μX_mul_mul_eq_one_of_eval_f_eq_zero_of_ne_of_ne hP hQ hR hPQR h hQ₀ hR₀
 
 lemma μX_mul_mul_eq_one : W.μX xP * W.μX xQ * W.μX xR = 1 := by
   rcases eq_or_ne (W.f.eval xP) 0 with HP | HP
@@ -573,55 +619,51 @@ lemma μ₀_two_nsmul (P : W.Point) : W.μ₀ (2 • P) = 1 := by
 ### Step 4: show that `μ` has kernel `2 • W(K)`.
 -/
 
+/-- Reverse direction of `exists_eq_two_smul_iff`, in terms of the coefficient identities of
+the polynomial identity: the point `(ξ, lξ + m)` lies on `W` and doubles to `(x, ±y)`. -/
+private lemma exists_eq_two_smul_of_identities {x y ξ l m : K} (h : W.Nonsingular x y)
+    (H₂ : x + 2 * ξ = l ^ 2) (H₁ : 2 * x * ξ + ξ ^ 2 = W.a₄ - 2 * l * m)
+    (H₀ : x * ξ ^ 2 = -W.a₆ + m ^ 2) :
+    ∃ P, Point.some x y h = 2 • P := by
+  have h20 : (2 : K) ≠ 0 :=
+    Ring.two_ne_zero <| ringChar_ne_two_of_isElliptic_of_isShortNF W
+  have hy₀ : l * ξ + m ≠ 0 := by
+    have hΔ := W.isUnit_Δ.ne_zero
+    rw [Δ_of_isShortNF W] at hΔ
+    contrapose! hΔ
+    grobner
+  have hy : l * ξ + m ≠ W.negY ξ (l * ξ + m) := by
+    simp only [negY, a₁_of_isShortNF, a₃_of_isShortNF, zero_mul, sub_zero]
+    grind
+  have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
+    simp only [slope_of_Y_ne rfl hy, a₂_of_isShortNF, mul_zero, zero_mul, add_zero,
+      a₁_of_isShortNF, a₃_of_isShortNF, sub_zero, negY, sub_neg_eq_add, ← two_mul]
+    rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
+    field_simp
+    grobner
+  have heq : W.Equation ξ (l * ξ + m) := by
+    rw [equation_iff_eval_f_eq_sq, eval_f]
+    linear_combination ξ ^ 2 * H₂ - ξ * H₁ + H₀
+  let P : W.Point := .some ξ (l * ξ + m) <| equation_iff_nonsingular.mp heq
+  suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) from this.casesOn (⟨_, ·⟩) (⟨_, ·⟩)
+  simp only [smul_neg, P, two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX,
+    a₁_of_isShortNF, a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
+  linear_combination H₂
+
 /-- A criterion for a nonsingular point in affine coordinates to be divisible by 2,
 in terms of an identity of polynomials. -/
 lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
     (∃ P, Point.some x y h = 2 • P) ↔
       ∃ ξ l m, (X - C ξ) ^ 2 * (X - C x) = W.f - (C l * X + C m) ^ 2 := by
-  refine ⟨fun ⟨P, hP⟩ ↦ ?_, fun ⟨ξ, l, m, H⟩ ↦ ?_⟩
-  · match P with
-    | 0 => simp at hP -- cannot occur
-    | .some ξ η h' =>
-      rw [← sub_eq_zero, sub_eq_add_neg, two_smul, neg_add, ← add_assoc, add_rotate,
-        Point.neg_some] at hP
-      have H : W.Nonsingular ξ (W.negY ξ η) := (nonsingular_neg ξ η).mpr h'
-      obtain ⟨pol, hpol, hpol₁⟩ := Point.some_add_some_add_some_eq_zero H H h hP
-      rw [← sq] at hpol
-      obtain ⟨l, m, rfl⟩ := exists_eq_X_add_C_of_natDegree_le_one hpol₁
-      exact ⟨_, _, _, hpol⟩
-  · have h20 : (2 : K) ≠ 0 :=
-      Ring.two_ne_zero <| ringChar_ne_two_of_isElliptic_of_isShortNF W
-    have H' : X ^ 3 - C (x + 2 * ξ) * X ^ 2 + C (2 * x * ξ + ξ ^ 2) * X - C (x * ξ ^ 2) =
-        X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a₄ - 2 * l * m) * X - C (-W.a₆ + m ^ 2) := by
-      simp only [f] at H
-      convert H using 1 <;> { simp only [C_eq_algebraMap]; algebra }
-    replace H' n := congrArg (fun p ↦ p.coeff n) H'
-    simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
-    have H₂ : x + 2 * ξ = l ^ 2 := by simpa using congrArg (-·) (H' 2)
-    have H₁ : 2 * x * ξ + ξ ^ 2 = W.a₄ - 2 * l * m := by simpa using H' 1
-    have H₀ : x * ξ ^ 2 = -W.a₆ + m ^ 2 := by simpa using congrArg (-·) (H' 0)
-    have hy₀ : l * ξ + m ≠ 0 := by
-      have hΔ := W.isUnit_Δ.ne_zero
-      rw [Δ_of_isShortNF W] at hΔ
-      contrapose! hΔ
-      grobner
-    have hy : l * ξ + m ≠ W.negY ξ (l * ξ + m) := by
-      simp only [negY, a₁_of_isShortNF, a₃_of_isShortNF, zero_mul, sub_zero]
-      grind
-    have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
-      simp only [slope_of_Y_ne rfl hy, a₂_of_isShortNF, mul_zero, zero_mul, add_zero,
-        a₁_of_isShortNF, a₃_of_isShortNF, sub_zero, negY, sub_neg_eq_add, ← two_mul]
-      rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
-      field_simp
-      grobner
-    have heq : W.Equation ξ (l * ξ + m) := by
-      rw [equation_iff_eval_f_eq_sq, ← sub_eq_zero, eq_comm]
-      simpa using congrArg (·.eval ξ) H
-    let P : W.Point := .some ξ (l * ξ + m) <| equation_iff_nonsingular.mp heq
-    suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) from this.casesOn (⟨_, ·⟩) (⟨_, ·⟩)
-    simp only [smul_neg, P, two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX,
-      a₁_of_isShortNF, a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
-    linear_combination H₂
+  refine ⟨fun ⟨P, hP⟩ ↦ exists_pol_of_eq_two_smul h hP, fun ⟨ξ, l, m, H⟩ ↦ ?_⟩
+  have H' : X ^ 3 - C (x + 2 * ξ) * X ^ 2 + C (2 * x * ξ + ξ ^ 2) * X - C (x * ξ ^ 2) =
+      X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a₄ - 2 * l * m) * X - C (-W.a₆ + m ^ 2) := by
+    simp only [f] at H
+    convert H using 1 <;> { simp only [C_eq_algebraMap]; algebra }
+  replace H' n := congrArg (fun p ↦ p.coeff n) H'
+  simp only [coeff_sub, coeff_add, coeff_X_pow, coeff_C_mul_X_pow, coeff_C_mul_X, coeff_C] at H'
+  exact exists_eq_two_smul_of_identities h (by simpa using congrArg (-·) (H' 2))
+    (by simpa using H' 1) (by simpa using congrArg (-·) (H' 0))
 
 /-- A criterion for a nonsingular point in affine coordinates to be divisible by 2,
 in terms of an identity in `W.A`. -/
@@ -694,28 +736,8 @@ private lemma eq_two_smul_of_μ_eq_one_of_eq (hμ : (μ <| .ofAdd <| .some x y h
     have hd : (C x - X).natDegree = 1 := by compute_degree!
     rw [natDegree_pow, hd] at hz'
     lia
-  refine ⟨-s / r, 1 / r, -x / r, ?_⟩
-  rw [← map_pow] at hz'
-  rw [AdjoinRoot.mk_eq_mk] at hz' ⊢
-  obtain ⟨q, hq⟩ := hz'
-  apply_fun (· * (X - C x)) at hq
-  rw [mul_right_comm, ← f_eq_mul_of_eval_eq_zero _ hx] at hq
-  replace hq : q * W.f = ((C r * X + C s) ^ 2 - (C x - X)) * (X - C x) := by
-    rw [mul_comm]; exact hq.symm
-  refine ⟨C (1 / r ^ 2) * q, ?_⟩
-  rw [eq_comm, mul_comm W.f]
-  apply_fun (C (r ^ 2) * ·) using mul_right_injective₀ <| by simp [hr₀]
-  dsimp only
-  rw [← mul_assoc, ← mul_assoc, ← map_mul]
-  rw [mul_one_div_cancel <| pow_ne_zero 2 hr₀, map_one, one_mul, hq]
-  conv_rhs =>
-    rw [sub_neg_eq_add, mul_add, ← mul_assoc, map_pow, ← mul_pow, mul_sub (C r), ← map_mul,
-      mul_div_cancel₀ _ hr₀]
-    enter [2]
-    rw [← mul_pow, mul_add, ← mul_assoc, ← map_mul, mul_one_div_cancel hr₀, map_one, one_mul,
-      ← map_mul, mul_div_cancel₀ _ hr₀]
-  simp only [C_eq_algebraMap]
-  algebra
+  rw [← map_pow, AdjoinRoot.mk_eq_mk] at hz'
+  exact ⟨-s / r, 1 / r, -x / r, AdjoinRoot.mk_eq_mk.mpr (W.f_dvd_of_fCofactor_dvd hx hr₀ hz')⟩
 
 lemma eq_two_smul_of_μ_eq_one (hμ : (μ <| .ofAdd <| .some x y h) = 1) :
     ∃ P : W.Point, .some x y h = 2 • P := by

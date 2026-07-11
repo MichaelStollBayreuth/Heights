@@ -494,6 +494,21 @@ section
 
 variable [Nontrivial R] {q : R[X]} {n : ℕ}
 
+/-- A polynomial of degree at most `1` vanishing at `x` is a scalar multiple of `X - C x`. -/
+lemma exists_eq_C_mul_X_sub_C_of_natDegree_le_one {p : R[X]} (hdeg : p.natDegree ≤ 1)
+    {x : R} (hx : p.IsRoot x) :
+    ∃ γ, p = C γ * (X - C x) := by
+  obtain ⟨q, rfl⟩ := dvd_iff_isRoot.mpr hx
+  rcases eq_or_ne q 0 with rfl | hq
+  · exact ⟨0, by simp⟩
+  have h1 : (X - C x).leadingCoeff * q.leadingCoeff ≠ 0 := by
+    rw [(monic_X_sub_C x).leadingCoeff, one_mul, leadingCoeff_ne_zero]
+    exact hq
+  rw [natDegree_mul' h1, natDegree_X_sub_C] at hdeg
+  refine ⟨q.coeff 0, ?_⟩
+  conv_lhs => rw [eq_C_of_natDegree_eq_zero (by lia : q.natDegree = 0)]
+  ring
+
 /-- A remainder modulo a monic `g` has degree less than `g`. -/
 lemma modByMonic_mem_degreeLT (hg : g.Monic) (q : R[X]) :
     q %ₘ g ∈ degreeLT R g.natDegree :=
