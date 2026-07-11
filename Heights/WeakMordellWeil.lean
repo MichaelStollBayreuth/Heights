@@ -100,6 +100,10 @@ lemma monic_f : W.f.Monic := by
 
 lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
 
+/-- Any polynomial of degree at most `2` has smaller degree than `f`. -/
+lemma degree_lt_degree_f {p : K[X]} (hp : p.natDegree ≤ 2) : p.degree < W.f.degree :=
+  degree_lt_degree <| by rw [natDegree_f]; lia
+
 lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
   have hΔ : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
   rw [f, separable_def',
@@ -143,6 +147,11 @@ lemma natDegree_fCofactor (x : K) : (W.fCofactor x).natDegree = 2 := by
 lemma monic_fCofactor (x : K) : (W.fCofactor x).Monic := by
   simp only [fCofactor]
   monicity!
+
+/-- Any polynomial of degree at most `1` has smaller degree than `fCofactor x`. -/
+lemma degree_lt_degree_fCofactor (x : K) {p : K[X]} (hp : p.natDegree ≤ 1) :
+    p.degree < (W.fCofactor x).degree :=
+  degree_lt_degree <| by rw [natDegree_fCofactor]; lia
 
 lemma eval_fCofactor_self (x : K) : (W.fCofactor x).eval x = 3 * x ^ 2 + W.a₄ := by
   simp [fCofactor]
@@ -358,10 +367,7 @@ abbrev M : Type _ := Units.modPow W.A 2
 sites (e.g., for `mul_right_comm` below) unless it is declared. -/
 noncomputable instance : CommGroup W.M := inferInstance
 
-@[simp] lemma M.sq_eq_one (m : W.M) : m ^ 2 = 1 := by
-  obtain ⟨a, rfl⟩ := QuotientGroup.mk'_surjective _ m
-  rw [QuotientGroup.mk'_apply, ← QuotientGroup.mk_pow]
-  exact (QuotientGroup.eq_one_iff _).mpr <| by simp
+lemma M.sq_eq_one (m : W.M) : m ^ 2 = 1 := Units.modPow.pow_eq_one m
 
 lemma M.mul_self (m : W.M) : m * m = 1 := by rw [← sq, sq_eq_one]
 
@@ -628,23 +634,10 @@ lemma exists_eq_two_smul_iff' {x y : K} (h : W.Nonsingular x y) :
   · rw [H, map_sub, sub_eq_add_neg, map_neg, add_eq_right]
     simp
   · rw [AdjoinRoot.mk_eq_mk, sub_neg_eq_add] at H
-    obtain ⟨q, hq⟩ := H
-    suffices q = 1 by
-      rwa [this, mul_one, ← eq_sub_iff_add_eq] at hq
-    have hdeg : natDegree ((X - C ξ) ^ 2 * (X - C x) + (C l * X + C m) ^ 2) = 3 := by
-      compute_degree!
     have hmon : ((X - C ξ) ^ 2 * (X - C x) + (C l * X + C m) ^ 2).Monic := by monicity!
-    have hq₀ : q ≠ 0 := by
-      intro rfl
-      rw [mul_zero] at hq
-      rw [hq] at hmon
-      simp at hmon
-    have hq₁ : q.natDegree = 0 := by
-      apply_fun natDegree at hq
-      rw [hdeg, natDegree_mul W.monic_f.ne_zero hq₀, W.natDegree_f] at hq
-      lia
-    refine (Monic.natDegree_eq_zero ?_).mp hq₁
-    exact Polynomial.Monic.of_mul_monic_left W.monic_f <| hq ▸ hmon
+    have hf := eq_of_dvd_of_natDegree_le_of_leadingCoeff H
+      (by rw [natDegree_f]; compute_degree!) (by rw [W.monic_f.leadingCoeff, hmon.leadingCoeff])
+    linear_combination -hf
 
 section kernel
 
@@ -660,21 +653,15 @@ private lemma eq_two_smul_of_μ_eq_one_of_ne (hμ : (μ <| .ofAdd <| .some x y h
   obtain ⟨r, s, t, hrst⟩ := W.exists_mk_eq z
   rw [hrst] at hz
   have hr : r ≠ 0 := by
-    intro hr₀
-    simp only [hr₀, map_zero, zero_mul, zero_add, ← map_pow] at hz
-    rw [AdjoinRoot.mk_eq_mk] at hz
-    obtain ⟨q, hq⟩ := hz
-    have : natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 1 ∨
-        natDegree ((C s * X + C t) ^ 2 - (C x - X)) = 2 := by
-      rcases eq_or_ne s 0 with rfl | hs
-      · exact .inl <| by simp only [map_zero, zero_mul, zero_add]; compute_degree!
-      · exact .inr <| by compute_degree!
-    apply_fun natDegree at hq
-    rcases eq_or_ne q 0 with rfl | hq₀
-    · simp at hq
-      lia
-    · rw [natDegree_mul W.monic_f.ne_zero hq₀, natDegree_f] at hq
-      lia
+    intro rfl
+    simp only [map_zero, zero_mul, zero_add, ← map_pow] at hz
+    rw [AdjoinRoot.mk_eq_mk_iff_of_degree_lt W.monic_f
+      (W.degree_lt_degree_f (by compute_degree!))
+      (W.degree_lt_degree_f (by compute_degree!))] at hz
+    apply_fun natDegree at hz
+    have hd : (C x - X).natDegree = 1 := by compute_degree!
+    rw [natDegree_pow, hd] at hz
+    lia
   obtain ⟨ξ, l, m, H⟩ := W.exists_X_sub_C_mul_eq r s t hr
   rw [← map_mul] at H
   refine ⟨ξ, l, m, ?_⟩
@@ -699,14 +686,13 @@ private lemma eq_two_smul_of_μ_eq_one_of_eq (hμ : (μ <| .ofAdd <| .some x y h
   rw [map_pow, hrs, map_add _ _ (fCofactor ..), AdjoinRoot.mk_self, add_zero] at hz'
   have hr₀ : r ≠ 0 := by
     intro rfl
-    rw [← map_pow, AdjoinRoot.mk_eq_mk, map_zero, zero_mul, zero_add] at hz'
-    obtain ⟨q, hq⟩ := hz'
-    apply_fun natDegree at hq
-    have : (C s ^ 2 - (C x - X)).natDegree = 1 := by compute_degree!
-    rw [this] at hq; clear this
-    rcases eq_or_ne q 0 with rfl | hq₀
-    · simp at hq
-    rw [natDegree_mul (W.monic_fCofactor x).ne_zero hq₀, natDegree_fCofactor] at hq
+    rw [map_zero, zero_mul, zero_add, ← map_pow,
+      AdjoinRoot.mk_eq_mk_iff_of_degree_lt (W.monic_fCofactor x)
+        (W.degree_lt_degree_fCofactor x (by compute_degree!))
+        (W.degree_lt_degree_fCofactor x (by compute_degree!))] at hz'
+    apply_fun natDegree at hz'
+    have hd : (C x - X).natDegree = 1 := by compute_degree!
+    rw [natDegree_pow, hd] at hz'
     lia
   refine ⟨-s / r, 1 / r, -x / r, ?_⟩
   rw [← map_pow] at hz'
@@ -1411,14 +1397,10 @@ theorem finite_selmerGroupFactor (p : W.f.Factors) : Finite (W.selmerGroupFactor
 /-- **Step 7**: `A(S,2)` is finite. -/
 theorem finite_selmerGroupA : Finite (W.selmerGroupA R) := by
   have := Polynomial.Factors.finite W.f_ne_zero
-  have hfac (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) :=
-    W.finite_selmerGroupFactor R p
-  refine Finite.of_injective (β := (p : W.f.Factors) → W.selmerGroupFactor R p)
-    (fun x p ↦ ⟨AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2 x.1 p,
-      (W.mem_selmerGroupA_iff R x.1).mp x.2 p⟩) fun x y hxy ↦ ?_
-  refine Subtype.ext ((AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2).injective
-    (funext fun p ↦ ?_))
-  exact congrArg Subtype.val (congrFun hxy p)
+  have (p : W.f.Factors) : Finite (W.selmerGroupFactor R p) := W.finite_selmerGroupFactor R p
+  have : Finite (W.selmerGroupPi R) := Subgroup.instFinitePi
+  exact Subgroup.finite_comap_of_injective
+    (AdjoinRoot.modPowEquivPiFactors W.f_ne_zero W.squarefree_f 2).injective (W.selmerGroupPi R)
 
 variable [DecidableEq K]
 

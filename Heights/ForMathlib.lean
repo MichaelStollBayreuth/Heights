@@ -60,6 +60,21 @@ lemma MonoidHom.coe_ofMapMulMulEqOne {f : G → H} (hf₁ : f 1 = 1)
     ⇑(ofMapMulMulEqOne hf₁ hf) = f :=
   rfl
 
+/-- The preimage of a finite subgroup under an injective group homomorphism is finite. -/
+@[to_additive]
+lemma Subgroup.finite_comap_of_injective {f : G →* H} (hf : Function.Injective f)
+    (S : Subgroup H) [Finite S] : Finite (S.comap f) :=
+  Finite.of_injective (fun x ↦ (⟨f x, x.2⟩ : S)) fun _ _ h ↦
+    Subtype.ext <| hf <| congrArg Subtype.val h
+
+/-- A product of finitely many finite subgroups is finite. -/
+@[to_additive]
+instance Subgroup.instFinitePi {ι : Type*} [Finite ι] {G : ι → Type*} [(i : ι) → Group (G i)]
+    {S : (i : ι) → Subgroup (G i)} [(i : ι) → Finite (S i)] :
+    Finite (Subgroup.pi Set.univ S) :=
+  Finite.of_injective (fun x i ↦ (⟨x.1 i, x.2 i (Set.mem_univ i)⟩ : S i)) fun _ _ h ↦
+    Subtype.ext <| funext fun i ↦ congrArg Subtype.val (congrFun h i)
+
 end Group
 
 section Units
@@ -130,6 +145,13 @@ lemma mk_eq_mk_iff {u v : αˣ} (n : ℕ) :
   rw [QuotientGroup.eq]
   simp only [MonoidHom.mem_range, powMonoidHom_apply]
   exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩, fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩⟩
+
+/-- Every element of `Units.modPow α n` is killed by `n`. -/
+@[simp]
+lemma pow_eq_one {n : ℕ} (m : Units.modPow α n) : m ^ n = 1 := by
+  obtain ⟨u, rfl⟩ := QuotientGroup.mk'_surjective _ m
+  rw [QuotientGroup.mk'_apply, ← QuotientGroup.mk_pow]
+  exact (mk_eq_one_iff n).mpr ⟨u, rfl⟩
 
 /-- A monoid homomorphism `α →* β` induces a homomorphism on `n`-th power classes of units. -/
 def map (φ : α →* β) (n : ℕ) : Units.modPow α n →* Units.modPow β n :=
@@ -676,6 +698,13 @@ lemma exists_degree_lt_mk_eq [Nontrivial R] (hg : g.Monic) (a : AdjoinRoot g) :
     ∃ p, p.degree < g.degree ∧ a = mk g p := by
   obtain ⟨q, rfl⟩ := mk_surjective a
   exact ⟨q %ₘ g, degree_modByMonic_lt q hg, (mk_modByMonic hg q).symm⟩
+
+/-- `mk g` is injective on polynomials of degree less than that of `g`, for `g` monic. -/
+lemma mk_eq_mk_iff_of_degree_lt [Nontrivial R] (hg : g.Monic) {p q : R[X]}
+    (hp : p.degree < g.degree) (hq : q.degree < g.degree) :
+    mk g p = mk g q ↔ p = q :=
+  ⟨fun h ↦ sub_eq_zero.mp <| eq_zero_of_monic_dvd_of_degree_lt hg (mk_eq_mk.mp h) <|
+    (degree_sub_le p q).trans_lt (max_lt hp hq), fun h ↦ h ▸ rfl⟩
 
 /-- `mk g` is a linear equivalence from the polynomials of degree `< g.natDegree` onto
 `AdjoinRoot g`, for `g` monic. -/
