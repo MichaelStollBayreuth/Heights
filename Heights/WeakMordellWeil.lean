@@ -5,11 +5,13 @@ import Mathlib
 /-!
 # The Weak Mordell-Weil Theorem
 
-The goal of this file is to show that `E(K)/2E(K)` is finite when `E` is an elliptic curve
-over a number field `K`.
+The goal of this file is to show that `E(K)/2E(K)` is finite, where `E` is an elliptic curve
+given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)` (with `a = a₄` and `b = a₆`)
+over the fraction field `K` of a Dedekind domain `R`, under finiteness hypotheses — finite
+class group and finitely generated unit group for the rings of integers of the field factors
+of `K[X]/⟨f⟩` — that are theorems when `K` is a number field.
 
-We will use the `x-T` map approach. At least for now, we will restrict to elliptic curves
-given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)`, where `a = a₄` and `b = a₆`.
+We use the `x-T` map approach.
 
 The general-purpose material developed along the way, which has nothing to do with elliptic
 curves, lives in `Heights.ForMathlib`.
@@ -26,6 +28,9 @@ curves, lives in `Heights.ForMathlib`.
 5. Show that `im μ` is contained in the kernel of the norm map on square classes.
    => done, via `AdjoinRoot.norm_mk_eq_resultant`, which says that the norm of
    `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p` (in `Heights.ForMathlib`).
+   Note that this step is *not* needed for the finiteness result (Steps 6 and 7 do not use
+   it); it is included because the norm condition cuts down the Selmer group in explicit
+   computations.
 6. Show that `im μ ⊆ A(S,2)`, where `S` is the set of "bad" primes, i.e., primes dividing `2`
    or the (numerator of the) discriminant of `E` or the denominator of `a` or `b`.
    => done, as `range_μ_le_selmerGroupA` at the end of the file, for `E` over the fraction field
@@ -93,6 +98,8 @@ lemma monic_f : W.f.Monic := by
   simp only [f]
   monicity!
 
+lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
+
 lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
   have hΔ : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
   rw [f, separable_def',
@@ -105,6 +112,8 @@ lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
   rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ hΔ, Δ_of_isShortNF]
   simp only [C_eq_algebraMap]
   algebra
+
+lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f W).squarefree
 
 lemma eval_f (x : K) : W.f.eval x = x ^ 3 + W.a₄ * x + W.a₆ := by simp [f]
 
@@ -249,7 +258,7 @@ lemma norm_mk_C_sub_X_add_fCofactor {x : K} (hx : W.f.eval x = 0) :
 `f / (X - x)`. -/
 noncomputable def equivProdA' [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) :
     W.A ≃+* K × W.A' x :=
-  letI eA : W.A ≃+* K[X] ⧸ (Ideal.span {X - C x} * Ideal.span {W.fCofactor x}) :=
+  let eA : W.A ≃+* K[X] ⧸ (Ideal.span {X - C x} * Ideal.span {W.fCofactor x}) :=
     Ideal.quotEquivOfEq <| by
       rw [Ideal.span_singleton_mul_span_singleton, mul_comm, ← W.f_eq_mul_of_eval_eq_zero hx]
   have H : IsCoprime (Ideal.span {X - C x}) (Ideal.span {W.fCofactor x}) :=
@@ -284,33 +293,6 @@ lemma isUnit_mk_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) {
 
 variable {W}
 
-lemma eval_linePolynomial_left [DecidableEq K] (xP xQ yP yQ : K) :
-    eval xP (linePolynomial xP yP (W.slope xP xQ yP yQ)) = yP := by
-  simp [linePolynomial]
-
-lemma eval_linePolynomial_right [DecidableEq K] (xP xQ yP yQ : K) (h : xP ≠ xQ) :
-    eval xQ (linePolynomial xP yP (W.slope xP xQ yP yQ)) = yQ := by
-  simp only [linePolynomial, slope, if_neg h]
-  simp
-  field (disch := grind)
-
-section
-
-variable [W.IsShortNF]
-
-lemma equation_iff_of_isShortNF (x y : K) :
-    W.Equation x y ↔ y ^ 2 = x ^ 3 + W.a₄ * x + W.a₆ := by
-  rw [W.equation_iff, a₁_of_isShortNF, a₂_of_isShortNF, a₃_of_isShortNF]
-  ring_nf
-
-lemma y_eq_zero_of_eval_f_eq_zero {x y : K} (h : W.Equation x y) (hf : W.f.eval x = 0) :
-    y = 0 := by
-  rw [equation_iff_of_isShortNF x y] at h
-  rw [← sq_eq_zero_iff, h, ← hf]
-  simp [f]
-
-end
-
 lemma isUnit_mk_sub_X_of_eval_f_ne_zero {x : K} (h : W.f.eval x ≠ 0) :
     IsUnit <| AdjoinRoot.mk W.f (C x - X) := by
   refine .of_mul_eq_one
@@ -328,7 +310,13 @@ lemma isUnit_mk_sub_X_of_eval_f_ne_zero {x : K} (h : W.f.eval x ≠ 0) :
 
 section
 
-variable [W.IsShortNF] [W.IsElliptic]
+variable [W.IsShortNF]
+
+lemma y_eq_zero_of_eval_f_eq_zero {x y : K} (h : W.Equation x y) (hf : W.f.eval x = 0) :
+    y = 0 := by
+  rwa [equation_iff_eval_f_eq_sq, hf, eq_comm, sq_eq_zero_iff] at h
+
+variable [W.IsElliptic]
 
 lemma isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 0) :
     IsUnit <| AdjoinRoot.mk W.f <| C x - X + W.fCofactor x := by
@@ -751,9 +739,6 @@ lemma eq_two_smul_of_μ_eq_one (hμ : (μ <| .ofAdd <| .some x y h) = 1) :
 
 end kernel
 
-/- Maybe it is better to define `μ : W.Point →+ Additive M`
-instead of `Multiplicative W.Point →* M`? -/
-
 /-- The kernel of `μ` is exactly `2 • W(K)`. -/
 lemma ker_μ_eq : (μ (W := W)).ker = (nsmulAddMonoidHom 2).range.toSubgroup := by
   ext P'
@@ -824,7 +809,6 @@ lemma range_μ_le_ker_normM : (μ (W := W)).range ≤ (normM (W := W)).ker := by
   exact normM_μ₀_eq_one P
 
 end Step5
-
 
 end WeierstrassCurve.Affine
 
@@ -1231,10 +1215,6 @@ lemma even_valuationOfNeZero_sub_root :
   · exact W.even_valuationOfNeZero_sub_root_of_le_one R p h hx u hu w hw (not_lt.mp hx')
 
 end Core
-
-lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
-
-lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f W).squarefree
 
 section Selmer
 
