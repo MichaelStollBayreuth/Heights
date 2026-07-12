@@ -47,12 +47,14 @@ Note that `[NeZero n]` cannot be dropped: `K(S,0) = Kˣ`.
 ## Implementation
 
 The `S`-class group is realized as `ClassGroup (S.integer K)`, the class group of the ring
-`𝒪_S = Set.integer S K` of `S`-integers, which `Heights.ForMathlib.SIntegers` shows to be a Dedekind domain
+`𝒪_S = Set.integer S K` of `S`-integers, which `Heights.ForMathlib.SIntegers` shows to be a
+Dedekind domain
 with fraction field `K`, height one spectrum `{v | v ∉ S}` (valuation-compatibly) and finite
 class group whenever `Cl(R)` is finite. Via this dictionary the Selmer condition on a class
 `u(Kˣ)ⁿ ∈ K(S,n)` says exactly that the principal fractional ideal `(u)` of `𝒪_S` has all its
 valuations divisible by `n` (`mem_selmerGroup_iff_unitsNDivisible`), so the `n`-th-root class
-map of `Heights.ForMathlib.FractionalIdeal` (`FractionalIdeal.nthRootClass`, built from the isomorphism of
+map of `Heights.ForMathlib.FractionalIdeal` (`FractionalIdeal.nthRootClass`, built from the
+isomorphism of
 the group of fractional ideals with the free abelian group on the primes) descends to the
 right-hand map `toSClassGroup : K(S,n) →* Cl(𝒪_S)` of the fundamental exact sequence.
 
@@ -158,6 +160,98 @@ theorem CommGroup.finite_modPow {G : Type*} [CommGroup G] [Group.FG G] (n : ℕ)
   refine finite_of_fg_of_pow_eq_one n fun x ↦ ?_
   induction x using QuotientGroup.induction_on with
   | H g => exact (QuotientGroup.eq_one_iff _).mpr ⟨g, rfl⟩
+
+/-- On a finite group, the index of the range of an endomorphism equals the order of its
+kernel. -/
+@[to_additive]
+theorem MonoidHom.index_range_eq_card_ker {G : Type*} [Group G] [Finite G] (φ : G →* G) :
+    φ.range.index = Nat.card φ.ker := by
+  have h1 : φ.range.index * Nat.card φ.range = Nat.card G := φ.range.index_mul_card
+  have h2 : Nat.card φ.ker * Nat.card φ.range = Nat.card G := by
+    rw [Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv.symm, mul_comm]
+    exact (Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker).symm
+  exact Nat.eq_of_mul_eq_mul_right Nat.card_pos (h1.trans h2.symm)
+
+/-- An additive equivalence maps the kernel of the multiplication-by-`n` map to the kernel of
+the multiplication-by-`n` map; compare `AddEquiv.map_range_nsmulAddMonoidHom`. -/
+lemma AddEquiv.map_ker_nsmulAddMonoidHom {M N : Type*} [AddCommGroup M] [AddCommGroup N]
+    (e : M ≃+ N) (n : ℕ) :
+    ((nsmulAddMonoidHom (α := M) n).ker).map e.toAddMonoidHom =
+      (nsmulAddMonoidHom (α := N) n).ker := by
+  ext x
+  rw [AddSubgroup.mem_map_equiv]
+  simp only [AddMonoidHom.mem_ker, nsmulAddMonoidHom_apply]
+  rw [← map_nsmul, EmbeddingLike.map_eq_zero_iff]
+
+lemma nsmulAddMonoidHom_range_prod (A B : Type*) [AddCommGroup A] [AddCommGroup B] (n : ℕ) :
+    (nsmulAddMonoidHom (α := A × B) n).range =
+      ((nsmulAddMonoidHom (α := A) n).range).prod (nsmulAddMonoidHom (α := B) n).range := by
+  ext x
+  simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply, AddSubgroup.mem_prod]
+  exact ⟨fun ⟨y, hy⟩ ↦ ⟨⟨y.1, congrArg Prod.fst hy⟩, ⟨y.2, congrArg Prod.snd hy⟩⟩,
+    fun ⟨⟨a, ha⟩, ⟨b, hb⟩⟩ ↦ ⟨(a, b), Prod.ext ha hb⟩⟩
+
+lemma nsmulAddMonoidHom_ker_prod (A B : Type*) [AddCommGroup A] [AddCommGroup B] (n : ℕ) :
+    (nsmulAddMonoidHom (α := A × B) n).ker =
+      ((nsmulAddMonoidHom (α := A) n).ker).prod (nsmulAddMonoidHom (α := B) n).ker := by
+  ext x
+  simp [AddMonoidHom.mem_ker, AddSubgroup.mem_prod, Prod.ext_iff]
+
+/-- A finite module over a ring of characteristic zero has rank `0`. -/
+lemma Module.rank_eq_zero_of_finite (R M : Type*) [Ring R] [CharZero R] [AddCommGroup M]
+    [Module R M] [Finite M] :
+    Module.rank R M = 0 :=
+  rank_eq_zero_iff.mpr fun x ↦ ⟨addOrderOf x, Nat.cast_ne_zero.mpr (addOrderOf_pos x).ne',
+    by rw [Nat.cast_smul_eq_nsmul]; exact addOrderOf_nsmul_eq_zero x⟩
+
+open scoped DirectSum in
+open Module in
+/-- **The index of `n • G` in a finitely generated commutative group** `G` is
+`n ^ rank G * #G[n]`, where `G[n]` is the `n`-torsion subgroup. This extends
+`AddSubgroup.index_range_nsmul` (the free case) to arbitrary finitely generated groups. -/
+theorem AddSubgroup.index_range_nsmul_of_fg (G : Type*) [AddCommGroup G] [AddGroup.FG G]
+    {n : ℕ} (hn : n ≠ 0) :
+    (nsmulAddMonoidHom (α := G) n).range.index =
+      n ^ finrank ℤ G * Nat.card (nsmulAddMonoidHom (α := G) n).ker := by
+  obtain ⟨r, ι, fι, p, hp, e, ⟨eqv⟩⟩ := AddCommGroup.equiv_free_prod_directSum_zmod G
+  have hne (i : ι) : NeZero (p i ^ e i) := ⟨pow_ne_zero _ (hp i).pos.ne'⟩
+  have hTfin : Finite (⨁ i, ZMod (p i ^ e i)) := Finite.of_equiv _ DFinsupp.equivFunOnFintype.symm
+  have hidx : (nsmulAddMonoidHom (α := G) n).range.index
+      = (nsmulAddMonoidHom (α := (Fin r →₀ ℤ) × ⨁ i, ZMod (p i ^ e i)) n).range.index := by
+    simpa [AddEquiv.map_range_nsmulAddMonoidHom]
+      using (AddSubgroup.index_map_equiv (nsmulAddMonoidHom (α := G) n).range eqv).symm
+  have hker : Nat.card (nsmulAddMonoidHom (α := G) n).ker
+      = Nat.card (nsmulAddMonoidHom (α := (Fin r →₀ ℤ) × ⨁ i, ZMod (p i ^ e i)) n).ker := by
+    rw [← eqv.map_ker_nsmulAddMonoidHom n]
+    exact Nat.card_congr
+      (AddSubgroup.equivMapOfInjective _ eqv.toAddMonoidHom eqv.injective).toEquiv
+  have hrk : finrank ℤ G = r := by
+    have h1 : Module.rank ℤ ((Fin r →₀ ℤ) × ⨁ i, ZMod (p i ^ e i)) = r := by
+      set π := LinearMap.fst ℤ (Fin r →₀ ℤ) (⨁ i, ZMod (p i ^ e i)) with hπ
+      have h0 : Module.rank ℤ (LinearMap.ker π) = 0 := by
+        have e2 : LinearMap.ker π ≃ₗ[ℤ] ⨁ i, ZMod (p i ^ e i) :=
+          { toFun x := x.1.2
+            map_add' _ _ := rfl
+            map_smul' _ _ := rfl
+            invFun t := ⟨(0, t), rfl⟩
+            left_inv x := Subtype.ext (Prod.ext (x.2 : x.1.1 = 0).symm rfl)
+            right_inv t := rfl }
+        rw [e2.rank_eq]
+        exact Module.rank_eq_zero_of_finite ℤ _
+      rw [← π.rank_range_add_rank_ker, LinearMap.range_eq_top.mpr Prod.fst_surjective, rank_top,
+        rank_finsupp_self', Cardinal.mk_fin, h0, add_zero]
+    have h2 : finrank ℤ ((Fin r →₀ ℤ) × ⨁ i, ZMod (p i ^ e i)) = r := by
+      simp [Module.finrank, h1]
+    rw [eqv.toIntLinearEquiv.finrank_eq]
+    convert h2 using 2
+  have hkerF : (nsmulAddMonoidHom (α := Fin r →₀ ℤ) n).ker = ⊥ :=
+    (AddMonoidHom.ker_eq_bot_iff _).mpr
+      (AddSubgroup.nsmulAddMonoidHom_injective_of_isTorsionFree hn)
+  rw [hidx, hker, hrk, nsmulAddMonoidHom_range_prod, AddSubgroup.index_prod,
+    AddSubgroup.index_range_nsmul, AddMonoidHom.index_range_eq_card_ker,
+    nsmulAddMonoidHom_ker_prod, Nat.card_congr (AddSubgroup.prodEquiv _ _).toEquiv,
+    Nat.card_prod, hkerF]
+  simp
 
 namespace IsDedekindDomain
 
@@ -611,7 +705,8 @@ is.
 
 The decomposition `e` is an input rather than something derived from an `Algebra.IsEtale`
 hypothesis: Mathlib does not currently provide the splitting of an étale algebra into fields, and
-in the application (`Heights.EllipticCurve.WeakMordellWeil`) the decomposition is explicitly available as
+in the application (`Heights.EllipticCurve.WeakMordellWeil`) the decomposition is explicitly
+available as
 `AdjoinRoot.modPowEquivPiFactors`.
 -/
 

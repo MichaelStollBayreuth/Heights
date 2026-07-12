@@ -75,10 +75,26 @@ instance [W.IsCharNeTwoNF] : (W.map σ).IsCharNeTwoNF where
   a₁ := by simp [map_a₁]
   a₃ := by simp [map_a₃]
 
+lemma eval_map_f (x : K) : (W.map σ).toAffine.f.eval (σ x) = σ (W.f.eval x) := by
+  rw [map_f, Polynomial.eval_map, Polynomial.eval₂_at_apply]
+
+lemma map_fCofactor (x : K) :
+    (W.fCofactor x).map σ = (W.map σ).toAffine.fCofactor (σ x) := by
+  simp only [fCofactor, Polynomial.map_add, Polynomial.map_pow, Polynomial.map_mul,
+    Polynomial.map_X, Polynomial.map_C, map_a₂, map_a₄, map_add, map_mul, map_pow]
+
 variable (L : Type*) [Field L] [Algebra K L]
 
 instance [W.IsCharNeTwoNF] : (W⁄L).IsCharNeTwoNF :=
   inferInstanceAs (W.map (algebraMap K L)).IsCharNeTwoNF
+
+lemma eval_baseChange_f (x : K) :
+    (W⁄L).toAffine.f.eval (algebraMap K L x) = algebraMap K L (W.f.eval x) :=
+  W.eval_map_f (algebraMap K L) x
+
+lemma baseChange_fCofactor (x : K) :
+    (W.fCofactor x).map (algebraMap K L) = (W⁄L).toAffine.fCofactor (algebraMap K L x) :=
+  W.map_fCofactor (algebraMap K L) x
 
 /-- The base-change homomorphism `K[X]/(f) →+* L[X]/(f)` of étale algebras. -/
 noncomputable def mapA : W.A →+* (W⁄L).toAffine.A :=
@@ -96,7 +112,7 @@ lemma mapA_mk (p : K[X]) :
 noncomputable def localRes : W.M →* Units.modPow (W⁄L).toAffine.A 2 :=
   Units.modPow.map (W.mapA L).toMonoidHom 2
 
-variable [DecidableEq K] [W.IsElliptic] [W.IsCharNeTwoNF]
+variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
 instance : (W⁄L).IsElliptic := inferInstanceAs (W.map (algebraMap K L)).IsElliptic
 
@@ -108,10 +124,62 @@ noncomputable def localCondition : Subgroup W.M :=
   ((μ (W := (W⁄L).toAffine)).range).comap (W.localRes L)
 
 open scoped Classical in
+/-- Over an algebraically closed field extension, the image of the local descent map is
+trivial: every unit of the étale algebra is a square. -/
+theorem card_range_μ_of_isAlgClosed [IsAlgClosed L] :
+    Nat.card (μ (W := (W⁄L).toAffine)).range = 1 := by
+  -- every unit of a field factor of the étale algebra is a square
+  have hfac (p : (W⁄L).toAffine.f.Factors) :
+      Subsingleton (Units.modPow (AdjoinRoot (p : L[X])) 2) := by
+    refine Units.modPow.subsingleton_of_forall_exists_pow fun u ↦ ?_
+    obtain ⟨c, hc⟩ := (IsAlgClosed.algebraMap_bijective_of_isIntegral
+      (k := L) (K := AdjoinRoot (p : L[X]))).2 (u : AdjoinRoot (p : L[X]))
+    have hc0 : c ≠ 0 := by
+      rintro rfl
+      exact u.ne_zero (by rw [← hc, map_zero])
+    obtain ⟨d, hd⟩ := IsAlgClosed.exists_pow_nat_eq c zero_lt_two
+    have hd0 : d ≠ 0 := fun h0 ↦ hc0 (by rw [← hd, h0, zero_pow two_ne_zero])
+    refine ⟨Units.mk0 (algebraMap _ _ d) (by simpa using hd0), Units.ext ?_⟩
+    rw [Units.val_pow_eq_pow_val, Units.val_mk0, ← map_pow, hd, hc]
+  -- hence the ambient group of square classes, and with it the image of `μ`, is trivial
+  have hsub : Subsingleton (Units.modPow (W⁄L).toAffine.A 2) :=
+    (AdjoinRoot.modPowEquivPiFactors (W⁄L).toAffine.f_ne_zero
+      (W⁄L).toAffine.squarefree_f 2).toEquiv.subsingleton
+  exact Nat.card_eq_one_iff_unique.mpr ⟨inferInstance, ⟨1⟩⟩
+
+variable [DecidableEq K]
+
+open scoped Classical in
 /-- The image of the global descent map `μ` satisfies the local condition at every extension
 field: base change of points is compatible with the `x - T` maps. -/
 theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L := by
-  sorry
+  rintro _ ⟨P', rfl⟩
+  obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
+  rw [localCondition, Subgroup.mem_comap, μ_apply]
+  match P with
+  | 0 => rw [μ₀_zero, map_one]; exact one_mem _
+  | .some x y hP =>
+    have hP' : (W⁄L).toAffine.Nonsingular (algebraMap K L x) (algebraMap K L y) :=
+      (W.map_nonsingular (algebraMap K L).injective x y).mpr hP
+    rw [μ₀_some]
+    refine ⟨.ofAdd (.some _ _ hP'), ?_⟩
+    rw [μ_apply, μ₀_some]
+    rcases eq_or_ne (W.f.eval x) 0 with hx | hx
+    · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) = 0 := by
+        rw [W.eval_baseChange_f, hx, map_zero]
+      rw [μX_of_eval_f_eq_zero hxL, μX_of_eval_f_eq_zero hx, localRes, Units.modPow.map_unit]
+      refine congrArg _ (Units.ext ?_)
+      rw [IsUnit.unit_spec, IsUnit.unit_spec]
+      simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_add,
+        Polynomial.map_sub, Polynomial.map_C, Polynomial.map_X, W.baseChange_fCofactor]
+    · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) ≠ 0 := by
+        rw [W.eval_baseChange_f]
+        exact fun h0 ↦ hx ((map_eq_zero _).mp h0)
+      rw [μX_of_eval_f_ne_zero hxL, μX_of_eval_f_ne_zero hx, localRes, Units.modPow.map_unit]
+      refine congrArg _ (Units.ext ?_)
+      rw [IsUnit.unit_spec, IsUnit.unit_spec]
+      simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_sub,
+        Polynomial.map_C, Polynomial.map_X]
 
 end BaseChange
 
@@ -160,7 +228,9 @@ theorem range_μ_le_selmerGroup₂ : (μ (W := W)).range ≤ W.selmerGroup₂ R 
 theorem card_range_μ [AddGroup.FG W.Point] :
     Nat.card (μ (W := W)).range =
       2 ^ Module.finrank ℤ W.Point * Nat.card (nsmulAddMonoidHom (α := W.Point) 2).ker := by
-  sorry
+  rw [← Nat.card_congr (QuotientGroup.quotientKerEquivRange (μ (W := W))).toEquiv, ker_μ_eq,
+    ← Subgroup.index_eq_card, AddSubgroup.index_toSubgroup,
+    AddSubgroup.index_range_nsmul_of_fg _ two_ne_zero]
 
 /-- **The rank bound from a 2-Selmer group**: any subgroup of `Units.modPow W.A 2` that is
 finite and contains the image of `μ` bounds the rank of `E(K)` from above, via
@@ -170,7 +240,8 @@ theorem pow_rank_le_card_of_range_μ_le [AddGroup.FG W.Point] {S : Subgroup W.M}
     (h : (μ (W := W)).range ≤ S) :
     2 ^ Module.finrank ℤ W.Point * Nat.card (nsmulAddMonoidHom (α := W.Point) 2).ker ≤
       Nat.card S := by
-  sorry
+  rw [← W.card_range_μ]
+  exact Nat.card_le_card_of_injective _ (Subgroup.inclusion_injective h)
 
 end SelmerGroup
 
@@ -242,7 +313,13 @@ local points generates the full local image.
 open scoped Classical in
 /-- The size of the local image at a finite place `v`:
 `#(im μ_v) = #E(F_v)[2] · (#𝔽_v)^(v(2))`. For odd residue characteristic the second factor
-is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`. -/
+is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`.
+
+The proof needs the structure of `E(F_v)` as a compact group: a finite-index subgroup is
+isomorphic to `(𝒪_v, +)` via the formal group logarithm, and the quantity
+`#(G/2G) / #G[2]` is multiplicative in extensions, equal to `1` for finite groups and to
+`‖2‖_v⁻¹` for `(𝒪_v, +)`. This requires the formal group of an elliptic curve over a
+complete DVR, which is a separate project. -/
 theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
     Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
       Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker *
@@ -257,21 +334,46 @@ theorem card_range_μ_adicCompletion_of_two_notMem {v : HeightOneSpectrum (𝓞 
     (hv : (2 : 𝓞 F) ∉ v.asIdeal) :
     Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
       Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker := by
-  sorry
+  have h0 : (Associates.mk v.asIdeal).count
+      (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors = 0 := by
+    by_contra h
+    have h1 := (v.le_count_iff two_ne_zero 1).mp (Nat.one_le_iff_ne_zero.mpr h)
+    rw [pow_one] at h1
+    exact hv h1
+  rw [W.card_range_μ_adicCompletion v, h0, pow_zero, mul_one]
 
 open scoped Classical in
 /-- The size of the local image at a real place: `#(im μ_v) = #E(ℝ)[2] / 2` (that is, `2` if
-the cubic has three real roots, and `1` otherwise). -/
+the cubic has three real roots, and `1` otherwise).
+
+The proof is a sign analysis over the real closed field `v.Completion`: the étale algebra is
+`ℝ × ℂ` or `ℝ³` according to the number of real roots, the square classes are the signs at
+the real factors, and the image of `μ` consists of the sign patterns of `x - θᵢ` on the
+region `f ≥ 0`, using the intermediate value theorem to realize them. -/
 theorem card_range_μ_completion_isReal {v : InfinitePlace F} (hv : v.IsReal) :
     2 * Nat.card (μ (W := (W⁄v.Completion).toAffine)).range =
       Nat.card (nsmulAddMonoidHom (α := (W⁄v.Completion).toAffine.Point) 2).ker := by
   sorry
 
+-- the statement lives with its number-field siblings; `NumberField F` and `DecidableEq F` are
+-- part of the ambient section but the content is the general `card_range_μ_of_isAlgClosed`
+set_option linter.unusedSectionVars false in
 open scoped Classical in
-/-- The local image at a complex place is trivial: `E(ℂ)` is 2-divisible. -/
+/-- The local image at a complex place is trivial: over an algebraically closed field, every
+unit of the étale algebra is a square, so the whole group of square classes is trivial. -/
 theorem card_range_μ_completion_isComplex {v : InfinitePlace F} (hv : v.IsComplex) :
     Nat.card (μ (W := (W⁄v.Completion).toAffine)).range = 1 := by
-  sorry
+  -- `v.Completion ≃+* ℂ` is algebraically closed
+  have halg : IsAlgClosed v.Completion := by
+    set e := InfinitePlace.Completion.ringEquivComplexOfIsComplex hv with he
+    refine IsAlgClosed.of_exists_root _ fun p hpm hpi ↦ ?_
+    obtain ⟨z, hz⟩ := IsAlgClosed.exists_root (p.map (e : v.Completion →+* ℂ))
+      (by rw [degree_map]; exact (Polynomial.degree_pos_of_irreducible hpi).ne')
+    refine ⟨e.symm z, (map_eq_zero_iff (e : v.Completion →+* ℂ) e.injective).mp ?_⟩
+    rw [← Polynomial.eval₂_at_apply, ← Polynomial.eval_map,
+      show ((e : v.Completion →+* ℂ) (e.symm z)) = z from e.apply_symm_apply z]
+    exact hz
+  exact W.card_range_μ_of_isAlgClosed v.Completion
 
 end NumberField
 

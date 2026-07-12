@@ -148,6 +148,25 @@ lemma pow_eq_one {n : ℕ} (m : Units.modPow α n) : m ^ n = 1 := by
   rw [mk'_apply, ← mk_pow]
   exact (mk_eq_one_iff n).mpr ⟨u, rfl⟩
 
+/-- If every unit of `α` is an `n`-th power, then the group of `n`-th power classes of units
+is trivial. -/
+lemma subsingleton_of_forall_exists_pow {n : ℕ} (h : ∀ u : αˣ, ∃ w : αˣ, w ^ n = u) :
+    Subsingleton (Units.modPow α n) := by
+  refine ⟨fun a b ↦ ?_⟩
+  induction a using QuotientGroup.induction_on with
+  | H u =>
+    induction b using QuotientGroup.induction_on with
+    | H w => rw [(mk_eq_one_iff n).mpr (h u), (mk_eq_one_iff n).mpr (h w)]
+
+/-- Over an algebraically closed field, the group of `n`-th power classes of units is trivial
+(for `n ≠ 0`). -/
+lemma subsingleton_of_isAlgClosed (K : Type*) [Field K] [IsAlgClosed K] {n : ℕ} (hn : n ≠ 0) :
+    Subsingleton (Units.modPow K n) := by
+  refine subsingleton_of_forall_exists_pow fun u ↦ ?_
+  obtain ⟨z, hz⟩ := IsAlgClosed.exists_pow_nat_eq (u : K) (Nat.pos_of_ne_zero hn)
+  have hz0 : z ≠ 0 := fun h0 ↦ u.ne_zero (by rw [← hz, h0, zero_pow hn])
+  exact ⟨Units.mk0 z hz0, Units.ext (by simp [hz])⟩
+
 /-- A monoid homomorphism `α →* β` induces a homomorphism on `n`-th power classes of units. -/
 def map (φ : α →* β) (n : ℕ) : Units.modPow α n →* Units.modPow β n :=
   QuotientGroup.map _ _ (Units.map φ) <| by
