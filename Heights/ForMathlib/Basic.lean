@@ -446,6 +446,30 @@ lemma IsDedekindDomain.mem_selmerGroupAbove_iff (L : Type*) [Field L] [Algebra B
       ∀ w ∉ HeightOneSpectrum.primesAbove R B S, w.valuationOfNeZeroMod n x = 1 :=
   Iff.rfl
 
+-- as for `mem_selmerGroupAbove_iff`, the instances are needed for the statement only
+set_option linter.unusedSectionVars false in
+lemma IsDedekindDomain.selmerGroupAbove_empty (L : Type*) [Field L] [Algebra B L]
+    [IsFractionRing B L] (n : ℕ) :
+    selmerGroupAbove R B L (∅ : Set (HeightOneSpectrum R)) n =
+      selmerGroup (R := B) (K := L) (S := (∅ : Set (HeightOneSpectrum B))) (n := n) := by
+  rw [selmerGroupAbove, HeightOneSpectrum.primesAbove_empty]
+
+namespace IsDiscreteValuationRing
+
+variable (A : Type*) [CommRing A] [IsDomain A] [IsDiscreteValuationRing A]
+
+@[simp]
+lemma asIdeal_maximalIdeal : (maximalIdeal A).asIdeal = IsLocalRing.maximalIdeal A := rfl
+
+variable {A}
+
+/-- The maximal ideal is the only height-one prime of a discrete valuation ring. -/
+lemma _root_.IsDedekindDomain.HeightOneSpectrum.eq_maximalIdeal (P : HeightOneSpectrum A) :
+    P = maximalIdeal A :=
+  HeightOneSpectrum.ext (IsLocalRing.eq_maximalIdeal P.isMaximal)
+
+end IsDiscreteValuationRing
+
 namespace IsDedekindDomain.HeightOneSpectrum
 
 variable {B C : Type*} [CommRing B] [IsDedekindDomain B] [CommRing C] [IsDedekindDomain C]
@@ -920,6 +944,10 @@ lemma finite (hf : f ≠ 0) : Finite f.Factors := by
     (Subtype.impEmbedding _ (· ∈ normalizedFactors f)
       fun p hp ↦ (mem_normalizedFactors_iff hf).mpr hp).injective
 
+lemma nonempty (hu : ¬ IsUnit f) : Nonempty f.Factors :=
+  let ⟨p, hp⟩ := f.exists_monic_irreducible_factor hu
+  ⟨⟨p, hp⟩⟩
+
 lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=
   (Ideal.isCoprime_span_singleton_iff _ _).mp <| Ideal.isCoprime_iff_sup_eq.mpr <|
     Ideal.IsMaximal.coprime_of_ne
@@ -948,6 +976,14 @@ lemma associated_prod [Fintype f.Factors] (hf : f ≠ 0) (hsq : Squarefree f) :
     Multiset.dedup_eq_self.mpr ((squarefree_iff_nodup_normalizedFactors hf).mp hsq),
     Multiset.map_id']
   exact prod_normalizedFactors hf
+
+/-- The degrees of the distinct monic irreducible factors of `f ≠ 0` sum to at most the
+degree of `f` (with equality iff `f` is squarefree, up to normalization). -/
+lemma sum_natDegree_le [Fintype f.Factors] (hf : f ≠ 0) :
+    ∑ p : f.Factors, (p : K[X]).natDegree ≤ f.natDegree := by
+  rw [← natDegree_prod _ _ fun p _ ↦ p.ne_zero]
+  exact natDegree_le_of_dvd
+    (Fintype.prod_dvd_of_coprime (fun p q hpq ↦ isCoprime hpq) fun p ↦ p.dvd) hf
 
 lemma span_eq_iInf_span (hf : f ≠ 0) (hsq : Squarefree f) :
     Ideal.span {f} = ⨅ p : f.Factors, Ideal.span {(p : K[X])} := by

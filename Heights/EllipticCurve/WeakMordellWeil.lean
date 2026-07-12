@@ -141,6 +141,11 @@ lemma equation_iff_eval_f_eq_sq [W.IsCharNeTwoNF] (x y : K) :
   rw [equation_iff x y, eq_comm]
   simp [f]
 
+@[simp]
+lemma negY_of_isCharNeTwoNF [W.IsCharNeTwoNF] (x y : K) : W.negY x y = -y := by
+  rw [negY, a₁_of_isCharNeTwoNF, a₃_of_isCharNeTwoNF]
+  ring
+
 /-- On a point of `W`, the value `f x` is a square, so it vanishes exactly when `y` does. -/
 lemma ne_zero_of_eval_f_ne_zero [W.IsCharNeTwoNF] {x y : K} (h : W.Equation x y)
     (hx : W.f.eval x ≠ 0) : y ≠ 0 :=
@@ -474,7 +479,7 @@ private lemma xQ_ne_xP_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsing
   contrapose! hPQR
   rw! [hPQR] at hQ ⊢
   rw! [y_eq_zero_of_eval_f_eq_zero hP.1 h, y_eq_zero_of_eval_f_eq_zero hQ.1 h]
-  rw [add_self_of_Y_eq <| by simp [negY], zero_add]
+  rw [add_self_of_Y_eq <| by simp, zero_add]
   exact some_ne_zero hR
 
 open Point in
@@ -652,11 +657,11 @@ private lemma exists_eq_two_smul_of_identities {x y ξ l m : K} (h : W.Nonsingul
             + (16 * W.a₂ ^ 2 * W.a₄ - 64 * W.a₄ ^ 2 + 48 * W.a₂ * W.a₆)) *
           (2 * l * hΔ + 2 * ξ * H₂ - H₁))
   have hy : l * ξ + m ≠ W.negY ξ (l * ξ + m) := by
-    simp only [negY, a₁_of_isCharNeTwoNF, a₃_of_isCharNeTwoNF, zero_mul, sub_zero]
+    rw [negY_of_isCharNeTwoNF]
     grind
   have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
-    simp only [slope_of_Y_ne rfl hy, a₁_of_isCharNeTwoNF, a₃_of_isCharNeTwoNF, zero_mul,
-      sub_zero, negY, sub_neg_eq_add, ← two_mul]
+    simp only [slope_of_Y_ne rfl hy, a₁_of_isCharNeTwoNF, zero_mul, sub_zero,
+      negY_of_isCharNeTwoNF, sub_neg_eq_add, ← two_mul]
     rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
     field_simp
     grobner
@@ -1180,7 +1185,7 @@ lemma valuation_cofactor_eq_one {x : K}
     rw [hderiv, map_mul]
     exact (mul_le_of_le_one_right' h2t).trans_lt hlt
   rw [show s ^ 2 + t * s + t ^ 2 + A₂ * (s + t) + A
-      = (s - t) * (s + 2 * t + A₂) + (3 * t ^ 2 + 2 * A₂ * t + A) from by ring,
+      = (s - t) * (s + 2 * t + A₂) + (3 * t ^ 2 + 2 * A₂ * t + A) by ring,
     ν.map_add_eq_of_lt_right hlt', hderiv]
 
 /-- If `x` is a root of `f`, then at a prime `w` not above a bad prime the `p`-component of the
@@ -1216,7 +1221,7 @@ lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
   · -- `x = θ`: the component is `f' θ`
     rw [h0, zero_add, show t ^ 2 + (s + A₂) * t + (s ^ 2 + A₂ * s + A)
         = (s - t) * (s + 2 * t + A₂) + (3 * t ^ 2 + 2 * A₂ * t + A)
-      from by ring, h0, zero_mul, zero_add, hderiv]
+      by ring, h0, zero_mul, zero_add, hderiv]
   · -- the cofactor vanishes: the component is `x - θ`, and `f' θ = -(x - θ)(x + 2θ + a₂)`
     rw [h0, add_zero]
     have hst : s - t ∈ ν.integer := sub_mem hs1 ht
@@ -1224,7 +1229,7 @@ lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
       add_mem (add_mem hs1 (mul_mem (ofNat_mem _ 2) ht)) hA₂
     refine ν.eq_one_of_mul_eq_one hst h2t ?_
     rw [show (s - t) * (s + 2 * t + A₂) = -(3 * t ^ 2 + 2 * A₂ * t + A)
-        from by linear_combination h0,
+        by linear_combination h0,
       Valuation.map_neg, hderiv]
 
 end RingOfIntegers
