@@ -50,7 +50,7 @@ these requirements.
 * In [__Basic.lean__](Heights/Basic.lean) we replace the indexing types by 
   a `Multiset` of (archimedean) absolute values (with multiplicities corresponding to weights)
   and a `Set` of nonarchimedean absolte values. As can be seen in
-  [__Instances.lean__](Heights/Instances.lean), this needs a bit more glue to set up the
+  [__NumberField.lean__](Heights/NumberField.lean), this needs a bit more glue to set up the
   instance for number fields, but otherwise is quite workable.
 
 * A further variant can be found in [__BasicNoTypes.lean__](Heights/BasicNoTypes.lean).
@@ -87,7 +87,7 @@ In a comment on the
 (which was following BasicWithTypes.lean),
 it was pointed out that a class using indexing types could potentially lead to problems
 with universes later on. We will therefore switch to the multiset+set approach
-as in [__Basic.lean__](Heights/Basic.lean) and [__Instances.lean__](Heights/Instances.lean).
+as in [__Basic.lean__](Heights/Basic.lean) and [__NumberField.lean__](Heights/NumberField.lean).
 
 
 ## Main definitions
@@ -111,7 +111,7 @@ We define the following variants.
 ## Main results
 
 We set up an instance of `AdmissibleAbsValues` for number fields
-(see [__NumberFields.lean__](Heights/NumberFields.lean)).
+(see [__NumberField.lean__](Heights/NumberField.lean)).
 
 Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
 we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
@@ -125,19 +125,72 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 * The height on `ℚ` satisfies the *Northcott Property* (see `Rat.finite_of_mulHeight_le` and
   `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
 
+## The Mordell-Weil Theorem
+
+The main application of the heights machinery so far is a complete proof
+of the **Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
+curve `E` over a number field `K` is finitely generated. We assume that `E` is given by a
+short Weierstrass equation `y² = x³ + a₄·x + a₆` (which is always possible when the
+characteristic is neither `2` nor `3`). The end result is
+`WeierstrassCurve.Affine.fg_point_of_numberField` in
+[__EllipticCurve.lean__](Heights/EllipticCurve.lean), deduced from the more general
+`WeierstrassCurve.Affine.fg_point`, which works over the fraction field `K` of a Dedekind
+domain `R` such that `K` has admissible absolute values satisfying the Northcott property
+and such that for each irreducible factor `p` of `x³ + a₄·x + a₆`, the integral closure of
+`R` in `K[X]/(p)` has finite class group and finitely generated unit group. (These
+per-factor hypotheses cannot be replaced by the corresponding hypotheses on `R` itself;
+see the docstring of `fg_point`.)
+
+The proof follows the classical route and consists of the following parts.
+
+* The *descent* argument: an abelian group `G` carrying a suitable height function such
+  that `G/2G` is finite is finitely generated. This was originally developed here and has
+  meanwhile been upstreamed to Mathlib (`Mathlib.GroupTheory.Descent`; see
+  `AddCommGroup.fg_of_descent`).
+* The height function: in [__EllipticCurve.lean__](Heights/EllipticCurve.lean) we show
+  that the naïve height `h(P) = logHeight (x(P))` on `E(K)` satisfies the *approximate
+  parallelogram law* `|h(P+Q) + h(P−Q) − 2·h(P) − 2·h(Q)| ≤ C`
+  (`approx_parallelogram_law`), using the bounds on heights of images under tuples of
+  homogeneous polynomials from [__MvPolynomial.lean__](Heights/MvPolynomial.lean), and
+  that sets of points of bounded height are finite when `K` has the Northcott property.
+  This also yields the finiteness of the torsion subgroup of `E(K)` (`finite_torsion`).
+* The **Weak Mordell-Weil Theorem**: `E(K)/2E(K)` is finite; this is
+  `finite_index_range_nsmulAddMonoidHom_two` in
+  [__WeakMordellWeil.lean__](Heights/WeakMordellWeil.lean), proved over fraction fields of
+  Dedekind domains (with the finiteness hypotheses above) via the `x - T` descent map:
+  `E(K)/2E(K)` embeds into the group of square classes of the étale algebra
+  `A = K[X]/(x³ + a₄·x + a₆)`, with image contained in the `2`-Selmer group `A(S, 2)`
+  for the finite set `S` of bad primes, and the latter group is finite.
+
+The supporting theory for the last step is developed in a series of files whose contents
+are independent of elliptic curves (and are natural candidates for Mathlib):
+
+* [__FractionalIdeal.lean__](Heights/FractionalIdeal.lean): the group of invertible
+  fractional ideals of a Dedekind domain is free abelian on the height one primes
+  (`FractionalIdeal.factorization`); `n`-th roots of `n`-divisible fractional ideals and
+  their classes in the class group, with the exactness statement
+  `nthRootClass_eq_one_iff`.
+* [__SIntegers.lean__](Heights/SIntegers.lean): the ring `𝒪_S` of `S`-integers of `K` is
+  a Dedekind domain with fraction field `K`; its height one primes are exactly the
+  `v ∉ S` (compatibly with the valuations); and its class group is the quotient of
+  `Cl(R)` by the subgroup generated by the classes of the primes in `S` — in particular,
+  it is finite when `Cl(R)` is. Mathlib defines `𝒪_S`, but has essentially no API for it.
+* [__SelmerGroup.lean__](Heights/SelmerGroup.lean): the fundamental exact sequence
+  `1 → 𝒪_S^×/(𝒪_S^×)ⁿ → K(S, n) → Cl(𝒪_S)[n] → 1` for the Selmer group
+  `K(S, n) = IsDedekindDomain.selmerGroup` from Mathlib. Consequently, `K(S, n)` is
+  finite when `S` is finite, `Cl(R)` is finite and `R^×` is finitely generated
+  (`finite_selmerGroup`; listed as a TODO in Mathlib), together with the corresponding
+  statement for étale algebras (finite products of finite separable field extensions).
+  On the way, we prove Dirichlet's `S`-unit theorem: `𝒪_S^×` is finitely generated, of
+  rank `rank R^× + #S` (`fg_sUnit`, `finrank_sUnit`).
+* [__ForMathlib.lean__](Heights/ForMathlib.lean): general-purpose ingredients, e.g., the
+  group `Units.modPow A n` of units modulo `n`-th powers, the decomposition of an étale
+  algebra `K[X]/(f)` (for `f` squarefree) into a product of field factors indexed by the
+  monic irreducible factors of `f`, norms on `AdjoinRoot` via resultants, and the primes
+  of an extension lying above a given set of primes.
+
 ## Further developments
 
-* In [__Descent.lean__](Heights/Descent.lean) we provide a proof of the "infinite descent"
-  part of the *Mordell-Weil Theorem*, i.e., the implication
-  "`G/n•G` finite ⇒ `G` finitely generated", assuming there is a suitable kind
-  of height function on the additive commutative group `G`. See (the additivized version of)
-  `CommGroup.fg_of_descent`.
 * In [__WeakAbsoluteValue.lean__](Heights/WeakAbsoluteValue.lean) we provide a proof of the
   fact that a "weak" `ℝ`-valued absolute value `v` (i.e., satisfying only the weaker triangle
   inequality `v (x + y) ≤ 2 * max (v x) (v y)`) is in fact an absolute value.
-
-## Work in progress
-
-* In [__MvPolynomial.lean__](Heights/MvPolynomial.lean) we develop a proof for general
-  upper and lower bounds on the `mulHeight` of the image of a tuple under a tuple
-  of homogeneous polynomial maps of the same degree.
