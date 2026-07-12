@@ -69,7 +69,7 @@ lemma MonoidHom.coe_ofMapMulMulEqOne {f : G → H} (hf₁ : f 1 = 1)
 @[to_additive]
 lemma Subgroup.finite_comap_of_injective {f : G →* H} (hf : Function.Injective f)
     (S : Subgroup H) [Finite S] : Finite (S.comap f) :=
-  Finite.of_injective (fun x ↦ (⟨f x, x.2⟩ : S)) fun _ _ h ↦
+  .of_injective (fun x ↦ (⟨f x, x.2⟩ : S)) fun _ _ h ↦
     Subtype.ext <| hf <| congrArg Subtype.val h
 
 /-- A product of finitely many finite subgroups is finite. -/
@@ -77,7 +77,7 @@ lemma Subgroup.finite_comap_of_injective {f : G →* H} (hf : Function.Injective
 instance Subgroup.instFinitePi {ι : Type*} [Finite ι] {G : ι → Type*} [(i : ι) → Group (G i)]
     {S : (i : ι) → Subgroup (G i)} [(i : ι) → Finite (S i)] :
     Finite (Subgroup.pi Set.univ S) :=
-  Finite.of_injective (fun x i ↦ (⟨x.1 i, x.2 i (Set.mem_univ i)⟩ : S i)) fun _ _ h ↦
+  .of_injective (fun x i ↦ (⟨x.1 i, x.2 i (Set.mem_univ i)⟩ : S i)) fun _ _ h ↦
     Subtype.ext <| funext fun i ↦ congrArg Subtype.val (congrFun h i)
 
 end Group
@@ -90,8 +90,7 @@ variable {α : Type*} [Monoid α]
 lemma IsUnit.exists_pow_eq_unit_iff {a : α} (h : IsUnit a) (n : ℕ) :
     (∃ x, x ^ n = h.unit) ↔ ∃ x, x ^ n = a := by
   refine ⟨fun ⟨x, hx⟩ ↦ ⟨x, ?_⟩, fun ⟨x, hx⟩ ↦ ?_⟩
-  · apply_fun Units.val at hx
-    simpa using hx
+  · simpa using congrArg Units.val hx
   · cases n with
     | zero => exact ⟨1, Units.ext (by simpa using hx)⟩
     | succ _ => exact ⟨(isUnit_pow_succ_iff.mp (hx ▸ h)).unit, Units.ext hx⟩
@@ -124,31 +123,30 @@ namespace Units.modPow
 
 variable {α β : Type*} [CommMonoid α] [CommMonoid β] {a b c : α}
 
+open QuotientGroup
+
 lemma unit_eq_one_iff (ha : IsUnit a) (n : ℕ) :
     (ha.unit : Units.modPow α n) = 1 ↔ ∃ z, z ^ n = a := by
-  rw [QuotientGroup.eq_one_iff]
-  simp only [MonoidHom.mem_range, powMonoidHom_apply, IsUnit.exists_pow_eq_unit_iff]
+  simp [IsUnit.exists_pow_eq_unit_iff]
 
 lemma unit_mul_unit_mul_unit_eq_one_iff (ha : IsUnit a) (hb : IsUnit b) (hc : IsUnit c) (n : ℕ) :
     (ha.unit : Units.modPow α n) * hb.unit * hc.unit = 1 ↔ ∃ z, z ^ n = a * b * c := by
-  rw [← QuotientGroup.mk_mul, ← QuotientGroup.mk_mul, ← IsUnit.unit_mul, ← IsUnit.unit_mul]
+  simp only [← mk_mul, ← IsUnit.unit_mul]
   exact unit_eq_one_iff ((ha.mul hb).mul hc) n
 
 lemma mk_eq_one_iff {u : αˣ} (n : ℕ) :
     (QuotientGroup.mk u : Units.modPow α n) = 1 ↔ ∃ w : αˣ, w ^ n = u := by
-  rw [QuotientGroup.eq_one_iff]
-  simp only [MonoidHom.mem_range, powMonoidHom_apply]
+  simp
 
 lemma mk_eq_mk_iff {u v : αˣ} (n : ℕ) :
     (QuotientGroup.mk u : Units.modPow α n) = QuotientGroup.mk v ↔ ∃ w : αˣ, v = u * w ^ n := by
-  rw [QuotientGroup.eq]
-  simp only [MonoidHom.mem_range, powMonoidHom_apply]
+  simp only [QuotientGroup.eq, MonoidHom.mem_range, powMonoidHom_apply]
   exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩, fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩⟩
 
 @[simp]
 lemma pow_eq_one {n : ℕ} (m : Units.modPow α n) : m ^ n = 1 := by
-  obtain ⟨u, rfl⟩ := QuotientGroup.mk'_surjective _ m
-  rw [QuotientGroup.mk'_apply, ← QuotientGroup.mk_pow]
+  obtain ⟨u, rfl⟩ := mk'_surjective _ m
+  rw [mk'_apply, ← mk_pow]
   exact (mk_eq_one_iff n).mpr ⟨u, rfl⟩
 
 /-- A monoid homomorphism `α →* β` induces a homomorphism on `n`-th power classes of units. -/
@@ -164,36 +162,35 @@ lemma map_mk (φ : α →* β) (n : ℕ) (u : αˣ) :
 
 @[simp]
 lemma map_id (n : ℕ) : map (MonoidHom.id α) n = MonoidHom.id (Units.modPow α n) := by
-  ext u
+  ext
   simp
 
 lemma map_comp {γ : Type*} [CommMonoid γ] (ψ : β →* γ) (φ : α →* β) (n : ℕ) :
     (map ψ n).comp (map φ n) = map (ψ.comp φ) n := by
-  ext u
-  simp [Units.map_comp]
+  ext
+  simp
 
 @[simp]
 lemma map_unit (φ : α →* β) (n : ℕ) (ha : IsUnit a) :
     map φ n (ha.unit : Units.modPow α n) = ((ha.map φ).unit : Units.modPow β n) := by
-  rw [map, ← QuotientGroup.mk'_apply, QuotientGroup.map_mk']
+  rw [map, ← mk'_apply, map_mk']
   exact congrArg _ (Units.ext rfl)
 
 /-- A multiplicative equivalence `α ≃* β` induces one on `n`-th power classes of units. -/
 def congr (e : α ≃* β) (n : ℕ) : Units.modPow α n ≃* Units.modPow β n :=
-  QuotientGroup.congrRangePowMonoidHom (Units.mapEquiv e) n
+  congrRangePowMonoidHom (Units.mapEquiv e) n
 
 /-- Taking `n`-th power classes of units commutes with products. -/
 noncomputable def piEquiv {ι : Type*} (α : ι → Type*) [(i : ι) → CommMonoid (α i)] (n : ℕ) :
     Units.modPow ((i : ι) → α i) n ≃* ((i : ι) → Units.modPow (α i) n) :=
-  (QuotientGroup.congrRangePowMonoidHom MulEquiv.piUnits n).trans <|
-    QuotientGroup.mulEquivPiModRangePowMonoidHom (fun i ↦ (α i)ˣ) n
+  (congrRangePowMonoidHom MulEquiv.piUnits n).trans <|
+    mulEquivPiModRangePowMonoidHom (fun i ↦ (α i)ˣ) n
 
 @[simp]
 lemma piEquiv_mk {ι : Type*} (α : ι → Type*) [(i : ι) → CommMonoid (α i)] (n : ℕ)
     (u : ((i : ι) → α i)ˣ) (i : ι) :
     piEquiv α n (QuotientGroup.mk u) i = QuotientGroup.mk (MulEquiv.piUnits u i) := by
-  simp [piEquiv, QuotientGroup.congrRangePowMonoidHom,
-    QuotientGroup.mulEquivPiModRangePowMonoidHom_apply]
+  simp [piEquiv, congrRangePowMonoidHom, mulEquivPiModRangePowMonoidHom_apply]
 
 end Units.modPow
 
@@ -257,8 +254,8 @@ lemma Valuation.map_eval_eq_of_one_lt {p : L[X]} (hp : p.Monic)
     rw [Finset.mem_range] at hi
     calc ν (p.coeff i * t ^ i) ≤ 1 * ν t ^ i := by
           rw [map_mul, map_pow]; gcongr; exact hcoeff i hi
-    _ = ν t ^ i := one_mul _
-    _ < ν t ^ n := pow_lt_pow_right₀ ht hi
+      _ = ν t ^ i := one_mul _
+      _ < ν t ^ n := pow_lt_pow_right₀ ht hi
   rw [heval, ν.map_add_eq_of_lt_right hlt, map_pow]
 
 /-- A root of a monic polynomial of positive degree with coefficients that are integral for the
@@ -266,7 +263,8 @@ valuation `ν` is itself integral. (This is a concrete form of the fact that val
 integrally closed.) -/
 lemma Valuation.le_one_of_root_monic {p : L[X]} (hp : p.Monic)
     (hcoeff : ∀ i < p.natDegree, ν (p.coeff i) ≤ 1) (hdeg : p.natDegree ≠ 0)
-    (heq : p.eval t = 0) : ν t ≤ 1 := by
+    (heq : p.eval t = 0) :
+    ν t ≤ 1 := by
   by_contra! hlt
   have h := ν.map_eval_eq_of_one_lt hp hcoeff hlt
   rw [heq, map_zero] at h
@@ -276,6 +274,9 @@ section Cubic
 
 variable [Nontrivial L]
 
+-- The following three lemmas are very specific and should be moved
+-- as private lemma to their use site.
+-- Or maybe better: inline the proofs if it doesn't blow up proof length too much.
 private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) :
     ∀ i < (X ^ 3 + C a * X + C b).natDegree, ν ((X ^ 3 + C a * X + C b).coeff i) ≤ 1 := by
   have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
@@ -315,6 +316,7 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 but finitely many primes. -/
 lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (hx : x ≠ 0) :
     {v : HeightOneSpectrum R | v.valuation K x ≠ 1}.Finite := by
+  -- maybe this can be streamlined using 'Ideal.hasFiniteMulSupport`?
   refine ((Support.finite R x).union (Support.finite R x⁻¹)).subset fun v hv ↦ ?_
   rcases lt_or_gt_of_ne hv with h | h
   · refine .inr ?_
@@ -372,7 +374,9 @@ lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff
       (n : ℤ) ∣ Multiplicative.toAdd (v.valuationOfNeZero u) := by
   rw [valuationOfNeZeroMod, MonoidHom.comp_apply, MulEquiv.toMonoidHom_eq_coe,
     MonoidHom.coe_coe, EmbeddingLike.map_eq_one_iff]
-  show (QuotientGroup.mk (v.valuationOfNeZero u) : Multiplicative ℤ ⧸ _) = 1 ↔ _
+  -- This is not necessary:
+  -- show (QuotientGroup.mk (v.valuationOfNeZero u) : Multiplicative ℤ ⧸ _) = 1 ↔ _
+  -- If helpful for following the proof, replace `show` by `change`.
   refine (QuotientGroup.eq_one_iff _).trans ?_
   rw [Multiplicative.mem_toSubgroup, AddSubgroup.mem_zmultiples_iff]
   exact ⟨fun ⟨k, hk⟩ ↦ ⟨k, by rw [← hk]; ring⟩, fun ⟨k, hk⟩ ↦ ⟨k, by rw [hk]; ring⟩⟩
@@ -381,11 +385,11 @@ lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff
 `w ≠ v`. -/
 lemma IsDedekindDomain.HeightOneSpectrum.valuation_algebraMap_eq_one_of_pow_eq_span
     {v w : HeightOneSpectrum R} (hne : w ≠ v) {n : ℕ} {π : R}
-    (h : v.asIdeal ^ n = Ideal.span {π}) : w.valuation K (algebraMap R K π) = 1 := by
+    (h : v.asIdeal ^ n = Ideal.span {π}) :
+    w.valuation K (algebraMap R K π) = 1 := by
   refine w.valuation_eq_one_iff_notMem.mpr fun hmem ↦ hne (HeightOneSpectrum.ext ?_).symm
   refine v.isMaximal.eq_of_le w.isPrime.ne_top (Ideal.IsPrime.le_of_pow_le (n := n) ?_)
-  rw [h, Ideal.span_le, Set.singleton_subset_iff]
-  exact hmem
+  rwa [h, Ideal.span_le, Set.singleton_subset_iff]
 
 variable (R) (B : Type*) [CommRing B] [IsDedekindDomain B] [Algebra R B]
 
@@ -411,11 +415,13 @@ def IsDedekindDomain.HeightOneSpectrum.below [Algebra.IsIntegral R B] (w : Heigh
 
 @[simp]
 lemma IsDedekindDomain.HeightOneSpectrum.below_asIdeal [Algebra.IsIntegral R B]
-    (w : HeightOneSpectrum B) : (w.below R).asIdeal = w.asIdeal.under R :=
+    (w : HeightOneSpectrum B) :
+    (w.below R).asIdeal = w.asIdeal.under R :=
   rfl
 
 instance IsDedekindDomain.HeightOneSpectrum.instLiesOverBelow [Algebra.IsIntegral R B]
-    (w : HeightOneSpectrum B) : w.asIdeal.LiesOver (w.below R).asIdeal :=
+    (w : HeightOneSpectrum B) :
+    w.asIdeal.LiesOver (w.below R).asIdeal :=
   Ideal.over_under ..
 
 lemma IsDedekindDomain.HeightOneSpectrum.mem_primesAbove_iff [Algebra.IsIntegral R B]
@@ -430,13 +436,12 @@ lemma IsDedekindDomain.HeightOneSpectrum.primesAbove_finite [Algebra.IsIntegral 
     [Module.IsTorsionFree R B] {S : Set (HeightOneSpectrum R)} (hS : S.Finite) :
     (primesAbove R B S).Finite := by
   have hsub : primesAbove R B S ⊆
-      ⋃ v ∈ S, {w : HeightOneSpectrum B | w.asIdeal ∈ v.asIdeal.primesOver B} := by
-    rintro w ⟨v, hv, hva⟩
-    exact Set.mem_biUnion hv ⟨w.isPrime, ⟨hva⟩⟩
-  refine (hS.biUnion fun v _ => ?_).subset hsub
+      ⋃ v ∈ S, {w : HeightOneSpectrum B | w.asIdeal ∈ v.asIdeal.primesOver B} :=
+    fun w ⟨v, hv, hva⟩ ↦ Set.mem_biUnion hv ⟨w.isPrime, ⟨hva⟩⟩
+  refine (hS.biUnion fun v _ ↦ ?_).subset hsub
   have := v.isMaximal
   exact (IsDedekindDomain.primesOver_finite v.asIdeal B).preimage
-    (fun a _ b _ hab => HeightOneSpectrum.ext hab)
+    (fun a _ b _ hab ↦ HeightOneSpectrum.ext hab)
 
 /-- The `S`-Selmer group of `L`, where `B` is a Dedekind domain with fraction field `L` and `S`
 is a set of primes of `R`: the classes of `Lˣ` modulo `n`-th powers whose valuation is divisible
@@ -462,19 +467,17 @@ variable {R : Type*} [CommRing R] {g : R[X]}
 Note the absence of a sign: `C x - X` is `-(X - C x)`, and the two signs cancel. -/
 lemma resultant_C_sub_X (f : R[X]) (x : R) (m : ℕ) (hm : f.natDegree ≤ m) :
     f.resultant (C x - X) m 1 = f.eval x := by
-  have h₁ : f.resultant (X - C x) m 1 = (-1) ^ m * f.eval x := by
+  have h : f.resultant (X - C x) m 1 = (-1) ^ m * f.eval x := by
     have := resultant_X_sub_C_pow_right f x m 1 hm
     rwa [pow_one, mul_one, pow_one] at this
-  rw [show C x - X = C (-1 : R) * (X - C x) by simp, resultant_C_mul_right, h₁,
+  rw [show C x - X = C (-1 : R) * (X - C x) by simp, resultant_C_mul_right, h,
     ← mul_assoc, ← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow, one_mul]
 
 lemma Monic.resultant_one_right (hg : g.Monic) (n : ℕ) :
     g.resultant 1 g.natDegree n = 1 := by
-  have h := resultant_add_right_deg (f := g) (g := 1) (m := g.natDegree) (n := 0) (k := n)
-    (by simp)
-  rw [zero_add, ← C_1, resultant_C_zero_right, one_pow, mul_one, hg.coeff_natDegree,
-    one_pow] at h
-  rw [← C_1, h]
+  convert resultant_add_right_deg g 1 g.natDegree 0 n (by simp)
+  · simp
+  rw [← C_1, resultant_C_zero_right, one_pow, mul_one, hg.coeff_natDegree, one_pow]
 
 lemma mem_degreeLT_natDegree_iff {q : R[X]} (hg : g ≠ 0) :
     q ∈ degreeLT R g.natDegree ↔ q.degree < g.degree := by
@@ -491,12 +494,10 @@ lemma exists_eq_C_mul_X_sub_C_of_natDegree_le_one {p : R[X]} (hdeg : p.natDegree
   rcases eq_or_ne q 0 with rfl | hq
   · exact ⟨0, by simp⟩
   have h1 : (X - C x).leadingCoeff * q.leadingCoeff ≠ 0 := by
-    rw [(monic_X_sub_C x).leadingCoeff, one_mul, leadingCoeff_ne_zero]
-    exact hq
+    rwa [(monic_X_sub_C x).leadingCoeff, one_mul, leadingCoeff_ne_zero]
   rw [natDegree_mul' h1, natDegree_X_sub_C] at hdeg
   refine ⟨q.coeff 0, ?_⟩
-  conv_lhs => rw [eq_C_of_natDegree_eq_zero (by lia : q.natDegree = 0)]
-  ring
+  nth_rw 1 [eq_C_of_natDegree_eq_zero (by lia : q.natDegree = 0), mul_comm]
 
 lemma modByMonic_mem_degreeLT (hg : g.Monic) (q : R[X]) :
     q %ₘ g ∈ degreeLT R g.natDegree :=
@@ -508,18 +509,14 @@ lemma divByMonic_mem_degreeLT (hg : g.Monic)
   rcases eq_or_ne (q /ₘ g) 0 with h | h
   · simp [h]
   have hq0 : q ≠ 0 := fun h0 ↦ h (by simp [h0])
-  have h₁ : q.natDegree < g.natDegree + n := (natDegree_lt_iff_degree_lt hq0).mpr hq
-  have h₂ : g.natDegree ≤ q.natDegree := by
-    by_contra hcon
-    exact h <| (divByMonic_eq_zero_iff hg).mpr <| degree_lt_degree (not_le.mp hcon)
   rw [← natDegree_lt_iff_degree_lt h, natDegree_divByMonic q hg]
-  lia
+  refine Nat.sub_lt_left_of_lt_add ?_ <| (natDegree_lt_iff_degree_lt hq0).mpr hq
+  by_contra! hcon
+  exact h <| (divByMonic_eq_zero_iff hg).mpr <| degree_lt_degree hcon
 
 lemma eq_zero_of_monic_dvd_of_degree_lt (hg : g.Monic) (hdvd : g ∣ q)
-    (hq : q.degree < g.degree) : q = 0 := by
-  have h₁ : q %ₘ g = q := (modByMonic_eq_self_iff hg).mpr hq
-  have h₂ : q %ₘ g = 0 := (modByMonic_eq_zero_iff_dvd hg).mpr hdvd
-  rw [← h₁, h₂]
+    (hq : q.degree < g.degree) : q = 0 :=
+  ((modByMonic_eq_self_iff hg).mpr hq).symm.trans <| (modByMonic_eq_zero_iff_dvd hg).mpr hdvd
 
 private lemma Monic.divMod_mul_add (hg : g.Monic) (v u : R[X]) :
     (g * v + u) /ₘ g = v + u /ₘ g ∧ (g * v + u) %ₘ g = u %ₘ g := by
@@ -538,6 +535,7 @@ lemma Monic.modByMonic_mul_add (hg : g.Monic) (v u : R[X]) :
 end
 
 section Sylvester
+-- Reviewed up to here.
 
 open Module LinearMap LinearEquiv
 
