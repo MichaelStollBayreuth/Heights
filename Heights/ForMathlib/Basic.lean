@@ -438,6 +438,81 @@ lemma IsDedekindDomain.mem_selmerGroupAbove_iff (L : Type*) [Field L] [Algebra B
       ∀ w ∉ HeightOneSpectrum.primesAbove R B S, w.valuationOfNeZeroMod n x = 1 :=
   Iff.rfl
 
+namespace IsDedekindDomain.HeightOneSpectrum
+
+variable {B C : Type*} [CommRing B] [IsDedekindDomain B] [CommRing C] [IsDedekindDomain C]
+
+/-- The height-one prime of `B` obtained by contracting a height-one prime along a ring
+homomorphism `ψ : B →+* C`, given that the contraction is nonzero. -/
+def comapOfNeBot (ψ : B →+* C) (w : HeightOneSpectrum C) (hne : w.asIdeal.comap ψ ≠ ⊥) :
+    HeightOneSpectrum B where
+  asIdeal := w.asIdeal.comap ψ
+  isPrime := w.isPrime.comap ψ
+  ne_bot := hne
+
+-- the `IsDedekindDomain` instances are needed to state this, but the proof (`rfl`) erases them
+set_option linter.unusedSectionVars false in
+@[simp]
+lemma comapOfNeBot_asIdeal (ψ : B →+* C) (w : HeightOneSpectrum C)
+    (hne : w.asIdeal.comap ψ ≠ ⊥) :
+    (comapOfNeBot ψ w hne).asIdeal = w.asIdeal.comap ψ :=
+  rfl
+
+variable {L N : Type*} [Field L] [Algebra B L] [IsFractionRing B L]
+  [Field N] [Algebra C N] [IsFractionRing C N]
+
+/-- The `w`-adic valuation of `φ u` is the valuation of `u` at the contracted prime, raised
+to a fixed positive power (the ramification index), for an embedding `φ` of fraction fields
+compatible with an embedding `ψ` of Dedekind domains. -/
+theorem exists_valuationOfNeZero_map_eq (φ : L →+* N) (ψ : B →+* C)
+    (hcomp : (algebraMap C N).comp ψ = φ.comp (algebraMap B L))
+    (w : HeightOneSpectrum C) (hne : w.asIdeal.comap ψ ≠ ⊥) :
+    ∃ e : ℕ, ∀ u : Lˣ, w.valuationOfNeZero (Units.map (φ : L →* N) u) =
+      (comapOfNeBot ψ w hne).valuationOfNeZero u ^ e := by
+  let _ : Algebra B C := ψ.toAlgebra
+  let _ : Algebra L N := φ.toAlgebra
+  let _ : Algebra B N := (φ.comp (algebraMap B L)).toAlgebra
+  have hψ : Function.Injective ψ := by
+    have h : Function.Injective ((algebraMap C N).comp ψ) := by
+      rw [hcomp]
+      exact φ.injective.comp (IsFractionRing.injective B L)
+    exact fun x y hxy ↦ h (by simp only [RingHom.comp_apply, hxy])
+  have ht1 : IsScalarTower B L N := .of_algebraMap_eq' rfl
+  have ht2 : IsScalarTower B C N := .of_algebraMap_eq fun x ↦ (RingHom.congr_fun hcomp x).symm
+  have htf : Module.IsTorsionFree B C := Module.isTorsionFree_iff_algebraMap_injective.mpr hψ
+  have hlie : w.asIdeal.LiesOver (comapOfNeBot ψ w hne).asIdeal := ⟨rfl⟩
+  refine ⟨(comapOfNeBot ψ w hne).asIdeal.ramificationIdx' w.asIdeal, fun u ↦ ?_⟩
+  rw [valuationOfNeZero_eq_iff, WithZero.coe_pow, valuationOfNeZero_eq, Units.coe_map,
+    MonoidHom.coe_coe]
+  exact (valuation_liesOver N (comapOfNeBot ψ w hne) w (u : L)).symm
+
+/-- Divisibility of adic valuations transports along compatible embeddings: if the valuation
+of `u` at the contracted prime is divisible by `n`, so is the `w`-adic valuation of `φ u`. -/
+theorem dvd_toAdd_valuationOfNeZero_map (φ : L →+* N) (ψ : B →+* C)
+    (hcomp : (algebraMap C N).comp ψ = φ.comp (algebraMap B L))
+    (w : HeightOneSpectrum C) (hne : w.asIdeal.comap ψ ≠ ⊥) {n : ℕ} (u : Lˣ)
+    (h : (n : ℤ) ∣ Multiplicative.toAdd ((comapOfNeBot ψ w hne).valuationOfNeZero u)) :
+    (n : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero (Units.map (φ : L →* N) u)) := by
+  obtain ⟨e, he⟩ := exists_valuationOfNeZero_map_eq φ ψ hcomp w hne
+  rw [he u, toAdd_pow, nsmul_eq_mul]
+  exact h.mul_left _
+
+/-- The maximal ideal of the ring of integers of the completion of `K` at `v` contracts
+to `v` itself. -/
+theorem comap_maximalIdeal_adicCompletionIntegers (v : HeightOneSpectrum R) :
+    (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K)).comap
+      (algebraMap R (v.adicCompletionIntegers K)) = v.asIdeal := by
+  ext x
+  rw [Ideal.mem_comap, ← valuation_lt_one_iff_mem (K := K)]
+  refine (Valuation.mem_maximalIdeal_iff (v := (Valued.v : Valuation (v.adicCompletion K)
+    (WithZero (Multiplicative ℤ))))).trans ?_
+  rw [show ((algebraMap R (v.adicCompletionIntegers K) x : v.adicCompletionIntegers K) :
+    v.adicCompletion K) = ((algebraMap R K x : K) : v.adicCompletion K) from rfl,
+    Valued.valuedCompletion_apply]
+  exact Iff.rfl
+
+end IsDedekindDomain.HeightOneSpectrum
+
 end DedekindDomain
 
 namespace Polynomial
@@ -735,7 +810,50 @@ lemma norm_mk_eq_resultant [Nontrivial R] (hg : g.Monic) (p : R[X]) :
     Matrix.det_mul, toMatrix_sylvesterMap' g 1 le_rfl (by simp), ← resultant,
     hg.resultant_one_right, one_mul]
 
+section MapOfDvd
+
+variable {S : Type*} [CommRing S] (σ : R →+* S)
+
+/-- The homomorphism `R[X]/(p) →+* S[X]/(q)` induced by `σ : R →+* S` when `q` divides the
+image of `p`: it sends the root to the root. -/
+noncomputable def mapOfDvd {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) :
+    AdjoinRoot p →+* AdjoinRoot q :=
+  lift ((of q).comp σ) (root q) <| by
+    rw [← Polynomial.eval₂_map, ← algebraMap_eq, ← Polynomial.aeval_def, aeval_eq,
+      mk_eq_zero.mpr hq]
+
+@[simp]
+lemma mapOfDvd_mk {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) (g : R[X]) :
+    mapOfDvd σ hq (mk p g) = mk q (g.map σ) := by
+  rw [mapOfDvd, lift_mk, ← Polynomial.eval₂_map, ← algebraMap_eq, ← Polynomial.aeval_def,
+    aeval_eq]
+
+@[simp]
+lemma mapOfDvd_of {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) (c : R) :
+    mapOfDvd σ hq (of p c) = of q (σ c) := by
+  rw [show of p c = mk p (C c) from rfl, mapOfDvd_mk, map_C, show mk q (C (σ c)) = of q (σ c)
+    from rfl]
+
+end MapOfDvd
+
 end AdjoinRoot
+
+/-- The base-change map `K[X]/(p) →+* K_v[X]/(q)` of `AdjoinRoot`s at a completion is
+compatible with the algebra maps from the underlying Dedekind domain `R` and from the ring of
+integers of the completion. -/
+lemma AdjoinRoot.mapOfDvd_comp_algebraMap {R : Type*} [CommRing R] [IsDedekindDomain R]
+    {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+    (v : IsDedekindDomain.HeightOneSpectrum R) {p : K[X]} {q : (v.adicCompletion K)[X]}
+    (hq : q ∣ p.map (algebraMap K (v.adicCompletion K))) :
+    (mapOfDvd (algebraMap K (v.adicCompletion K)) hq).comp (algebraMap R (AdjoinRoot p)) =
+      (algebraMap (v.adicCompletionIntegers K) (AdjoinRoot q)).comp
+        (algebraMap R (v.adicCompletionIntegers K)) := by
+  ext c
+  simp only [RingHom.comp_apply]
+  rw [IsScalarTower.algebraMap_apply R K (AdjoinRoot p), AdjoinRoot.algebraMap_eq, mapOfDvd_of,
+    IsScalarTower.algebraMap_apply (v.adicCompletionIntegers K) (v.adicCompletion K)
+      (AdjoinRoot q), AdjoinRoot.algebraMap_eq]
+  rfl
 
 section EtaleDecomposition
 
@@ -829,6 +947,19 @@ lemma span_eq_iInf_span (hf : f ≠ 0) (hsq : Squarefree f) :
   rw [Ideal.iInf_span_singleton fun _ _ hpq ↦ isCoprime hpq]
   exact (Ideal.span_singleton_eq_span_singleton.mpr (associated_prod hf hsq)).symm
 
+/-- An irreducible factor of the image of `f` under a field embedding divides the image of
+one of the irreducible factors of `f`. -/
+lemma exists_dvd_map {L : Type*} [Field L] (σ : K →+* L) (hf : f ≠ 0)
+    {q : L[X]} (hq : Prime q) (hdvd : q ∣ f.map σ) :
+    ∃ p : f.Factors, q ∣ (p : K[X]).map σ := by
+  classical
+  have h1 : Associated ((normalizedFactors f).map (Polynomial.map σ)).prod (f.map σ) := by
+    have h2 := (prod_normalizedFactors hf).map (mapRingHom σ)
+    rwa [map_multiset_prod, coe_mapRingHom] at h2
+  obtain ⟨g, hgmem, hgdvd⟩ := hq.exists_mem_multiset_dvd (hdvd.trans h1.symm.dvd)
+  obtain ⟨p₀, hp₀, rfl⟩ := Multiset.mem_map.mp hgmem
+  exact ⟨⟨p₀, (mem_normalizedFactors_iff hf).mp hp₀⟩, hgdvd⟩
+
 end Factors
 
 end Polynomial
@@ -904,6 +1035,17 @@ lemma modPowEquivPiFactors_unit (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ) {a
     QuotientGroup.congrRangePowMonoidHom, QuotientGroup.congr_mk, Units.modPow.piEquiv,
     QuotientGroup.mulEquivPiModRangePowMonoidHom_apply]
   exact congrArg _ (Units.ext rfl)
+
+/-- On the class of a unit, `modPowEquivPiFactors` is componentwise projection to the factors
+(`Units.map` version of `modPowEquivPiFactors_unit`). -/
+@[simp]
+lemma modPowEquivPiFactors_mk (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ)
+    (u : (AdjoinRoot f)ˣ) (p : f.Factors) :
+    modPowEquivPiFactors hf hsq n (QuotientGroup.mk u) p =
+      QuotientGroup.mk (Units.map (projFactor hf hsq p).toMonoidHom u) := by
+  have h := modPowEquivPiFactors_unit hf hsq n u.isUnit p
+  rw [show u.isUnit.unit = u from Units.ext rfl] at h
+  exact h.trans (congrArg QuotientGroup.mk (Units.ext rfl))
 
 end AdjoinRoot
 

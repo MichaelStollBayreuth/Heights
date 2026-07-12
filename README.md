@@ -196,6 +196,11 @@ curves and are intended for eventual upstreaming to Mathlib:
   isomorphism `(C • W).Point ≃+ W.Point` induced by an admissible change of variables `C`
   on the points of a Weierstrass curve `W` (shared with the FLT project); this is what
   transfers the Mordell-Weil theorem from the normal form `y² = cubic` to arbitrary models.
+* [__ForMathlib/AdicCompletionExtension.lean__](Heights/ForMathlib/AdicCompletionExtension.lean):
+  the extension `K_v →+* L_w` of adic completions along an extension of Dedekind domains with
+  `w ∣ v`, its compatibility with the valuations (up to the ramification index) and with the
+  rings of integers (adapted from the FLT project), and the identification of the height-one
+  valuation of the discrete valuation ring `𝒪_v` with the valuation of the completion.
 
 ## Work in progress
 
@@ -204,9 +209,12 @@ curves and are intended for eventual upstreaming to Mathlib:
   Selmer group as a subgroup of the square classes of the étale algebra, the rank bound
   coming from `im μ ≤ Sel₂`, the reduction of its computation to the local conditions at the
   bad and infinite places (which also gives finiteness), and the size formulas for the local
-  images. Most statements are still `sorry`ed. The goal is a formal proof that the
-  Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic to `ℤ`, as a show-piece for
-  formalized explicit 2-descent.
+  images. The semilocal comparison between unramifiedness over `𝒪_S` and over the completions
+  at the good places is proved in both directions; still `sorry`ed are the local statement
+  that at a good place every unramified class with trivial norm comes from a point, and the
+  size formulas for the local images at places over `2` and at real places. The goal is a
+  formal proof that the Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic
+  to `ℤ`, as a show-piece for formalized explicit 2-descent.
 
 ## Further developments
 
