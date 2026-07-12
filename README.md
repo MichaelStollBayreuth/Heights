@@ -129,17 +129,19 @@ we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
 
 The main application of the heights machinery so far is a complete proof
 of the **Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
-curve `E` over a number field `K` is finitely generated. We assume that `E` is given by a
-short Weierstrass equation `y² = x³ + a₄·x + a₆` (which is always possible when the
-characteristic is neither `2` nor `3`). The end result is
+curve `E` over a number field `K` is finitely generated. The end result is
 `WeierstrassCurve.Affine.fg_point_of_numberField` in
-[__EllipticCurve/MordellWeil.lean__](Heights/EllipticCurve/MordellWeil.lean), deduced from the more general
-`WeierstrassCurve.Affine.fg_point`, which works over the fraction field `K` of a Dedekind
-domain `R` such that `K` has admissible absolute values satisfying the Northcott property
-and such that for each irreducible factor `p` of `x³ + a₄·x + a₆`, the integral closure of
-`R` in `K[X]/(p)` has finite class group and finitely generated unit group. (These
-per-factor hypotheses cannot be replaced by the corresponding hypotheses on `R` itself;
-see the docstring of `fg_point`.)
+[__EllipticCurve/MordellWeil.lean__](Heights/EllipticCurve/MordellWeil.lean), for arbitrary
+Weierstrass models. It is deduced from the more general `WeierstrassCurve.Affine.fg_point`,
+which works for `E` given by a short Weierstrass equation `y² = x³ + a₄·x + a₆` over the
+fraction field `K` of a Dedekind domain `R` such that `K` has admissible absolute values
+satisfying the Northcott property and such that for each irreducible factor `p` of
+`x³ + a₄·x + a₆`, the integral closure of `R` in `K[X]/(p)` has finite class group and
+finitely generated unit group. (These per-factor hypotheses cannot be replaced by the
+corresponding hypotheses on `R` itself; see the docstring of `fg_point`.) The reduction to
+short normal form (`fg_point_of_variableChange`) goes along an admissible change of
+variables, which exists whenever `2` and `3` are invertible in `K`, and uses the induced
+isomorphism of the groups of points.
 
 The proof follows the classical route and consists of the following parts.
 
@@ -189,6 +191,10 @@ curves and are intended for eventual upstreaming to Mathlib:
   algebra `K[X]/(f)` (for `f` squarefree) into a product of field factors indexed by the
   monic irreducible factors of `f`, norms on `AdjoinRoot` via resultants, and the primes
   of an extension lying above a given set of primes.
+* [__ForMathlib/VariableChange.lean__](Heights/ForMathlib/VariableChange.lean): the group
+  isomorphism `(C • W).Point ≃+ W.Point` induced by an admissible change of variables `C`
+  on the points of a Weierstrass curve `W` (shared with the FLT project); this is what
+  transfers the Mordell-Weil theorem from the short normal form to arbitrary models.
 
 ## Further developments
 

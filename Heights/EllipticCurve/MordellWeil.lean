@@ -1,25 +1,36 @@
 import Mathlib
 import Heights.Basic
 import Heights.MvPolynomial
+import Heights.ForMathlib.VariableChange
 import Heights.EllipticCurve.WeakMordellWeil
 
 /-!
-# The approximate parallelogram law on elliptic curves
+# The Mordell-Weil Theorem
 
-If `K` is a field with `AdmissibleAbsoluteValues` and `E` is an elliptic curve over `K`,
-let `h : E(K) → ℝ` be the naïve height of the x-coordinate.
+The goal of this file is the **Mordell-Weil Theorem**: the group `E(K)` of `K`-rational
+points of an elliptic curve `E` over a number field `K` is finitely generated. It comes in
+three versions:
 
-The goal of this file is to show the approximate parallelogram law:
-`∃ C, ∀ P Q : E(K), |h(P+Q) + h(P-Q) - 2*h(P) - 2*h(Q)| ≤ C`,
-where `h` denotes the (logarithmic) naïve height on `E(K)`,
-and to show that there are only finitely many points in `E(K)` of bounded height
-when `K` has the Northcott property.
+* `fg_point`: for `E` in short normal form over the fraction field `K` of a Dedekind domain,
+  where `K` has admissible absolute values satisfying the Northcott property and the needed
+  class-group and unit-group finiteness statements are taken as hypotheses;
+* `fg_point_of_variableChange`: for an arbitrary `E` over such a `K`, given an admissible
+  change of variables into short normal form (which exists whenever `2` and `3` are
+  invertible in `K`), by transfer along the isomorphism of point groups from
+  `Heights.ForMathlib.VariableChange`;
+* `fg_point_of_numberField`: for an arbitrary `E` over a number field, where all hypotheses
+  are theorems.
 
-Combining this with the Weak Mordell-Weil Theorem of `Heights.EllipticCurve.WeakMordellWeil`, the file
-culminates in the **Mordell-Weil Theorem**: `E(K)` is finitely generated, both in a general
-version (`fg_point`, for `K` the fraction field of a Dedekind domain, with the Northcott
-property and the needed class-group and unit-group finiteness as hypotheses) and for number
-fields (`fg_point_of_numberField`, where all hypotheses are theorems).
+The proof is by descent (`AddCommGroup.fg_of_descent'`, in Mathlib): the Weak Mordell-Weil
+Theorem of `Heights.EllipticCurve.WeakMordellWeil` provides the finiteness of `E(K)/2E(K)`,
+and the naïve height `h(P) = logHeight (x(P))` provides the required height function. The
+main technical step on the way, and the bulk of this file, is the *approximate parallelogram
+law* `∃ C, ∀ P Q : E(K), |h(P+Q) + h(P-Q) - 2*h(P) - 2*h(Q)| ≤ C`
+(`approx_parallelogram_law`), proved via the addition-and-multiplication map on
+`x`-coordinates and the bounds on heights of images under tuples of homogeneous polynomials
+from `Heights.MvPolynomial`. Together with the Northcott property it also yields the
+finiteness of sets of points of bounded naïve height (`finite_naiveHeight_le`) and of the
+torsion subgroup of `E(K)` (`finite_torsion`).
 -/
 
 /-
@@ -353,6 +364,26 @@ theorem fg_point (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
   obtain ⟨C, hC⟩ := approx_parallelogram_law W
   exact AddCommGroup.fg_of_descent' (W.finite_index_range_nsmulAddMonoidHom_two R) H₂ hC
 
+/-- **The Mordell-Weil Theorem** for an arbitrary Weierstrass curve: `E(K)` is finitely
+generated, given an admissible change of variables `C` bringing `E` into short normal form,
+together with the finiteness hypotheses of `fg_point` for the model `C • E`. The result is
+transferred along the isomorphism of point groups `Point.equivVariableChange`.
+
+Such a `C` exists whenever `2` and `3` are invertible in `K`
+(`WeierstrassCurve.exists_variableChange_isShortNF`). Invertibility of `3` cannot be dropped:
+in characteristic `3`, a short normal form has `c₄ = 0`, so a curve with `c₄ ≠ 0` admits no
+such change of variables. -/
+theorem fg_point_of_variableChange (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
+    [IsFractionRing R F] (C : VariableChange F) [(C • W).IsShortNF]
+    [(p : (C • W).toAffine.f.Factors) →
+      Finite (ClassGroup ((C • W).toAffine.ringOfIntegersFactor R p))]
+    [(p : (C • W).toAffine.f.Factors) →
+      Group.FG ((C • W).toAffine.ringOfIntegersFactor R p)ˣ] :
+    AddGroup.FG W.Point := by
+  have := fg_point (W := (C • W).toAffine) R
+  exact AddGroup.fg_of_surjective (f := (Point.equivVariableChange W C).toAddMonoidHom)
+    (Point.equivVariableChange W C).surjective
+
 end Northcott
 
 section NumberField
@@ -360,16 +391,25 @@ section NumberField
 open NumberField
 
 variable {F : Type*} [Field F] [NumberField F] [DecidableEq F] {W : Affine F}
-  [W.toAffine.IsElliptic] [W.IsShortNF]
+  [W.toAffine.IsElliptic]
 
 /-- **The Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
-curve `E` in short normal form over a number field `K` is finitely generated. -/
+curve `E` over a number field `K` is finitely generated.
+
+The curve is brought into short normal form by an admissible change of variables (possible
+since `K` has characteristic `0`), and the finiteness hypotheses of `fg_point` for the
+resulting model are the class number theorem and Dirichlet's unit theorem. -/
 theorem fg_point_of_numberField : AddGroup.FG W.Point := by
-  have (p : W.f.Factors) : Finite (ClassGroup (W.ringOfIntegersFactor (𝓞 F) p)) :=
+  have := invertibleOfNonzero (two_ne_zero (α := F))
+  have := invertibleOfNonzero (three_ne_zero (α := F))
+  obtain ⟨C, hC⟩ := exists_variableChange_isShortNF (W := W)
+  have (p : (C • W).toAffine.f.Factors) :
+      Finite (ClassGroup ((C • W).toAffine.ringOfIntegersFactor (𝓞 F) p)) :=
     NumberField.finite_classGroup_integralClosure F (AdjoinRoot (p : Polynomial F))
-  have (p : W.f.Factors) : Group.FG (W.ringOfIntegersFactor (𝓞 F) p)ˣ :=
+  have (p : (C • W).toAffine.f.Factors) :
+      Group.FG ((C • W).toAffine.ringOfIntegersFactor (𝓞 F) p)ˣ :=
     NumberField.fg_units_integralClosure F (AdjoinRoot (p : Polynomial F))
-  exact fg_point (𝓞 F)
+  exact fg_point_of_variableChange (𝓞 F) C
 
 end NumberField
 
