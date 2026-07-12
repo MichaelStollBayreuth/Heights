@@ -275,15 +275,13 @@ lemma norm_mk_C_sub_X_add_fCofactor {x : K} (hx : W.f.eval x = 0) :
     resultant_X_sub_C_pow_left _ _ _ _ hp.le, pow_one, hpx]
   -- the factor coming from `fCofactor x` is `(C x - X).resultant`, since `fCofactor x ≡ 0`
   have hres : (W.fCofactor x).resultant (C x - X) 2 2 = 3 * x ^ 2 + W.a₄ := by
-    have h := resultant_add_right_deg (f := W.fCofactor x) (g := C x - X) (m := 2) (n := 1)
-      (k := 1) (by compute_degree!)
+    have h := resultant_add_right_deg (W.fCofactor x) (C x - X) 2 1 1 (by compute_degree!)
     simp only [show (1 : ℕ) + 1 = 2 from rfl, pow_one] at h
     rw [h, show (W.fCofactor x).coeff 2 = 1 by
         rw [← hq]; exact (W.monic_fCofactor x).coeff_natDegree,
       one_mul, resultant_C_sub_X _ _ _ hq.le, hqx]
   rw [show C x - X + W.fCofactor x = (C x - X) + W.fCofactor x * 1 by ring,
-    resultant_add_mul_right (f := W.fCofactor x) (g := C x - X) (p := 1) (m := 2) (n := 2)
-      (by simp) hq.le, hres]
+    resultant_add_mul_right (W.fCofactor x) (C x - X) 1 2 2 (by simp) hq.le, hres]
   ring
 
 /-- The Chinese Remainder Theorem isomorphism `K[X]⧸f ≃ K × K[X]/cf`, where `cf` is the cofactor
@@ -873,6 +871,42 @@ each factor), `IsDedekindDomain.HeightOneSpectrum.primesAbove` (the `S i`),
 `IsDedekindDomain.selmerGroupAbove`, `selmerGroupA` (`A(S,2)`, as a subgroup of `W.M`), and
 finally `range_μ_le_selmerGroupA`.
 -/
+
+section Cubic
+
+/- Specializations of `Valuation.map_eval_eq_of_one_lt` and `Valuation.le_one_of_root_monic`
+from `Heights.ForMathlib` to the depressed cubic `t ^ 3 + a * t + b`. They are specific to
+short Weierstrass equations, so they live here rather than in the general-support file. -/
+
+open Polynomial
+
+variable {L Γ : Type*} [CommRing L] [Nontrivial L] [LinearOrderedCommGroupWithZero Γ]
+  (ν : Valuation L Γ) {t a b : L}
+
+private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) :
+    ∀ i < (X ^ 3 + C a * X + C b).natDegree, ν ((X ^ 3 + C a * X + C b).coeff i) ≤ 1 := by
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  intro i hi
+  rw [hdeg] at hi
+  interval_cases i <;> simp [ha, hb]
+
+private lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
+    ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
+  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  have h := ν.map_eval_eq_of_one_lt hp (cubic_coeff_le_one ν ha hb) ht
+  rw [hdeg] at h
+  simpa using h
+
+private lemma Valuation.le_one_of_root_cubic (ha : ν a ≤ 1) (hb : ν b ≤ 1)
+    (heq : t ^ 3 + a * t + b = 0) :
+    ν t ≤ 1 := by
+  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+  refine ν.le_one_of_root_monic hp (cubic_coeff_le_one ν ha hb) (by rw [hdeg]; norm_num) ?_
+  simpa using heq
+
+end Cubic
 
 namespace WeierstrassCurve.Affine
 

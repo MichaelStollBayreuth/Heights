@@ -79,7 +79,7 @@ lemma IsDedekindDomain.SInteger.mem_denomIdeal_iff {x : K} {r : R} :
 /-- The denominator ideal is the colon ideal `(R : x)`. -/
 lemma IsDedekindDomain.SInteger.denomIdeal_eq_colon (x : K) :
     denomIdeal K x = (1 : Submodule R K).colon {x} := by
-  ext r
+  ext
   rw [mem_denomIdeal_iff, Submodule.mem_colon_singleton, Algebra.smul_def, Submodule.mem_one]
   exact exists_congr fun s ↦ eq_comm
 
@@ -282,8 +282,7 @@ instance dimensionLEOne : Ring.DimensionLEOne (S.integer K) := by
   have heq : P.comap f = M.comap f :=
     hcPmax.eq_of_le hcMprime.ne_top (Ideal.comap_mono hPM)
   -- lift the equality back through `map_comap_eq`
-  rw [← map_comap_eq K S P, heq, map_comap_eq K S M]
-  exact hM
+  rwa [← map_comap_eq K S P, heq, map_comap_eq K S M]
 
 /-- **The ring of `S`-integers of a Dedekind domain is a Dedekind domain.** -/
 instance isDedekindDomain : IsDedekindDomain (S.integer K) where

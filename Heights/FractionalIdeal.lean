@@ -61,7 +61,7 @@ map is the image of `Rˣ`. -/
 lemma toPrincipalIdeal_eq_one_iff (u : Kˣ) :
     toPrincipalIdeal R K u = 1 ↔ ∃ a : Rˣ, Units.map (algebraMap R K : R →* K) a = u := by
   rw [← Units.val_inj, coe_toPrincipalIdeal, Units.val_one, spanSingleton_eq_one_iff u.ne_zero]
-  exact ⟨fun ⟨a, ha⟩ => ⟨a, Units.ext ha⟩, fun ⟨a, ha⟩ => ⟨a, by rw [← ha]; rfl⟩⟩
+  exact ⟨fun ⟨a, ha⟩ ↦ ⟨a, Units.ext ha⟩, fun ⟨a, ha⟩ ↦ ⟨a, by rw [← ha]; rfl⟩⟩
 
 /-- `ClassGroup.mk I = 1` exactly when the unit fractional ideal `I` is principal, with the
 generator provided as a unit of `K`. Variant of `ClassGroup.mk_eq_one_iff` avoiding
@@ -75,7 +75,7 @@ lemma _root_.ClassGroup.mk_eq_one_iff_exists {I : (FractionalIdeal R⁰ K)ˣ} :
     have hx' : (I : FractionalIdeal R⁰ K) = spanSingleton R⁰ x := by
       apply Subtype.coe_injective
       simp only [val_eq_coe, hx, coe_spanSingleton]
-    have hx0 : x ≠ 0 := fun h => Units.ne_zero I (by rw [hx', h, spanSingleton_zero])
+    have hx0 : x ≠ 0 := fun h ↦ Units.ne_zero I (by rw [hx', h, spanSingleton_zero])
     exact ⟨Units.mk0 x hx0, by rw [← Units.val_inj, coe_toPrincipalIdeal, hx']; rfl⟩
   · rintro ⟨x, rfl⟩
     exact ⟨⟨(x : K), by rw [coe_toPrincipalIdeal, coe_spanSingleton]⟩⟩
@@ -93,7 +93,7 @@ variable [IsDedekindDomain R]
 theorem prod_count {I : FractionalIdeal R⁰ K} (hI : I ≠ 0) :
     ∏ᶠ v : HeightOneSpectrum R, (v.asIdeal : FractionalIdeal R⁰ K) ^ count K v I = I := by
   obtain ⟨a, J, ha, haJ⟩ := exists_eq_spanSingleton_mul I
-  simp_rw [fun v => count_well_defined K v hI haJ]
+  simp_rw [fun v ↦ count_well_defined K v hI haJ]
   exact finprod_heightOneSpectrum_factorization hI haJ
 
 /-- The prime `v` as a unit of the group of fractional ideals. -/
@@ -105,7 +105,7 @@ noncomputable def unitOfPrime (v : HeightOneSpectrum R) : (FractionalIdeal R⁰ 
 
 /-- The finitely-supported tuple of valuations of a unit fractional ideal. -/
 noncomputable def toFinsupp (I : (FractionalIdeal R⁰ K)ˣ) : HeightOneSpectrum R →₀ ℤ :=
-  Finsupp.ofSupportFinite (fun v => count K v (I : FractionalIdeal R⁰ K)) (by
+  Finsupp.ofSupportFinite (fun v ↦ count K v (I : FractionalIdeal R⁰ K)) (by
     have := finite_factors (I : FractionalIdeal R⁰ K)
     simpa [Function.support, Filter.eventually_cofinite] using this)
 
@@ -114,11 +114,11 @@ noncomputable def toFinsupp (I : (FractionalIdeal R⁰ K)ˣ) : HeightOneSpectrum
 
 /-- The unit fractional ideal `∏ v ^ (g v)`. -/
 noncomputable def ofFinsupp (g : HeightOneSpectrum R →₀ ℤ) : (FractionalIdeal R⁰ K)ˣ :=
-  g.prod (fun v e => unitOfPrime v ^ e)
+  g.prod (fun v e ↦ unitOfPrime v ^ e)
 
 lemma coe_ofFinsupp (g : HeightOneSpectrum R →₀ ℤ) :
     ((ofFinsupp g : (FractionalIdeal R⁰ K)ˣ) : FractionalIdeal R⁰ K)
-      = g.prod (fun v e => (v.asIdeal : FractionalIdeal R⁰ K) ^ e) := by
+      = g.prod (fun v e ↦ (v.asIdeal : FractionalIdeal R⁰ K) ^ e) := by
   rw [ofFinsupp, ← Units.coeHom_apply, map_finsuppProd]
   simp [Units.coeHom]
 
@@ -132,7 +132,7 @@ lemma count_injective {I J : (FractionalIdeal R⁰ K)ˣ}
     I = J := by
   apply Units.ext
   rw [← prod_count (Units.ne_zero I), ← prod_count (Units.ne_zero J)]
-  exact finprod_congr fun v => by rw [h v]
+  exact finprod_congr fun v ↦ by rw [h v]
 
 /-- **The group of nonzero fractional ideals of a Dedekind domain is free abelian on the height
 one primes.** -/
@@ -140,10 +140,10 @@ noncomputable def factorization :
     (FractionalIdeal R⁰ K)ˣ ≃* Multiplicative (HeightOneSpectrum R →₀ ℤ) where
   toFun I := Multiplicative.ofAdd (toFinsupp I)
   invFun g := ofFinsupp (Multiplicative.toAdd g)
-  left_inv I := count_injective fun v => by rw [count_ofFinsupp]; rfl
+  left_inv I := count_injective fun v ↦ by rw [count_ofFinsupp]; rfl
   right_inv g := by
     apply Multiplicative.toAdd.injective
-    ext v
+    ext
     simp only [toAdd_ofAdd, toFinsupp_apply, count_ofFinsupp]
   map_mul' I J := by
     apply Multiplicative.toAdd.injective
@@ -172,11 +172,11 @@ lemma factorization_unitOfPrime (v : HeightOneSpectrum R) :
 /-- The group of nonzero fractional ideals is torsion-free: taking `n`-th powers is injective
 for `n ≠ 0`. In particular the `n`-th root in `exists_pow_eq` is unique. -/
 lemma pow_left_injective {n : ℕ} (hn : n ≠ 0) :
-    Function.Injective fun I : (FractionalIdeal R⁰ K)ˣ => I ^ n := by
+    Function.Injective fun I : (FractionalIdeal R⁰ K)ˣ ↦ I ^ n := by
   intro I J h
   have h2 := congrArg (Multiplicative.toAdd <| factorization ·) h
   simp only [map_pow, toAdd_pow] at h2
-  refine factorization.injective (Multiplicative.toAdd.injective (Finsupp.ext fun v => ?_))
+  refine factorization.injective (Multiplicative.toAdd.injective (Finsupp.ext fun v ↦ ?_))
   have := congrArg (· v) h2
   simp only [Finsupp.smul_apply, nsmul_eq_mul] at this
   exact mul_left_cancel₀ (Int.natCast_ne_zero.mpr hn) this
@@ -320,9 +320,9 @@ lemma count_nthRootFun (n : ℕ) (I : (FractionalIdeal R⁰ K)ˣ) (v : HeightOne
 /-- The `n`-th root as a group homomorphism on the `n`-divisible subgroup. -/
 noncomputable def nthRootHom (n : ℕ) : nDivisible R K n →* (FractionalIdeal R⁰ K)ˣ where
   toFun I := nthRootFun R K n (I : (FractionalIdeal R⁰ K)ˣ)
-  map_one' := count_injective fun v => by
+  map_one' := count_injective fun v ↦ by
     simp only [count_nthRootFun, Subgroup.coe_one, Units.val_one, count_one, Int.zero_ediv]
-  map_mul' I J := count_injective fun v => by
+  map_mul' I J := count_injective fun v ↦ by
     rw [count_nthRootFun, Units.val_mul, count_mul K v (Units.ne_zero _) (Units.ne_zero _),
       count_nthRootFun, count_nthRootFun, Subgroup.coe_mul, Units.val_mul,
       count_mul K v (Units.ne_zero _) (Units.ne_zero _), Int.add_ediv_of_dvd_left (I.2 v)]
@@ -377,7 +377,7 @@ lemma mem_unitsNDivisible {n : ℕ} {u : Kˣ} :
 subgroup. -/
 noncomputable def unitsNDivisibleToNDivisible (n : ℕ) :
     unitsNDivisible R K n →* nDivisible R K n :=
-  ((toPrincipalIdeal R K).comp (unitsNDivisible R K n).subtype).codRestrict _ (fun x => x.2)
+  ((toPrincipalIdeal R K).comp (unitsNDivisible R K n).subtype).codRestrict _ (fun x ↦ x.2)
 
 @[simp] lemma coe_unitsNDivisibleToNDivisible (n : ℕ) (u : unitsNDivisible R K n) :
     (unitsNDivisibleToNDivisible R K n u : (FractionalIdeal R⁰ K)ˣ) =
@@ -404,7 +404,7 @@ lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K 
     exact ⟨a, w, by rw [ha]; group⟩
   · rintro ⟨a, w, hw⟩
     -- `w` generates the `n`-th root: its valuations are `count (u) / n`
-    refine ⟨w, count_injective fun v => ?_⟩
+    refine ⟨w, count_injective fun v ↦ ?_⟩
     have hcu : count K v ((toPrincipalIdeal R K (u : Kˣ) : (FractionalIdeal R⁰ K)ˣ) :
         FractionalIdeal R⁰ K) = n * count K v
           ((toPrincipalIdeal R K w : (FractionalIdeal R⁰ K)ˣ) : FractionalIdeal R⁰ K) := by

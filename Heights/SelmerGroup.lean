@@ -124,9 +124,9 @@ theorem Group.fg_of_fg_ker_of_fg_range {G H : Type*} [Group G] [Group H] (φ : G
   have hkerle : φ.ker ≤ Subgroup.closure U := by
     calc φ.ker = (⊤ : Subgroup φ.ker).map φ.ker.subtype := by
           rw [← MonoidHom.range_eq_map, Subgroup.range_subtype]
-    _ = (Subgroup.closure S).map φ.ker.subtype := by rw [hS]
-    _ = Subgroup.closure (φ.ker.subtype '' S) := MonoidHom.map_closure ..
-    _ ≤ Subgroup.closure U := Subgroup.closure_mono Set.subset_union_right
+      _ = (Subgroup.closure S).map φ.ker.subtype := by rw [hS]
+      _ = Subgroup.closure (φ.ker.subtype '' S) := MonoidHom.map_closure ..
+      _ ≤ Subgroup.closure U := Subgroup.closure_mono Set.subset_union_right
   -- the closure of `U` surjects onto the range
   have hmap : (Subgroup.closure U).map φ.rangeRestrict = ⊤ := by
     rw [eq_top_iff, ← hT]
@@ -413,7 +413,7 @@ noncomputable def sUnitModPowToSelmer :
 @[simp]
 lemma range_sUnitModPowToSelmer :
     (sUnitModPowToSelmer K S n).range = (sUnitToSelmer K S n).range := by
-  ext x
+  ext
   exact ⟨by rintro ⟨y, rfl⟩; induction y using QuotientGroup.induction_on with
     | H y => exact ⟨y, rfl⟩, fun ⟨y, hy⟩ ↦ ⟨QuotientGroup.mk y, hy⟩⟩
 
@@ -436,11 +436,11 @@ lemma mem_selmerGroup_iff_unitsNDivisible (u : Kˣ) :
         selmerGroup (R := R) (K := K) (S := S) (n := n) ↔
       ∀ v ∉ S, (n : ℤ) ∣ Multiplicative.toAdd
         ((v : HeightOneSpectrum R).valuationOfNeZero u) :=
-    forall₂_congr fun v _ => HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff v n u
+    forall₂_congr fun v _ ↦ HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff v n u
   have rhs : u ∈ unitsNDivisible (S.integer K) K n ↔
       ∀ w : HeightOneSpectrum (S.integer K),
         (n : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
-    refine forall_congr' fun w => ?_
+    refine forall_congr' fun w ↦ ?_
     rw [toAdd_valuationOfNeZero, Int.dvd_neg]
     show (n : ℤ) ∣ count K w ((toPrincipalIdeal (S.integer K) K u :
       (FractionalIdeal (S.integer K)⁰ K)ˣ) : FractionalIdeal (S.integer K)⁰ K) ↔ _
@@ -462,7 +462,7 @@ noncomputable def selmerGroupFromUnits :
     unitsNDivisible (S.integer K) K n →* selmerGroup (R := R) (K := K) (S := S) (n := n) :=
   ((QuotientGroup.mk' (powMonoidHom n : Kˣ →* Kˣ).range).comp
     (unitsNDivisible (S.integer K) K n).subtype).codRestrict _
-      (fun u => (mem_selmerGroup_iff_unitsNDivisible K S n (u : Kˣ)).mpr u.2)
+      (fun u ↦ (mem_selmerGroup_iff_unitsNDivisible K S n (u : Kˣ)).mpr u.2)
 
 @[simp] lemma coe_selmerGroupFromUnits (u : unitsNDivisible (S.integer K) K n) :
     (selmerGroupFromUnits K S n u : Units.modPow K n) = QuotientGroup.mk (u : Kˣ) := rfl
@@ -557,7 +557,7 @@ theorem range_toSClassGroup [NeZero n] :
     exact ClassGroup.mk_eq_one_iff_exists.mpr ⟨(u : Kˣ), rfl⟩
   · intro hc
     obtain ⟨I, rfl⟩ : ∃ I, ClassGroup.mk K I = c :=
-      ClassGroup.induction (K := K) (fun I => ⟨I, rfl⟩) c
+      ClassGroup.induction (K := K) (fun I ↦ ⟨I, rfl⟩) c
     rw [← map_pow, ClassGroup.mk_eq_one_iff_exists] at hc
     obtain ⟨x, hx⟩ := hc
     have hcount (v : HeightOneSpectrum (S.integer K)) :
@@ -566,14 +566,14 @@ theorem range_toSClassGroup [NeZero n] :
           n * count K v ((I : (FractionalIdeal (S.integer K)⁰ K)ˣ) :
             FractionalIdeal (S.integer K)⁰ K) := by
       rw [hx, Units.val_pow_eq_pow_val, count_pow]
-    have hmem : x ∈ unitsNDivisible (S.integer K) K n := fun v => by
+    have hmem : x ∈ unitsNDivisible (S.integer K) K n := fun v ↦ by
       rw [hcount v]; exact Dvd.intro _ rfl
     refine ⟨selmerGroupFromUnits K S n ⟨x, hmem⟩, ?_⟩
     rw [toSClassGroup_selmerGroupFromUnits]
     show ClassGroup.mk K (nthRootHom (S.integer K) K n
       (unitsNDivisibleToNDivisible (S.integer K) K n ⟨x, hmem⟩)) = _
     congr 1
-    refine count_injective fun v => ?_
+    refine count_injective fun v ↦ ?_
     rw [nthRootHom_apply, count_nthRootFun, coe_unitsNDivisibleToNDivisible, hcount v,
       Int.mul_ediv_cancel_left _ (Int.natCast_ne_zero.mpr (NeZero.ne n))]
 
@@ -597,7 +597,7 @@ theorem finite_selmerGroup [Finite (ClassGroup R)] [Group.FG Rˣ] (hS : S.Finite
     have := CommGroup.finite_modPow (G := S.unit K) n
     exact Finite.Set.finite_range _
   have hquot : Finite (selmerGroup (K := K) (S := S) (n := n) ⧸ (toSClassGroup K S n).ker) :=
-    Finite.of_injective _ (QuotientGroup.kerLift_injective (toSClassGroup K S n))
+    .of_injective _ (QuotientGroup.kerLift_injective (toSClassGroup K S n))
   exact Finite.of_subgroup_quotient (toSClassGroup K S n).ker
 
 /-!
@@ -637,7 +637,7 @@ theorem finite_selmerGroupPi [Finite ι] [(i : ι) → Finite (ClassGroup (B i))
     Finite (selmerGroupPi L B S n) := by
   have (i : ι) : Finite (selmerGroup (R := B i) (K := L i) (S := S i) (n := n)) :=
     finite_selmerGroup (B i) (L i) (S i) n (hS i)
-  exact Finite.of_injective (fun x i ↦ (⟨x.1 i, (mem_selmerGroupPi_iff L B S n x.1).mp x.2 i⟩ :
+  exact .of_injective (fun x i ↦ (⟨x.1 i, (mem_selmerGroupPi_iff L B S n x.1).mp x.2 i⟩ :
     selmerGroup (R := B i) (K := L i) (S := S i) (n := n)))
     fun x y hxy ↦ Subtype.ext <| funext fun i ↦ congrArg Subtype.val (congrFun hxy i)
 
@@ -662,7 +662,7 @@ theorem finite_selmerGroupOfEquiv [Finite ι] [(i : ι) → Finite (ClassGroup (
     (e : Units.modPow A n ≃* ((i : ι) → Units.modPow (L i) n)) :
     Finite (selmerGroupOfEquiv L B S n e) := by
   have := finite_selmerGroupPi L B S n hS
-  exact Finite.of_injective (fun x ↦ (⟨e x.1, x.2⟩ : selmerGroupPi L B S n))
+  exact .of_injective (fun x ↦ (⟨e x.1, x.2⟩ : selmerGroupPi L B S n))
     fun x y hxy ↦ Subtype.ext <| e.injective <| congrArg Subtype.val hxy
 
 end Etale

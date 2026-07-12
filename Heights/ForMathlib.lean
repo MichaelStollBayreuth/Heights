@@ -9,8 +9,7 @@ that have nothing to do with elliptic curves and look like candidates for Mathli
 * `MonoidHom.ofMapMulMulEqOne`: build a `MonoidHom` from `f 1 = 1` and
   `a * b * c = 1 → f a * f b * f c = 1`.
 * `Valuation.map_eval_eq_of_one_lt` and `Valuation.le_one_of_root_monic`: dominance of the
-  leading term of a monic polynomial with integral coefficients, and integrality of its roots
-  (with the special cases `map_cubic_of_one_lt`, `le_one_of_root_cubic` for depressed cubics).
+  leading term of a monic polynomial with integral coefficients, and integrality of its roots.
   `Valuation.eq_one_of_mul_eq_one`: a factor of a unit is a unit, provided both factors are
   integral.
 * `IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one`,
@@ -235,8 +234,8 @@ lemma Valuation.eq_one_of_mul_eq_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hab : 
     ν a = 1 := by
   refine le_antisymm ha ?_
   calc (1 : Γ) = ν a * ν b := by rw [← map_mul, hab]
-  _ ≤ ν a * 1 := by gcongr
-  _ = ν a := mul_one _
+    _ ≤ ν a * 1 := by gcongr
+    _ = ν a := mul_one _
 
 /-- If `p` is monic with coefficients that are integral for the valuation `ν` and `1 < ν t`,
 then the value of `p` at `t` is dominated by the leading term: `ν (p.eval t) = ν t ^ p.natDegree`.
@@ -270,39 +269,6 @@ lemma Valuation.le_one_of_root_monic {p : L[X]} (hp : p.Monic)
   rw [heq, map_zero] at h
   exact (zero_lt_one.trans hlt).ne' (pow_eq_zero_iff hdeg |>.mp h.symm)
 
-section Cubic
-
-variable [Nontrivial L]
-
--- The following three lemmas are very specific and should be moved
--- as private lemma to their use site.
--- Or maybe better: inline the proofs if it doesn't blow up proof length too much.
-private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) :
-    ∀ i < (X ^ 3 + C a * X + C b).natDegree, ν ((X ^ 3 + C a * X + C b).coeff i) ≤ 1 := by
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
-  intro i hi
-  rw [hdeg] at hi
-  interval_cases i <;> simp [ha, hb]
-
-/-- If `1 < ν t` and `a`, `b` are integral, the leading term of the cubic dominates. -/
-lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
-    ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
-  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
-  have h := ν.map_eval_eq_of_one_lt hp (cubic_coeff_le_one ν ha hb) ht
-  rw [hdeg] at h
-  simpa using h
-
-/-- A root of a monic cubic with integral coefficients is integral. -/
-lemma Valuation.le_one_of_root_cubic (ha : ν a ≤ 1) (hb : ν b ≤ 1)
-    (heq : t ^ 3 + a * t + b = 0) : ν t ≤ 1 := by
-  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
-  refine ν.le_one_of_root_monic hp (cubic_coeff_le_one ν ha hb) (by rw [hdeg]; norm_num) ?_
-  simpa using heq
-
-end Cubic
-
 end Valuation
 
 section DedekindDomain
@@ -316,7 +282,6 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 but finitely many primes. -/
 lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (hx : x ≠ 0) :
     {v : HeightOneSpectrum R | v.valuation K x ≠ 1}.Finite := by
-  -- maybe this can be streamlined using 'Ideal.hasFiniteMulSupport`?
   refine ((Support.finite R x).union (Support.finite R x⁻¹)).subset fun v hv ↦ ?_
   rcases lt_or_gt_of_ne hv with h | h
   · refine .inr ?_
@@ -374,9 +339,6 @@ lemma IsDedekindDomain.HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff
       (n : ℤ) ∣ Multiplicative.toAdd (v.valuationOfNeZero u) := by
   rw [valuationOfNeZeroMod, MonoidHom.comp_apply, MulEquiv.toMonoidHom_eq_coe,
     MonoidHom.coe_coe, EmbeddingLike.map_eq_one_iff]
-  -- This is not necessary:
-  -- show (QuotientGroup.mk (v.valuationOfNeZero u) : Multiplicative ℤ ⧸ _) = 1 ↔ _
-  -- If helpful for following the proof, replace `show` by `change`.
   refine (QuotientGroup.eq_one_iff _).trans ?_
   rw [Multiplicative.mem_toSubgroup, AddSubgroup.mem_zmultiples_iff]
   exact ⟨fun ⟨k, hk⟩ ↦ ⟨k, by rw [← hk]; ring⟩, fun ⟨k, hk⟩ ↦ ⟨k, by rw [hk]; ring⟩⟩
@@ -535,7 +497,6 @@ lemma Monic.modByMonic_mul_add (hg : g.Monic) (v u : R[X]) :
 end
 
 section Sylvester
--- Reviewed up to here.
 
 open Module LinearMap LinearEquiv
 
@@ -617,11 +578,11 @@ lemma coe_sylvesterEquivOne_symm (hg : g.Monic) (n : ℕ)
   have hq : ((sylvesterEquivOne hg n w : degreeLT R (g.natDegree + n)) : R[X]) =
       g * (w.2 : R[X]) + (w.1 : R[X]) := by
     simp [sylvesterEquivOne]
-  have h₁ : (w.1 : R[X]).degree < g.degree := (mem_degreeLT_natDegree_iff hg.ne_zero).mp w.1.2
+  have h : (w.1 : R[X]).degree < g.degree := (mem_degreeLT_natDegree_iff hg.ne_zero).mp w.1.2
   rw [symm_apply_apply, hq]
   refine ⟨?_, ?_⟩
-  · rw [hg.modByMonic_mul_add, (modByMonic_eq_self_iff hg).mpr h₁]
-  · rw [hg.divByMonic_mul_add, (divByMonic_eq_zero_iff hg).mpr h₁, add_zero]
+  · rw [hg.modByMonic_mul_add, (modByMonic_eq_self_iff hg).mpr h]
+  · rw [hg.divByMonic_mul_add, (divByMonic_eq_zero_iff hg).mpr h, add_zero]
 
 /-- The block-triangular endomorphism `B = Ψ⁻¹ ∘ₗ S` of `R[X]_(g.natDegree) × R[X]_n`. -/
 noncomputable def sylvesterBlock (hg : g.Monic) (p : R[X]) (hp : p.natDegree ≤ n) :
@@ -803,14 +764,14 @@ equivalent to being a monic irreducible factor. -/
 lemma mem_normalizedFactors_iff [DecidableEq K] (hf : f ≠ 0) {p : K[X]} :
     p ∈ normalizedFactors f ↔ p.Monic ∧ Irreducible p ∧ p ∣ f := by
   rw [UniqueFactorizationMonoid.mem_normalizedFactors_iff' hf]
-  refine ⟨fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂ ▸ monic_normalize h₁.ne_zero, h₁, h₃⟩,
+  exact ⟨fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂ ▸ monic_normalize h₁.ne_zero, h₁, h₃⟩,
     fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂, h₁.normalize_eq_self, h₃⟩⟩
 
 lemma finite (hf : f ≠ 0) : Finite f.Factors := by
   classical
   have h : Finite {p : K[X] // p ∈ normalizedFactors f} :=
     (normalizedFactors f).finite_toSet.to_subtype
-  exact Finite.of_injective _
+  exact .of_injective _
     (Subtype.impEmbedding _ (· ∈ normalizedFactors f)
       fun p hp ↦ (mem_normalizedFactors_iff hf).mpr hp).injective
 
@@ -947,11 +908,11 @@ variable (K L : Type*) [Field K] [Field L] [Algebra K L]
 in `L`. -/
 theorem isIntegralClosure_int_integralClosure :
     IsIntegralClosure (integralClosure (𝓞 K) L) ℤ L := by
-  refine ⟨Subtype.val_injective, fun {x} => ⟨fun hx => ?_, fun ⟨y, hy⟩ => ?_⟩⟩
+  refine ⟨Subtype.val_injective, fun {x} ↦ ⟨fun hx ↦ ?_, fun ⟨y, hy⟩ ↦ ?_⟩⟩
   · exact ⟨⟨x, IsIntegral.tower_top (A := 𝓞 K) hx⟩, rfl⟩
   · have hyint : IsIntegral (𝓞 K) (y : L) := y.2
     have := isIntegral_trans (R := ℤ) (y : L) hyint
-    rwa [show ((y : L)) = x from hy] at this
+    rwa [show (y : L) = x from hy] at this
 
 variable [NumberField K] [FiniteDimensional K L]
 
