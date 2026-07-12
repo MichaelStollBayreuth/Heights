@@ -1,6 +1,7 @@
 import Mathlib
 import Heights.ForMathlib.Basic
 import Heights.ForMathlib.AdicCompletionExtension
+import Heights.ForMathlib.FormalGroup
 import Heights.EllipticCurve.WeakMordellWeil
 
 /-!
@@ -33,17 +34,19 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   infinite places, inside the finite group `A(S,2) ⊓ ker N`. In particular the 2-Selmer group
   is finite (`finite_selmerGroup₂`). Both directions of the semilocal comparison
   (`localRes_mem_selmerGroupA`, `mem_selmerGroupA_of_forall_localRes`) are proved, via
-  contraction of primes along the embeddings of the field factors and their completions.
-  One `sorry`ed input remains: the local statement that at a good place every unramified
-  class with trivial norm is in the image of `μ_v`
-  (`selmerGroupA_inf_ker_normM_le_range_μ`).
+  contraction of primes along the embeddings of the field factors and their completions;
+  the local statement that at a good place every unramified class with trivial norm is in
+  the image of `μ_v` (`selmerGroupA_inf_ker_normM_le_range_μ`) is proved by counting. The
+  whole reduction rests only on the `sorry`ed interface statements of
+  `Heights.ForMathlib.FormalGroup`.
 * `card_range_μ_adicCompletion`, `card_range_μ_completion_isReal`,
   `card_range_μ_completion_isComplex`: the size of the local image is
   `#E(K_v)[2] · ‖2‖_v⁻¹` — concretely `#E(K_v)[2] · (#𝔽_v)^(v(2))` at a finite place (so
   `#E(K_v)[2]` when the residue characteristic is odd), `#E(K_v)[2] / 2` at a real place, and
   `1` at a complex place. These formulas certify that a computed local image is the full one.
-  The complex and odd-residue-characteristic cases are proved; the uniform finite-place formula
-  and the real case are `sorry`ed.
+  The finite-place formula is proved modulo the interface statement of
+  `Heights.ForMathlib.FormalGroup` (a finite-index subgroup of `E(F_v)` is isomorphic to
+  `(𝒪_v, +)`, `sorry`ed there); the real case is `sorry`ed.
 
 ## Towards explicit computations
 
@@ -315,9 +318,11 @@ adic completions from `Heights.ForMathlib.AdicCompletionExtension` (adapted from
 project) — but not the full decomposition `A ⊗ F_v ≅ ∏ (L_p)_w` of the completed étale
 algebra: for parity of valuations, ramification is harmless in both directions.
 
-The remaining input is purely local: at a good place, every unramified square class with
-trivial norm comes from a point (via a Hensel-lemma lifting or a counting argument against
-`card_range_μ_adicCompletion`).
+The remaining local statement — at a good place, every unramified square class with trivial
+norm comes from a point (`selmerGroupA_inf_ker_normM_le_range_μ`) — is proved by counting
+both sides against `#E(F_v)[2]`. All in all, the reduction of the 2-Selmer group to the bad
+places now rests only on the two `sorry`ed interface statements of
+`Heights.ForMathlib.FormalGroup`.
 -/
 
 section Semilocal
@@ -791,17 +796,707 @@ theorem mem_selmerGroupA_of_forall_localRes {m : W.M}
   rw [HeightOneSpectrum.mem_primesAbove_iff, W.badPrimes_adicCompletionIntegers hv]
   exact Set.notMem_empty _
 
+/-!
+### The size of the local images
+
+For a completion `F_v`, the image of the local descent map
+`μ_v : E(F_v)/2E(F_v) ↪ Units.modPow A_v 2` has order `#E(F_v)[2] · ‖2‖_v⁻¹`. This comes in
+three flavors: at a finite place `‖2‖_v⁻¹ = (#𝔽_v)^(v(2))` (so the factor is `1` when the
+residue characteristic is odd), at a real place `‖2‖_v⁻¹ = 1/2`, and at a complex place
+`‖2‖_v⁻¹ = 1/4` (so the image is trivial). These formulas certify that a candidate list of
+local points generates the full local image.
+-/
+
+open scoped Classical in
+/-- The size of the local image at a finite place `v`:
+`#(im μ_v) = #E(F_v)[2] · (#𝔽_v)^(v(2))`. For odd residue characteristic the second factor
+is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`.
+
+The formal-group input (`Heights.ForMathlib.FormalGroup`, still `sorry`ed) is that a
+finite-index subgroup of `E(F_v)` is isomorphic to `(𝒪_v, +)`; the quantity
+`#(G/2G) / #G[2]` is insensitive to passing to that subgroup
+(`AddSubgroup.index_range_nsmul_mul_card_ker`), and for `(𝒪_v, +)` it is
+`#(𝒪_v/2𝒪_v) = (#𝔽_v)^(v(2))`. -/
+theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
+    Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
+      Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker *
+        Nat.card (𝓞 F ⧸ v.asIdeal) ^
+          (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors := by
+  have hfin : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
+  obtain ⟨U, hUfin, ⟨e⟩⟩ :=
+    exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers v
+      (W⁄(v.adicCompletion F)).toAffine
+  -- `#(im μ) = [E(F_v) : 2·E(F_v)]`
+  rw [← Nat.card_congr (QuotientGroup.quotientKerEquivRange
+      (μ (W := (W⁄(v.adicCompletion F)).toAffine))).toEquiv,
+    ker_μ_eq, ← Subgroup.index_eq_card, AddSubgroup.index_toSubgroup]
+  -- the multiplication-by-2 kernel of `U ≃+ 𝒪_v` is trivial
+  have hczO : CharZero (v.adicCompletionIntegers F) :=
+    charZero_of_injective_algebraMap
+      (FaithfulSMul.algebraMap_injective (𝓞 F) (v.adicCompletionIntegers F))
+  have hker : Nat.card ((nsmulAddMonoidHom (α := U) 2)).ker = 1 := by
+    have hbot : ((nsmulAddMonoidHom (α := U) 2)).ker = ⊥ := by
+      rw [AddMonoidHom.ker_eq_bot_iff]
+      intro a b hab
+      have h1 : (2 : ℕ) • e a = (2 : ℕ) • e b := by
+        rw [← map_nsmul, ← map_nsmul]
+        exact congrArg e hab
+      have h2 : ((2 : ℕ) : v.adicCompletionIntegers F) * (e a - e b) = 0 := by
+        rw [← nsmul_eq_mul, smul_sub, h1, sub_self]
+      rcases mul_eq_zero.mp h2 with h | h
+      · exact absurd (Nat.cast_eq_zero.mp h) two_ne_zero
+      · exact e.injective (by rwa [sub_eq_zero] at h)
+    rw [hbot]
+    exact AddSubgroup.card_bot
+  -- the Euler-characteristic identity for the finite-index subgroup `U`
+  have hchi := AddSubgroup.index_range_nsmul_mul_card_ker U 2
+  rw [hker, mul_one] at hchi
+  rw [hchi]
+  congr 1
+  -- transport `[U : 2U]` to `𝒪_v`
+  have hidx : (nsmulAddMonoidHom (α := U) 2).range.index =
+      (nsmulAddMonoidHom (α := v.adicCompletionIntegers F) 2).range.index := by
+    simpa [AddEquiv.map_range_nsmulAddMonoidHom]
+      using (AddSubgroup.index_map_equiv (nsmulAddMonoidHom (α := U) 2).range e).symm
+  rw [hidx]
+  -- the range of multiplication by `2` is the ideal `(2)`
+  have hrange : (nsmulAddMonoidHom (α := v.adicCompletionIntegers F) 2).range =
+      (Ideal.span {(2 : v.adicCompletionIntegers F)}).toAddSubgroup := by
+    ext x
+    simp only [AddMonoidHom.mem_range, nsmulAddMonoidHom_apply,
+      Submodule.mem_toAddSubgroup, Ideal.mem_span_singleton']
+    constructor
+    · rintro ⟨c, rfl⟩
+      exact ⟨c, by rw [nsmul_eq_mul]; push_cast; ring⟩
+    · rintro ⟨c, rfl⟩
+      exact ⟨c, by rw [nsmul_eq_mul]; push_cast; ring⟩
+  rw [hrange]
+  -- the valuation of `2` is determined by the multiplicity of `v` in `(2) ⊆ 𝓞 F`
+  have h2v : Valued.v (algebraMap (v.adicCompletionIntegers F) (v.adicCompletion F)
+      (2 : v.adicCompletionIntegers F)) = WithZero.exp (-((Associates.mk v.asIdeal).count
+        (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors : ℤ)) := by
+    rw [map_ofNat, show ((2 : v.adicCompletion F)) = algebraMap F (v.adicCompletion F) 2 from
+      (map_ofNat _ 2).symm,
+      show Valued.v (algebraMap F (v.adicCompletion F) (2 : F)) = v.valuation F 2 from
+        v.valuedAdicCompletion_eq_valuation' 2,
+      show (2 : F) = algebraMap (𝓞 F) F 2 from (map_ofNat _ 2).symm,
+      HeightOneSpectrum.valuation_of_algebraMap,
+      HeightOneSpectrum.intValuation_if_neg v two_ne_zero]
+  -- count points via `cardQuot` of the power of the maximal ideal
+  calc (Ideal.span {(2 : v.adicCompletionIntegers F)}).toAddSubgroup.index
+      = Nat.card (v.adicCompletionIntegers F ⧸
+          Ideal.span {(2 : v.adicCompletionIntegers F)}) := rfl
+    _ = Nat.card (v.adicCompletionIntegers F ⧸ IsLocalRing.maximalIdeal
+          (v.adicCompletionIntegers F) ^ (Associates.mk v.asIdeal).count
+            (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors) :=
+        Nat.card_congr (Ideal.quotEquivOfEq (v.span_singleton_eq_maximalIdeal_pow h2v)).toEquiv
+    _ = Submodule.cardQuot (IsLocalRing.maximalIdeal (v.adicCompletionIntegers F) ^
+          (Associates.mk v.asIdeal).count
+            (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors) :=
+        (Submodule.cardQuot_apply _).symm
+    _ = Submodule.cardQuot (IsLocalRing.maximalIdeal (v.adicCompletionIntegers F)) ^
+          (Associates.mk v.asIdeal).count
+            (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors :=
+        cardQuot_pow_of_prime (IsDiscreteValuationRing.not_a_field _)
+    _ = Nat.card (𝓞 F ⧸ v.asIdeal) ^ (Associates.mk v.asIdeal).count
+          (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors := by
+        rw [Submodule.cardQuot_apply,
+          ← Nat.card_congr (v.residueFieldEquivAdicCompletionIntegers (K := F)).toEquiv]
+
+
+open scoped Classical in
+/-- The size of the local image at a finite place of odd residue characteristic:
+`#(im μ_v) = #E(F_v)[2]`. -/
+theorem card_range_μ_adicCompletion_of_two_notMem {v : HeightOneSpectrum (𝓞 F)}
+    (hv : (2 : 𝓞 F) ∉ v.asIdeal) :
+    Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
+      Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker := by
+  have h0 : (Associates.mk v.asIdeal).count
+      (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors = 0 := by
+    by_contra h
+    have h1 := (v.le_count_iff two_ne_zero 1).mp (Nat.one_le_iff_ne_zero.mpr h)
+    rw [pow_one] at h1
+    exact hv h1
+  rw [W.card_range_μ_adicCompletion v, h0, pow_zero, mul_one]
+
+open scoped Classical in
+/-- The size of the local image at a real place: `#(im μ_v) = #E(ℝ)[2] / 2` (that is, `2` if
+the cubic has three real roots, and `1` otherwise).
+
+The proof is a sign analysis over the real closed field `v.Completion`: the étale algebra is
+`ℝ × ℂ` or `ℝ³` according to the number of real roots, the square classes are the signs at
+the real factors, and the image of `μ` consists of the sign patterns of `x - θᵢ` on the
+region `f ≥ 0`, using the intermediate value theorem to realize them. -/
+theorem card_range_μ_completion_isReal {v : InfinitePlace F} (hv : v.IsReal) :
+    2 * Nat.card (μ (W := (W⁄v.Completion).toAffine)).range =
+      Nat.card (nsmulAddMonoidHom (α := (W⁄v.Completion).toAffine.Point) 2).ker := by
+  sorry
+
+-- the statement lives with its number-field siblings; `NumberField F` and `DecidableEq F` are
+-- part of the ambient section but the content is the general `card_range_μ_of_isAlgClosed`
+set_option linter.unusedSectionVars false in
+open scoped Classical in
+/-- The local image at a complex place is trivial: over an algebraically closed field, every
+unit of the étale algebra is a square, so the whole group of square classes is trivial. -/
+theorem card_range_μ_completion_isComplex {v : InfinitePlace F} (hv : v.IsComplex) :
+    Nat.card (μ (W := (W⁄v.Completion).toAffine)).range = 1 := by
+  -- `v.Completion ≃+* ℂ` is algebraically closed
+  have halg : IsAlgClosed v.Completion := by
+    set e := InfinitePlace.Completion.ringEquivComplexOfIsComplex hv with he
+    refine IsAlgClosed.of_exists_root _ fun p hpm hpi ↦ ?_
+    obtain ⟨z, hz⟩ := IsAlgClosed.exists_root (p.map (e : v.Completion →+* ℂ))
+      (by rw [degree_map]; exact (Polynomial.degree_pos_of_irreducible hpi).ne')
+    refine ⟨e.symm z, (map_eq_zero_iff (e : v.Completion →+* ℂ) e.injective).mp ?_⟩
+    rw [← Polynomial.eval₂_at_apply, ← Polynomial.eval_map,
+      show ((e : v.Completion →+* ℂ) (e.symm z)) = z from e.apply_symm_apply z]
+    exact hz
+  exact W.card_range_μ_of_isAlgClosed v.Completion
+
+section LocalCount
+
+open AdjoinRoot IsDedekindDomain.HeightOneSpectrum
+
+open scoped Classical
+
+variable (v : HeightOneSpectrum (𝓞 F))
+
+-- the instances are needed by the statement but are erased from the proof term
+set_option linter.unusedSectionVars false in
+-- The étale algebra of the base-changed curve has dimension `3`.
+private lemma finrank_baseChange_A :
+    Module.finrank (v.adicCompletion F) (W⁄(v.adicCompletion F)).toAffine.A = 3 := by
+  have h := (AdjoinRoot.powerBasis' (W⁄(v.adicCompletion F)).toAffine.monic_f).finrank
+  rw [AdjoinRoot.powerBasis'_dim, natDegree_f] at h
+  exact h
+
+/- The set of factors of the base-changed cubic is a finite type. -/
+@[implicit_reducible]
+private noncomputable def instFintypeFactorsBaseChange :
+    Fintype (W⁄(v.adicCompletion F)).toAffine.f.Factors :=
+  have : Finite (W⁄(v.adicCompletion F)).toAffine.f.Factors :=
+    Polynomial.Factors.finite (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+  Fintype.ofFinite _
+
+attribute [local instance] instFintypeFactorsBaseChange
+
+-- the instances are needed by the statement but are erased from the proof term
+set_option linter.unusedSectionVars false in
+open scoped Classical in
+-- Degree counting for the squarefree cubic: `2 ^ (g - 1) ≤ r + 1` for `g` factors,
+-- `r` of them linear.
+private lemma two_pow_le_card_linear_factors :
+    2 ^ (Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors - 1) ≤
+      Nat.card {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+        ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree = 1} + 1 := by
+  -- the product of the distinct monic irreducible factors divides `f`
+  have hdvd : (∏ q : (W⁄(v.adicCompletion F)).toAffine.f.Factors,
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) : (v.adicCompletion F)[X])) ∣
+      (W⁄(v.adicCompletion F)).toAffine.f :=
+    Fintype.prod_dvd_of_coprime (fun p q hne ↦ Polynomial.Factors.isCoprime hne)
+      fun q ↦ q.dvd
+  have hdeg : ∑ q : (W⁄(v.adicCompletion F)).toAffine.f.Factors,
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree ≤ 3 := by
+    rw [← Polynomial.natDegree_prod _ _ fun q _ ↦ Polynomial.Factors.ne_zero q]
+    calc _ ≤ ((W⁄(v.adicCompletion F)).toAffine.f).natDegree :=
+          Polynomial.natDegree_le_of_dvd hdvd (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+      _ = 3 := natDegree_f _
+  -- split the sum according to the degree
+  have h1 : ∑ q ∈ Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1),
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree =
+      (Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+        ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree = 1)).card := by
+    rw [Finset.sum_congr rfl fun q hq ↦ (Finset.mem_filter.mp hq).2]
+    simp
+  have h2 : 2 * (Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+      ¬ ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1)).card ≤
+      ∑ q ∈ Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+        ¬ ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree = 1),
+        ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree := by
+    rw [mul_comm, ← smul_eq_mul]
+    refine Finset.card_nsmul_le_sum _ _ _ fun q hq ↦ ?_
+    have hpos := Polynomial.Factors.irreducible
+      (q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) |>.natDegree_pos
+    have hne1 := (Finset.mem_filter.mp hq).2
+    omega
+  have hsplit := Finset.sum_filter_add_sum_filter_not Finset.univ
+    (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1)
+    (fun q ↦ ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+      (v.adicCompletion F)[X]).natDegree)
+  have hcards := Finset.card_filter_add_card_filter_not
+    (s := (Finset.univ : Finset (W⁄(v.adicCompletion F)).toAffine.f.Factors))
+    (p := fun q ↦ ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+      (v.adicCompletion F)[X]).natDegree = 1)
+  -- translate the cardinalities
+  have hL : Nat.card {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1} =
+      (Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+        ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree = 1)).card := by
+    rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
+  have hg : Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors =
+      (Finset.univ : Finset (W⁄(v.adicCompletion F)).toAffine.f.Factors).card := by
+    rw [Nat.card_eq_fintype_card, Finset.card_univ]
+  rw [hL, hg, ← hcards]
+  set a := (Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+    ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+      (v.adicCompletion F)[X]).natDegree = 1)).card with ha
+  set b := (Finset.univ.filter (fun q : (W⁄(v.adicCompletion F)).toAffine.f.Factors ↦
+    ¬ ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+      (v.adicCompletion F)[X]).natDegree = 1)).card with hb
+  have hab : a + 2 * b ≤ 3 := by omega
+  have hb1 : b ≤ 1 := by omega
+  have ha3 : a ≤ 3 := by omega
+  interval_cases b <;> interval_cases a <;> omega
+
+/-- The class of (the image of) a unit of `𝒪_v` in the square classes of the étale algebra
+of the base-changed curve. -/
+private noncomputable def scalarClass (c : (v.adicCompletionIntegers F)ˣ) :
+    Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2 :=
+  QuotientGroup.mk (Units.map (algebraMap (v.adicCompletion F)
+    (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+    (Units.map (algebraMap (v.adicCompletionIntegers F) (v.adicCompletion F)).toMonoidHom c))
+
+-- The projection of a scalar to a field factor is the scalar.
+private lemma projFactor_algebraMap (q : (W⁄(v.adicCompletion F)).toAffine.f.Factors)
+    (c : v.adicCompletion F) :
+    projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+        (W⁄(v.adicCompletion F)).toAffine.squarefree_f q
+        (algebraMap (v.adicCompletion F) (W⁄(v.adicCompletion F)).toAffine.A c) =
+      algebraMap (v.adicCompletion F) (AdjoinRoot (q : (v.adicCompletion F)[X])) c := by
+  rw [AdjoinRoot.algebraMap_eq, show AdjoinRoot.of (W⁄(v.adicCompletion F)).toAffine.f c =
+    AdjoinRoot.mk (W⁄(v.adicCompletion F)).toAffine.f (C c) from rfl, projFactor_mk,
+    AdjoinRoot.mk_C, AdjoinRoot.algebraMap_eq]
+
+open scoped Classical in
+-- The norm of a scalar class is the class of the scalar: the norm of a scalar is its cube.
+private lemma normM_scalarClass (c : (v.adicCompletionIntegers F)ˣ) :
+    normM (W := (W⁄(v.adicCompletion F)).toAffine) (W.scalarClass v c) =
+      QuotientGroup.mk (Units.map (algebraMap (v.adicCompletionIntegers F)
+        (v.adicCompletion F)).toMonoidHom c) := by
+  rw [scalarClass, normM, Units.modPow.map_mk]
+  have ha : Units.map (Algebra.norm (v.adicCompletion F))
+      (Units.map (algebraMap (v.adicCompletion F)
+        (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+        (Units.map (algebraMap (v.adicCompletionIntegers F)
+          (v.adicCompletion F)).toMonoidHom c)) =
+      (Units.map (algebraMap (v.adicCompletionIntegers F)
+        (v.adicCompletion F)).toMonoidHom c) ^ 3 := by
+    refine Units.ext ?_
+    rw [Units.val_pow_eq_pow_val]
+    exact (Algebra.norm_algebraMap _).trans (by rw [W.finrank_baseChange_A v])
+  rw [ha]
+  refine (QuotientGroup.eq).mpr ?_
+  refine ⟨(Units.map (algebraMap (v.adicCompletionIntegers F)
+    (v.adicCompletion F)).toMonoidHom c)⁻¹, ?_⟩
+  show (Units.map (algebraMap (v.adicCompletionIntegers F)
+    (v.adicCompletion F)).toMonoidHom c)⁻¹ ^ 2 = _
+  group
+
+open scoped Classical in
+-- For a non-square scalar, the norm of its class is nontrivial.
+private lemma normM_scalarClass_ne_one {c : (v.adicCompletionIntegers F)ˣ}
+    (hc : ¬ IsSquare (algebraMap (v.adicCompletionIntegers F) (v.adicCompletion F)
+      (c : v.adicCompletionIntegers F))) :
+    normM (W := (W⁄(v.adicCompletion F)).toAffine) (W.scalarClass v c) ≠ 1 := by
+  rw [W.normM_scalarClass v c]
+  intro h
+  obtain ⟨w, hw⟩ := (QuotientGroup.eq_one_iff _).mp h
+  refine hc ⟨(w : (v.adicCompletion F)ˣ), ?_⟩
+  have hcoe := congrArg (Units.val) hw
+  rw [show (powMonoidHom 2 w : (v.adicCompletion F)ˣ) = w * w from by
+    rw [powMonoidHom_apply, sq]] at hcoe
+  rw [show algebraMap (v.adicCompletionIntegers F) (v.adicCompletion F)
+    (c : v.adicCompletionIntegers F) = ((Units.map (algebraMap (v.adicCompletionIntegers F)
+      (v.adicCompletion F)).toMonoidHom c : (v.adicCompletion F)ˣ) :
+        v.adicCompletion F) from rfl, ← hcoe]
+  rfl
+
+variable {v}
+
+-- the instances are needed by the statement but are erased from the proof term
+set_option linter.unusedSectionVars false in
+-- The `y`-coordinate of a `2`-torsion point vanishes.
+private lemma y_eq_zero_of_two_nsmul_eq_zero {x y : v.adicCompletion F}
+    (h : (W⁄(v.adicCompletion F)).toAffine.Nonsingular x y)
+    (h2 : (2 : ℕ) • (Point.some _ _ h : (W⁄(v.adicCompletion F)).toAffine.Point) = 0) :
+    y = 0 := by
+  have hcz : CharZero (v.adicCompletion F) :=
+    charZero_of_injective_algebraMap (algebraMap F (v.adicCompletion F)).injective
+  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq] at h2
+  have hy : y = (W⁄(v.adicCompletion F)).toAffine.negY x y := h2.2
+  rw [negY, IsCharNeTwoNF.a₁ (W := (W⁄(v.adicCompletion F)).toAffine),
+    IsCharNeTwoNF.a₃ (W := (W⁄(v.adicCompletion F)).toAffine)] at hy
+  have : y + y = 0 := by linear_combination hy
+  simpa [two_ne_zero] using this
+
+-- The class of a scalar unit of `𝒪_v` is unramified.
+private lemma scalarClass_mem_selmerGroupA (c : (v.adicCompletionIntegers F)ˣ) :
+    W.scalarClass v c ∈
+      (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F) := by
+  rw [scalarClass, mem_selmerGroupA_iff]
+  intro q
+  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
+  intro w hw
+  -- the unit in the factor is (the image of) an integral unit, so its valuation is `1`
+  have hval : w.valuation (AdjoinRoot (q : (v.adicCompletion F)[X]))
+      ((Units.map (projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+        (W⁄(v.adicCompletion F)).toAffine.squarefree_f q).toMonoidHom
+        (Units.map (algebraMap (v.adicCompletion F)
+          (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+          (Units.map (algebraMap (v.adicCompletionIntegers F)
+            (v.adicCompletion F)).toMonoidHom c)) :
+        AdjoinRoot (q : (v.adicCompletion F)[X]))) = 1 := by
+    have hcoe : ((Units.map (projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+        (W⁄(v.adicCompletion F)).toAffine.squarefree_f q).toMonoidHom
+        (Units.map (algebraMap (v.adicCompletion F)
+          (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+          (Units.map (algebraMap (v.adicCompletionIntegers F)
+            (v.adicCompletion F)).toMonoidHom c)) :
+        AdjoinRoot (q : (v.adicCompletion F)[X]))) =
+        algebraMap ((W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor
+          (v.adicCompletionIntegers F) q) (AdjoinRoot (q : (v.adicCompletion F)[X]))
+          (algebraMap (v.adicCompletionIntegers F)
+            ((W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor
+              (v.adicCompletionIntegers F) q) (c : v.adicCompletionIntegers F)) := by
+      rw [show ((Units.map (projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+          (W⁄(v.adicCompletion F)).toAffine.squarefree_f q).toMonoidHom
+          (Units.map (algebraMap (v.adicCompletion F)
+            (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+            (Units.map (algebraMap (v.adicCompletionIntegers F)
+              (v.adicCompletion F)).toMonoidHom c)) :
+          AdjoinRoot (q : (v.adicCompletion F)[X]))) =
+        projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+          (W⁄(v.adicCompletion F)).toAffine.squarefree_f q
+          (algebraMap (v.adicCompletion F) (W⁄(v.adicCompletion F)).toAffine.A
+            (algebraMap (v.adicCompletionIntegers F) (v.adicCompletion F) c)) from rfl,
+        W.projFactor_algebraMap v q, ← IsScalarTower.algebraMap_apply
+          (v.adicCompletionIntegers F) (v.adicCompletion F)
+          (AdjoinRoot (q : (v.adicCompletion F)[X])),
+        IsScalarTower.algebraMap_apply (v.adicCompletionIntegers F)
+          ((W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor
+            (v.adicCompletionIntegers F) q) (AdjoinRoot (q : (v.adicCompletion F)[X]))]
+    rw [hcoe, valuation_of_algebraMap]
+    refine (intValuation_eq_one_iff_mem_primeCompl _ _).mpr ?_
+    exact fun hmem ↦ w.isPrime.ne_top (Ideal.eq_top_of_isUnit_mem _ hmem
+      (c.isUnit.map (algebraMap (v.adicCompletionIntegers F)
+        ((W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor
+          (v.adicCompletionIntegers F) q))))
+  have hdvd := w.dvd_toAdd_valuationOfNeZero (n := 2) (z := 1)
+    (u := Units.map (projFactor (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+      (W⁄(v.adicCompletion F)).toAffine.squarefree_f q).toMonoidHom
+      (Units.map (algebraMap (v.adicCompletion F)
+        (W⁄(v.adicCompletion F)).toAffine.A).toMonoidHom
+        (Units.map (algebraMap (v.adicCompletionIntegers F)
+          (v.adicCompletion F)).toMonoidHom c)))
+    (by rw [hval]; simp)
+  simpa using hdvd
+
+-- The cardinality of `A(∅, 2)` is the product of the factor contributions.
+private lemma card_selmerGroupA_eq_prod :
+    Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)) =
+      ∏ q : (W⁄(v.adicCompletion F)).toAffine.f.Factors,
+        Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupFactor
+          (v.adicCompletionIntegers F) q) := by
+  calc Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F))
+      = Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupPi
+          (v.adicCompletionIntegers F)) :=
+        Nat.card_congr (Equiv.subtypeEquiv (AdjoinRoot.modPowEquivPiFactors
+          (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+          (W⁄(v.adicCompletion F)).toAffine.squarefree_f 2).toEquiv fun _ ↦ Iff.rfl)
+    _ = Nat.card (∀ q : (W⁄(v.adicCompletion F)).toAffine.f.Factors,
+          ((W⁄(v.adicCompletion F)).toAffine.selmerGroupFactor
+            (v.adicCompletionIntegers F) q)) :=
+        Nat.card_congr
+          ⟨fun x q ↦ ⟨x.1 q, x.2 q (Set.mem_univ q)⟩,
+            fun y ↦ ⟨fun q ↦ (y q : Units.modPow (AdjoinRoot
+              ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+                (v.adicCompletion F)[X])) 2), fun q _ ↦ (y q).2⟩,
+            fun _ ↦ rfl, fun _ ↦ rfl⟩
+    _ = ∏ q : (W⁄(v.adicCompletion F)).toAffine.f.Factors,
+          Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupFactor
+            (v.adicCompletionIntegers F) q) := Nat.card_pi
+
+-- Each factor contributes exactly two square classes at a good place.
+private lemma card_selmerGroupFactor {v : HeightOneSpectrum (𝓞 F)} (hv : v ∉ W.badPrimes (𝓞 F))
+    (q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+    Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupFactor
+      (v.adicCompletionIntegers F) q) = 2 := by
+  -- the residue characteristic is odd
+  have h2 : (2 : 𝓞 F) ∉ v.asIdeal := by
+    have h := W.valuation_two_eq_one_of_notMem_badPrimes (𝓞 F) hv
+    rw [show (2 : F) = algebraMap (𝓞 F) F 2 from (map_ofNat _ 2).symm] at h
+    exact v.valuation_eq_one_iff_notMem.mp h
+  have hfin : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
+  -- instances for the interface statement
+  have hFD : FiniteDimensional (v.adicCompletion F)
+      (AdjoinRoot (q : (v.adicCompletion F)[X])) :=
+    (AdjoinRoot.powerBasis' q.monic).finite
+  have hDed : IsDedekindDomain (integralClosure (v.adicCompletionIntegers F)
+      (AdjoinRoot (q : (v.adicCompletion F)[X]))) :=
+    (W⁄(v.adicCompletion F)).toAffine.isDedekindDomain_ringOfIntegersFactor
+      (v.adicCompletionIntegers F) q
+  have hFrac : IsFractionRing (integralClosure (v.adicCompletionIntegers F)
+      (AdjoinRoot (q : (v.adicCompletion F)[X]))) (AdjoinRoot (q : (v.adicCompletion F)[X])) :=
+    isFractionRing_ringOfIntegersFactor (W := (W⁄(v.adicCompletion F)).toAffine)
+      (v.adicCompletionIntegers F) q
+  have hcard := HeightOneSpectrum.card_selmerGroup_integralClosure (K := F) v
+    (AdjoinRoot (q : (v.adicCompletion F)[X])) h2
+  -- identify the factor Selmer group with `L(∅, 2)`
+  have hSempty : HeightOneSpectrum.primesAbove (v.adicCompletionIntegers F)
+      ((W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor (v.adicCompletionIntegers F) q)
+      ((W⁄(v.adicCompletion F)).toAffine.badPrimes (v.adicCompletionIntegers F)) = ∅ := by
+    rw [W.badPrimes_adicCompletionIntegers hv]
+    ext w
+    simp [HeightOneSpectrum.primesAbove]
+  rw [show (W⁄(v.adicCompletion F)).toAffine.selmerGroupFactor (v.adicCompletionIntegers F) q =
+    selmerGroup (R := (W⁄(v.adicCompletion F)).toAffine.ringOfIntegersFactor
+      (v.adicCompletionIntegers F) q) (K := AdjoinRoot (q : (v.adicCompletion F)[X]))
+      (S := ∅) (n := 2) from by rw [selmerGroupFactor, IsDedekindDomain.selmerGroupAbove,
+        hSempty]]
+  exact hcard
+
+-- The point attached to a root of `f` is `2`-torsion.
+private lemma two_nsmul_some_eq_zero {x : v.adicCompletion F}
+    (hx : (W⁄(v.adicCompletion F)).toAffine.f.eval x = 0) :
+    ∃ h : (W⁄(v.adicCompletion F)).toAffine.Nonsingular x 0,
+      (2 : ℕ) • (Point.some _ _ h : (W⁄(v.adicCompletion F)).toAffine.Point) = 0 := by
+  have heq : (W⁄(v.adicCompletion F)).toAffine.Equation x 0 := by
+    rw [equation_iff_eval_f_eq_sq, hx]
+    ring
+  have h : (W⁄(v.adicCompletion F)).toAffine.Nonsingular x 0 :=
+    (equation_iff_nonsingular_of_Δ_ne_zero
+      ((W⁄(v.adicCompletion F)).isUnit_Δ.ne_zero)).mp heq
+  refine ⟨h, ?_⟩
+  have hnegY : (W⁄(v.adicCompletion F)).toAffine.negY x 0 = 0 := by
+    rw [negY, IsCharNeTwoNF.a₁ (W := (W⁄(v.adicCompletion F)).toAffine),
+      IsCharNeTwoNF.a₃ (W := (W⁄(v.adicCompletion F)).toAffine)]
+    ring
+  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq]
+  exact ⟨rfl, hnegY.symm⟩
+
+-- The kernel of multiplication by `2` is finite.
+private lemma finite_ker_nsmul_two :
+    Finite (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker := by
+  have hroots : Finite {x : v.adicCompletion F |
+      (W⁄(v.adicCompletion F)).toAffine.f.eval x = 0} :=
+    Set.Finite.to_subtype (Polynomial.finite_setOf_isRoot
+      (W⁄(v.adicCompletion F)).toAffine.f_ne_zero)
+  set pt : {x : v.adicCompletion F | (W⁄(v.adicCompletion F)).toAffine.f.eval x = 0} →
+      (W⁄(v.adicCompletion F)).toAffine.Point :=
+    fun x ↦ Point.some _ _ (W.two_nsmul_some_eq_zero x.2).choose with hpt
+  have hsub : ((nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker :
+      Set (W⁄(v.adicCompletion F)).toAffine.Point) ⊆ insert 0 (Set.range pt) := by
+    intro P hP
+    induction P with
+    | zero => exact Set.mem_insert _ _
+    | some x y h =>
+      have hy := W.y_eq_zero_of_two_nsmul_eq_zero h hP
+      subst hy
+      have hx : (W⁄(v.adicCompletion F)).toAffine.f.eval x = 0 := by
+        have := ((W⁄(v.adicCompletion F)).toAffine.equation_iff_eval_f_eq_sq x 0).mp h.1
+        simpa using this
+      exact Set.mem_insert_of_mem _ ⟨⟨x, hx⟩, rfl⟩
+  exact Set.Finite.to_subtype (Set.Finite.subset ((Set.finite_range pt).insert 0) hsub)
+
+-- The `2`-torsion contains the points coming from the linear factors of `f`, and the origin.
+private lemma card_linear_factors_lt_card_ker :
+    Nat.card {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+        ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).natDegree = 1} + 1 ≤
+      Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker := by
+  have hfin := W.finite_ker_nsmul_two (v := v)
+  -- the root of a linear factor
+  have heval : ∀ q : {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1},
+      (W⁄(v.adicCompletion F)).toAffine.f.eval
+        (-((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+          (v.adicCompletion F)[X]).coeff 0) = 0 := by
+    intro q
+    refine Polynomial.eval_eq_zero_of_dvd_of_eval_eq_zero
+      (q : (W⁄(v.adicCompletion F)).toAffine.f.Factors).dvd ?_
+    conv_lhs => rw [(q : (W⁄(v.adicCompletion F)).toAffine.f.Factors).monic.eq_X_add_C q.2]
+    simp
+  set ι : Option {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1} →
+      (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker :=
+    fun o ↦ o.elim 0 fun q ↦
+      ⟨Point.some _ _ (W.two_nsmul_some_eq_zero (heval q)).choose,
+        (W.two_nsmul_some_eq_zero (heval q)).choose_spec⟩ with hι
+  have hinj : Function.Injective ι := by
+    intro o o' h
+    match o, o' with
+    | none, none => rfl
+    | none, some q =>
+      exact absurd (congrArg (Subtype.val) h).symm (Point.some_ne_zero _)
+    | some q, none =>
+      exact absurd (congrArg (Subtype.val) h) (Point.some_ne_zero _)
+    | some q, some q' =>
+      have hx := (Point.some.injEq _ _ _ _ _ _).mp (congrArg (Subtype.val) h)
+      have hcoeff : ((q : {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+          ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+            (v.adicCompletion F)[X]).natDegree = 1}) :
+          (W⁄(v.adicCompletion F)).toAffine.f.Factors) = q' := by
+        refine Subtype.ext ?_
+        conv_lhs => rw [((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors)).monic.eq_X_add_C q.2]
+        conv_rhs => rw [((q' : (W⁄(v.adicCompletion F)).toAffine.f.Factors)).monic.eq_X_add_C q'.2]
+        rw [neg_inj.mp hx.1]
+      exact congrArg _ (Subtype.ext hcoeff)
+  have : Fintype {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+      ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+        (v.adicCompletion F)[X]).natDegree = 1} := Fintype.ofFinite _
+  calc Nat.card _ + 1
+      = Fintype.card (Option {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+          ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+            (v.adicCompletion F)[X]).natDegree = 1}) := by
+        rw [Fintype.card_option, Nat.card_eq_fintype_card]
+    _ = Nat.card (Option {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+          ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+            (v.adicCompletion F)[X]).natDegree = 1}) := Nat.card_eq_fintype_card.symm
+    _ ≤ _ := Nat.card_le_card_of_injective ι hinj
+
+end LocalCount
+
+attribute [local instance] instFintypeFactorsBaseChange
+
 open scoped Classical in
 /-- The local Hensel input: at a good finite place, every unramified square class with
-trivial norm is in the image of the local descent map. (Proof: Hensel lifting of points, or
-counting against `card_range_μ_adicCompletion` — the two sides have the same, finite,
-cardinality.) -/
+trivial norm is in the image of the local descent map.
+
+The proof is by counting: both sides are finite of the same cardinality `#E(F_v)[2]`.
+The image has `#E(F_v)[2]` elements (`card_range_μ_adicCompletion_of_two_notMem`); the group
+of unramified classes has `2 ^ g` elements for `g` factors of `f` over `F_v`
+(`card_selmerGroupFactor`, resting on the `𝔾ₘ`-interface statement of
+`Heights.ForMathlib.FormalGroup`), the norm condition halves this (a non-square scalar has
+class in the unramified group with nontrivial norm), and `#E(F_v)[2] ≥ 2 ^ (g - 1)` by
+counting `2`-torsion points coming from the linear factors of `f`. -/
 theorem selmerGroupA_inf_ker_normM_le_range_μ {v : HeightOneSpectrum (𝓞 F)}
     (hv : v ∉ W.badPrimes (𝓞 F)) :
     (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)
         ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker
       ≤ (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range := by
-  sorry
+  -- the residue characteristic is odd
+  have h2 : (2 : 𝓞 F) ∉ v.asIdeal := by
+    have h := W.valuation_two_eq_one_of_notMem_badPrimes (𝓞 F) hv
+    rw [show (2 : F) = algebraMap (𝓞 F) F 2 from (map_ofNat _ 2).symm] at h
+    exact v.valuation_eq_one_iff_notMem.mp h
+  have hfinq : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
+  -- the cardinality of `A(∅, 2)` is `2 ^ g`
+  have hcardA : Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+      (v.adicCompletionIntegers F)) =
+      2 ^ Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors := by
+    rw [W.card_selmerGroupA_eq_prod (v := v), Finset.prod_congr rfl
+      fun q _ ↦ W.card_selmerGroupFactor hv q, Finset.prod_const, Finset.card_univ,
+      Nat.card_eq_fintype_card]
+  have hfinA : Finite ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+      (v.adicCompletionIntegers F)) := by
+    refine (Nat.card_ne_zero.mp ?_).2
+    rw [hcardA]
+    positivity
+  -- the norm homomorphism restricted to `A(∅, 2)`
+  set φ := (normM (W := (W⁄(v.adicCompletion F)).toAffine)).comp
+    ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)).subtype
+    with hφ
+  have hT : Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+      (v.adicCompletionIntegers F) ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker :
+      Subgroup (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) = Nat.card φ.ker := by
+    refine Nat.card_congr ⟨fun x ↦ ⟨⟨x.1, (Subgroup.mem_inf.mp x.2).1⟩,
+      (Subgroup.mem_inf.mp x.2).2⟩,
+      fun y ↦ ⟨y.1.1, Subgroup.mem_inf.mpr ⟨y.1.2, y.2⟩⟩, fun _ ↦ rfl, fun _ ↦ rfl⟩
+  have hsplit : Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+      (v.adicCompletionIntegers F)) = Nat.card φ.range * Nat.card φ.ker := by
+    rw [Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker,
+      Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv]
+  -- the image of the norm is nontrivial: a non-square scalar witnesses this
+  obtain ⟨c, hc⟩ := v.exists_unit_not_isSquare (K := F) h2
+  have hrange2 : 2 ≤ Nat.card φ.range := by
+    have hfinR : Finite φ.range :=
+      Finite.of_equiv _ (QuotientGroup.quotientKerEquivRange φ).toEquiv
+    have hnt : Nontrivial φ.range := by
+      refine ⟨⟨1, one_mem _⟩, ⟨normM (W := (W⁄(v.adicCompletion F)).toAffine)
+        (W.scalarClass v c), ⟨⟨W.scalarClass v c, W.scalarClass_mem_selmerGroupA (v := v) c⟩, rfl⟩⟩,
+        fun h ↦ ?_⟩
+      exact W.normM_scalarClass_ne_one (v := v) hc (Subtype.ext_iff.mp h).symm
+    exact Finite.one_lt_card_iff_nontrivial.mpr hnt
+  -- there is at least one factor
+  have hg1 : 1 ≤ Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors := by
+    have hne : ¬ IsUnit (W⁄(v.adicCompletion F)).toAffine.f :=
+      Polynomial.not_isUnit_of_natDegree_pos _ (by rw [natDegree_f]; omega)
+    obtain ⟨p, hpirr, hpdvd⟩ := WfDvdMonoid.exists_irreducible_factor hne
+      (W⁄(v.adicCompletion F)).toAffine.f_ne_zero
+    refine Nat.one_le_iff_ne_zero.mpr (Nat.card_ne_zero.mpr ⟨⟨⟨normalize p, ?_, ?_, ?_⟩⟩,
+      inferInstance⟩)
+    · exact Polynomial.monic_normalize hpirr.ne_zero
+    · exact (associated_normalize p).irreducible hpirr
+    · exact (normalize_dvd_iff).mpr hpdvd
+  -- the counting chain
+  have hchain : Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+      (v.adicCompletionIntegers F) ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker :
+      Subgroup (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) ≤
+      Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range := by
+    have hμ := W.card_range_μ_adicCompletion_of_two_notMem (v := v) h2
+    have h1 : 2 * Nat.card φ.ker ≤
+        2 ^ Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors := by
+      calc 2 * Nat.card φ.ker ≤ Nat.card φ.range * Nat.card φ.ker :=
+          Nat.mul_le_mul_right _ hrange2
+        _ = 2 ^ Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors := by
+          rw [← hsplit, hcardA]
+    have hpow : (2 : ℕ) ^ Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors =
+        2 * 2 ^ (Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors - 1) := by
+      conv_lhs => rw [show Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors =
+        (Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors - 1) + 1 from
+        (Nat.succ_pred_eq_of_pos hg1).symm]
+      rw [pow_succ]
+      ring
+    calc Nat.card ((W⁄(v.adicCompletion F)).toAffine.selmerGroupA
+        (v.adicCompletionIntegers F) ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker :
+        Subgroup (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2))
+        = Nat.card φ.ker := hT
+      _ ≤ 2 ^ (Nat.card (W⁄(v.adicCompletion F)).toAffine.f.Factors - 1) := by omega
+      _ ≤ Nat.card {q : (W⁄(v.adicCompletion F)).toAffine.f.Factors //
+            ((q : (W⁄(v.adicCompletion F)).toAffine.f.Factors) :
+              (v.adicCompletion F)[X]).natDegree = 1} + 1 :=
+          W.two_pow_le_card_linear_factors (v := v)
+      _ ≤ Nat.card (nsmulAddMonoidHom
+            (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker :=
+          W.card_linear_factors_lt_card_ker (v := v)
+      _ = Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range := hμ.symm
+  -- conclude by comparing cardinalities
+  have hle : (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range ≤
+      (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)
+        ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker :=
+    le_inf ((W⁄(v.adicCompletion F)).toAffine.range_μ_le_selmerGroupA
+      (v.adicCompletionIntegers F)) range_μ_le_ker_normM
+  intro m hm
+  have heq : (((μ (W := (W⁄(v.adicCompletion F)).toAffine)).range :
+        Subgroup (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) :
+        Set (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) =
+      (((W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)
+        ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker :
+        Subgroup (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) :
+        Set (Units.modPow (W⁄(v.adicCompletion F)).toAffine.A 2)) := by
+    refine Set.eq_of_subset_of_ncard_le (SetLike.coe_subset_coe.mpr hle) ?_ ?_
+    · rw [← Nat.card_coe_set_eq, ← Nat.card_coe_set_eq]
+      exact hchain
+    · exact Set.Finite.subset (Set.toFinite _) (SetLike.coe_subset_coe.mpr inf_le_left)
+  have hEq : (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)
+      ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker =
+      (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range :=
+    (SetLike.coe_injective heq).symm
+  exact hEq ▸ hm
 
 open scoped Classical in
 /-- At a good finite place, the local condition follows from `S`-unramifiedness and the norm
@@ -861,82 +1556,6 @@ theorem finite_selmerGroup₂
     exact inf_le_left.trans <| inf_le_left.trans inf_le_left
   have := W.finite_selmerGroupA (𝓞 F)
   exact Finite.of_injective _ (Subgroup.inclusion_injective hle)
-
-/-!
-### The size of the local images
-
-For a completion `F_v`, the image of the local descent map
-`μ_v : E(F_v)/2E(F_v) ↪ Units.modPow A_v 2` has order `#E(F_v)[2] · ‖2‖_v⁻¹`. This comes in
-three flavors: at a finite place `‖2‖_v⁻¹ = (#𝔽_v)^(v(2))` (so the factor is `1` when the
-residue characteristic is odd), at a real place `‖2‖_v⁻¹ = 1/2`, and at a complex place
-`‖2‖_v⁻¹ = 1/4` (so the image is trivial). These formulas certify that a candidate list of
-local points generates the full local image.
--/
-
-open scoped Classical in
-/-- The size of the local image at a finite place `v`:
-`#(im μ_v) = #E(F_v)[2] · (#𝔽_v)^(v(2))`. For odd residue characteristic the second factor
-is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`.
-
-The proof needs the structure of `E(F_v)` as a compact group: a finite-index subgroup is
-isomorphic to `(𝒪_v, +)` via the formal group logarithm, and the quantity
-`#(G/2G) / #G[2]` is multiplicative in extensions, equal to `1` for finite groups and to
-`‖2‖_v⁻¹` for `(𝒪_v, +)`. This requires the formal group of an elliptic curve over a
-complete DVR, which is a separate project. -/
-theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
-    Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
-      Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker *
-        Nat.card (𝓞 F ⧸ v.asIdeal) ^
-          (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors := by
-  sorry
-
-open scoped Classical in
-/-- The size of the local image at a finite place of odd residue characteristic:
-`#(im μ_v) = #E(F_v)[2]`. -/
-theorem card_range_μ_adicCompletion_of_two_notMem {v : HeightOneSpectrum (𝓞 F)}
-    (hv : (2 : 𝓞 F) ∉ v.asIdeal) :
-    Nat.card (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range =
-      Nat.card (nsmulAddMonoidHom (α := (W⁄(v.adicCompletion F)).toAffine.Point) 2).ker := by
-  have h0 : (Associates.mk v.asIdeal).count
-      (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors = 0 := by
-    by_contra h
-    have h1 := (v.le_count_iff two_ne_zero 1).mp (Nat.one_le_iff_ne_zero.mpr h)
-    rw [pow_one] at h1
-    exact hv h1
-  rw [W.card_range_μ_adicCompletion v, h0, pow_zero, mul_one]
-
-open scoped Classical in
-/-- The size of the local image at a real place: `#(im μ_v) = #E(ℝ)[2] / 2` (that is, `2` if
-the cubic has three real roots, and `1` otherwise).
-
-The proof is a sign analysis over the real closed field `v.Completion`: the étale algebra is
-`ℝ × ℂ` or `ℝ³` according to the number of real roots, the square classes are the signs at
-the real factors, and the image of `μ` consists of the sign patterns of `x - θᵢ` on the
-region `f ≥ 0`, using the intermediate value theorem to realize them. -/
-theorem card_range_μ_completion_isReal {v : InfinitePlace F} (hv : v.IsReal) :
-    2 * Nat.card (μ (W := (W⁄v.Completion).toAffine)).range =
-      Nat.card (nsmulAddMonoidHom (α := (W⁄v.Completion).toAffine.Point) 2).ker := by
-  sorry
-
--- the statement lives with its number-field siblings; `NumberField F` and `DecidableEq F` are
--- part of the ambient section but the content is the general `card_range_μ_of_isAlgClosed`
-set_option linter.unusedSectionVars false in
-open scoped Classical in
-/-- The local image at a complex place is trivial: over an algebraically closed field, every
-unit of the étale algebra is a square, so the whole group of square classes is trivial. -/
-theorem card_range_μ_completion_isComplex {v : InfinitePlace F} (hv : v.IsComplex) :
-    Nat.card (μ (W := (W⁄v.Completion).toAffine)).range = 1 := by
-  -- `v.Completion ≃+* ℂ` is algebraically closed
-  have halg : IsAlgClosed v.Completion := by
-    set e := InfinitePlace.Completion.ringEquivComplexOfIsComplex hv with he
-    refine IsAlgClosed.of_exists_root _ fun p hpm hpi ↦ ?_
-    obtain ⟨z, hz⟩ := IsAlgClosed.exists_root (p.map (e : v.Completion →+* ℂ))
-      (by rw [degree_map]; exact (Polynomial.degree_pos_of_irreducible hpi).ne')
-    refine ⟨e.symm z, (map_eq_zero_iff (e : v.Completion →+* ℂ) e.injective).mp ?_⟩
-    rw [← Polynomial.eval₂_at_apply, ← Polynomial.eval_map,
-      show ((e : v.Completion →+* ℂ) (e.symm z)) = z from e.apply_symm_apply z]
-    exact hz
-  exact W.card_range_μ_of_isAlgClosed v.Completion
 
 end NumberField
 

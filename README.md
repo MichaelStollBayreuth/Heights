@@ -199,8 +199,15 @@ curves and are intended for eventual upstreaming to Mathlib:
 * [__ForMathlib/AdicCompletionExtension.lean__](Heights/ForMathlib/AdicCompletionExtension.lean):
   the extension `K_v →+* L_w` of adic completions along an extension of Dedekind domains with
   `w ∣ v`, its compatibility with the valuations (up to the ramification index) and with the
-  rings of integers (adapted from the FLT project), and the identification of the height-one
-  valuation of the discrete valuation ring `𝒪_v` with the valuation of the completion.
+  rings of integers (adapted from the FLT project), the identification of the height-one
+  valuation of the discrete valuation ring `𝒪_v` with the valuation of the completion, and
+  the identification of the residue field of `𝒪_v` with the residue field of `v`.
+* [__ForMathlib/FormalGroup.lean__](Heights/ForMathlib/FormalGroup.lean): the interface to
+  formal-group theory over a local field — `E(K_v)` has a subgroup of finite index
+  isomorphic to `(𝒪_v, +)`, and the group of everywhere-unramified square classes of a
+  finite extension of `K_v` has order `2` at odd residue characteristic (the `𝔾ₘ`-analogue).
+  The statements are `sorry`ed; their proofs (via formal groups and their logarithms) are a
+  separate project.
 
 ## Work in progress
 
@@ -210,9 +217,11 @@ curves and are intended for eventual upstreaming to Mathlib:
   coming from `im μ ≤ Sel₂`, the reduction of its computation to the local conditions at the
   bad and infinite places (which also gives finiteness), and the size formulas for the local
   images. The semilocal comparison between unramifiedness over `𝒪_S` and over the completions
-  at the good places is proved in both directions; still `sorry`ed are the local statement
-  that at a good place every unramified class with trivial norm comes from a point, and the
-  size formulas for the local images at places over `2` and at real places. The goal is a
+  at the good places is proved in both directions; the size formula at the finite places and
+  the local statement that at a good place every unramified class with trivial norm comes
+  from a point are proved modulo the two formal-group interface statements above. Still
+  `sorry`ed, besides those interface statements, is only the size formula at the real
+  places. The goal is a
   formal proof that the Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic
   to `ℤ`, as a show-piece for formalized explicit 2-descent.
 

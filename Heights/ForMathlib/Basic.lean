@@ -387,6 +387,14 @@ lemma IsDedekindDomain.HeightOneSpectrum.primesAbove_mono {S T : Set (HeightOneS
     (hST : S ⊆ T) : primesAbove R B S ⊆ primesAbove R B T :=
   fun _ ⟨v, hv, hva⟩ ↦ ⟨v, hST hv, hva⟩
 
+-- as for `primesAbove_mono`, the `IsDedekindDomain` instances are needed for the statement
+set_option linter.unusedSectionVars false in
+@[simp]
+lemma IsDedekindDomain.HeightOneSpectrum.primesAbove_empty :
+    primesAbove R B (∅ : Set (HeightOneSpectrum R)) = ∅ := by
+  ext w
+  simp [primesAbove]
+
 /-- The prime of `R` lying below a prime `w` of an integral extension `B`. -/
 def IsDedekindDomain.HeightOneSpectrum.below [Algebra.IsIntegral R B] (w : HeightOneSpectrum B) :
     HeightOneSpectrum R where
