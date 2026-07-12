@@ -19,7 +19,7 @@ auxiliary family `Loc` of `K`-fields (giving the completions at the archimedean 
 number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number field `F` the
 2-Selmer group of `E/F` is `W.selmerGroup₂ (𝓞 F) (fun v : InfinitePlace F ↦ v.Completion)`.
 
-## Main statements (mostly `sorry`ed so far)
+## Main statements
 
 * `range_μ_le_selmerGroup₂`: the image of `μ` is contained in the 2-Selmer group; since
   `ker μ = 2E(K)`, this bounds `E(K)/2E(K)` by the Selmer group.
@@ -30,12 +30,18 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   places are subsumed by the `S`-unramifiedness condition `W.selmerGroupA`, so membership in
   the 2-Selmer group reduces to the *finitely many* local conditions at the bad places and the
   infinite places, inside the finite group `A(S,2) ⊓ ker N`. In particular the 2-Selmer group
-  is finite (`finite_selmerGroup₂`).
+  is finite (`finite_selmerGroup₂`). This rests on three `sorry`ed inputs: the two directions
+  of the semilocal comparison between `A ⊗ F_v` and the completions of the field factors
+  (`localRes_mem_selmerGroupA`, `mem_selmerGroupA_of_forall_localRes`) and the local statement
+  that at a good place every unramified class with trivial norm is in the image of `μ_v`
+  (`selmerGroupA_inf_ker_normM_le_range_μ`).
 * `card_range_μ_adicCompletion`, `card_range_μ_completion_isReal`,
   `card_range_μ_completion_isComplex`: the size of the local image is
   `#E(K_v)[2] · ‖2‖_v⁻¹` — concretely `#E(K_v)[2] · (#𝔽_v)^(v(2))` at a finite place (so
   `#E(K_v)[2]` when the residue characteristic is odd), `#E(K_v)[2] / 2` at a real place, and
   `1` at a complex place. These formulas certify that a computed local image is the full one.
+  The complex and odd-residue-characteristic cases are proved; the uniform finite-place formula
+  and the real case are `sorry`ed.
 
 ## Towards explicit computations
 
@@ -111,6 +117,27 @@ lemma mapA_mk (p : K[X]) :
 /-- The base-change map on square classes of units of the étale algebra. -/
 noncomputable def localRes : W.M →* Units.modPow (W⁄L).toAffine.A 2 :=
   Units.modPow.map (W.mapA L).toMonoidHom 2
+
+lemma baseChange_f : (W⁄L).toAffine.f = W.f.map (algebraMap K L) :=
+  W.map_f (algebraMap K L)
+
+/-- The norm of the étale algebra is compatible with base change: the norm of `f` and `p` is
+the resultant of the two polynomials, and resultants commute with ring homomorphisms. -/
+lemma norm_mapA (a : W.A) :
+    Algebra.norm L (W.mapA L a) = algebraMap K L (Algebra.norm K a) := by
+  obtain ⟨p, rfl⟩ := AdjoinRoot.mk_surjective a
+  rw [mapA_mk, AdjoinRoot.norm_mk_eq_resultant (W⁄L).toAffine.monic_f,
+    AdjoinRoot.norm_mk_eq_resultant W.monic_f, W.baseChange_f,
+    natDegree_map_eq_of_injective (algebraMap K L).injective,
+    natDegree_map_eq_of_injective (algebraMap K L).injective, resultant_map_map]
+
+/-- The norm map on square classes is compatible with base change. -/
+lemma normM_localRes (m : W.M) :
+    normM (W := (W⁄L).toAffine) (W.localRes L m) =
+      Units.modPow.map (algebraMap K L).toMonoidHom 2 (W.normM m) := by
+  obtain ⟨u, rfl⟩ := QuotientGroup.mk'_surjective _ m
+  simp only [QuotientGroup.mk'_apply, localRes, normM, Units.modPow.map_mk]
+  exact congrArg _ (Units.ext (by simpa using W.norm_mapA L u))
 
 variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
@@ -263,6 +290,54 @@ open NumberField
 variable {F : Type*} [Field F] [NumberField F] [DecidableEq F] (W : Affine F) [W.IsElliptic]
   [W.IsCharNeTwoNF]
 
+/-!
+The passage between the global and the local conditions rests on three inputs. The first two
+form the *semilocal bridge*: for a square class `m` of the étale algebra `A = F[X]/(f)` and a
+finite place `v`, being unramified at the primes of the field factors of `A` above `v` is
+equivalent to the localization of `m` at `v` being unramified over the valuation ring of
+`F_v`. Here "unramified over the valuation ring" is expressed by `selmerGroupA` of the
+base-changed curve over `v.adicCompletionIntegers F` — for a good `v` the local set of bad
+primes is empty, so this is precisely the subgroup of square classes with even valuations.
+The underlying mathematical content is the decomposition `A ⊗ F_v ≅ ∏ (L_p)_w` of the
+completed étale algebra into the completions of the field factors at the places above `v`,
+compatibly with the valuations; this is not yet in Mathlib.
+
+The third input is purely local: at a good place, every unramified square class with trivial
+norm comes from a point (via a Hensel-lemma lifting or a counting argument against
+`card_range_μ_adicCompletion`).
+-/
+
+open scoped Classical in
+/-- Semilocal bridge, global to local: an `S`-unramified square class localizes to an
+unramified class at every good finite place. -/
+theorem localRes_mem_selmerGroupA {v : HeightOneSpectrum (𝓞 F)} (hv : v ∉ W.badPrimes (𝓞 F))
+    {m : W.M} (hm : m ∈ W.selmerGroupA (𝓞 F)) :
+    W.localRes (v.adicCompletion F) m ∈
+      (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F) := by
+  sorry
+
+open scoped Classical in
+/-- Semilocal bridge, local to global: a square class that localizes to an unramified class
+at every finite place is `S`-unramified. -/
+theorem mem_selmerGroupA_of_forall_localRes {m : W.M}
+    (hm : ∀ v : HeightOneSpectrum (𝓞 F),
+      W.localRes (v.adicCompletion F) m ∈
+        (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)) :
+    m ∈ W.selmerGroupA (𝓞 F) := by
+  sorry
+
+open scoped Classical in
+/-- The local Hensel input: at a good finite place, every unramified square class with
+trivial norm is in the image of the local descent map. (Proof: Hensel lifting of points, or
+counting against `card_range_μ_adicCompletion` — the two sides have the same, finite,
+cardinality.) -/
+theorem selmerGroupA_inf_ker_normM_le_range_μ {v : HeightOneSpectrum (𝓞 F)}
+    (hv : v ∉ W.badPrimes (𝓞 F)) :
+    (W⁄(v.adicCompletion F)).toAffine.selmerGroupA (v.adicCompletionIntegers F)
+        ⊓ (normM (W := (W⁄(v.adicCompletion F)).toAffine)).ker
+      ≤ (μ (W := (W⁄(v.adicCompletion F)).toAffine)).range := by
+  sorry
+
 open scoped Classical in
 /-- At a good finite place, the local condition follows from `S`-unramifiedness and the norm
 condition: the image of the local descent map is the group of unramified square classes with
@@ -270,7 +345,13 @@ trivial norm. -/
 theorem inf_le_localCondition_adicCompletion {v : HeightOneSpectrum (𝓞 F)}
     (hv : v ∉ W.badPrimes (𝓞 F)) :
     W.selmerGroupA (𝓞 F) ⊓ (normM (W := W)).ker ≤ W.localCondition (v.adicCompletion F) := by
-  sorry
+  intro m hm
+  rw [Subgroup.mem_inf] at hm
+  rw [localCondition, Subgroup.mem_comap]
+  apply W.selmerGroupA_inf_ker_normM_le_range_μ hv
+  rw [Subgroup.mem_inf]
+  refine ⟨W.localRes_mem_selmerGroupA hv hm.1, ?_⟩
+  rw [MonoidHom.mem_ker, W.normM_localRes, MonoidHom.mem_ker.mp hm.2, map_one]
 
 open scoped Classical in
 /-- **Reduction of the 2-Selmer group to the bad places**: over a number field, the 2-Selmer
@@ -284,7 +365,21 @@ theorem selmerGroup₂_eq_badPrimes :
         ⊓ (⨅ v : W.badPrimes (𝓞 F),
             W.localCondition ((v : HeightOneSpectrum (𝓞 F)).adicCompletion F))
         ⊓ ⨅ v : InfinitePlace F, W.localCondition v.Completion := by
-  sorry
+  ext m
+  simp only [mem_selmerGroup₂_iff, Subgroup.mem_inf, Subgroup.mem_iInf, MonoidHom.mem_ker]
+  constructor
+  · rintro ⟨h1, h2, h3⟩
+    refine ⟨⟨⟨W.mem_selmerGroupA_of_forall_localRes fun v ↦ ?_, h1⟩, fun v ↦ h2 v⟩, h3⟩
+    have h := h2 v
+    rw [localCondition, Subgroup.mem_comap] at h
+    exact (W⁄(v.adicCompletion F)).toAffine.range_μ_le_selmerGroupA
+      (v.adicCompletionIntegers F) h
+  · rintro ⟨⟨⟨hA, h1⟩, h2⟩, h3⟩
+    refine ⟨h1, fun v ↦ ?_, h3⟩
+    by_cases hv : v ∈ W.badPrimes (𝓞 F)
+    · exact h2 ⟨v, hv⟩
+    · exact W.inf_le_localCondition_adicCompletion hv <| Subgroup.mem_inf.mpr
+        ⟨hA, MonoidHom.mem_ker.mpr h1⟩
 
 open scoped Classical in
 /-- The 2-Selmer group of an elliptic curve over a number field is finite. -/
