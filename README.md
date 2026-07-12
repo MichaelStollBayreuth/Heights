@@ -197,6 +197,17 @@ curves and are intended for eventual upstreaming to Mathlib:
   on the points of a Weierstrass curve `W` (shared with the FLT project); this is what
   transfers the Mordell-Weil theorem from the normal form `y² = cubic` to arbitrary models.
 
+## Work in progress
+
+* [__EllipticCurve/SelmerGroup.lean__](Heights/EllipticCurve/SelmerGroup.lean) sets up the
+  **2-Selmer group** of an elliptic curve: local conditions at the completions of `K`, the
+  Selmer group as a subgroup of the square classes of the étale algebra, the rank bound
+  coming from `im μ ≤ Sel₂`, the reduction of its computation to the local conditions at the
+  bad and infinite places (which also gives finiteness), and the size formulas for the local
+  images. Most statements are still `sorry`ed. The goal is a formal proof that the
+  Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic to `ℤ`, as a show-piece for
+  formalized explicit 2-descent.
+
 ## Further developments
 
 * In [__WeakAbsoluteValue.lean__](Heights/WeakAbsoluteValue.lean) we provide a proof of the
