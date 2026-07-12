@@ -11,12 +11,12 @@ The goal of this file is the **Mordell-Weil Theorem**: the group `E(K)` of `K`-r
 points of an elliptic curve `E` over a number field `K` is finitely generated. It comes in
 three versions:
 
-* `fg_point`: for `E` in short normal form over the fraction field `K` of a Dedekind domain,
-  where `K` has admissible absolute values satisfying the Northcott property and the needed
-  class-group and unit-group finiteness statements are taken as hypotheses;
-* `fg_point_of_variableChange`: for an arbitrary `E` over such a `K`, given an admissible
-  change of variables into short normal form (which exists whenever `2` and `3` are
-  invertible in `K`), by transfer along the isomorphism of point groups from
+* `fg_point`: for `E` given by an equation `y² = x³ + a₂x² + a₄x + a₆` (that is, with
+  `a₁ = a₃ = 0`) over the fraction field `K` of a Dedekind domain, where `K` has admissible
+  absolute values satisfying the Northcott property and the needed class-group and unit-group
+  finiteness statements are taken as hypotheses;
+* `fg_point_of_variableChange`: for an arbitrary `E` over such a `K` with `2` invertible,
+  by completing the square and transferring along the isomorphism of point groups from
   `Heights.ForMathlib.VariableChange`;
 * `fg_point_of_numberField`: for an arbitrary `E` over a number field, where all hypotheses
   are theorems.
@@ -53,8 +53,8 @@ We show that the following diagram commutes.
      ℙ²       - addSubMap -→        ℙ²
 ```
 
-We now assume that `W` is given by a short Weierstrass equation `y² = x³ + a * x + b` (`hW`)
-and is smooth (`hab` is equivalent to the nonvanishing of the discriminant of `W`).
+Here `W` is an arbitrary Weierstrass curve; the formulas are expressed in terms of the
+`b`-invariants `b₂, b₄, b₆, b₈`.
 -/
 
 --#40303
@@ -338,11 +338,12 @@ theorem finite_torsion : Finite (AddCommGroup.torsion W.Point) := by
   exact AddCommGroup.finite_torsion_of_descent' hC
 
 /-- **The Mordell-Weil Theorem**, general version: `E(K)` is finitely generated, for an
-elliptic curve `E` in short normal form over a field `K` such that
+elliptic curve `E` given by an equation `y² = f(x)` with a monic cubic `f` (`a₁ = a₃ = 0`)
+over a field `K` such that
 * `K` has admissible absolute values satisfying the Northcott property (so heights work);
 * `K` is the fraction field of a Dedekind domain `R`; and
-* for each irreducible factor `p` of the `2`-division polynomial of `E`, the integral closure
-  of `R` in `K[X]/(p)` has finite class group and finitely generated unit group.
+* for each irreducible factor `p` of `f`, the integral closure of `R` in `K[X]/(p)` has
+  finite class group and finitely generated unit group.
 
 For `K` a number field all of these hold; see `fg_point_of_numberField`.
 
@@ -354,7 +355,7 @@ so `Finite (ClassGroup R)` gives no control over the class groups of the factors
 adding `Group.FG Rˣ` rescues the implication appears to be unknown; all known proofs of the
 per-factor statements require `K` to be a global field.) -/
 theorem fg_point (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
-    [IsFractionRing R F] [W.IsShortNF]
+    [IsFractionRing R F] [W.IsCharNeTwoNF]
     [(p : W.f.Factors) → Finite (ClassGroup (W.ringOfIntegersFactor R p))]
     [(p : W.f.Factors) → Group.FG (W.ringOfIntegersFactor R p)ˣ] :
     AddGroup.FG W.Point := by
@@ -365,16 +366,15 @@ theorem fg_point (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
   exact AddCommGroup.fg_of_descent' (W.finite_index_range_nsmulAddMonoidHom_two R) H₂ hC
 
 /-- **The Mordell-Weil Theorem** for an arbitrary Weierstrass curve: `E(K)` is finitely
-generated, given an admissible change of variables `C` bringing `E` into short normal form,
-together with the finiteness hypotheses of `fg_point` for the model `C • E`. The result is
-transferred along the isomorphism of point groups `Point.equivVariableChange`.
+generated, given an admissible change of variables `C` bringing `E` into the normal form
+`y² = cubic` (i.e., `a₁ = a₃ = 0`), together with the finiteness hypotheses of `fg_point`
+for the model `C • E`. The result is transferred along the isomorphism of point groups
+`Point.equivVariableChange`.
 
-Such a `C` exists whenever `2` and `3` are invertible in `K`
-(`WeierstrassCurve.exists_variableChange_isShortNF`). Invertibility of `3` cannot be dropped:
-in characteristic `3`, a short normal form has `c₄ = 0`, so a curve with `c₄ ≠ 0` admits no
-such change of variables. -/
+Such a `C` exists whenever `2` is invertible in `K`
+(`WeierstrassCurve.exists_variableChange_isCharNeTwoNF`, completing the square). -/
 theorem fg_point_of_variableChange (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R F]
-    [IsFractionRing R F] (C : VariableChange F) [(C • W).IsShortNF]
+    [IsFractionRing R F] (C : VariableChange F) [(C • W).IsCharNeTwoNF]
     [(p : (C • W).toAffine.f.Factors) →
       Finite (ClassGroup ((C • W).toAffine.ringOfIntegersFactor R p))]
     [(p : (C • W).toAffine.f.Factors) →
@@ -396,13 +396,12 @@ variable {F : Type*} [Field F] [NumberField F] [DecidableEq F] {W : Affine F}
 /-- **The Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
 curve `E` over a number field `K` is finitely generated.
 
-The curve is brought into short normal form by an admissible change of variables (possible
+The square on the left-hand side is completed by an admissible change of variables (possible
 since `K` has characteristic `0`), and the finiteness hypotheses of `fg_point` for the
 resulting model are the class number theorem and Dirichlet's unit theorem. -/
 theorem fg_point_of_numberField : AddGroup.FG W.Point := by
   have := invertibleOfNonzero (two_ne_zero (α := F))
-  have := invertibleOfNonzero (three_ne_zero (α := F))
-  obtain ⟨C, hC⟩ := exists_variableChange_isShortNF (W := W)
+  obtain ⟨C, hC⟩ := exists_variableChange_isCharNeTwoNF (W := W)
   have (p : (C • W).toAffine.f.Factors) :
       Finite (ClassGroup ((C • W).toAffine.ringOfIntegersFactor (𝓞 F) p)) :=
     NumberField.finite_classGroup_integralClosure F (AdjoinRoot (p : Polynomial F))

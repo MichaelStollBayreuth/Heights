@@ -133,15 +133,15 @@ curve `E` over a number field `K` is finitely generated. The end result is
 `WeierstrassCurve.Affine.fg_point_of_numberField` in
 [__EllipticCurve/MordellWeil.lean__](Heights/EllipticCurve/MordellWeil.lean), for arbitrary
 Weierstrass models. It is deduced from the more general `WeierstrassCurve.Affine.fg_point`,
-which works for `E` given by a short Weierstrass equation `y² = x³ + a₄·x + a₆` over the
-fraction field `K` of a Dedekind domain `R` such that `K` has admissible absolute values
-satisfying the Northcott property and such that for each irreducible factor `p` of
-`x³ + a₄·x + a₆`, the integral closure of `R` in `K[X]/(p)` has finite class group and
-finitely generated unit group. (These per-factor hypotheses cannot be replaced by the
-corresponding hypotheses on `R` itself; see the docstring of `fg_point`.) The reduction to
-short normal form (`fg_point_of_variableChange`) goes along an admissible change of
-variables, which exists whenever `2` and `3` are invertible in `K`, and uses the induced
-isomorphism of the groups of points.
+which works for `E` given by a Weierstrass equation `y² = x³ + a₂·x² + a₄·x + a₆` (so with
+`a₁ = a₃ = 0`) over the fraction field `K` of a Dedekind domain `R` such that `K` has
+admissible absolute values satisfying the Northcott property and such that for each
+irreducible factor `p` of the cubic, the integral closure of `R` in `K[X]/(p)` has finite
+class group and finitely generated unit group. (These per-factor hypotheses cannot be
+replaced by the corresponding hypotheses on `R` itself; see the docstring of `fg_point`.)
+The reduction to this normal form (`fg_point_of_variableChange`) completes the square via an
+admissible change of variables, which is possible whenever `2` is invertible in `K`, and
+uses the induced isomorphism of the groups of points.
 
 The proof follows the classical route and consists of the following parts.
 
@@ -161,7 +161,8 @@ The proof follows the classical route and consists of the following parts.
   [__EllipticCurve/WeakMordellWeil.lean__](Heights/EllipticCurve/WeakMordellWeil.lean), proved over fraction fields of
   Dedekind domains (with the finiteness hypotheses above) via the `x - T` descent map:
   `E(K)/2E(K)` embeds into the group of square classes of the étale algebra
-  `A = K[X]/(x³ + a₄·x + a₆)`, with image contained in the `2`-Selmer group `A(S, 2)`
+  `A = K[X]/(f)` for the cubic `f` with `y² = f(x)`, with image contained in the
+  `2`-Selmer group `A(S, 2)`
   for the finite set `S` of bad primes, and the latter group is finite.
 
 The supporting theory for the last step is developed in the folder
@@ -194,7 +195,7 @@ curves and are intended for eventual upstreaming to Mathlib:
 * [__ForMathlib/VariableChange.lean__](Heights/ForMathlib/VariableChange.lean): the group
   isomorphism `(C • W).Point ≃+ W.Point` induced by an admissible change of variables `C`
   on the points of a Weierstrass curve `W` (shared with the FLT project); this is what
-  transfers the Mordell-Weil theorem from the short normal form to arbitrary models.
+  transfers the Mordell-Weil theorem from the normal form `y² = cubic` to arbitrary models.
 
 ## Further developments
 

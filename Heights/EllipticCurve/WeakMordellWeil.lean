@@ -6,7 +6,8 @@ import Mathlib
 # The Weak Mordell-Weil Theorem
 
 The goal of this file is to show that `E(K)/2E(K)` is finite, where `E` is an elliptic curve
-given by a short Weierstrass equation `y² = x³ + ax + b =: f(x)` (with `a = a₄` and `b = a₆`)
+given by a Weierstrass equation `y² = x³ + a₂x² + a₄x + a₆ =: f(x)` (so with `a₁ = a₃ = 0`,
+which is always achievable when the characteristic is not `2`)
 over the fraction field `K` of a Dedekind domain `R`, under finiteness hypotheses — finite
 class group and finitely generated unit group for the rings of integers of the field factors
 of `K[X]/⟨f⟩` — that are theorems when `K` is a number field.
@@ -27,7 +28,8 @@ curves, lives in `Heights.ForMathlib.Basic`.
    => done.
 5. Show that `im μ` is contained in the kernel of the norm map on square classes.
    => done, via `AdjoinRoot.norm_mk_eq_resultant`, which says that the norm of
-   `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p` (in `Heights.ForMathlib.Basic`).
+   `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p`
+   (in `Heights.ForMathlib.Basic`).
    Note that this step is *not* needed for the finiteness result (Steps 6 and 7 do not use
    it); it is included because the norm condition cuts down the Selmer group in explicit
    computations.
@@ -38,8 +40,8 @@ curves, lives in `Heights.ForMathlib.Basic`.
 7. Show that `A(S,2)` is finite, and conclude that `E(K)/2E(K)` is finite.
    => done, as `finite_index_range_nsmulAddMonoidHom_two` at the end of the file. The
    finiteness of the `2`-Selmer group of each field factor is
-   `IsDedekindDomain.finite_selmerGroup` (in `Heights.ForMathlib.SelmerGroup`); it requires the class
-   group of the factor's ring of integers to be finite and its unit group to be finitely
+   `IsDedekindDomain.finite_selmerGroup` (in `Heights.ForMathlib.SelmerGroup`); it requires
+   the class group of the factor's ring of integers to be finite and its unit group to be finitely
    generated, which are taken as hypotheses (for number fields they are the class number
    theorem and Dirichlet's unit theorem, both in Mathlib).
 -/
@@ -73,13 +75,16 @@ namespace WeierstrassCurve.Affine
 
 variable {K : Type*} [Field K] (W : Affine K)
 
-lemma ringChar_ne_two_of_isElliptic_of_isShortNF [W.IsElliptic] [W.IsShortNF] :
-    ringChar K ≠ 2 := by
-  have := W.isUnit_Δ.ne_zero
-  contrapose! this
-  rw [Δ_of_isShortNF W, show (16 : K) = (2 :) * 8 by norm_num]
-  nth_rewrite 1 [← this]
-  simp
+lemma ringChar_ne_two [W.IsElliptic] [W.IsCharNeTwoNF] : ringChar K ≠ 2 := by
+  have h := W.isUnit_Δ.ne_zero
+  contrapose! h
+  have h2 : (2 : K) = 0 := by
+    have := ringChar.Nat.cast_ringChar (R := K)
+    rw [h] at this
+    exact_mod_cast this
+  rw [Δ_of_isCharNeTwoNF W]
+  linear_combination (-32 * W.a₂ ^ 3 * W.a₆ + 8 * W.a₂ ^ 2 * W.a₄ ^ 2 - 32 * W.a₄ ^ 3
+    - 216 * W.a₆ ^ 2 + 144 * W.a₂ * W.a₄ * W.a₆) * h2
 
 /-!
 ### Step 1: define `A`
@@ -87,8 +92,8 @@ lemma ringChar_ne_two_of_isElliptic_of_isShortNF [W.IsElliptic] [W.IsShortNF] :
 
 open Polynomial
 
-/-- The polynomial on the right hand side of a short Weierstrass equation. -/
-noncomputable abbrev f : K[X] := X ^ 3 + C W.a₄ * X + C W.a₆
+/-- The polynomial on the right hand side of a Weierstrass equation with `a₁ = a₃ = 0`. -/
+noncomputable abbrev f : K[X] := X ^ 3 + C W.a₂ * X ^ 2 + C W.a₄ * X + C W.a₆
 
 lemma natDegree_f : W.f.natDegree = 3 := by
   simp only [f]
@@ -103,40 +108,47 @@ lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
 lemma degree_lt_degree_f {p : K[X]} (hp : p.natDegree ≤ 2) : p.degree < W.f.degree :=
   degree_lt_degree <| by rw [natDegree_f]; lia
 
-lemma separable_f [W.IsElliptic] [W.IsShortNF] : W.f.Separable := by
+lemma separable_f [W.IsElliptic] [W.IsCharNeTwoNF] : W.f.Separable := by
   have hΔ : W.Δ ≠ 0 := W.isUnit_Δ.ne_zero
   rw [f, separable_def',
-    show derivative (X ^ 3 + C W.a₄ * X + C W.a₆) = C 3 * X ^ 2 + C W.a₄ by
-      simp [C_ofNat]; norm_num]
-  refine ⟨C (W.Δ)⁻¹ * (C (288 * W.a₄) * X - C (432 * W.a₆)),
-    C (W.Δ)⁻¹ * (C (-96 * W.a₄) * X ^ 2 + C (144 * W.a₆) * X + C (-64 * W.a₄ ^ 2)), ?_⟩
-  rw [mul_assoc, mul_assoc, ← mul_add]
+    show derivative (X ^ 3 + C W.a₂ * X ^ 2 + C W.a₄ * X + C W.a₆)
+        = C 3 * X ^ 2 + C (2 * W.a₂) * X + C W.a₄ by
+      simp [C_ofNat]; ring]
+  refine ⟨C (W.Δ)⁻¹ * (C (288 * W.a₄ - 96 * W.a₂ ^ 2) * X
+      + C (240 * W.a₂ * W.a₄ - 64 * W.a₂ ^ 3 - 432 * W.a₆)),
+    C (W.Δ)⁻¹ * (C (32 * W.a₂ ^ 2 - 96 * W.a₄) * X ^ 2
+      + C (32 * W.a₂ ^ 3 - 112 * W.a₂ * W.a₄ + 144 * W.a₆) * X
+      + C (16 * W.a₂ ^ 2 * W.a₄ - 64 * W.a₄ ^ 2 + 48 * W.a₂ * W.a₆)), ?_⟩
+  rw [mul_assoc, mul_assoc (C (W.Δ)⁻¹), ← mul_add]
   refine mul_left_cancel₀ (C_ne_zero.mpr hΔ) ?_
-  rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ hΔ, Δ_of_isShortNF]
+  rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ hΔ, Δ_of_isCharNeTwoNF]
   simp only [C_eq_algebraMap]
   algebra
 
-lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f W).squarefree
+lemma squarefree_f [W.IsElliptic] [W.IsCharNeTwoNF] : Squarefree W.f :=
+  (separable_f W).squarefree
 
-lemma eval_f (x : K) : W.f.eval x = x ^ 3 + W.a₄ * x + W.a₆ := by simp [f]
+lemma eval_f (x : K) : W.f.eval x = x ^ 3 + W.a₂ * x ^ 2 + W.a₄ * x + W.a₆ := by simp [f]
 
 lemma map_eval_f {L : Type*} [CommRing L] [Algebra K L] (x : K) :
     algebraMap K L (W.f.eval x) = algebraMap K L x ^ 3 +
+      algebraMap K L W.a₂ * algebraMap K L x ^ 2 +
       algebraMap K L W.a₄ * algebraMap K L x + algebraMap K L W.a₆ := by
   simp [f]
 
-lemma equation_iff_eval_f_eq_sq [W.IsShortNF] (x y : K) :
+lemma equation_iff_eval_f_eq_sq [W.IsCharNeTwoNF] (x y : K) :
     W.Equation x y ↔ W.f.eval x = y ^ 2 := by
   rw [equation_iff x y, eq_comm]
   simp [f]
 
 /-- On a point of `W`, the value `f x` is a square, so it vanishes exactly when `y` does. -/
-lemma ne_zero_of_eval_f_ne_zero [W.IsShortNF] {x y : K} (h : W.Equation x y)
+lemma ne_zero_of_eval_f_ne_zero [W.IsCharNeTwoNF] {x y : K} (h : W.Equation x y)
     (hx : W.f.eval x ≠ 0) : y ≠ 0 :=
   fun h0 ↦ hx <| by simp [(equation_iff_eval_f_eq_sq W x y).mp h, h0]
 
 /-- The quotient of `f` by `X - x`. -/
-noncomputable abbrev fCofactor (x : K) : K[X] := X ^ 2 + C x * X + C (x ^ 2 + W.a₄)
+noncomputable abbrev fCofactor (x : K) : K[X] :=
+  X ^ 2 + C (x + W.a₂) * X + C (x ^ 2 + W.a₂ * x + W.a₄)
 
 lemma natDegree_fCofactor (x : K) : (W.fCofactor x).natDegree = 2 := by
   simp only [fCofactor]
@@ -150,7 +162,8 @@ lemma degree_lt_degree_fCofactor (x : K) {p : K[X]} (hp : p.natDegree ≤ 1) :
     p.degree < (W.fCofactor x).degree :=
   degree_lt_degree <| by rw [natDegree_fCofactor]; lia
 
-lemma eval_fCofactor_self (x : K) : (W.fCofactor x).eval x = 3 * x ^ 2 + W.a₄ := by
+lemma eval_fCofactor_self (x : K) :
+    (W.fCofactor x).eval x = 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ := by
   simp [fCofactor]
   ring
 
@@ -198,14 +211,17 @@ lemma fCofactor_eq_of_f_eq {xP xQ xR : K} (hf : W.f = (X - C xP) * (X - C xQ) * 
     rw [← h, W.f_eq_mul_of_eval_eq_zero h₀, mul_comm]
   exact ⟨key <| by rw [hf]; ring, key <| by rw [hf]; ring, key <| by rw [hf]; ring⟩
 
-lemma three_mul_sq_add_a₄_ne_zero [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) :
-    3 * x ^ 2 + W.a₄ ≠ 0 := by
+lemma deriv_f_ne_zero [W.IsElliptic] [W.IsCharNeTwoNF] {x : K} (hx : W.f.eval x = 0) :
+    3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ ≠ 0 := by
   rw [eval_f] at hx
-  have := W.Δ_of_isShortNF ▸ W.isUnit_Δ |>.ne_zero
+  have := W.Δ_of_isCharNeTwoNF ▸ W.isUnit_Δ |>.ne_zero
   contrapose! this
-  grobner
+  linear_combination ((288 * W.a₄ - 96 * W.a₂ ^ 2) * x
+      + (240 * W.a₂ * W.a₄ - 64 * W.a₂ ^ 3 - 432 * W.a₆)) * hx
+    + ((32 * W.a₂ ^ 2 - 96 * W.a₄) * x ^ 2 + (32 * W.a₂ ^ 3 - 112 * W.a₂ * W.a₄ + 144 * W.a₆) * x
+      + (16 * W.a₂ ^ 2 * W.a₄ - 64 * W.a₄ ^ 2 + 48 * W.a₂ * W.a₆)) * this
 
-/-- The étale algebra associated to a short Weierstrass curve. -/
+/-- The étale algebra associated to a Weierstrass curve with `a₁ = a₃ = 0`. -/
 abbrev A : Type _ := AdjoinRoot W.f
 
 lemma exists_mk_eq (a : W.A) :
@@ -220,7 +236,7 @@ lemma exists_X_sub_C_mul_eq (r s t : K) (hr : r ≠ 0) :
        AdjoinRoot.mk W.f (C l * X + C m) := by
   conv => enter [1, ξ, 1, l, 1, m]; rw [← map_mul, ← sub_eq_zero, ← map_sub]
   have H (ξ l m : K) : (X - C ξ) * (C r * X ^ 2 + C s * X + C t) - (C l * X + C m) =
-      C r * W.f + (C (-ξ * r + s) * X ^ 2 + C (-ξ * s - l - W.a₄ * r + t) * X
+      C r * W.f + (C (-ξ * r + s - W.a₂ * r) * X ^ 2 + C (-ξ * s - l - W.a₄ * r + t) * X
         + C (-ξ * t - m - W.a₆ * r)) := by
     simp only [f, C_eq_algebraMap]
     algebra
@@ -230,12 +246,14 @@ lemma exists_X_sub_C_mul_eq (r s t : K) (hr : r ≠ 0) :
     enter [1, 1, 2]
     rw [AdjoinRoot.mk_self]
   simp only [mul_zero, zero_add]
-  suffices ∃ ξ l m, -ξ * r + s = 0 ∧ -ξ * s - l - W.a₄ * r + t = 0 ∧ -ξ * t - m - W.a₆ * r = 0 by
+  suffices ∃ ξ l m, -ξ * r + s - W.a₂ * r = 0 ∧ -ξ * s - l - W.a₄ * r + t = 0 ∧
+      -ξ * t - m - W.a₆ * r = 0 by
     obtain ⟨ξ, l, m, h₂, h₁, h₀⟩ := this
     refine ⟨ξ, l, m, ?_⟩
     rw [h₂, h₁, h₀]
     simp
-  refine ⟨s / r, t - W.a₄ * r - s ^ 2 / r, -W.a₆ * r - t * s / r, ?_, ?_, ?_⟩ <;> field
+  refine ⟨s / r - W.a₂, t - W.a₄ * r - s ^ 2 / r + W.a₂ * s,
+    -W.a₆ * r - t * s / r + W.a₂ * t, ?_, ?_, ?_⟩ <;> field
 
 /-- The étale algebra associated to the cofactor of `f`. -/
 abbrev A' (x : K) : Type _ := AdjoinRoot (W.fCofactor x)
@@ -254,15 +272,17 @@ lemma norm_mk_C_sub_X (x : K) : Algebra.norm K (AdjoinRoot.mk W.f (C x - X)) = W
   rw [AdjoinRoot.norm_mk_eq_resultant W.monic_f, hd, resultant_C_sub_X _ _ _ le_rfl]
 
 /-- If `x` is a root of `f`, then the norm of `x - θ + fCofactor x`, which is the element
-representing `f' θ` in this case, is the square `(3x² + a₄)²`. -/
+representing `f' θ` in this case, is the square `(f' x)²`. -/
 lemma norm_mk_C_sub_X_add_fCofactor {x : K} (hx : W.f.eval x = 0) :
-    Algebra.norm K (AdjoinRoot.mk W.f (C x - X + W.fCofactor x)) = (3 * x ^ 2 + W.a₄) ^ 2 := by
+    Algebra.norm K (AdjoinRoot.mk W.f (C x - X + W.fCofactor x))
+      = (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) ^ 2 := by
   have hq : (W.fCofactor x).natDegree = 2 := W.natDegree_fCofactor x
-  have hqx : (W.fCofactor x).eval x = 3 * x ^ 2 + W.a₄ := W.eval_fCofactor_self x
+  have hqx : (W.fCofactor x).eval x = 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ :=
+    W.eval_fCofactor_self x
   have hp : (C x - X + W.fCofactor x).natDegree = 2 := by
     simp only [fCofactor]
     compute_degree!
-  have hpx : (C x - X + W.fCofactor x).eval x = 3 * x ^ 2 + W.a₄ := by
+  have hpx : (C x - X + W.fCofactor x).eval x = 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ := by
     rw [eval_add, ← hqx]
     simp
   rw [AdjoinRoot.norm_mk_eq_resultant W.monic_f, hp, W.natDegree_f]
@@ -274,7 +294,7 @@ lemma norm_mk_C_sub_X_add_fCofactor {x : K} (hx : W.f.eval x = 0) :
   rw [show (X - C x) = (X - C x) ^ 1 by rw [pow_one],
     resultant_X_sub_C_pow_left _ _ _ _ hp.le, pow_one, hpx]
   -- the factor coming from `fCofactor x` is `(C x - X).resultant`, since `fCofactor x ≡ 0`
-  have hres : (W.fCofactor x).resultant (C x - X) 2 2 = 3 * x ^ 2 + W.a₄ := by
+  have hres : (W.fCofactor x).resultant (C x - X) 2 2 = 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ := by
     have h := resultant_add_right_deg (W.fCofactor x) (C x - X) 2 1 1 (by compute_degree!)
     simp only [show (1 : ℕ) + 1 = 2 from rfl, pow_one] at h
     rw [h, show (W.fCofactor x).coeff 2 = 1 by
@@ -286,7 +306,7 @@ lemma norm_mk_C_sub_X_add_fCofactor {x : K} (hx : W.f.eval x = 0) :
 
 /-- The Chinese Remainder Theorem isomorphism `K[X]⧸f ≃ K × K[X]/cf`, where `cf` is the cofactor
 `f / (X - x)`. -/
-noncomputable def equivProdA' [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) :
+noncomputable def equivProdA' [W.IsElliptic] [W.IsCharNeTwoNF] {x : K} (hx : W.f.eval x = 0) :
     W.A ≃+* K × W.A' x :=
   let eA : W.A ≃+* K[X] ⧸ (Ideal.span {X - C x} * Ideal.span {W.fCofactor x}) :=
     Ideal.quotEquivOfEq <| by
@@ -299,17 +319,17 @@ noncomputable def equivProdA' [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eva
       H).trans <|
     RingEquiv.prodCongr (Polynomial.quotientSpanXSubCAlgEquiv x |>.toRingEquiv) (RingEquiv.refl _)
 
-lemma equivProdA'_apply [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) (p : K[X]) :
+lemma equivProdA'_apply [W.IsElliptic] [W.IsCharNeTwoNF] {x : K} (hx : W.f.eval x = 0) (p : K[X]) :
     W.equivProdA' hx (AdjoinRoot.mk W.f p) = (p.eval x, AdjoinRoot.mk (W.fCofactor x) p) :=
   rfl
 
-lemma mk_eq_mk_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) {p q : K[X]} :
+lemma mk_eq_mk_iff [W.IsElliptic] [W.IsCharNeTwoNF] {x : K} (hx : W.f.eval x = 0) {p q : K[X]} :
     AdjoinRoot.mk W.f p = AdjoinRoot.mk W.f q ↔
       p.eval x = q.eval x ∧ AdjoinRoot.mk (W.fCofactor x) p = AdjoinRoot.mk (W.fCofactor x) q := by
   rw [← EquivLike.apply_eq_iff_eq <| W.equivProdA' hx]
   simpa only [equivProdA'_apply] using Prod.mk_inj
 
-lemma isUnit_mk_iff [W.IsElliptic] [W.IsShortNF] {x : K} (hx : W.f.eval x = 0) {p : K[X]} :
+lemma isUnit_mk_iff [W.IsElliptic] [W.IsCharNeTwoNF] {x : K} (hx : W.f.eval x = 0) {p : K[X]} :
     IsUnit (AdjoinRoot.mk W.f p) ↔
       IsUnit (p.eval x) ∧ IsUnit (AdjoinRoot.mk (W.fCofactor x) p) := by
   let e := W.equivProdA' hx
@@ -325,22 +345,17 @@ variable {W}
 
 lemma isUnit_mk_sub_X_of_eval_f_ne_zero {x : K} (h : W.f.eval x ≠ 0) :
     IsUnit <| AdjoinRoot.mk W.f (C x - X) := by
-  refine .of_mul_eq_one
-    (AdjoinRoot.mk W.f (C (W.f.eval x)⁻¹ * (X ^ 2 + C x * X + C (x ^2 + W.a₄)))) ?_
+  refine .of_mul_eq_one (AdjoinRoot.mk W.f (C (W.f.eval x)⁻¹ * W.fCofactor x)) ?_
   rw [← map_mul, mul_left_comm,
     show (1 : W.A) = AdjoinRoot.mk W.f (1 - C (eval x W.f)⁻¹ * W.f) by simp]
   congr 1
-  simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C, map_add, map_pow]
-  have : (C x - X) * (X ^ 2 + C x * X + (C x ^ 2 + C W.a₄)) =
-      -X ^ 3 - C W.a₄ * X - C W.a₆ + C (x ^3 + W.a₄ * x + W.a₆) := by
-    simp; ring
-  simp only [f, eval_add, eval_pow, eval_X, eval_mul, eval_C] at h
-  rw [this, mul_add, ← C_mul, inv_mul_cancel₀ h, map_one]
-  ring
+  have h1 : (C x - X) * W.fCofactor x = C (W.f.eval x) - W.f := by
+    linear_combination -W.fCofactor_mul_eq x
+  rw [h1, mul_sub, ← C_mul, inv_mul_cancel₀ h, map_one]
 
 section
 
-variable [W.IsShortNF]
+variable [W.IsCharNeTwoNF]
 
 lemma y_eq_zero_of_eval_f_eq_zero {x y : K} (h : W.Equation x y) (hf : W.f.eval x = 0) :
     y = 0 := by
@@ -351,22 +366,24 @@ variable [W.IsElliptic]
 lemma isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 0) :
     IsUnit <| AdjoinRoot.mk W.f <| C x - X + W.fCofactor x := by
   rw [isUnit_mk_iff W h]
-  have H₀ : 3 * x ^ 2 + W.a₄ ≠ 0 := three_mul_sq_add_a₄_ne_zero W h
-  have H₁ : eval x (C x - X + W.fCofactor x) = 3 * x ^ 2 + W.a₄ := by
+  have H₀ : 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ ≠ 0 := deriv_f_ne_zero W h
+  have H₁ : eval x (C x - X + W.fCofactor x) = 3 * x ^ 2 + 2 * W.a₂ * x + W.a₄ := by
     rw [eval_add, W.eval_fCofactor_self]; simp
   have H₂ : (AdjoinRoot.mk (W.fCofactor x)) (C x - X + W.fCofactor x) =
       AdjoinRoot.mk (W.fCofactor x) (C x - X) := by
     simp
   rw [H₁, H₂, isUnit_iff_ne_zero]
   refine ⟨H₀, ?_⟩
-  let u := AdjoinRoot.mk (W.fCofactor x) <| C (3 * x ^ 2 + W.a₄)⁻¹ * (X + C (2 * x))
+  let u := AdjoinRoot.mk (W.fCofactor x) <|
+    C (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄)⁻¹ * (X + C (2 * x + W.a₂))
   rw [isUnit_iff_exists_inv]
   refine ⟨u, ?_⟩
   rw [← map_mul]
-  have : (C x - X) * (C (3 * x ^ 2 + W.a₄)⁻¹ * (X + C (2 * x))) =
-      C (3 * x ^ 2 + W.a₄)⁻¹ * (-W.fCofactor x) + 1 := by
+  have : (C x - X) * (C (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄)⁻¹ * (X + C (2 * x + W.a₂))) =
+      C (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄)⁻¹ * (-W.fCofactor x) + 1 := by
     rw [mul_left_comm]
-    apply_fun (C (3 * x ^ 2 + W.a₄) * ·) using mul_right_injective₀ <| C_ne_zero.mpr H₀
+    apply_fun (C (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) * ·) using
+      mul_right_injective₀ <| C_ne_zero.mpr H₀
     dsimp only
     rw [mul_add _ _ 1]
     simp_rw [← mul_assoc, ← map_mul, mul_inv_cancel₀ H₀, map_one, one_mul, mul_one]
@@ -394,7 +411,7 @@ lemma M.mul_self (m : W.M) : m * m = 1 := by rw [← sq, sq_eq_one]
 
 @[simp] lemma M.inv_eq_self (m : W.M) : m⁻¹ = m := inv_eq_of_mul_eq_one_right (M.mul_self m)
 
-variable [DecidableEq K] [W.IsShortNF]
+variable [DecidableEq K] [W.IsCharNeTwoNF]
 
 section μ₀
 
@@ -617,22 +634,29 @@ lemma μ₀_two_nsmul (P : W.Point) : W.μ₀ (2 • P) = 1 := by
 /- Reverse direction of `exists_eq_two_smul_iff`, in terms of the coefficient identities of
 the polynomial identity: the point `(ξ, lξ + m)` lies on `W` and doubles to `(x, ±y)`. -/
 private lemma exists_eq_two_smul_of_identities {x y ξ l m : K} (h : W.Nonsingular x y)
-    (H₂ : x + 2 * ξ = l ^ 2) (H₁ : 2 * x * ξ + ξ ^ 2 = W.a₄ - 2 * l * m)
+    (H₂ : x + 2 * ξ = l ^ 2 - W.a₂) (H₁ : 2 * x * ξ + ξ ^ 2 = W.a₄ - 2 * l * m)
     (H₀ : x * ξ ^ 2 = -W.a₆ + m ^ 2) :
     ∃ P, Point.some x y h = 2 • P := by
-  have h20 : (2 : K) ≠ 0 :=
-    Ring.two_ne_zero <| ringChar_ne_two_of_isElliptic_of_isShortNF W
+  have h20 : (2 : K) ≠ 0 := Ring.two_ne_zero <| ringChar_ne_two W
   have hy₀ : l * ξ + m ≠ 0 := by
     have hΔ := W.isUnit_Δ.ne_zero
-    rw [Δ_of_isShortNF W] at hΔ
+    rw [Δ_of_isCharNeTwoNF W] at hΔ
     contrapose! hΔ
-    grobner
+    -- the Bézout certificate for `Δ`, evaluated at `ξ`, where `f ξ = (lξ+m)²` and
+    -- `f' ξ = 2l(lξ+m)` vanish by `hΔ` and the coefficient identities
+    linear_combination
+      (((288 * W.a₄ - 96 * W.a₂ ^ 2) * ξ + (240 * W.a₂ * W.a₄ - 64 * W.a₂ ^ 3 - 432 * W.a₆)) *
+          ((l * ξ + m) * hΔ + ξ ^ 2 * H₂ - ξ * H₁ + H₀))
+        + (((32 * W.a₂ ^ 2 - 96 * W.a₄) * ξ ^ 2
+            + (32 * W.a₂ ^ 3 - 112 * W.a₂ * W.a₄ + 144 * W.a₆) * ξ
+            + (16 * W.a₂ ^ 2 * W.a₄ - 64 * W.a₄ ^ 2 + 48 * W.a₂ * W.a₆)) *
+          (2 * l * hΔ + 2 * ξ * H₂ - H₁))
   have hy : l * ξ + m ≠ W.negY ξ (l * ξ + m) := by
-    simp only [negY, a₁_of_isShortNF, a₃_of_isShortNF, zero_mul, sub_zero]
+    simp only [negY, a₁_of_isCharNeTwoNF, a₃_of_isCharNeTwoNF, zero_mul, sub_zero]
     grind
   have hsl : W.slope ξ ξ (l * ξ + m) (l * ξ + m) = l := by
-    simp only [slope_of_Y_ne rfl hy, a₂_of_isShortNF, mul_zero, zero_mul, add_zero,
-      a₁_of_isShortNF, a₃_of_isShortNF, sub_zero, negY, sub_neg_eq_add, ← two_mul]
+    simp only [slope_of_Y_ne rfl hy, a₁_of_isCharNeTwoNF, a₃_of_isCharNeTwoNF, zero_mul,
+      sub_zero, negY, sub_neg_eq_add, ← two_mul]
     rw [mul_comm] at hy₀ -- `field_simp` changes `l * ξ` to `ξ * l`
     field_simp
     grobner
@@ -642,7 +666,7 @@ private lemma exists_eq_two_smul_of_identities {x y ξ l m : K} (h : W.Nonsingul
   let P : W.Point := .some ξ (l * ξ + m) <| equation_iff_nonsingular.mp heq
   suffices .some x y h = 2 • P ∨ .some x y h = 2 • (-P) from this.casesOn (⟨_, ·⟩) (⟨_, ·⟩)
   simp only [smul_neg, P, two_smul, Point.add_self_of_Y_ne hy, ← Point.X_eq_iff, hsl, addX,
-    a₁_of_isShortNF, a₂_of_isShortNF, zero_mul, add_zero, sub_zero]
+    a₁_of_isCharNeTwoNF, zero_mul, add_zero]
   linear_combination H₂
 
 /-- A criterion for a nonsingular point in affine coordinates to be divisible by 2,
@@ -652,7 +676,7 @@ lemma exists_eq_two_smul_iff {x y : K} (h : W.Nonsingular x y) :
       ∃ ξ l m, (X - C ξ) ^ 2 * (X - C x) = W.f - (C l * X + C m) ^ 2 := by
   refine ⟨fun ⟨P, hP⟩ ↦ exists_pol_of_eq_two_smul h hP, fun ⟨ξ, l, m, H⟩ ↦ ?_⟩
   have H' : X ^ 3 - C (x + 2 * ξ) * X ^ 2 + C (2 * x * ξ + ξ ^ 2) * X - C (x * ξ ^ 2) =
-      X ^ 3 - C (l ^ 2) * X ^ 2 + C (W.a₄ - 2 * l * m) * X - C (-W.a₆ + m ^ 2) := by
+      X ^ 3 - C (l ^ 2 - W.a₂) * X ^ 2 + C (W.a₄ - 2 * l * m) * X - C (-W.a₆ + m ^ 2) := by
     simp only [f] at H
     convert H using 1 <;> { simp only [C_eq_algebraMap]; algebra }
   replace H' n := congrArg (fun p ↦ p.coeff n) H'
@@ -772,15 +796,16 @@ The norm `Algebra.norm K : W.A →* K` sends units to units, hence induces a hom
 Writing `f = (X - θ₁) * (X - θ₂) * (X - θ₃)` over a splitting field, the two cases are:
 
 * if `f x ≠ 0`, then `N (x - θ) = ∏ᵢ (x - θᵢ) = f x = y²`, a square;
-* if `f x = 0`, then `N (f' θ) = (3x² + a₄)²`, again a square.
+* if `f x = 0`, then `N (f' θ) = (f' x)²`, again a square.
 
 Both are instances of `AdjoinRoot.norm_mk_eq_resultant`: the norm of `AdjoinRoot.mk g p` for
 monic `g` is the resultant of `g` and `p`. See `norm_mk_C_sub_X` and
 `norm_mk_C_sub_X_add_fCofactor` in Step 1 above, which deduce them from it by resultant algebra;
 in the second case the factorization `f = fCofactor x * (X - C x)` splits the resultant into two
-factors, each equal to `(W.fCofactor x).eval x = 3x² + a₄`.
+factors, each equal to `(W.fCofactor x).eval x = f' x`.
 
-`AdjoinRoot.norm_mk_eq_resultant` is proved in `Heights.ForMathlib.Basic`; it is a general fact about
+`AdjoinRoot.norm_mk_eq_resultant` is proved in `Heights.ForMathlib.Basic`; it is a general fact
+about
 `AdjoinRoot g` for monic `g` and looks worth upstreaming.
 -/
 
@@ -794,7 +819,7 @@ noncomputable def normM : W.M →* Units.modPow K 2 :=
 lemma normM_μX_eq_one {x y : K} (h : W.Equation x y) : W.normM (W.μX x) = 1 := by
   rcases eq_or_ne (W.f.eval x) 0 with hx | hx
   · rw [μX_of_eval_f_eq_zero hx, normM, Units.modPow.map_unit, Units.modPow.unit_eq_one_iff]
-    exact ⟨3 * x ^ 2 + W.a₄, (W.norm_mk_C_sub_X_add_fCofactor hx).symm⟩
+    exact ⟨3 * x ^ 2 + 2 * W.a₂ * x + W.a₄, (W.norm_mk_C_sub_X_add_fCofactor hx).symm⟩
   · rw [μX_of_eval_f_ne_zero hx, normM, Units.modPow.map_unit, Units.modPow.unit_eq_one_iff]
     exact ⟨y, by rw [W.norm_mk_C_sub_X, (equation_iff_eval_f_eq_sq W x y).mp h]⟩
 
@@ -819,7 +844,8 @@ end WeierstrassCurve.Affine
 ## Step 6: `im μ ⊆ A(S,2)`
 
 The right level of generality is: `R` a Dedekind domain, `K = Frac R`, and `E/K` given by a
-short Weierstrass equation. Everything Step 6 needs — a height-one spectrum, the `v`-adic
+Weierstrass equation with `a₁ = a₃ = 0`. Everything Step 6 needs — a height-one spectrum,
+the `v`-adic
 valuations, and unique factorization of fractional ideals — is exactly the Dedekind package.
 Number fields are *not* needed until Step 7.
 
@@ -851,7 +877,8 @@ With that in hand:
   of `ringOfIntegersFactor R p` not above `S`, the valuation `w (x - θ)` is even, where `θ` is
   the root of `p`. If `x` has a pole at `w`, the leading term of the cubic dominates and
   `w (x - θ) = w x = w (y / x) ^ 2`. If `x` is `w`-integral, one uses the factorization
-  `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₄)` over the factor `K[X]/(p)` itself: the cofactor
+  `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₂ (x + θ) + a₄)` over the factor `K[X]/(p)`
+  itself: the cofactor
   is congruent to `f' θ` modulo `x - θ`, and `f' θ` is a `w`-unit because `w ∤ Δ`. So either
   `x - θ` is a `w`-unit, or the cofactor is, and then `w (x - θ) = w y ^ 2`.
 
@@ -875,35 +902,37 @@ finally `range_μ_le_selmerGroupA`.
 section Cubic
 
 /- Specializations of `Valuation.map_eval_eq_of_one_lt` and `Valuation.le_one_of_root_monic`
-from `Heights.ForMathlib.Basic` to the depressed cubic `t ^ 3 + a * t + b`. They are specific to
-short Weierstrass equations, so they live here rather than in the general-support file. -/
+from `Heights.ForMathlib.Basic` to the monic cubic `t ^ 3 + a * t ^ 2 + b * t + c`. They are
+specific to Weierstrass equations, so they live here rather than in the general-support file. -/
 
 open Polynomial
 
 variable {L Γ : Type*} [CommRing L] [Nontrivial L] [LinearOrderedCommGroupWithZero Γ]
-  (ν : Valuation L Γ) {t a b : L}
+  (ν : Valuation L Γ) {t a b c : L}
 
-private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) :
-    ∀ i < (X ^ 3 + C a * X + C b).natDegree, ν ((X ^ 3 + C a * X + C b).coeff i) ≤ 1 := by
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
+private lemma cubic_coeff_le_one (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hc : ν c ≤ 1) :
+    ∀ i < (X ^ 3 + C a * X ^ 2 + C b * X + C c).natDegree,
+      ν ((X ^ 3 + C a * X ^ 2 + C b * X + C c).coeff i) ≤ 1 := by
+  have hdeg : (X ^ 3 + C a * X ^ 2 + C b * X + C c).natDegree = 3 := by compute_degree!
   intro i hi
   rw [hdeg] at hi
-  interval_cases i <;> simp [ha, hb]
+  interval_cases i <;> simp [ha, hb, hc]
 
-private lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (ht : 1 < ν t) :
-    ν (t ^ 3 + a * t + b) = ν t ^ 3 := by
-  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
-  have h := ν.map_eval_eq_of_one_lt hp (cubic_coeff_le_one ν ha hb) ht
+private lemma Valuation.map_cubic_of_one_lt (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hc : ν c ≤ 1)
+    (ht : 1 < ν t) :
+    ν (t ^ 3 + a * t ^ 2 + b * t + c) = ν t ^ 3 := by
+  have hp : (X ^ 3 + C a * X ^ 2 + C b * X + C c).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X ^ 2 + C b * X + C c).natDegree = 3 := by compute_degree!
+  have h := ν.map_eval_eq_of_one_lt hp (cubic_coeff_le_one ν ha hb hc) ht
   rw [hdeg] at h
   simpa using h
 
-private lemma Valuation.le_one_of_root_cubic (ha : ν a ≤ 1) (hb : ν b ≤ 1)
-    (heq : t ^ 3 + a * t + b = 0) :
+private lemma Valuation.le_one_of_root_cubic (ha : ν a ≤ 1) (hb : ν b ≤ 1) (hc : ν c ≤ 1)
+    (heq : t ^ 3 + a * t ^ 2 + b * t + c = 0) :
     ν t ≤ 1 := by
-  have hp : (X ^ 3 + C a * X + C b).Monic := by monicity!
-  have hdeg : (X ^ 3 + C a * X + C b).natDegree = 3 := by compute_degree!
-  refine ν.le_one_of_root_monic hp (cubic_coeff_le_one ν ha hb) (by rw [hdeg]; norm_num) ?_
+  have hp : (X ^ 3 + C a * X ^ 2 + C b * X + C c).Monic := by monicity!
+  have hdeg : (X ^ 3 + C a * X ^ 2 + C b * X + C c).natDegree = 3 := by compute_degree!
+  refine ν.le_one_of_root_monic hp (cubic_coeff_le_one ν ha hb hc) (by rw [hdeg]; norm_num) ?_
   simpa using heq
 
 end Cubic
@@ -925,27 +954,33 @@ local notation:max "ι" p:max => algebraMap K (AdjoinRoot (p : K[X]))
 local notation:max "θ" p:max => AdjoinRoot.root (p : K[X])
 
 /-- The set of "bad" primes of `R`: those dividing `2` or the discriminant of `W`, and those
-occurring in a denominator of `a₄` or of `a₆` (the latter two are the supports of `a₄` and `a₆`
-in the sense of `IsDedekindDomain.HeightOneSpectrum.Support`). Away from these, the `x - T` map
-lands in the `2`-Selmer group. -/
+occurring in a denominator of `a₂`, `a₄` or `a₆` (the latter three are the supports of the
+coefficients in the sense of `IsDedekindDomain.HeightOneSpectrum.Support`). Away from these,
+the `x - T` map lands in the `2`-Selmer group. -/
 def badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K] :
     Set (HeightOneSpectrum R) :=
-  {v | v.valuation K 2 ≠ 1} ∪ {v | v.valuation K W.Δ ≠ 1} ∪
+  {v | v.valuation K 2 ≠ 1} ∪ {v | v.valuation K W.Δ ≠ 1} ∪ HeightOneSpectrum.Support R W.a₂ ∪
     HeightOneSpectrum.Support R W.a₄ ∪ HeightOneSpectrum.Support R W.a₆
 
 /-- There are only finitely many bad primes: `2` and `W.Δ` are nonzero, and the support of any
 element of `K` is finite. -/
 lemma finite_badPrimes (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K]
-    [IsFractionRing R K] [W.IsElliptic] [W.IsShortNF] : (W.badPrimes R).Finite :=
-  have h2 : (2 : K) ≠ 0 := Ring.two_ne_zero (ringChar_ne_two_of_isElliptic_of_isShortNF W)
-  (((HeightOneSpectrum.finite_setOf_valuation_ne_one h2).union
+    [IsFractionRing R K] [W.IsElliptic] [W.IsCharNeTwoNF] : (W.badPrimes R).Finite :=
+  have h2 : (2 : K) ≠ 0 := Ring.two_ne_zero (ringChar_ne_two W)
+  ((((HeightOneSpectrum.finite_setOf_valuation_ne_one h2).union
     (HeightOneSpectrum.finite_setOf_valuation_ne_one W.isUnit_Δ.ne_zero)).union
-      (HeightOneSpectrum.Support.finite R W.a₄)).union (HeightOneSpectrum.Support.finite R W.a₆)
+      (HeightOneSpectrum.Support.finite R W.a₂)).union
+        (HeightOneSpectrum.Support.finite R W.a₄)).union
+          (HeightOneSpectrum.Support.finite R W.a₆)
 
 section BadPrimes
 
 variable (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K]
   {v : HeightOneSpectrum R}
+
+lemma valuation_a₂_le_one_of_notMem_badPrimes (hv : v ∉ W.badPrimes R) :
+    v.valuation K W.a₂ ≤ 1 :=
+  not_lt.mp fun hlt ↦ hv (.inl (.inl (.inr hlt)))
 
 lemma valuation_a₄_le_one_of_notMem_badPrimes (hv : v ∉ W.badPrimes R) :
     v.valuation K W.a₄ ≤ 1 :=
@@ -957,11 +992,11 @@ lemma valuation_a₆_le_one_of_notMem_badPrimes (hv : v ∉ W.badPrimes R) :
 
 lemma valuation_Δ_eq_one_of_notMem_badPrimes (hv : v ∉ W.badPrimes R) :
     v.valuation K W.Δ = 1 :=
-  not_not.mp fun hne ↦ hv (.inl (.inl (.inr hne)))
+  not_not.mp fun hne ↦ hv (.inl (.inl (.inl (.inr hne))))
 
 lemma valuation_two_eq_one_of_notMem_badPrimes (hv : v ∉ W.badPrimes R) :
     v.valuation K 2 = 1 :=
-  not_not.mp fun hne ↦ hv (.inl (.inl (.inl hne)))
+  not_not.mp fun hne ↦ hv (.inl (.inl (.inl (.inl hne))))
 
 end BadPrimes
 
@@ -976,13 +1011,13 @@ noncomputable abbrev ringOfIntegersFactor (p : W.f.Factors) : Type _ :=
 
 /-- The ring of integers of a field factor is a Dedekind domain: it is the integral closure
 of `R` in a finite separable extension of the fraction field `K`. -/
-instance isDedekindDomain_ringOfIntegersFactor [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors) :
+instance isDedekindDomain_ringOfIntegersFactor [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors) :
     IsDedekindDomain (W.ringOfIntegersFactor R p) :=
   have := AdjoinRoot.isSeparable_of_separable (separable_f W) p
   IsIntegralClosure.isDedekindDomain R K (𝕃 p) _
 
 /-- A field factor is the fraction field of its ring of integers. -/
-instance isFractionRing_ringOfIntegersFactor [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors) :
+instance isFractionRing_ringOfIntegersFactor [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors) :
     IsFractionRing (W.ringOfIntegersFactor R p) (𝕃 p) :=
   have := AdjoinRoot.isSeparable_of_separable (separable_f W) p
   IsIntegralClosure.isFractionRing_of_finite_extension R K (𝕃 p) _
@@ -998,14 +1033,14 @@ instance instIsTorsionFreeRingOfIntegersFactor (p : W.f.Factors) :
 
 /-- The `w`-adic valuation of an element of `K` is the `v`-adic valuation of the prime `v`
 below `w`, raised to the ramification index. -/
-lemma valuation_algebraMap_eq [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
+lemma valuation_algebraMap_eq [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor R p)) (z : K) :
     (w.below R).valuation K z ^ ((w.below R).asIdeal.ramificationIdx' w.asIdeal) =
       w.valuation (𝕃 p) (ι p z) :=
   HeightOneSpectrum.valuation_liesOver _ _ _ z
 
 /-- If `z` is integral at the prime below `w`, then it is integral at `w`. -/
-lemma valuation_algebraMap_le_one [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
+lemma valuation_algebraMap_le_one [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor R p)) {z : K}
     (hz : (w.below R).valuation K z ≤ 1) :
     w.valuation (𝕃 p) (ι p z) ≤ 1 := by
@@ -1013,7 +1048,7 @@ lemma valuation_algebraMap_le_one [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
   simpa using pow_le_pow_left' hz _
 
 /-- A prime `w` not lying above a bad prime lies over a good prime of `R`. -/
-lemma below_notMem_badPrimes [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
+lemma below_notMem_badPrimes [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors)
     {w : HeightOneSpectrum (W.ringOfIntegersFactor R p)}
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
     w.below R ∉ W.badPrimes R :=
@@ -1021,7 +1056,7 @@ lemma below_notMem_badPrimes [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
 
 /-- `θ` satisfies the Weierstrass cubic in the field factor `K[X]/(p)`. -/
 lemma root_cubic_eq_zero (p : W.f.Factors) :
-    θ p ^ 3 + ι p W.a₄ * θ p + ι p W.a₆ = 0 := by
+    θ p ^ 3 + ι p W.a₂ * θ p ^ 2 + ι p W.a₄ * θ p + ι p W.a₆ = 0 := by
   have hz : AdjoinRoot.mk (p : K[X]) W.f = 0 :=
     AdjoinRoot.mk_eq_zero.mpr p.dvd
   simpa [f, AdjoinRoot.algebraMap_eq] using hz
@@ -1029,12 +1064,19 @@ lemma root_cubic_eq_zero (p : W.f.Factors) :
 /-- The cofactor `f / (X - x)`, computed in the field factor `K[X]/(p)`. -/
 lemma mk_fCofactor_eq (p : W.f.Factors) (x : K) :
     AdjoinRoot.mk (p : K[X]) (W.fCofactor x) =
-      θ p ^ 2 + ι p x * θ p + (ι p x ^ 2 + ι p W.a₄) := by
+      θ p ^ 2 + (ι p x + ι p W.a₂) * θ p + (ι p x ^ 2 + ι p W.a₂ * ι p x + ι p W.a₄) := by
   simp only [fCofactor, map_add, map_mul, map_pow, AdjoinRoot.mk_X, AdjoinRoot.mk_C,
     ← AdjoinRoot.algebraMap_eq]
 
-variable [W.IsElliptic] [W.IsShortNF] (p : W.f.Factors)
+variable [W.IsElliptic] [W.IsCharNeTwoNF] (p : W.f.Factors)
   {w : HeightOneSpectrum (W.ringOfIntegersFactor R p)}
+
+/-- At a prime `w` not above a bad prime, `a₂` is integral. -/
+lemma valuation_a₂_le_one_of_notMem_primesAbove
+    (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
+    w.valuation (𝕃 p) (ι p W.a₂) ≤ 1 :=
+  W.valuation_algebraMap_le_one R p w
+    (W.valuation_a₂_le_one_of_notMem_badPrimes R (W.below_notMem_badPrimes R p hw))
 
 /-- At a prime `w` not above a bad prime, `a₄` is integral. -/
 lemma valuation_a₄_le_one_of_notMem_primesAbove
@@ -1056,6 +1098,7 @@ lemma valuation_root_le_one
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
     w.valuation (𝕃 p) (θ p) ≤ 1 :=
   Valuation.le_one_of_root_cubic _
+    (W.valuation_a₂_le_one_of_notMem_primesAbove R p hw)
     (W.valuation_a₄_le_one_of_notMem_primesAbove R p hw)
     (W.valuation_a₆_le_one_of_notMem_primesAbove R p hw)
     (W.root_cubic_eq_zero p)
@@ -1066,68 +1109,87 @@ lemma valuation_algebraMap_eq_one {z : K} (hz : (w.below R).valuation K z = 1) :
     w.valuation (𝕃 p) (ι p z) = 1 := by
   rw [← W.valuation_algebraMap_eq R p w z, hz, one_pow]
 
-/-- At a prime `w` not above a bad prime, `f' θ = 3 θ ^ 2 + a₄` is a unit.
+/-- At a prime `w` not above a bad prime, `f' θ = 3 θ ^ 2 + 2 a₂ θ + a₄` is a unit.
 
 This is where `Δ` earns its place in `badPrimes`: evaluating the Bézout identity behind
-`separable_f` at `θ` gives `(-96 a₄ θ ^ 2 + 144 a₆ θ - 64 a₄ ^ 2) * f' θ = Δ`. Both factors are
+`separable_f` at `θ` gives `v(θ) * f' θ = Δ` for an explicit quadratic `v`. Both factors are
 integral at `w` and the product is a unit, so both are units. -/
 lemma valuation_deriv_root_eq_one
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
-    w.valuation (𝕃 p) (3 * θ p ^ 2 + ι p W.a₄) = 1 := by
+    w.valuation (𝕃 p) (3 * θ p ^ 2 + 2 * ι p W.a₂ * θ p + ι p W.a₄) = 1 := by
   set L := 𝕃 p
   set ν := w.valuation L with hνdef
   set t := θ p with htdef
+  set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
   set B := algebraMap K L W.a₆ with hBdef
+  have hA₂ : ν A₂ ≤ 1 := W.valuation_a₂_le_one_of_notMem_primesAbove R p hw
   have hA : ν A ≤ 1 := W.valuation_a₄_le_one_of_notMem_primesAbove R p hw
   have hB : ν B ≤ 1 := W.valuation_a₆_le_one_of_notMem_primesAbove R p hw
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
   -- the Bézout identity, evaluated at `θ`
-  have hΔ : algebraMap K L W.Δ = -16 * (4 * A ^ 3 + 27 * B ^ 2) := by
-    rw [Δ_of_isShortNF W]
-    simp only [map_neg, map_mul, map_add, map_pow, map_ofNat, hAdef, hBdef]
-  have hid : (3 * t ^ 2 + A) * (-96 * A * t ^ 2 + 144 * B * t - 64 * A ^ 2) =
+  have hΔ : algebraMap K L W.Δ = -64 * A₂ ^ 3 * B + 16 * A₂ ^ 2 * A ^ 2 - 64 * A ^ 3
+      - 432 * B ^ 2 + 288 * A₂ * A * B := by
+    rw [Δ_of_isCharNeTwoNF W]
+    simp only [map_neg, map_sub, map_mul, map_add, map_pow, map_ofNat, hA₂def, hAdef, hBdef]
+  have hid : (3 * t ^ 2 + 2 * A₂ * t + A) * ((32 * A₂ ^ 2 - 96 * A) * t ^ 2
+        + (32 * A₂ ^ 3 - 112 * A₂ * A + 144 * B) * t
+        + (16 * A₂ ^ 2 * A - 64 * A ^ 2 + 48 * A₂ * B)) =
       algebraMap K L W.Δ := by
     rw [hΔ]
-    linear_combination (-288 * A * t + 432 * B) * W.root_cubic_eq_zero p
+    linear_combination (-(288 * A - 96 * A₂ ^ 2) * t - (240 * A₂ * A - 64 * A₂ ^ 3 - 432 * B)) *
+      W.root_cubic_eq_zero p
   -- both factors are integral, and their product is a unit
-  have hD : 3 * t ^ 2 + A ∈ ν.integer := add_mem (mul_mem (ofNat_mem _ 3) (pow_mem ht 2)) hA
-  have hC : -96 * A * t ^ 2 + 144 * B * t - 64 * A ^ 2 ∈ ν.integer :=
-    sub_mem (add_mem (mul_mem (mul_mem (neg_mem (ofNat_mem _ 96)) hA) (pow_mem ht 2))
-      (mul_mem (mul_mem (ofNat_mem _ 144) hB) ht)) (mul_mem (ofNat_mem _ 64) (pow_mem hA 2))
+  have hD : 3 * t ^ 2 + 2 * A₂ * t + A ∈ ν.integer :=
+    add_mem (add_mem (mul_mem (ofNat_mem _ 3) (pow_mem ht 2))
+      (mul_mem (mul_mem (ofNat_mem _ 2) hA₂) ht)) hA
+  have hC : (32 * A₂ ^ 2 - 96 * A) * t ^ 2 + (32 * A₂ ^ 3 - 112 * A₂ * A + 144 * B) * t
+      + (16 * A₂ ^ 2 * A - 64 * A ^ 2 + 48 * A₂ * B) ∈ ν.integer := by
+    refine add_mem (add_mem (mul_mem ?_ (pow_mem ht 2)) (mul_mem ?_ ht)) ?_
+    · exact sub_mem (mul_mem (ofNat_mem _ 32) (pow_mem hA₂ 2)) (mul_mem (ofNat_mem _ 96) hA)
+    · exact add_mem (sub_mem (mul_mem (ofNat_mem _ 32) (pow_mem hA₂ 3))
+        (mul_mem (mul_mem (ofNat_mem _ 112) hA₂) hA)) (mul_mem (ofNat_mem _ 144) hB)
+    · exact add_mem (sub_mem (mul_mem (mul_mem (ofNat_mem _ 16) (pow_mem hA₂ 2)) hA)
+        (mul_mem (ofNat_mem _ 64) (pow_mem hA 2))) (mul_mem (mul_mem (ofNat_mem _ 48) hA₂) hB)
   refine ν.eq_one_of_mul_eq_one hD hC ?_
   rw [hid]
   exact W.valuation_algebraMap_eq_one R p
     (W.valuation_Δ_eq_one_of_notMem_badPrimes R (W.below_notMem_badPrimes R p hw))
 
 /-- At a prime `w` not above a bad prime, if `x` is `w`-integral and `x - θ` is not a `w`-unit,
-then the cofactor `x ^ 2 + θ x + θ ^ 2 + a₄` is a `w`-unit: modulo `x - θ` it equals `f' θ`. -/
+then the cofactor `x ^ 2 + θ x + θ ^ 2 + a₂ (x + θ) + a₄` is a `w`-unit: modulo `x - θ` it
+equals `f' θ`. -/
 lemma valuation_cofactor_eq_one {x : K}
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R))
     (hx : w.valuation (𝕃 p) (ι p x) ≤ 1)
     (hlt : w.valuation (𝕃 p) (ι p x - θ p) < 1) :
-    w.valuation (𝕃 p) (ι p x ^ 2 + θ p * ι p x + θ p ^ 2 + ι p W.a₄) = 1 := by
+    w.valuation (𝕃 p) (ι p x ^ 2 + θ p * ι p x + θ p ^ 2
+      + ι p W.a₂ * (ι p x + θ p) + ι p W.a₄) = 1 := by
   set L := 𝕃 p
   set ν := w.valuation L with hνdef
   set t := θ p with htdef
   set s := algebraMap K L x with hsdef
+  set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
+  have hA₂ : ν A₂ ≤ 1 := W.valuation_a₂_le_one_of_notMem_primesAbove R p hw
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
-  have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
-  have h2t : s + 2 * t ∈ ν.integer := add_mem hx (mul_mem (ofNat_mem _ 2) ht)
-  have hlt' : ν ((s - t) * (s + 2 * t)) < ν (3 * t ^ 2 + A) := by
+  have hderiv : ν (3 * t ^ 2 + 2 * A₂ * t + A) = 1 := W.valuation_deriv_root_eq_one R p hw
+  have h2t : s + 2 * t + A₂ ∈ ν.integer :=
+    add_mem (add_mem hx (mul_mem (ofNat_mem _ 2) ht)) hA₂
+  have hlt' : ν ((s - t) * (s + 2 * t + A₂)) < ν (3 * t ^ 2 + 2 * A₂ * t + A) := by
     rw [hderiv, map_mul]
     exact (mul_le_of_le_one_right' h2t).trans_lt hlt
-  rw [show s ^ 2 + t * s + t ^ 2 + A = (s - t) * (s + 2 * t) + (3 * t ^ 2 + A) from by ring,
+  rw [show s ^ 2 + t * s + t ^ 2 + A₂ * (s + t) + A
+      = (s - t) * (s + 2 * t + A₂) + (3 * t ^ 2 + 2 * A₂ * t + A) from by ring,
     ν.map_add_eq_of_lt_right hlt', hderiv]
 
 /-- If `x` is a root of `f`, then at a prime `w` not above a bad prime the `p`-component of the
 `x - T` representative is a unit.
 
-Both `x` and `θ` are roots of `f`, so `(x - θ) * (θ² + xθ + x² + a₄) = 0` and, `L` being a field,
-one of the two factors vanishes. If `x = θ` the component is `f' θ`; if the cofactor vanishes the
-component is `x - θ` and `f' θ = -(x - θ)(x + 2θ)`. Either way `valuation_deriv_root_eq_one`
-makes it a unit. -/
+Both `x` and `θ` are roots of `f`, so `x - θ` times the cofactor is `0` and, `L` being a field,
+one of the two factors vanishes. If `x = θ` the component is `f' θ`; if the cofactor vanishes
+the component is `x - θ` and `f' θ = -(x - θ)(x + 2θ + a₂)`. Either way
+`valuation_deriv_root_eq_one` makes it a unit. -/
 lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
     w.valuation (𝕃 p) (ι p x - θ p + AdjoinRoot.mk (p : K[X]) (W.fCofactor x)) = 1 := by
@@ -1136,35 +1198,40 @@ lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
   set ν := w.valuation L with hνdef
   set t := θ p with htdef
   set s := algebraMap K L x with hsdef
+  set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
   set B := algebraMap K L W.a₆ with hBdef
+  have hA₂ : ν A₂ ≤ 1 := W.valuation_a₂_le_one_of_notMem_primesAbove R p hw
   have hA : ν A ≤ 1 := W.valuation_a₄_le_one_of_notMem_primesAbove R p hw
   have hB : ν B ≤ 1 := W.valuation_a₆_le_one_of_notMem_primesAbove R p hw
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
-  have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
+  have hderiv : ν (3 * t ^ 2 + 2 * A₂ * t + A) = 1 := W.valuation_deriv_root_eq_one R p hw
   -- `x` is a root of the cubic too, hence integral at `w`
-  have hs : s ^ 3 + A * s + B = 0 := by
-    rw [hsdef, hAdef, hBdef, ← W.map_eval_f, hx, map_zero]
-  have hs1 : ν s ≤ 1 := ν.le_one_of_root_cubic hA hB hs
-  have hprod : (s - t) * (t ^ 2 + s * t + (s ^ 2 + A)) = 0 := by
+  have hs : s ^ 3 + A₂ * s ^ 2 + A * s + B = 0 := by
+    rw [hsdef, hA₂def, hAdef, hBdef, ← W.map_eval_f, hx, map_zero]
+  have hs1 : ν s ≤ 1 := ν.le_one_of_root_cubic hA₂ hA hB hs
+  have hprod : (s - t) * (t ^ 2 + (s + A₂) * t + (s ^ 2 + A₂ * s + A)) = 0 := by
     linear_combination hs - W.root_cubic_eq_zero p
   rcases mul_eq_zero.mp hprod with h0 | h0
   · -- `x = θ`: the component is `f' θ`
-    rw [h0, zero_add, show t ^ 2 + s * t + (s ^ 2 + A) = (s - t) * (s + 2 * t) + (3 * t ^ 2 + A)
+    rw [h0, zero_add, show t ^ 2 + (s + A₂) * t + (s ^ 2 + A₂ * s + A)
+        = (s - t) * (s + 2 * t + A₂) + (3 * t ^ 2 + 2 * A₂ * t + A)
       from by ring, h0, zero_mul, zero_add, hderiv]
-  · -- the cofactor vanishes: the component is `x - θ`, and `f' θ = -(x - θ)(x + 2θ)`
+  · -- the cofactor vanishes: the component is `x - θ`, and `f' θ = -(x - θ)(x + 2θ + a₂)`
     rw [h0, add_zero]
     have hst : s - t ∈ ν.integer := sub_mem hs1 ht
-    have h2t : s + 2 * t ∈ ν.integer := add_mem hs1 (mul_mem (ofNat_mem _ 2) ht)
+    have h2t : s + 2 * t + A₂ ∈ ν.integer :=
+      add_mem (add_mem hs1 (mul_mem (ofNat_mem _ 2) ht)) hA₂
     refine ν.eq_one_of_mul_eq_one hst h2t ?_
-    rw [show (s - t) * (s + 2 * t) = -(3 * t ^ 2 + A) from by linear_combination h0,
+    rw [show (s - t) * (s + 2 * t + A₂) = -(3 * t ^ 2 + 2 * A₂ * t + A)
+        from by linear_combination h0,
       Valuation.map_neg, hderiv]
 
 end RingOfIntegers
 
 section Core
 
-variable [W.IsElliptic] [W.IsShortNF]
+variable [W.IsElliptic] [W.IsCharNeTwoNF]
   (R : Type*) [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFractionRing R K]
   (p : W.f.Factors)
   {x y : K} (h : W.Equation x y) (hx : W.f.eval x ≠ 0)
@@ -1178,8 +1245,9 @@ include h hx hu hw
 
 /-- Non-integral case: `x` has a pole at the prime of `R` below `w`.
 
-The coefficients `a₄`, `a₆` and the root `θ` are `w`-integral, so `1 < ν x` makes the leading
-term of the cubic dominate: `ν (f x) = ν x ^ 3`, hence `ν y ^ 2 = ν x ^ 3`. Also `ν θ ≤ 1 < ν x`
+The coefficients `a₂`, `a₄`, `a₆` and the root `θ` are `w`-integral, so `1 < ν x` makes the
+leading term of the cubic dominate: `ν (f x) = ν x ^ 3`, hence `ν y ^ 2 = ν x ^ 3`. Also
+`ν θ ≤ 1 < ν x`
 gives `ν (x - θ) = ν x`. Therefore `ν (x - θ) = ν (y / x) ^ 2` is an even power. -/
 lemma even_valuationOfNeZero_sub_root_of_one_lt
     (hx' : 1 < w.valuation (𝕃 p) (ι p x)) :
@@ -1194,10 +1262,12 @@ lemma even_valuationOfNeZero_sub_root_of_one_lt
   have hy0 : algebraMap K L y ≠ 0 := (_root_.map_ne_zero _).mpr (W.ne_zero_of_eval_f_ne_zero h hx)
   -- the Weierstrass equation, transported to `L`
   have heq : (algebraMap K L y) ^ 2 = algebraMap K L x ^ 3 +
+      algebraMap K L W.a₂ * algebraMap K L x ^ 2 +
       algebraMap K L W.a₄ * algebraMap K L x + algebraMap K L W.a₆ := by
     rw [← W.map_eval_f, (equation_iff_eval_f_eq_sq W x y).mp h, map_pow]
   have hval : ν (algebraMap K L y) ^ 2 = ν (algebraMap K L x) ^ 3 := by
-    rw [← map_pow, heq, ν.map_cubic_of_one_lt (W.valuation_a₄_le_one_of_notMem_primesAbove R p hw)
+    rw [← map_pow, heq, ν.map_cubic_of_one_lt (W.valuation_a₂_le_one_of_notMem_primesAbove R p hw)
+      (W.valuation_a₄_le_one_of_notMem_primesAbove R p hw)
       (W.valuation_a₆_le_one_of_notMem_primesAbove R p hw) hx']
   -- `ν (x - θ) = ν x`, since `θ` is integral and `x` is not
   have hu' : ν (u : L) = ν (algebraMap K L x) := by
@@ -1210,24 +1280,26 @@ lemma even_valuationOfNeZero_sub_root_of_one_lt
 
 /-- Integral case: `x` is integral at the prime of `R` below `w`.
 
-Over `L` the Weierstrass equation factors as `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₄)`.
-If `x - θ` is a `w`-unit there is nothing to do. Otherwise `ν (x - θ) < 1`, and since
-`x ^ 2 + θ x + θ ^ 2 + a₄ = (x - θ) * (x + 2 θ) + f' θ` with `f' θ` a `w`-unit, the cofactor is
-a `w`-unit. Hence `ν (x - θ) = ν y ^ 2` is an even power. -/
+Over `L` the Weierstrass equation factors as `y ^ 2 = (x - θ) * c` with cofactor
+`c = x ^ 2 + θ x + θ ^ 2 + a₂ (x + θ) + a₄`. If `x - θ` is a `w`-unit there is nothing to do.
+Otherwise `ν (x - θ) < 1`, and since `c = (x - θ) * (x + 2 θ + a₂) + f' θ` with `f' θ` a
+`w`-unit, the cofactor is a `w`-unit. Hence `ν (x - θ) = ν y ^ 2` is an even power. -/
 lemma even_valuationOfNeZero_sub_root_of_le_one
     (hx' : w.valuation (𝕃 p) (ι p x) ≤ 1) :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
   set L := 𝕃 p
   set ν := w.valuation L with hνdef
   set t := θ p with htdef
+  set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
-  have hderiv : ν (3 * t ^ 2 + A) = 1 := W.valuation_deriv_root_eq_one R p hw
-  -- `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₄)` over `L`
-  have heqL : (algebraMap K L y) ^ 2 =
-      algebraMap K L x ^ 3 + A * algebraMap K L x + algebraMap K L W.a₆ := by
-    rw [hAdef, ← W.map_eval_f, (equation_iff_eval_f_eq_sq W x y).mp h, map_pow]
-  have hfac : (u : L) * (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2 + A) =
+  have hderiv : ν (3 * t ^ 2 + 2 * A₂ * t + A) = 1 := W.valuation_deriv_root_eq_one R p hw
+  -- `y ^ 2 = (x - θ) * (x ^ 2 + θ x + θ ^ 2 + a₂ (x + θ) + a₄)` over `L`
+  have heqL : (algebraMap K L y) ^ 2 = algebraMap K L x ^ 3 + A₂ * algebraMap K L x ^ 2 +
+      A * algebraMap K L x + algebraMap K L W.a₆ := by
+    rw [hA₂def, hAdef, ← W.map_eval_f, (equation_iff_eval_f_eq_sq W x y).mp h, map_pow]
+  have hfac : (u : L) * (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2
+        + A₂ * (algebraMap K L x + t) + A) =
       (algebraMap K L y) ^ 2 := by
     rw [hu]
     linear_combination -W.root_cubic_eq_zero p - heqL
@@ -1239,7 +1311,8 @@ lemma even_valuationOfNeZero_sub_root_of_le_one
   -- otherwise `w` divides `x - θ`, and then it cannot divide the cofactor
   replace hlt : ν (u : L) < 1 := lt_of_le_of_ne hu1 hlt
   rw [hu] at hlt
-  have hcof : ν (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2 + A) = 1 :=
+  have hcof : ν (algebraMap K L x ^ 2 + t * algebraMap K L x + t ^ 2
+      + A₂ * (algebraMap K L x + t) + A) = 1 :=
     W.valuation_cofactor_eq_one R p hw hx' hlt
   have hy0 : algebraMap K L y ≠ 0 := (_root_.map_ne_zero _).mpr (W.ne_zero_of_eval_f_ne_zero h hx)
   have hkey : ν (u : L) = ν ((Units.mk0 _ hy0 : Lˣ) : L) ^ 2 := by
@@ -1277,7 +1350,7 @@ lemma mk_fCofactor_eq_zero {x : K} (hx : W.f.eval x = 0) (p : W.f.Factors)
     (hp : (p : K[X]) ≠ X - C x) : AdjoinRoot.mk (p : K[X]) (W.fCofactor x) = 0 :=
   AdjoinRoot.mk_eq_zero.mpr (W.dvd_fCofactor_of_ne hx p hp)
 
-variable [W.IsElliptic] [W.IsShortNF]
+variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
 /-- The image of the generic `x - T` representative in the field factor `K[X]/(p)` is `x - θ`. -/
 lemma projFactor_mk_C_sub_X (x : K) (p : W.f.Factors) :
@@ -1410,7 +1483,8 @@ end
 ### Step 7: `A(S,2)` is finite, hence `E(K)/2E(K)` is finite
 
 The finiteness of the `2`-Selmer group of each field factor is
-`IsDedekindDomain.finite_selmerGroup` from `Heights.ForMathlib.SelmerGroup`. It requires the class group
+`IsDedekindDomain.finite_selmerGroup` from `Heights.ForMathlib.SelmerGroup`. It requires the
+class group
 of the factor's ring of integers to be finite and its unit group to be finitely generated;
 these are taken as hypotheses here (for `K` a number field they are the class number theorem
 and Dirichlet's unit theorem). The relevant set of primes, those above the bad primes, is
@@ -1441,9 +1515,9 @@ variable [DecidableEq K]
 
 include R in
 /-- **The Weak Mordell-Weil Theorem**: `E(K)/2E(K)` is finite, for an elliptic curve `E` in
-short normal form over the fraction field `K` of a Dedekind domain `R` such that for each
-irreducible factor `p` of the `2`-division polynomial, the ring of integers of `K[X]/(p)` has
-finite class group and finitely generated unit group.
+the normal form `y² = x³ + a₂x² + a₄x + a₆` over the fraction field `K` of a Dedekind domain
+`R` such that for each irreducible factor `p` of the cubic, the ring of integers of
+`K[X]/(p)` has finite class group and finitely generated unit group.
 
 This is the input to the descent argument (`AddCommGroup.fg_of_descent'`) in the proof of the
 Mordell-Weil theorem, `fg_point` in `Heights.EllipticCurve.MordellWeil`. -/
