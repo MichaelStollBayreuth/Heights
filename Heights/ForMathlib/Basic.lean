@@ -3,7 +3,7 @@ import Mathlib
 /-!
 # Material for Mathlib
 
-This file collects the general-purpose results developed for `Heights.WeakMordellWeil`
+This file collects the general-purpose results developed for `Heights.EllipticCurve.WeakMordellWeil`
 that have nothing to do with elliptic curves and look like candidates for Mathlib.
 
 * `MonoidHom.ofMapMulMulEqOne`: build a `MonoidHom` from `f 1 = 1` and

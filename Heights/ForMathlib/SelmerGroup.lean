@@ -1,6 +1,6 @@
-import Heights.ForMathlib
-import Heights.FractionalIdeal
-import Heights.SIntegers
+import Heights.ForMathlib.Basic
+import Heights.ForMathlib.FractionalIdeal
+import Heights.ForMathlib.SIntegers
 import Mathlib
 
 /-!
@@ -12,7 +12,7 @@ group `K(S,n) ≤ Kˣ/(Kˣ)ⁿ` as the classes whose `v`-adic valuation is divis
 `v ∉ S`, and records as a `TODO` both the maps in the fundamental exact sequence and the
 finiteness of `K(S,n)`. This file supplies them, and deduces the finiteness of the Selmer group
 of a finite étale `K`-algebra, which is what the proof of the Weak Mordell-Weil theorem
-(`Heights.WeakMordellWeil`, Step 7) needs.
+(`Heights.EllipticCurve.WeakMordellWeil`, Step 7) needs.
 
 ## The hypotheses
 
@@ -47,12 +47,12 @@ Note that `[NeZero n]` cannot be dropped: `K(S,0) = Kˣ`.
 ## Implementation
 
 The `S`-class group is realized as `ClassGroup (S.integer K)`, the class group of the ring
-`𝒪_S = Set.integer S K` of `S`-integers, which `Heights.SIntegers` shows to be a Dedekind domain
+`𝒪_S = Set.integer S K` of `S`-integers, which `Heights.ForMathlib.SIntegers` shows to be a Dedekind domain
 with fraction field `K`, height one spectrum `{v | v ∉ S}` (valuation-compatibly) and finite
 class group whenever `Cl(R)` is finite. Via this dictionary the Selmer condition on a class
 `u(Kˣ)ⁿ ∈ K(S,n)` says exactly that the principal fractional ideal `(u)` of `𝒪_S` has all its
 valuations divisible by `n` (`mem_selmerGroup_iff_unitsNDivisible`), so the `n`-th-root class
-map of `Heights.FractionalIdeal` (`FractionalIdeal.nthRootClass`, built from the isomorphism of
+map of `Heights.ForMathlib.FractionalIdeal` (`FractionalIdeal.nthRootClass`, built from the isomorphism of
 the group of fractional ideals with the free abelian group on the primes) descends to the
 right-hand map `toSClassGroup : K(S,n) →* Cl(𝒪_S)` of the fundamental exact sequence.
 
@@ -611,7 +611,7 @@ is.
 
 The decomposition `e` is an input rather than something derived from an `Algebra.IsEtale`
 hypothesis: Mathlib does not currently provide the splitting of an étale algebra into fields, and
-in the application (`Heights.WeakMordellWeil`) the decomposition is explicitly available as
+in the application (`Heights.EllipticCurve.WeakMordellWeil`) the decomposition is explicitly available as
 `AdjoinRoot.modPowEquivPiFactors`.
 -/
 

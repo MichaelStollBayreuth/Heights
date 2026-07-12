@@ -1,5 +1,5 @@
-import Heights.ForMathlib
-import Heights.SelmerGroup
+import Heights.ForMathlib.Basic
+import Heights.ForMathlib.SelmerGroup
 import Mathlib
 
 /-!
@@ -14,7 +14,7 @@ of `K[X]/⟨f⟩` — that are theorems when `K` is a number field.
 We use the `x-T` map approach.
 
 The general-purpose material developed along the way, which has nothing to do with elliptic
-curves, lives in `Heights.ForMathlib`.
+curves, lives in `Heights.ForMathlib.Basic`.
 
 1. Let `A := K[X]/⟨f(X)⟩` be the étale algebra defined by `f`.
    => done.
@@ -27,7 +27,7 @@ curves, lives in `Heights.ForMathlib`.
    => done.
 5. Show that `im μ` is contained in the kernel of the norm map on square classes.
    => done, via `AdjoinRoot.norm_mk_eq_resultant`, which says that the norm of
-   `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p` (in `Heights.ForMathlib`).
+   `AdjoinRoot.mk g p` for monic `g` is the resultant of `g` and `p` (in `Heights.ForMathlib.Basic`).
    Note that this step is *not* needed for the finiteness result (Steps 6 and 7 do not use
    it); it is included because the norm condition cuts down the Selmer group in explicit
    computations.
@@ -38,7 +38,7 @@ curves, lives in `Heights.ForMathlib`.
 7. Show that `A(S,2)` is finite, and conclude that `E(K)/2E(K)` is finite.
    => done, as `finite_index_range_nsmulAddMonoidHom_two` at the end of the file. The
    finiteness of the `2`-Selmer group of each field factor is
-   `IsDedekindDomain.finite_selmerGroup` (in `Heights.SelmerGroup`); it requires the class
+   `IsDedekindDomain.finite_selmerGroup` (in `Heights.ForMathlib.SelmerGroup`); it requires the class
    group of the factor's ring of integers to be finite and its unit group to be finitely
    generated, which are taken as hypotheses (for number fields they are the class number
    theorem and Dirichlet's unit theorem, both in Mathlib).
@@ -780,7 +780,7 @@ monic `g` is the resultant of `g` and `p`. See `norm_mk_C_sub_X` and
 in the second case the factorization `f = fCofactor x * (X - C x)` splits the resultant into two
 factors, each equal to `(W.fCofactor x).eval x = 3x² + a₄`.
 
-`AdjoinRoot.norm_mk_eq_resultant` is proved in `Heights.ForMathlib`; it is a general fact about
+`AdjoinRoot.norm_mk_eq_resultant` is proved in `Heights.ForMathlib.Basic`; it is a general fact about
 `AdjoinRoot g` for monic `g` and looks worth upstreaming.
 -/
 
@@ -831,7 +831,7 @@ is literally our `Units.modPow K n` (that file has it only as a local notation).
 
 The obstruction is that `A = AdjoinRoot f` is an étale algebra, not a field, so it has no
 `HeightOneSpectrum`. The way around this is the decomposition of `A` into a product of fields,
-provided by `Heights.ForMathlib`: as `f` is separable, `AdjoinRoot.equivPiFactors` gives
+provided by `Heights.ForMathlib.Basic`: as `f` is separable, `AdjoinRoot.equivPiFactors` gives
 `A ≃ₐ[K] ((p : W.f.Factors) → AdjoinRoot p)`, a finite product of finite separable field
 extensions of `K` indexed by the monic irreducible factors `p` of `f`, and correspondingly
 `AdjoinRoot.modPowEquivPiFactors` gives
@@ -875,7 +875,7 @@ finally `range_μ_le_selmerGroupA`.
 section Cubic
 
 /- Specializations of `Valuation.map_eval_eq_of_one_lt` and `Valuation.le_one_of_root_monic`
-from `Heights.ForMathlib` to the depressed cubic `t ^ 3 + a * t + b`. They are specific to
+from `Heights.ForMathlib.Basic` to the depressed cubic `t ^ 3 + a * t + b`. They are specific to
 short Weierstrass equations, so they live here rather than in the general-support file. -/
 
 open Polynomial
@@ -1410,7 +1410,7 @@ end
 ### Step 7: `A(S,2)` is finite, hence `E(K)/2E(K)` is finite
 
 The finiteness of the `2`-Selmer group of each field factor is
-`IsDedekindDomain.finite_selmerGroup` from `Heights.SelmerGroup`. It requires the class group
+`IsDedekindDomain.finite_selmerGroup` from `Heights.ForMathlib.SelmerGroup`. It requires the class group
 of the factor's ring of integers to be finite and its unit group to be finitely generated;
 these are taken as hypotheses here (for `K` a number field they are the class number theorem
 and Dirichlet's unit theorem). The relevant set of primes, those above the bad primes, is
@@ -1446,7 +1446,7 @@ irreducible factor `p` of the `2`-division polynomial, the ring of integers of `
 finite class group and finitely generated unit group.
 
 This is the input to the descent argument (`AddCommGroup.fg_of_descent'`) in the proof of the
-Mordell-Weil theorem, `fg_point` in `Heights.EllipticCurve`. -/
+Mordell-Weil theorem, `fg_point` in `Heights.EllipticCurve.MordellWeil`. -/
 theorem finite_index_range_nsmulAddMonoidHom_two :
     (nsmulAddMonoidHom (α := W.Point) 2).range.FiniteIndex := by
   rw [finite_index_range_nsmulAddMonoidHom_two_iff]

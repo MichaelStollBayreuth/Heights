@@ -1,7 +1,7 @@
 import Mathlib
 import Heights.Basic
 import Heights.MvPolynomial
-import Heights.WeakMordellWeil
+import Heights.EllipticCurve.WeakMordellWeil
 
 /-!
 # The approximate parallelogram law on elliptic curves
@@ -15,7 +15,7 @@ where `h` denotes the (logarithmic) naïve height on `E(K)`,
 and to show that there are only finitely many points in `E(K)` of bounded height
 when `K` has the Northcott property.
 
-Combining this with the Weak Mordell-Weil Theorem of `Heights.WeakMordellWeil`, the file
+Combining this with the Weak Mordell-Weil Theorem of `Heights.EllipticCurve.WeakMordellWeil`, the file
 culminates in the **Mordell-Weil Theorem**: `E(K)` is finitely generated, both in a general
 version (`fg_point`, for `K` the fraction field of a Dedekind domain, with the Northcott
 property and the needed class-group and unit-group finiteness as hypotheses) and for number
