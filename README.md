@@ -217,11 +217,12 @@ curves and are intended for eventual upstreaming to Mathlib:
   coming from `im μ ≤ Sel₂`, the reduction of its computation to the local conditions at the
   bad and infinite places (which also gives finiteness), and the size formulas for the local
   images. The semilocal comparison between unramifiedness over `𝒪_S` and over the completions
-  at the good places is proved in both directions; the size formula at the finite places and
-  the local statement that at a good place every unramified class with trivial norm comes
-  from a point are proved modulo the two formal-group interface statements above. Still
-  `sorry`ed, besides those interface statements, is only the size formula at the real
-  places. The goal is a
+  at the good places is proved in both directions; the size formulas at the real and complex
+  places are proved outright (the real case by a sign analysis over `ℝ`, transported along
+  `v.Completion ≃+* ℝ`); the size formula at the finite places and the local statement that
+  at a good place every unramified class with trivial norm comes from a point are proved
+  modulo the two formal-group interface statements above, which are all that remains
+  `sorry`ed. The goal is a
   formal proof that the Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic
   to `ℤ`, as a show-piece for formalized explicit 2-descent.
 

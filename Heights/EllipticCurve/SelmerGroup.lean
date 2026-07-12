@@ -45,9 +45,10 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   `#E(K_v)[2] · ‖2‖_v⁻¹` — concretely `#E(K_v)[2] · (#𝔽_v)^(v(2))` at a finite place (so
   `#E(K_v)[2]` when the residue characteristic is odd), `#E(K_v)[2] / 2` at a real place, and
   `1` at a complex place. These formulas certify that a computed local image is the full one.
-  The finite-place formula is proved modulo the interface statement of
-  `Heights.ForMathlib.FormalGroup` (a finite-index subgroup of `E(F_v)` is isomorphic to
-  `(𝒪_v, +)`, `sorry`ed there); the real case is `sorry`ed.
+  The real and complex formulas are proved outright (the real case by a sign analysis over
+  `ℝ`, transported along `v.Completion ≃+* ℝ`); the finite-place formula is proved modulo the
+  interface statement of `Heights.ForMathlib.FormalGroup` (a finite-index subgroup of
+  `E(F_v)` is isomorphic to `(𝒪_v, +)`, `sorry`ed there).
 
 ## Towards explicit computations
 
@@ -183,6 +184,29 @@ theorem card_range_μ_of_isAlgClosed [IsAlgClosed L] :
 variable [DecidableEq K]
 
 open scoped Classical in
+/-- The local restriction map is compatible with the `x - T` maps: the square class of
+`x - T` restricts to that of `σ(x) - T`, and likewise for the modified class at a
+`2`-torsion `x`-coordinate. -/
+theorem localRes_μX (x : K) :
+    W.localRes L (W.μX x) = μX (W := (W⁄L).toAffine) (algebraMap K L x) := by
+  rcases eq_or_ne (W.f.eval x) 0 with hx | hx
+  · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) = 0 := by
+      rw [W.eval_baseChange_f, hx, map_zero]
+    rw [μX_of_eval_f_eq_zero hxL, μX_of_eval_f_eq_zero hx, localRes, Units.modPow.map_unit]
+    refine congrArg _ (Units.ext ?_)
+    rw [IsUnit.unit_spec, IsUnit.unit_spec]
+    simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_add,
+      Polynomial.map_sub, Polynomial.map_C, Polynomial.map_X, W.baseChange_fCofactor]
+  · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) ≠ 0 := by
+      rw [W.eval_baseChange_f]
+      exact fun h0 ↦ hx ((map_eq_zero _).mp h0)
+    rw [μX_of_eval_f_ne_zero hxL, μX_of_eval_f_ne_zero hx, localRes, Units.modPow.map_unit]
+    refine congrArg _ (Units.ext ?_)
+    rw [IsUnit.unit_spec, IsUnit.unit_spec]
+    simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_sub,
+      Polynomial.map_C, Polynomial.map_X]
+
+open scoped Classical in
 /-- The image of the global descent map `μ` satisfies the local condition at every extension
 field: base change of points is compatible with the `x - T` maps. -/
 theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L := by
@@ -195,26 +219,589 @@ theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L 
     have hP' : (W⁄L).toAffine.Nonsingular (algebraMap K L x) (algebraMap K L y) :=
       (W.map_nonsingular (algebraMap K L).injective x y).mpr hP
     rw [μ₀_some]
-    refine ⟨.ofAdd (.some _ _ hP'), ?_⟩
-    rw [μ_apply, μ₀_some]
-    rcases eq_or_ne (W.f.eval x) 0 with hx | hx
-    · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) = 0 := by
-        rw [W.eval_baseChange_f, hx, map_zero]
-      rw [μX_of_eval_f_eq_zero hxL, μX_of_eval_f_eq_zero hx, localRes, Units.modPow.map_unit]
-      refine congrArg _ (Units.ext ?_)
-      rw [IsUnit.unit_spec, IsUnit.unit_spec]
-      simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_add,
-        Polynomial.map_sub, Polynomial.map_C, Polynomial.map_X, W.baseChange_fCofactor]
-    · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) ≠ 0 := by
-        rw [W.eval_baseChange_f]
-        exact fun h0 ↦ hx ((map_eq_zero _).mp h0)
-      rw [μX_of_eval_f_ne_zero hxL, μX_of_eval_f_ne_zero hx, localRes, Units.modPow.map_unit]
-      refine congrArg _ (Units.ext ?_)
-      rw [IsUnit.unit_spec, IsUnit.unit_spec]
-      simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_sub,
-        Polynomial.map_C, Polynomial.map_X]
+    exact ⟨.ofAdd (.some _ _ hP'), by rw [μ_apply, μ₀_some, W.localRes_μX L x]⟩
+
+open scoped Classical in
+/-- If the base change is along an isomorphism, then the local descent map has the same
+image size as the global one (via the induced isomorphism of the étale algebras). -/
+theorem card_range_μ_of_bijective_algebraMap (h : Function.Bijective (algebraMap K L)) :
+    Nat.card (μ (W := (W⁄L).toAffine)).range = Nat.card (μ (W := W)).range := by
+  set e := RingEquiv.ofBijective (algebraMap K L) h with he
+  have hcomp : (algebraMap K L).comp (e.symm : L →+* K) = RingHom.id L :=
+    RingHom.ext fun z ↦ e.apply_symm_apply z
+  -- the induced map on square classes is bijective
+  have hA : Function.Bijective (W.mapA L) := by
+    constructor
+    · intro a b hab
+      obtain ⟨g, rfl⟩ := AdjoinRoot.mk_surjective a
+      obtain ⟨g', rfl⟩ := AdjoinRoot.mk_surjective b
+      simp only [mapA_mk, AdjoinRoot.mk_eq_mk, baseChange_f, ← Polynomial.map_sub] at hab ⊢
+      obtain ⟨c, hc⟩ := hab
+      refine ⟨c.map (e.symm : L →+* K), Polynomial.map_injective _ h.1 ?_⟩
+      rw [Polynomial.map_mul, hc, Polynomial.map_map, hcomp, Polynomial.map_id]
+    · intro a
+      obtain ⟨g, rfl⟩ := AdjoinRoot.mk_surjective a
+      refine ⟨AdjoinRoot.mk W.f (g.map (e.symm : L →+* K)), ?_⟩
+      rw [mapA_mk, Polynomial.map_map, hcomp, Polynomial.map_id]
+  have hM := Units.modPow.bijective_map (φ := (W.mapA L).toMonoidHom) hA 2
+  -- the image of `im μ` under the isomorphism of square-class groups is `im μ_L`
+  have hrange : (μ (W := (W⁄L).toAffine)).range = Subgroup.map (W.localRes L) (μ.range) := by
+    refine le_antisymm ?_ (Subgroup.map_le_iff_le_comap.mpr (W.range_μ_le_localCondition L))
+    rintro _ ⟨P', rfl⟩
+    obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
+    match P with
+    | 0 => exact ⟨1, one_mem _, by rw [map_one]; rfl⟩
+    | .some x y hP =>
+      obtain ⟨x', rfl⟩ := h.2 x
+      obtain ⟨y', rfl⟩ := h.2 y
+      have hP' : W.Nonsingular x' y' := (W.map_nonsingular (algebraMap K L).injective _ _).mp hP
+      exact ⟨μ (.ofAdd (.some _ _ hP')), ⟨_, rfl⟩, by
+        simp only [μ_apply, μ₀_some]
+        rw [W.localRes_μX L x']⟩
+  rw [hrange,
+    Nat.card_congr (Subgroup.equivMapOfInjective (μ.range) (W.localRes L) hM.1).symm.toEquiv]
+
+/-- If the base change is along an isomorphism, then the `2`-torsion of the group of points
+has the same size over `L` as over `K` (the roots of `f` correspond). -/
+theorem card_ker_nsmul_two_baseChange [DecidableEq L] (h : Function.Bijective (algebraMap K L)) :
+    Nat.card (nsmulAddMonoidHom (α := (W⁄L).toAffine.Point) 2).ker =
+      Nat.card (nsmulAddMonoidHom (α := W.Point) 2).ker := by
+  rw [(W⁄L).toAffine.card_ker_nsmul_two, W.card_ker_nsmul_two]
+  refine congrArg (· + 1) (Nat.card_congr (Equiv.ofBijective
+    (fun x ↦ ⟨algebraMap K L x, by rw [W.eval_baseChange_f, x.2, map_zero]⟩) ⟨?_, ?_⟩)).symm
+  · exact fun a b hab ↦ Subtype.ext (h.1 (Subtype.ext_iff.mp hab))
+  · rintro ⟨y, hy⟩
+    obtain ⟨x, rfl⟩ := h.2 y
+    exact ⟨⟨x, h.1 (by rw [← W.eval_baseChange_f, hy, map_zero])⟩, rfl⟩
 
 end BaseChange
+
+/-!
+### The local image at a real place
+
+Over `ℝ` the étale algebra of the curve is `ℝ × ℂ` (when `f` has one real root) or `ℝ³` (when
+`f` has three real roots). The image of the descent map consists of the sign patterns of the
+`x - θᵢ` that occur on the region `{f ≥ 0}` — equivalently the classes of the `2`-torsion
+points together with the trivial class — and this is a subgroup of index `2` in the full
+`2`-torsion. The sign analysis is elementary (no completions or covers are involved), so we
+carry it out over `ℝ` directly and transport it to a real completion by the isomorphism
+`v.Completion ≃+* ℝ`.
+-/
+
+section RealPlace
+
+open scoped Classical
+
+variable (W' : Affine ℝ)
+
+-- A monic real cubic has a root: intermediate value theorem with an explicit bound.
+private lemma exists_eval_f_eq_zero : ∃ x : ℝ, W'.f.eval x = 0 := by
+  set B := 1 + |W'.a₂| + |W'.a₄| + |W'.a₆| with hB
+  have hB1 : 1 ≤ B := by
+    have := abs_nonneg W'.a₂
+    have := abs_nonneg W'.a₄
+    have := abs_nonneg W'.a₆
+    linarith
+  have hneg : W'.f.eval (-B) ≤ 0 := by
+    rw [eval_f]
+    nlinarith [le_abs_self W'.a₂, neg_abs_le W'.a₂, le_abs_self W'.a₄, neg_abs_le W'.a₄,
+      le_abs_self W'.a₆, neg_abs_le W'.a₆, sq_nonneg B]
+  have hpos : (0 : ℝ) ≤ W'.f.eval B := by
+    rw [eval_f]
+    nlinarith [le_abs_self W'.a₂, neg_abs_le W'.a₂, le_abs_self W'.a₄, neg_abs_le W'.a₄,
+      le_abs_self W'.a₆, neg_abs_le W'.a₆, sq_nonneg B]
+  obtain ⟨x, -, hx⟩ := intermediate_value_Icc (by linarith : -B ≤ B)
+    (W'.f.continuous.continuousOn) ⟨hneg, hpos⟩
+  exact ⟨x, hx⟩
+
+-- A monic irreducible real quadratic is positive definite (complete the square).
+private lemma pos_of_monic_irreducible_quadratic {q : ℝ[X]} (hm : q.Monic)
+    (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) :
+    0 < q.eval x := by
+  have hlead : q.coeff 2 = 1 := by rw [← hd, ← Polynomial.leadingCoeff]; exact hm
+  have heval (t : ℝ) : q.eval t = t ^ 2 + q.coeff 1 * t + q.coeff 0 := by
+    rw [Polynomial.eval_eq_sum_range, hd, Finset.sum_range_succ, Finset.sum_range_succ,
+      Finset.sum_range_one, hlead]
+    ring
+  have hnoroot (t : ℝ) : q.eval t ≠ 0 := by
+    intro h0
+    obtain ⟨c, hc⟩ := dvd_iff_isRoot.mpr h0
+    rcases hirr.isUnit_or_isUnit hc with h | h
+    · exact Polynomial.not_isUnit_X_sub_C t h
+    · obtain ⟨u, hu, rfl⟩ := Polynomial.isUnit_iff.mp h
+      apply_fun natDegree at hc
+      rw [hd, natDegree_mul (X_sub_C_ne_zero t) (by simpa using hu.ne_zero),
+        natDegree_X_sub_C, natDegree_C] at hc
+      lia
+  by_contra! hle
+  have hdisc : q.coeff 0 - q.coeff 1 ^ 2 / 4 ≤ 0 := by
+    nlinarith [sq_nonneg (x + q.coeff 1 / 2), heval x]
+  refine hnoroot (-q.coeff 1 / 2 + Real.sqrt (q.coeff 1 ^ 2 / 4 - q.coeff 0)) ?_
+  have hs := Real.sq_sqrt (by linarith : (0:ℝ) ≤ q.coeff 1 ^ 2 / 4 - q.coeff 0)
+  rw [heval]
+  linear_combination hs
+
+-- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: the quotient
+-- embeds into `ℂ` (with equality by dimension count), where every unit is a square.
+private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic)
+    (hirr : Irreducible q) (hd : q.natDegree = 2) :
+    Subsingleton (Units.modPow (AdjoinRoot q) 2) := by
+  have hfact : Fact (Irreducible q) := ⟨hirr⟩
+  have hfd : FiniteDimensional ℝ (AdjoinRoot q) := (AdjoinRoot.powerBasis' hm).finite
+  -- an embedding into `ℂ`
+  let φ : AdjoinRoot q →ₐ[ℝ] ℂ := IsAlgClosed.lift
+  have hinj : Function.Injective φ := φ.toRingHom.injective
+  have hsurj : Function.Surjective φ := by
+    have hrank : Module.finrank ℝ (LinearMap.range φ.toLinearMap) = Module.finrank ℝ ℂ := by
+      rw [LinearMap.finrank_range_of_inj hinj, Complex.finrank_real_complex,
+        (AdjoinRoot.powerBasis' hm).finrank, AdjoinRoot.powerBasis'_dim, hd]
+    exact LinearMap.range_eq_top.mp (Submodule.eq_top_of_finrank_eq hrank)
+  -- transport squares along the isomorphism
+  refine Units.modPow.subsingleton_of_forall_exists_pow fun u ↦ ?_
+  obtain ⟨w, hw⟩ := IsAlgClosed.exists_pow_nat_eq (φ (u : AdjoinRoot q)) zero_lt_two
+  obtain ⟨w', rfl⟩ := hsurj w
+  have hu : w' ^ 2 = (u : AdjoinRoot q) := hinj (by rw [map_pow, hw])
+  have hw0 : w' ≠ 0 := fun h0 ↦ u.ne_zero (by rw [← hu, h0]; exact zero_pow two_ne_zero)
+  exact ⟨Units.mk0 w' hw0, Units.ext (by rw [Units.val_pow_eq_pow_val, Units.val_mk0, hu])⟩
+
+-- The monic linear factor of `f` attached to a root.
+private noncomputable def rootFactor {e : ℝ} (he : W'.f.eval e = 0) : W'.f.Factors :=
+  ⟨X - C e, monic_X_sub_C _, irreducible_X_sub_C _, dvd_iff_isRoot.mpr he⟩
+
+variable {W'}
+
+-- Evaluation of the field factor attached to a root `e` at `e`, as a ring homomorphism.
+private noncomputable def evalRoot {e : ℝ} (he : W'.f.eval e = 0) :
+    AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]) →+* ℝ :=
+  AdjoinRoot.lift (RingHom.id ℝ) e (by show Polynomial.eval₂ _ _ (X - C e) = 0; simp)
+
+private lemma evalRoot_mk {e : ℝ} (he : W'.f.eval e = 0) (g : ℝ[X]) :
+    evalRoot he (AdjoinRoot.mk _ g) = g.eval e := by
+  rw [evalRoot, AdjoinRoot.lift_mk]
+  simp [eval₂_id]
+
+private lemma bijective_evalRoot {e : ℝ} (he : W'.f.eval e = 0) :
+    Function.Bijective (evalRoot he) := by
+  have : Fact (Irreducible ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) :=
+    ⟨(W'.rootFactor he).irreducible⟩
+  refine ⟨(evalRoot he).injective, fun r ↦ ⟨AdjoinRoot.of _ r, ?_⟩⟩
+  rw [evalRoot, AdjoinRoot.lift_of]
+  rfl
+
+private lemma isSquare_evalRoot_iff {e : ℝ} (he : W'.f.eval e = 0)
+    (a : AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) :
+    IsSquare (evalRoot he a) ↔ IsSquare a := by
+  refine ⟨fun ⟨s, hs⟩ ↦ ?_, fun h ↦ h.map _⟩
+  obtain ⟨s', rfl⟩ := (bijective_evalRoot he).2 s
+  exact ⟨s', (bijective_evalRoot he).1 (by rw [map_mul]; exact hs)⟩
+
+variable (W')
+
+-- Over `ℝ`, the factors of the cubic have degree at most `2` (a cubic factor would make
+-- `f` irreducible, but `f` has a root).
+private lemma natDegree_factor_le_two (p : W'.f.Factors) : (p : ℝ[X]).natDegree ≤ 2 := by
+  by_contra! h3
+  obtain ⟨e, he⟩ := W'.exists_eval_f_eq_zero
+  obtain ⟨c, hc⟩ := p.dvd
+  have hc0 : c ≠ 0 := fun h0 ↦ W'.f_ne_zero (by rw [hc, h0, mul_zero])
+  have hdeg := congrArg natDegree hc
+  rw [natDegree_f, natDegree_mul p.ne_zero hc0] at hdeg
+  have hcd : c.natDegree = 0 := by
+    have := Polynomial.natDegree_le_of_dvd p.dvd W'.f_ne_zero
+    rw [natDegree_f] at this
+    lia
+  -- the root of `f` is a root of `p`, since the cofactor is a nonzero constant
+  have hpe : (p : ℝ[X]).eval e = 0 := by
+    have h0 : (p : ℝ[X]).eval e * c.eval e = 0 := by rw [← eval_mul, ← hc, he]
+    rcases mul_eq_zero.mp h0 with h | h
+    · exact h
+    · refine absurd ?_ hc0
+      rw [c.eq_C_of_natDegree_eq_zero hcd] at h ⊢
+      rw [eval_C] at h
+      rw [h, map_zero]
+  -- but then `X - e` divides the irreducible `p` of degree `≥ 3`
+  obtain ⟨d, hd⟩ := dvd_iff_isRoot.mpr hpe
+  rcases p.irreducible.isUnit_or_isUnit hd with h | h
+  · exact Polynomial.not_isUnit_X_sub_C e h
+  · obtain ⟨u, hu, rfl⟩ := Polynomial.isUnit_iff.mp h
+    have := congrArg natDegree hd
+    rw [natDegree_mul (X_sub_C_ne_zero e) (by simpa using hu.ne_zero), natDegree_X_sub_C,
+      natDegree_C] at this
+    lia
+
+-- The number of real roots of `f`, from the two splittings (instance-free).
+private lemma card_roots_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
+    Nat.card {x : ℝ // W'.f.eval x = 0} = 3 := by
+  have hset : {x : ℝ | W'.f.eval x = 0} = {e₁, e₂, e₃} := by
+    ext x
+    simp only [Set.mem_setOf_eq, hf, eval_mul, eval_sub, eval_X, eval_C, mul_eq_zero,
+      sub_eq_zero, Set.mem_insert_iff, Set.mem_singleton_iff, or_assoc]
+  show Nat.card ↥{x : ℝ | W'.f.eval x = 0} = 3
+  rw [Nat.card_coe_set_eq, hset]
+  exact Set.ncard_eq_three.mpr ⟨e₁, e₂, e₃, h12.ne, (h12.trans h23).ne, h23.ne, rfl⟩
+
+private lemma card_roots_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
+    Nat.card {x : ℝ // W'.f.eval x = 0} = 1 := by
+  have hq (t : ℝ) : 0 < q.eval t := pos_of_monic_irreducible_quadratic hm hirr hd t
+  have hset : {x : ℝ | W'.f.eval x = 0} = {e} := by
+    ext x
+    simp only [Set.mem_setOf_eq, hf, eval_mul, eval_sub, eval_X, eval_C, Set.mem_singleton_iff]
+    refine ⟨fun h ↦ ?_, fun h ↦ by rw [h]; simp⟩
+    rcases mul_eq_zero.mp h with h' | h'
+    · exact sub_eq_zero.mp h'
+    · exact absurd h' (hq x).ne'
+  show Nat.card ↥{x : ℝ | W'.f.eval x = 0} = 1
+  rw [Nat.card_coe_set_eq, hset, Set.ncard_singleton]
+
+-- The evaluation of `f`, and the roots, in the three-real-roots case (instance-free setup).
+private lemma eval_f_of_split₃ {e₁ e₂ e₃ : ℝ}
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) (t : ℝ) :
+    W'.f.eval t = (t - e₁) * (t - e₂) * (t - e₃) := by rw [hf]; simp
+
+private lemma root_eq_of_split₃ {e₁ e₂ e₃ t : ℝ}
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) (ht : W'.f.eval t = 0) :
+    t = e₁ ∨ t = e₂ ∨ t = e₃ := by
+  have h0 : (t - e₁) * (t - e₂) * (t - e₃) = 0 := by rw [← W'.eval_f_of_split₃ hf]; exact ht
+  rcases mul_eq_zero.mp h0 with h | h
+  · rcases mul_eq_zero.mp h with h' | h'
+    · exact .inl (sub_eq_zero.mp h')
+    · exact .inr (.inl (sub_eq_zero.mp h'))
+  · exact .inr (.inr (sub_eq_zero.mp h))
+
+variable [W'.IsElliptic] [W'.IsCharNeTwoNF]
+
+-- The square class of a unit of the étale algebra is trivial when all its values at the
+-- roots of `f` are nonnegative (the components at the quadratic factors are always trivial).
+private lemma unit_class_eq_one {a : W'.A} (ha : IsUnit a)
+    (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
+      0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+        (W'.rootFactor he) a)) :
+    (QuotientGroup.mk ha.unit : W'.M) = 1 := by
+  rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors W'.f_ne_zero W'.squarefree_f]
+  intro p
+  rcases eq_or_ne ((p : ℝ[X]).natDegree) 1 with hd | hd
+  · -- linear factor: `p = rootFactor he`
+    obtain ⟨e, he, rfl⟩ : ∃ (e : ℝ) (he : W'.f.eval e = 0), p = W'.rootFactor he := by
+      refine ⟨-(p : ℝ[X]).coeff 0, eval_eq_zero_of_dvd_of_eval_eq_zero p.dvd (by
+          conv_lhs => rw [p.monic.eq_X_add_C hd]
+          simp), Subtype.ext ?_⟩
+      show (p : ℝ[X]) = X - C (-(p : ℝ[X]).coeff 0)
+      conv_lhs => rw [p.monic.eq_X_add_C hd]
+      rw [map_neg, sub_neg_eq_add]
+    rw [Units.modPow.mk_eq_one_iff_isSquare, ← isSquare_evalRoot_iff he, Real.isSquare_iff]
+    have hval : ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+        (W'.rootFactor he)).toMonoidHom ha.unit :
+          (AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]))ˣ) :
+          AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) =
+        AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he) a := by
+      simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe,
+        IsUnit.unit_spec]
+    rw [hval]
+    exact h e he
+  · -- quadratic factor: the group of square classes of the factor is trivial
+    have hd2 : (p : ℝ[X]).natDegree = 2 := by
+      have h1 := p.irreducible.natDegree_pos
+      have h2 := W'.natDegree_factor_le_two p
+      lia
+    have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
+    exact Subsingleton.elim _ _
+
+-- The square classes of two units agree when the products of their values at the roots
+-- of `f` are all nonnegative.
+private lemma unit_class_eq {a b : W'.A} (ha : IsUnit a) (hb : IsUnit b)
+    (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
+      0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+          (W'.rootFactor he) a) *
+        evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+          (W'.rootFactor he) b)) :
+    (QuotientGroup.mk ha.unit : W'.M) = QuotientGroup.mk hb.unit := by
+  have hab := W'.unit_class_eq_one (ha.mul hb) (fun e he ↦ by rw [map_mul, map_mul]; exact h e he)
+  rw [show (QuotientGroup.mk ((ha.mul hb).unit) : W'.M) =
+      QuotientGroup.mk ha.unit * QuotientGroup.mk hb.unit from
+        congrArg QuotientGroup.mk (Units.ext rfl)] at hab
+  rw [mul_eq_one_iff_eq_inv.mp hab, M.inv_eq_self]
+
+-- The values of the representatives of `μX x` at a root `e` of `f`.
+private lemma eval_projFactor_generic (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+      (AdjoinRoot.mk W'.f (C x - X))) = x - e := by
+  rw [AdjoinRoot.projFactor_mk, evalRoot_mk]
+  simp
+
+private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+      (AdjoinRoot.mk W'.f (C x - X + W'.fCofactor x))) =
+      x - e + (W'.fCofactor x).eval e := by
+  rw [AdjoinRoot.projFactor_mk, evalRoot_mk]
+  simp
+
+-- Three real roots, `x` a root: `μX x ∈ {1, μX e₁}`.
+private lemma μX_root_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) {x : ℝ} (hx : W'.f.eval x = 0) :
+    W'.μX x = 1 ∨ W'.μX x = W'.μX e₁ := by
+  have he₁ : W'.f.eval e₁ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
+  obtain ⟨hcof₁, hcof₂, hcof₃⟩ := W'.fCofactor_eq_of_f_eq hf
+  have s12 : (0:ℝ) < e₂ - e₁ := sub_pos.mpr h12
+  have s23 : (0:ℝ) < e₃ - e₂ := sub_pos.mpr h23
+  have s13 : (0:ℝ) < e₃ - e₁ := by linarith
+  rcases W'.root_eq_of_split₃ hf hx with rfl | rfl | rfl
+  · exact .inr rfl
+  · -- `μX e₂ = μX e₁`: the products of the values at each root are positive
+    refine .inr ?_
+    rw [μX_of_eval_f_eq_zero hx, μX_of_eval_f_eq_zero he₁]
+    refine W'.unit_class_eq _ _ (fun t ht ↦ ?_)
+    rw [eval_projFactor_torsion, eval_projFactor_torsion, hcof₂, hcof₁]
+    rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;>
+      simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_mul, mul_zero,
+        add_zero, zero_add] <;>
+      nlinarith [mul_pos s12 s23, mul_pos s12 s13, mul_pos s23 s13,
+        mul_pos (mul_pos s12 s23) s13, mul_pos (mul_pos s12 s13) s23,
+        mul_pos (mul_pos s12 s23) s12, mul_pos (mul_pos s12 s13) s12,
+        mul_pos (mul_pos s23 s13) s23]
+  · -- `μX e₃ = 1`: all values are positive
+    refine .inl ?_
+    rw [μX_of_eval_f_eq_zero hx]
+    refine W'.unit_class_eq_one _ (fun t ht ↦ ?_)
+    rw [eval_projFactor_torsion, hcof₃]
+    rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;>
+      simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_mul, mul_zero,
+        add_zero, zero_add] <;>
+      nlinarith [mul_pos s13 s23]
+
+-- Three real roots, `f x > 0`: `x` is in `(e₁, e₂)` or `(e₃, ∞)`, giving `μX x ∈ {1, μX e₁}`.
+private lemma μX_generic_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) {x : ℝ} (hx : 0 ≤ W'.f.eval x)
+    (hx0 : W'.f.eval x ≠ 0) :
+    W'.μX x = 1 ∨ W'.μX x = W'.μX e₁ := by
+  have he₁ : W'.f.eval e₁ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
+  have he₂ : W'.f.eval e₂ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
+  have he₃ : W'.f.eval e₃ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
+  obtain ⟨hcof₁, _, _⟩ := W'.fCofactor_eq_of_f_eq hf
+  have hprod : 0 < (x - e₁) * (x - e₂) * (x - e₃) :=
+    W'.eval_f_of_split₃ hf x ▸ lt_of_le_of_ne hx (Ne.symm hx0)
+  have h1 : x ≠ e₁ := fun h ↦ hx0 (by rw [h]; exact he₁)
+  have h2 : x ≠ e₂ := fun h ↦ hx0 (by rw [h]; exact he₂)
+  have h3 : x ≠ e₃ := fun h ↦ hx0 (by rw [h]; exact he₃)
+  rcases lt_or_gt_of_ne h1 with hx1 | hx1
+  · nlinarith [mul_pos (mul_pos (sub_pos.mpr hx1) (show (0:ℝ) < e₂ - x by linarith))
+      (show (0:ℝ) < e₃ - x by linarith)]
+  rcases lt_or_gt_of_ne h3 with hx3 | hx3
+  swap
+  · -- `x > e₃`: all values positive, trivial class
+    refine .inl ?_
+    rw [μX_of_eval_f_ne_zero hx0]
+    refine W'.unit_class_eq_one _ (fun t ht ↦ ?_)
+    rw [eval_projFactor_generic]
+    rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;> nlinarith
+  rcases lt_or_gt_of_ne h2 with hx2 | hx2
+  swap
+  · nlinarith [mul_pos (mul_pos (show (0:ℝ) < x - e₁ by linarith) (sub_pos.mpr hx2))
+      (sub_pos.mpr hx3)]
+  · -- `e₁ < x < e₂`: same signs as for `(e₁, 0)`
+    refine .inr ?_
+    rw [μX_of_eval_f_ne_zero hx0, μX_of_eval_f_eq_zero he₁]
+    refine W'.unit_class_eq _ _ (fun t ht ↦ ?_)
+    rw [eval_projFactor_generic, eval_projFactor_torsion, hcof₁]
+    have s12 : (0:ℝ) < e₂ - e₁ := sub_pos.mpr h12
+    have s13 : (0:ℝ) < e₃ - e₁ := by linarith
+    have sx1 : (0:ℝ) < x - e₁ := sub_pos.mpr hx1
+    have sx2 : (0:ℝ) < e₂ - x := sub_pos.mpr hx2
+    have sx3 : (0:ℝ) < e₃ - x := sub_pos.mpr hx3
+    rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;>
+      simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_mul, mul_zero,
+        add_zero, zero_add] <;>
+      nlinarith [mul_pos sx1 (mul_pos s12 s13), mul_pos sx2 s12, mul_pos sx3 s13,
+        mul_pos sx1 sx2, mul_pos sx1 sx3]
+
+-- Three real roots: the image of `μX` on `{f ≥ 0}` is `{1, μX e₁}`.
+private lemma μX_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) {x : ℝ} (hx : 0 ≤ W'.f.eval x) :
+    W'.μX x = 1 ∨ W'.μX x = W'.μX e₁ := by
+  rcases eq_or_ne (W'.f.eval x) 0 with hx0 | hx0
+  · exact W'.μX_root_mem_of_split₃ h12 h23 hf hx0
+  · exact W'.μX_generic_mem_of_split₃ h12 h23 hf hx hx0
+
+-- Case of one real root: every point class is trivial.
+private lemma μX_eq_one_of_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) {x : ℝ} (hx : 0 ≤ W'.f.eval x) :
+    W'.μX x = 1 := by
+  have heval (t : ℝ) : W'.f.eval t = (t - e) * q.eval t := by rw [hf]; simp
+  have he : W'.f.eval e = 0 := by rw [heval]; ring
+  have hq (t : ℝ) : 0 < q.eval t := pos_of_monic_irreducible_quadratic hm hirr hd t
+  have hroots {t : ℝ} (ht : W'.f.eval t = 0) : t = e := by
+    have h0 : (t - e) * q.eval t = 0 := by rw [← heval]; exact ht
+    rcases mul_eq_zero.mp h0 with h | h
+    · exact sub_eq_zero.mp h
+    · exact absurd h (hq t).ne'
+  have hcof : W'.fCofactor e = q :=
+    mul_right_cancel₀ (X_sub_C_ne_zero e)
+      (by rw [← W'.f_eq_mul_of_eval_eq_zero he, hf]; ring)
+  rcases eq_or_ne (W'.f.eval x) 0 with hx0 | hx0
+  · -- `x = e`: the value at `e` is `q e > 0`
+    obtain rfl := hroots hx0
+    rw [μX_of_eval_f_eq_zero hx0]
+    refine W'.unit_class_eq_one _ (fun t ht ↦ ?_)
+    obtain rfl := hroots ht
+    rw [eval_projFactor_torsion, hcof]
+    simpa using (hq t).le
+  · -- `f x > 0` forces `x > e`
+    rw [μX_of_eval_f_ne_zero hx0]
+    refine W'.unit_class_eq_one _ (fun t ht ↦ ?_)
+    obtain rfl := hroots ht
+    rw [eval_projFactor_generic]
+    nlinarith [heval x, hq x, lt_of_le_of_ne hx (Ne.symm hx0)]
+
+-- Sorting three distinct reals in a triple product.
+private lemma sort₃ {a b c : ℝ} (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) {g : ℝ[X]}
+    (hg : g = (X - C a) * (X - C b) * (X - C c)) :
+    ∃ e₁ e₂ e₃ : ℝ, e₁ < e₂ ∧ e₂ < e₃ ∧ g = (X - C e₁) * (X - C e₂) * (X - C e₃) := by
+  rcases lt_or_gt_of_ne hab with h1 | h1 <;> rcases lt_or_gt_of_ne hac with h2 | h2 <;>
+    rcases lt_or_gt_of_ne hbc with h3 | h3
+  · exact ⟨a, b, c, h1, h3, hg⟩
+  · exact ⟨a, c, b, h2, h3, by rw [hg]; ring⟩
+  · exact absurd (h2.trans h1) (lt_asymm h3)
+  · exact ⟨c, a, b, h2, h1, by rw [hg]; ring⟩
+  · exact ⟨b, a, c, h1, h2, by rw [hg]; ring⟩
+  · exact absurd (h2.trans h3) (lt_asymm h1)
+  · exact ⟨b, c, a, h3, h2, by rw [hg]; ring⟩
+  · exact ⟨c, b, a, h3, h1, by rw [hg]; ring⟩
+
+-- The splitting of the real cubic: three (distinct, sorted) real roots, or one real root
+-- and a monic irreducible quadratic factor.
+-- A monic reducible real quadratic splits into two monic linear factors.
+private lemma exists_linear_split {g : ℝ[X]} (hgm : g.Monic) (hd2 : g.natDegree = 2)
+    (hirr : ¬ Irreducible g) : ∃ a b : ℝ, g = (X - C a) * (X - C b) := by
+  obtain ⟨p, hpm, hpi, d, hd⟩ := g.exists_monic_irreducible_factor
+    (fun hu ↦ by simp [natDegree_eq_zero_of_isUnit hu] at hd2)
+  have hdm : d.Monic := hpm.of_mul_monic_left (hd ▸ hgm)
+  have hdeg := congrArg natDegree hd
+  rw [hd2, natDegree_mul hpm.ne_zero hdm.ne_zero] at hdeg
+  have hp1 : p.natDegree = 1 := by
+    rcases Nat.lt_or_ge p.natDegree 2 with h | h
+    · have := hpi.natDegree_pos; lia
+    · -- `p` of degree `2` would make `g` irreducible
+      rw [Polynomial.eq_one_of_monic_natDegree_zero hdm (by lia), mul_one] at hd
+      exact absurd (hd ▸ hpi) hirr
+  have hpe : p = X - C (-p.coeff 0) := by
+    conv_lhs => rw [hpm.eq_X_add_C hp1]
+    rw [map_neg, sub_neg_eq_add]
+  have hde : d = X - C (-d.coeff 0) := by
+    conv_lhs => rw [hdm.eq_X_add_C (by lia)]
+    rw [map_neg, sub_neg_eq_add]
+  exact ⟨-p.coeff 0, -d.coeff 0, by rw [hd, ← hpe, ← hde]⟩
+
+private lemma f_split :
+    (∃ e₁ e₂ e₃ : ℝ, e₁ < e₂ ∧ e₂ < e₃ ∧ W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) ∨
+      ∃ (e : ℝ) (q : ℝ[X]), q.Monic ∧ Irreducible q ∧ q.natDegree = 2 ∧
+        W'.f = (X - C e) * q := by
+  obtain ⟨e, he⟩ := W'.exists_eval_f_eq_zero
+  have hf := W'.f_eq_mul_of_eval_eq_zero he
+  by_cases hirr : Irreducible (W'.fCofactor e)
+  · exact .inr ⟨e, W'.fCofactor e, W'.monic_fCofactor e, hirr, W'.natDegree_fCofactor e,
+      by rw [hf, mul_comm]⟩
+  · -- the quadratic cofactor splits into two linear factors `X - a`, `X - b`
+    obtain ⟨a, b, hab⟩ := exists_linear_split (W'.monic_fCofactor e) (W'.natDegree_fCofactor e) hirr
+    have hsplit : W'.f = (X - C e) * (X - C a) * (X - C b) := by rw [hf, hab]; ring
+    have hne (u v w : ℝ) (huvw : W'.f = (X - C u) * (X - C v) * (X - C w)) : u ≠ v := by
+      rintro rfl
+      exact Polynomial.not_isUnit_X_sub_C u (W'.squarefree_f (X - C u) ⟨X - C w, by rw [huvw]⟩)
+    exact .inl (sort₃ (hne e a b hsplit) (hne e b a (by rw [hsplit]; ring))
+      (hne a b e (by rw [hsplit]; ring)) hsplit)
+
+-- The value at the root `e` of the representative of a class whose component there is trivial.
+private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : ℝ}
+    (he : W'.f.eval e = 0)
+    (hlt : evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+      (W'.rootFactor he) a) < 0) :
+    (QuotientGroup.mk ha.unit : W'.M) ≠ 1 := by
+  intro hone
+  rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors W'.f_ne_zero W'.squarefree_f] at hone
+  have hc := hone (W'.rootFactor he)
+  rw [Units.modPow.mk_eq_one_iff_isSquare] at hc
+  have hval : ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+      (W'.rootFactor he)).toMonoidHom ha.unit :
+        (AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]))ˣ) :
+        AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) =
+      AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he) a := by
+    simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
+  rw [hval, ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
+  linarith
+
+-- The range of `μ` as a set equals the range of the underlying map `μ₀`.
+private lemma range_μ_coe : (Set.range (μ (W := W'))) = Set.range (μ₀ (W := W')) := by
+  ext m
+  constructor
+  · rintro ⟨P, rfl⟩
+    obtain ⟨Q, rfl⟩ := Multiplicative.ofAdd.surjective P
+    exact ⟨Q, (μ_apply Q).symm⟩
+  · rintro ⟨Q, rfl⟩
+    exact ⟨Multiplicative.ofAdd Q, μ_apply Q⟩
+
+-- `IsCharNeTwoNF` is used by `equation_iff_eval_f_eq_sq` in the proof but erased from the term
+set_option linter.unusedSectionVars false in
+-- Over `ℝ`, `f x` is a square for a point `(x, y)`, hence `≥ 0`.
+private lemma eval_f_nonneg_of_nonsingular {x y : ℝ} (h : W'.Nonsingular x y) :
+    0 ≤ W'.f.eval x := by
+  rw [(W'.equation_iff_eval_f_eq_sq x y).mp h.1]
+  exact sq_nonneg y
+
+-- The class of `(e₁, 0)` is nontrivial: its value at the factor `e₂` is `e₁ - e₂ < 0`.
+private lemma μX_root_ne_one_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
+    W'.μX e₁ ≠ 1 := by
+  have he₁ : W'.f.eval e₁ = 0 := by rw [hf]; simp
+  have he₂ : W'.f.eval e₂ = 0 := by rw [hf]; simp
+  obtain ⟨hcof₁, _, _⟩ := W'.fCofactor_eq_of_f_eq hf
+  rw [μX_of_eval_f_eq_zero he₁]
+  refine W'.unit_class_ne_one_of_evalRoot_neg _ he₂ ?_
+  rw [eval_projFactor_torsion, hcof₁]
+  simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self]
+  nlinarith [sub_pos.mpr h12]
+
+-- With three real roots, the image of `μ` is `{1, class of (e₁, 0)}`.
+private lemma range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
+    Set.range (μ₀ (W := W')) = {1, W'.μX e₁} := by
+  refine Set.eq_of_subset_of_subset ?_ ?_
+  · rintro _ ⟨(_ | ⟨x, y, h⟩), rfl⟩
+    · exact Set.mem_insert _ _
+    · rw [μ₀_some]
+      rcases W'.μX_mem_of_split₃ h12 h23 hf (W'.eval_f_nonneg_of_nonsingular h) with h' | h'
+      · exact h' ▸ Set.mem_insert _ _
+      · exact h' ▸ Set.mem_insert_of_mem _ rfl
+  · rintro _ (rfl | rfl)
+    · exact ⟨0, rfl⟩
+    · have he₁ : W'.f.eval e₁ = 0 := by rw [hf]; simp
+      exact ⟨.some e₁ 0 (W'.nonsingular_of_eval_f_eq_zero he₁), rfl⟩
+
+-- With one real root, the image of `μ` is trivial.
+private lemma range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
+    Set.range (μ₀ (W := W')) = {1} := by
+  refine Set.eq_of_subset_of_subset ?_ (by rintro _ rfl; exact ⟨0, rfl⟩)
+  rintro _ ⟨(_ | ⟨x, y, h⟩), rfl⟩
+  · exact Set.mem_singleton _
+  · rw [μ₀_some, W'.μX_eq_one_of_split₁ hm hirr hd hf (W'.eval_f_nonneg_of_nonsingular h)]
+    exact Set.mem_singleton _
+
+/-- Over `ℝ`, the image of the descent map has index `2` in the `2`-torsion: `2·#(im μ_ℝ)`
+equals `#E(ℝ)[2]`. The étale algebra is `ℝ × ℂ` (one real root) or `ℝ³` (three real roots);
+the image consists of the sign patterns of `x - θᵢ` on the region `f ≥ 0`. -/
+theorem two_mul_card_range_μ_real :
+    2 * Nat.card (μ (W := W')).range =
+      Nat.card (nsmulAddMonoidHom (α := W'.Point) 2).ker := by
+  rw [W'.card_ker_nsmul_two,
+    show Nat.card (μ (W := W')).range = (Set.range (μ₀ (W := W'))).ncard by
+      rw [← W'.range_μ_coe, ← MonoidHom.coe_range]; exact Nat.card_coe_set_eq _]
+  rcases W'.f_split with ⟨e₁, e₂, e₃, h12, h23, hf⟩ | ⟨e, q, hm, hirr, hd, hf⟩
+  · rw [W'.range_μ₀_split₃ h12 h23 hf, W'.card_roots_split₃ h12 h23 hf,
+      Set.ncard_pair (Ne.symm (W'.μX_root_ne_one_of_split₃ h12 hf))]
+  · rw [W'.range_μ₀_split₁ hm hirr hd hf, W'.card_roots_split₁ hm hirr hd hf,
+      Set.ncard_singleton]
+
+end RealPlace
 
 /-!
 ### The 2-Selmer group
@@ -841,18 +1428,27 @@ theorem card_range_μ_adicCompletion_of_two_notMem {v : HeightOneSpectrum (𝓞 
     exact hv h1
   rw [W.card_range_μ_adicCompletion v, h0, pow_zero, mul_one]
 
+-- `NumberField F` is needed by the statement (via `InfinitePlace F`) but erased from the proof
+set_option linter.unusedSectionVars false in
 open scoped Classical in
 /-- The size of the local image at a real place: `#(im μ_v) = #E(ℝ)[2] / 2` (that is, `2` if
 the cubic has three real roots, and `1` otherwise).
 
-The proof is a sign analysis over the real closed field `v.Completion`: the étale algebra is
-`ℝ × ℂ` or `ℝ³` according to the number of real roots, the square classes are the signs at
-the real factors, and the image of `μ` consists of the sign patterns of `x - θᵢ` on the
-region `f ≥ 0`, using the intermediate value theorem to realize them. -/
+Proof by transport of the sign analysis over `ℝ` (`two_mul_card_range_μ_real`) along the
+isomorphism `v.Completion ≃+* ℝ`: base change is along an isomorphism, so both the image of
+the descent map (`card_range_μ_of_bijective_algebraMap`) and the `2`-torsion of the group of
+points (`card_ker_nsmul_two_baseChange`) keep their size. -/
 theorem card_range_μ_completion_isReal {v : InfinitePlace F} (hv : v.IsReal) :
     2 * Nat.card (μ (W := (W⁄v.Completion).toAffine)).range =
       Nat.card (nsmulAddMonoidHom (α := (W⁄v.Completion).toAffine.Point) 2).ker := by
-  sorry
+  classical
+  set W' := (W⁄v.Completion).toAffine
+  let e := InfinitePlace.Completion.ringEquivRealOfIsReal hv
+  letI : Algebra v.Completion ℝ := (e : v.Completion →+* ℝ).toAlgebra
+  have hbij : Function.Bijective (algebraMap v.Completion ℝ) := e.bijective
+  rw [← W'.card_range_μ_of_bijective_algebraMap (L := ℝ) hbij,
+    ← W'.card_ker_nsmul_two_baseChange (L := ℝ) hbij]
+  exact (W'⁄ℝ).toAffine.two_mul_card_range_μ_real
 
 -- the statement lives with its number-field siblings; `NumberField F` and `DecidableEq F` are
 -- part of the ambient section but the content is the general `card_range_μ_of_isAlgClosed`
@@ -1005,19 +1601,6 @@ private lemma normM_scalarClass_ne_one {c : 𝒪_[v]ˣ}
 
 variable {v}
 
--- the instances are needed by the statement but are erased from the proof term
-set_option linter.unusedSectionVars false in
--- The `y`-coordinate of a `2`-torsion point vanishes.
-private lemma y_eq_zero_of_two_nsmul_eq_zero {x y : F_[v]} (h : 𝕎[v].Nonsingular x y)
-    (h2 : (2 : ℕ) • (Point.some _ _ h : 𝕎[v].Point) = 0) :
-    y = 0 := by
-  have hcz : CharZero F_[v] :=
-    charZero_of_injective_algebraMap (algebraMap F F_[v]).injective
-  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq] at h2
-  refine two_nsmul_eq_zero.mp ?_
-  rw [two_nsmul, add_eq_zero_iff_eq_neg]
-  exact h2.2.trans (negY_of_isCharNeTwoNF ..)
-
 -- The class of a scalar unit of `𝒪_v` is unramified.
 private lemma scalarClass_mem_selmerGroupA (c : 𝒪_[v]ˣ) :
     W.scalarClass v c ∈ 𝕎[v].selmerGroupA 𝒪_[v] := by
@@ -1112,81 +1695,6 @@ private lemma two_mul_card_inf_ker_le (hv : v ∉ W.badPrimes (𝓞 F)) :
         rw [← Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv,
           ← Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker]
 
--- The point `(x, 0)` at a root of `f` is a point of the curve ...
-private lemma nonsingular_of_eval_f_eq_zero {x : F_[v]} (hx : 𝕎[v].f.eval x = 0) :
-    𝕎[v].Nonsingular x 0 :=
-  (equation_iff_nonsingular_of_Δ_ne_zero ((W⁄F_[v]).isUnit_Δ.ne_zero)).mp
-    (by rw [equation_iff_eval_f_eq_sq, hx]; ring)
-
--- ... and is `2`-torsion.
-private lemma two_nsmul_some_eq_zero {x : F_[v]} (hx : 𝕎[v].f.eval x = 0) :
-    (2 : ℕ) • (Point.some _ _ (W.nonsingular_of_eval_f_eq_zero hx) : 𝕎[v].Point) = 0 := by
-  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq]
-  refine ⟨rfl, ?_⟩
-  rw [negY_of_isCharNeTwoNF, neg_zero]
-
--- The kernel of multiplication by `2` is finite.
-private lemma finite_ker_nsmul_two :
-    Finite (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker := by
-  have hroots : Finite {x : F_[v] | 𝕎[v].f.eval x = 0} :=
-    Set.Finite.to_subtype (Polynomial.finite_setOf_isRoot 𝕎[v].f_ne_zero)
-  set pt : {x : F_[v] | 𝕎[v].f.eval x = 0} → 𝕎[v].Point :=
-    fun x ↦ Point.some _ _ (W.nonsingular_of_eval_f_eq_zero x.2)
-  have hsub : ((nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker : Set 𝕎[v].Point) ⊆
-      insert 0 (Set.range pt) := by
-    intro P hP
-    induction P with
-    | zero => exact Set.mem_insert _ _
-    | some x y h =>
-      have hy := W.y_eq_zero_of_two_nsmul_eq_zero h hP
-      subst hy
-      have hx : 𝕎[v].f.eval x = 0 := by
-        have := (𝕎[v].equation_iff_eval_f_eq_sq x 0).mp h.1
-        simpa using this
-      exact Set.mem_insert_of_mem _ ⟨⟨x, hx⟩, rfl⟩
-  exact Set.Finite.to_subtype (Set.Finite.subset ((Set.finite_range pt).insert 0) hsub)
-
--- The `2`-torsion contains the points coming from the linear factors of `f`, and the origin.
-private lemma card_linear_factors_lt_card_ker :
-    Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} + 1 ≤
-      Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker := by
-  have hfin := W.finite_ker_nsmul_two (v := v)
-  -- the root of a linear factor
-  have heval (q : {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1}) :
-      𝕎[v].f.eval (-((q : 𝕎[v].f.Factors) : F_[v][X]).coeff 0) = 0 := by
-    refine Polynomial.eval_eq_zero_of_dvd_of_eval_eq_zero (q : 𝕎[v].f.Factors).dvd ?_
-    conv_lhs => rw [(q : 𝕎[v].f.Factors).monic.eq_X_add_C q.2]
-    simp
-  set ι : Option {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} →
-      (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker :=
-    fun o ↦ o.elim 0 fun q ↦
-      ⟨Point.some _ _ (W.nonsingular_of_eval_f_eq_zero (heval q)),
-        W.two_nsmul_some_eq_zero (heval q)⟩
-  have hinj : Function.Injective ι := by
-    intro o o' h
-    match o, o' with
-    | none, none => rfl
-    | none, some q =>
-      exact absurd (congrArg (Subtype.val) h).symm (Point.some_ne_zero _)
-    | some q, none =>
-      exact absurd (congrArg (Subtype.val) h) (Point.some_ne_zero _)
-    | some q, some q' =>
-      have hx := (Point.some.injEq _ _ _ _ _ _).mp (congrArg (Subtype.val) h)
-      have hcoeff : ((q : {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1}) :
-          𝕎[v].f.Factors) = q' := by
-        refine Subtype.ext ?_
-        conv_lhs => rw [((q : 𝕎[v].f.Factors)).monic.eq_X_add_C q.2]
-        conv_rhs => rw [((q' : 𝕎[v].f.Factors)).monic.eq_X_add_C q'.2]
-        rw [neg_inj.mp hx.1]
-      exact congrArg _ (Subtype.ext hcoeff)
-  have : Fintype {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} := Fintype.ofFinite _
-  calc Nat.card _ + 1
-      = Fintype.card (Option {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1}) := by
-        rw [Fintype.card_option, Nat.card_eq_fintype_card]
-    _ = Nat.card (Option {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1}) :=
-        Nat.card_eq_fintype_card.symm
-    _ ≤ _ := Nat.card_le_card_of_injective ι hinj
-
 end LocalCount
 
 attribute [local instance] instFintypeFactorsBaseChange
@@ -1228,8 +1736,10 @@ theorem selmerGroupA_inf_ker_normM_eq_range_μ {v : HeightOneSpectrum (𝓞 F)}
         ≤ 2 ^ (Nat.card 𝕎[v].f.Factors - 1) := by lia
       _ ≤ Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} + 1 :=
           W.two_pow_le_card_linear_factors (v := v)
-      _ ≤ Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker :=
-          W.card_linear_factors_lt_card_ker (v := v)
+      _ = Nat.card {x : F_[v] // 𝕎[v].f.eval x = 0} + 1 := by
+          rw [Nat.card_congr Polynomial.Factors.linearEquivRoots]
+      _ = Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker :=
+          (𝕎[v].card_ker_nsmul_two).symm
       _ = Nat.card (μ (W := 𝕎[v])).range :=
           (W.card_range_μ_adicCompletion_of_two_notMem
             (W.two_notMem_asIdeal_of_notMem_badPrimes hv)).symm

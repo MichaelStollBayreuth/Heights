@@ -397,6 +397,13 @@ lemma isUnit_mk_sub_X_add_fCofactor_of_eval_f_eq_zero {x : K} (h : W.f.eval x = 
   rw [this, map_add, map_one, map_mul, map_neg]
   simp
 
+
+/-- The point `(x, 0)` at a root of `f` lies on the curve. -/
+lemma nonsingular_of_eval_f_eq_zero {x : K} (hx : W.f.eval x = 0) :
+    W.Nonsingular x 0 :=
+  (equation_iff_nonsingular_of_Δ_ne_zero W.isUnit_Δ.ne_zero).mp
+    (by rw [equation_iff_eval_f_eq_sq, hx]; ring)
+
 end
 
 /-!
@@ -791,6 +798,71 @@ lemma finite_index_range_nsmulAddMonoidHom_two_iff :
   rw [← AddSubgroup.finiteIndex_toSubgroup_iff, ← ker_μ_eq,
     Equiv.finite_iff (QuotientGroup.quotientKerEquivRange (μ (W := W))).symm.toEquiv]
   exact Subgroup.finiteIndex_iff_finite_quotient
+
+/-!
+### The `2`-torsion of the group of points
+
+In our situation (`a₁ = a₃ = 0`, so `-(x, y) = (x, -y)`), the `2`-torsion consists of the
+origin together with the points `(x, 0)` at the roots of `f`; in particular its order is
+the number of roots of `f` in `K` plus one.
+-/
+
+lemma two_nsmul_some_eq_zero {x : K} (hx : W.f.eval x = 0) :
+    (2 : ℕ) • (Point.some _ _ (W.nonsingular_of_eval_f_eq_zero hx) : W.Point) = 0 := by
+  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq]
+  refine ⟨rfl, ?_⟩
+  rw [negY_of_isCharNeTwoNF, neg_zero]
+
+lemma y_eq_zero_of_two_nsmul_eq_zero {x y : K} (h : W.Nonsingular x y)
+    (h2 : (2 : ℕ) • (Point.some _ _ h : W.Point) = 0) :
+    y = 0 := by
+  have h20 : (2 : K) ≠ 0 := Ring.two_ne_zero <| ringChar_ne_two W
+  rw [two_nsmul, add_eq_zero_iff_eq_neg, Point.neg_some, Point.some.injEq] at h2
+  have hy : 2 * y = 0 := by linear_combination h2.2.trans (negY_of_isCharNeTwoNF ..)
+  rcases mul_eq_zero.mp hy with h' | h'
+  · exact absurd h' h20
+  · exact h'
+
+/-- The `2`-torsion of the group of points consists of the origin and the points `(x, 0)`
+at the roots of `f`. -/
+theorem card_ker_nsmul_two :
+    Nat.card (nsmulAddMonoidHom (α := W.Point) 2).ker =
+      Nat.card {x : K // W.f.eval x = 0} + 1 := by
+  have hfin : Finite {x : K | W.f.eval x = 0} :=
+    Set.Finite.to_subtype (Polynomial.finite_setOf_isRoot W.f_ne_zero)
+  set pt : {x : K | W.f.eval x = 0} → W.Point :=
+    fun x ↦ Point.some _ _ (W.nonsingular_of_eval_f_eq_zero x.2)
+  have hinj : Function.Injective pt := by
+    intro a b hab
+    exact Subtype.ext ((Point.some.injEq _ _ _ _ _ _).mp hab).1
+  -- the kernel is the origin together with the image of the roots
+  have hset : ((nsmulAddMonoidHom (α := W.Point) 2).ker : Set W.Point) =
+      insert 0 (Set.range pt) := by
+    ext P
+    constructor
+    · intro hP
+      induction P with
+      | zero => exact Set.mem_insert _ _
+      | some x y h =>
+        have hy := W.y_eq_zero_of_two_nsmul_eq_zero h hP
+        subst hy
+        have hx : W.f.eval x = 0 := by
+          have := (W.equation_iff_eval_f_eq_sq x 0).mp h.1
+          simpa using this
+        exact Set.mem_insert_of_mem _ ⟨⟨x, hx⟩, rfl⟩
+    · intro hP
+      rcases Set.mem_insert_iff.mp hP with rfl | ⟨x, rfl⟩
+      · exact zero_mem _
+      · exact W.two_nsmul_some_eq_zero x.2
+  calc Nat.card (nsmulAddMonoidHom (α := W.Point) 2).ker
+      = ((nsmulAddMonoidHom (α := W.Point) 2).ker : Set W.Point).ncard :=
+        Nat.card_coe_set_eq _
+    _ = (insert 0 (Set.range pt)).ncard := by rw [hset]
+    _ = (Set.range pt).ncard + 1 :=
+        Set.ncard_insert_of_notMem (by rintro ⟨x, hx⟩; exact Point.some_ne_zero _ hx)
+    _ = Nat.card {x : K // W.f.eval x = 0} + 1 := by
+        rw [← Nat.card_coe_set_eq, Nat.card_range_of_injective hinj]
+        rfl
 
 /-!
 ### Step 5: show that `im μ` is contained in the kernel of the norm map.

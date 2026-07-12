@@ -142,6 +142,15 @@ lemma mk_eq_mk_iff {u v : αˣ} (n : ℕ) :
   simp only [QuotientGroup.eq, MonoidHom.mem_range, powMonoidHom_apply]
   exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩, fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩⟩
 
+/-- The class of a unit is trivial in `Units.modPow α 2` exactly when the unit is a square
+in `α`. -/
+lemma mk_eq_one_iff_isSquare {u : αˣ} :
+    (QuotientGroup.mk u : Units.modPow α 2) = 1 ↔ IsSquare (u : α) := by
+  rw [mk_eq_one_iff]
+  refine ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [← hw]; push_cast [sq]; rfl⟩, fun ⟨s, hs⟩ ↦ ?_⟩
+  have hsu : IsUnit s := isUnit_of_mul_isUnit_left (hs ▸ u.isUnit)
+  exact ⟨hsu.unit, Units.ext (by rw [Units.val_pow_eq_pow_val, IsUnit.unit_spec, sq, ← hs])⟩
+
 @[simp]
 lemma pow_eq_one {n : ℕ} (m : Units.modPow α n) : m ^ n = 1 := by
   obtain ⟨u, rfl⟩ := mk'_surjective _ m
@@ -197,6 +206,17 @@ lemma map_unit (φ : α →* β) (n : ℕ) (ha : IsUnit a) :
 /-- A multiplicative equivalence `α ≃* β` induces one on `n`-th power classes of units. -/
 def congr (e : α ≃* β) (n : ℕ) : Units.modPow α n ≃* Units.modPow β n :=
   congrRangePowMonoidHom (Units.mapEquiv e) n
+
+/-- The map on `n`-th power classes of units induced by a bijective homomorphism is
+bijective. -/
+lemma bijective_map {φ : α →* β} (hφ : Function.Bijective φ) (n : ℕ) :
+    Function.Bijective (map φ n) := by
+  have h : ⇑(map φ n) = ⇑(congr (MulEquiv.ofBijective φ hφ) n) := by
+    ext m
+    induction m using QuotientGroup.induction_on with
+    | H u => rfl
+  rw [h]
+  exact (congr (MulEquiv.ofBijective φ hφ) n).bijective
 
 /-- Taking `n`-th power classes of units commutes with products. -/
 noncomputable def piEquiv {ι : Type*} (α : ι → Type*) [(i : ι) → CommMonoid (α i)] (n : ℕ) :
@@ -948,6 +968,25 @@ lemma nonempty (hu : ¬ IsUnit f) : Nonempty f.Factors :=
   let ⟨p, hp⟩ := f.exists_monic_irreducible_factor hu
   ⟨⟨p, hp⟩⟩
 
+/-- The monic linear factors of `f` correspond to the roots of `f`. -/
+noncomputable def linearEquivRoots :
+    {p : f.Factors // (p : K[X]).natDegree = 1} ≃ {x : K // f.eval x = 0} where
+  toFun p := ⟨-((p : f.Factors) : K[X]).coeff 0,
+    eval_eq_zero_of_dvd_of_eval_eq_zero (p : f.Factors).dvd <| by
+      conv_lhs => rw [(p : f.Factors).monic.eq_X_add_C p.2]
+      simp⟩
+  invFun x := ⟨⟨X - C (x : K), monic_X_sub_C _, irreducible_X_sub_C _,
+    dvd_iff_isRoot.mpr x.2⟩, natDegree_X_sub_C _⟩
+  left_inv p := by
+    refine Subtype.ext (Subtype.ext ?_)
+    show X - C (-((p : f.Factors) : K[X]).coeff 0) = _
+    conv_rhs => rw [(p : f.Factors).monic.eq_X_add_C p.2]
+    rw [map_neg, sub_neg_eq_add]
+  right_inv x := by
+    refine Subtype.ext ?_
+    show -(X - C (x : K)).coeff 0 = _
+    simp
+
 lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=
   (Ideal.isCoprime_span_singleton_iff _ _).mp <| Ideal.isCoprime_iff_sup_eq.mpr <|
     Ideal.IsMaximal.coprime_of_ne
@@ -1090,6 +1129,18 @@ lemma modPowEquivPiFactors_mk (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ)
   have h := modPowEquivPiFactors_unit hf hsq n u.isUnit p
   rw [show u.isUnit.unit = u from Units.ext rfl] at h
   exact h.trans (congrArg QuotientGroup.mk (Units.ext rfl))
+
+/-- The class of a unit of `K[X]/(f)` is trivial exactly when its components at all field
+factors are trivial. -/
+lemma modPow_mk_eq_one_iff_forall_factors (hf : f ≠ 0) (hsq : Squarefree f) (n : ℕ)
+    (u : (AdjoinRoot f)ˣ) :
+    (QuotientGroup.mk u : Units.modPow (AdjoinRoot f) n) = 1 ↔
+      ∀ p : f.Factors,
+        (QuotientGroup.mk (Units.map (projFactor hf hsq p).toMonoidHom u) :
+          Units.modPow (AdjoinRoot (p : K[X])) n) = 1 := by
+  rw [← map_eq_one_iff (modPowEquivPiFactors hf hsq n) (modPowEquivPiFactors hf hsq n).injective,
+    funext_iff]
+  exact forall_congr' fun p ↦ by rw [modPowEquivPiFactors_mk, Pi.one_apply]
 
 end AdjoinRoot
 
