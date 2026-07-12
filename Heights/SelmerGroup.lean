@@ -94,6 +94,8 @@ theorem Module.finite_int_additive (G : Type*) [CommGroup G] [Group.FG G] :
     Module.Finite ℤ (Additive G) :=
   Module.Finite.iff_addGroup_fg.mpr (AddGroup.fg_iff_mul_fg.mpr ‹_›)
 
+/-- A commutative group that is finitely generated as a `ℤ`-module is finitely generated as a
+group; converse direction of `Module.finite_int_additive`. -/
 theorem Group.fg_of_module_finite_int {G : Type*} [CommGroup G]
     (h : Module.Finite ℤ (Additive G)) : Group.FG G :=
   AddGroup.fg_iff_mul_fg.mp (Module.Finite.iff_addGroup_fg.mp h)
@@ -425,7 +427,7 @@ lemma SInteger.valuationOfNeZero_heightOneSpectrumEquiv (v : {v : HeightOneSpect
       HeightOneSpectrum.valuationOfNeZero_eq _ u, HeightOneSpectrum.valuationOfNeZero_eq,
     SInteger.valuation_heightOneSpectrumEquiv K S v (u : K)]
 
-/-- **The membership bridge**: the class of `u` lies in the Selmer group `K(S,n)` exactly when
+/-- The class of `u` lies in the Selmer group `K(S,n)` exactly when
 the principal fractional ideal `(u)` of the `S`-integers is `n`-divisible. -/
 lemma mem_selmerGroup_iff_unitsNDivisible (u : Kˣ) :
     (QuotientGroup.mk u : Units.modPow K n) ∈ selmerGroup (R := R) (K := K) (S := S) (n := n) ↔
@@ -494,7 +496,6 @@ noncomputable def toSClassGroup [NeZero n] :
     (QuotientGroup.quotientKerEquivOfSurjective _
       (selmerGroupFromUnits_surjective K S n)).symm.toMonoidHom
 
-/-- Evaluation of `toSClassGroup` on the class of an `n`-divisible unit. -/
 lemma toSClassGroup_selmerGroupFromUnits [NeZero n] (u : unitsNDivisible (S.integer K) K n) :
     toSClassGroup K S n (selmerGroupFromUnits K S n u) =
       nthRootClass (S.integer K) K n u := by
@@ -505,7 +506,6 @@ lemma toSClassGroup_selmerGroupFromUnits [NeZero n] (u : unitsNDivisible (S.inte
     rfl
   rw [toSClassGroup, MonoidHom.comp_apply, MulEquiv.coe_toMonoidHom, h, QuotientGroup.lift_mk']
 
-/-- The image of a unit of the `S`-integers in `Kˣ`, via the `S`-unit equivalence. -/
 lemma coe_unitEquivUnitsInteger_symm (a : (S.integer K)ˣ) :
     ((S.unitEquivUnitsInteger K).symm a : Kˣ) =
       Units.map (algebraMap (S.integer K) K : S.integer K →* K) a := by
@@ -631,6 +631,7 @@ lemma mem_selmerGroupPi_iff (x : (i : ι) → Units.modPow (L i) n) :
       ∀ i, x i ∈ selmerGroup (R := B i) (K := L i) (S := S i) (n := n) := by
   simp [selmerGroupPi, Subgroup.mem_pi]
 
+/-- A finite product of Selmer groups is finite. -/
 theorem finite_selmerGroupPi [Finite ι] [(i : ι) → Finite (ClassGroup (B i))]
     [(i : ι) → Group.FG (B i)ˣ] (hS : ∀ i, (S i).Finite) [NeZero n] :
     Finite (selmerGroupPi L B S n) := by

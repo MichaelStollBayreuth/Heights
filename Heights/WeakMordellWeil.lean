@@ -100,7 +100,6 @@ lemma monic_f : W.f.Monic := by
 
 lemma f_ne_zero : W.f ≠ 0 := W.monic_f.ne_zero
 
-/-- Any polynomial of degree at most `2` has smaller degree than `f`. -/
 lemma degree_lt_degree_f {p : K[X]} (hp : p.natDegree ≤ 2) : p.degree < W.f.degree :=
   degree_lt_degree <| by rw [natDegree_f]; lia
 
@@ -121,7 +120,6 @@ lemma squarefree_f [W.IsElliptic] [W.IsShortNF] : Squarefree W.f := (separable_f
 
 lemma eval_f (x : K) : W.f.eval x = x ^ 3 + W.a₄ * x + W.a₆ := by simp [f]
 
-/-- The cubic `f`, evaluated in a `K`-algebra. -/
 lemma map_eval_f {L : Type*} [CommRing L] [Algebra K L] (x : K) :
     algebraMap K L (W.f.eval x) = algebraMap K L x ^ 3 +
       algebraMap K L W.a₄ * algebraMap K L x + algebraMap K L W.a₆ := by
@@ -148,7 +146,6 @@ lemma monic_fCofactor (x : K) : (W.fCofactor x).Monic := by
   simp only [fCofactor]
   monicity!
 
-/-- Any polynomial of degree at most `1` has smaller degree than `fCofactor x`. -/
 lemma degree_lt_degree_fCofactor (x : K) {p : K[X]} (hp : p.natDegree ≤ 1) :
     p.degree < (W.fCofactor x).degree :=
   degree_lt_degree <| by rw [natDegree_fCofactor]; lia
@@ -165,7 +162,7 @@ lemma f_eq_mul_of_eval_eq_zero {x : K} (hx : W.f.eval x = 0) :
     W.f = W.fCofactor x * (X - C x) := by
   simp [fCofactor_mul_eq, hx]
 
-/-- Dividing the relation `(r X + s)² ≡ x - X mod (fCofactor x)` by `r²` yields the polynomial
+/- Dividing the relation `(r X + s)² ≡ x - X mod (fCofactor x)` by `r²` yields the polynomial
 identity certifying that a point with `2`-torsion `x`-coordinate `x` is divisible by `2`
 (used in Step 4). -/
 private lemma f_dvd_of_fCofactor_dvd {x r s : K} (hx : W.f.eval x = 0) (hr : r ≠ 0)
@@ -466,7 +463,7 @@ private lemma xQ_ne_xP_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsing
   exact some_ne_zero hR
 
 open Point in
-/-- If two of three collinear points have distinct `2`-torsion `x`-coordinates, then the line
+/- If two of three collinear points have distinct `2`-torsion `x`-coordinates, then the line
 through them is horizontal, and `f` splits off all three `x`-coordinates. -/
 private lemma f_eq_prod_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hR : W.Nonsingular xR yR)
@@ -485,7 +482,7 @@ private lemma f_eq_prod_of_eval_f_eq_zero {xP yP xQ yQ xR yR : K} (hP : W.Nonsin
     · grind
   rwa [hpol₀, zero_pow two_ne_zero, sub_zero, eq_comm] at hpol
 
-/-- Forward direction of `exists_eq_two_smul_iff`: if `(x, y)` is divisible by `2`, then the
+/- Forward direction of `exists_eq_two_smul_iff`: if `(x, y)` is divisible by `2`, then the
 polynomial identity holds, with `ξ` the `x`-coordinate of a halving point. -/
 private lemma exists_pol_of_eq_two_smul {x y : K} (h : W.Nonsingular x y) {P : W.Point}
     (hP : Point.some x y h = 2 • P) :
@@ -533,7 +530,7 @@ private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero_of_eval_f_eq_zero (h₁ : W.f
   rw [← sq_add_add_eq_mul_mul_of_mul_mul_eq_zero <| by rw [← map_mul, ← map_mul, ← hf]; simp]
   exact ⟨_, rfl⟩
 
-/-- The case where only `xP` is a `2`-torsion `x`-coordinate. -/
+/- The case where only `xP` is a `2`-torsion `x`-coordinate. -/
 private lemma μX_mul_mul_eq_one_of_eval_f_eq_zero_of_ne_of_ne (h : W.f.eval xP = 0)
     (hQ₀ : W.f.eval xQ ≠ 0) (hR₀ : W.f.eval xR ≠ 0) :
     W.μX xP * W.μX xQ * W.μX xR = 1 := by
@@ -619,7 +616,7 @@ lemma μ₀_two_nsmul (P : W.Point) : W.μ₀ (2 • P) = 1 := by
 ### Step 4: show that `μ` has kernel `2 • W(K)`.
 -/
 
-/-- Reverse direction of `exists_eq_two_smul_iff`, in terms of the coefficient identities of
+/- Reverse direction of `exists_eq_two_smul_iff`, in terms of the coefficient identities of
 the polynomial identity: the point `(ξ, lξ + m)` lies on `W` and doubles to `(x, ±y)`. -/
 private lemma exists_eq_two_smul_of_identities {x y ξ l m : K} (h : W.Nonsingular x y)
     (H₂ : x + 2 * ξ = l ^ 2) (H₁ : 2 * x * ξ + ξ ^ 2 = W.a₄ - 2 * l * m)
@@ -835,7 +832,7 @@ is literally our `Units.modPow K n` (that file has it only as a local notation).
 `A(S,2)` should be assembled out of `selmerGroup`s, not defined from scratch.
 
 The obstruction is that `A = AdjoinRoot f` is an étale algebra, not a field, so it has no
-`HeightOneSpectrum`. What bridges the gap is the decomposition of `A` into a product of fields,
+`HeightOneSpectrum`. The way around this is the decomposition of `A` into a product of fields,
 provided by `Heights.ForMathlib`: as `f` is separable, `AdjoinRoot.equivPiFactors` gives
 `A ≃ₐ[K] ((p : W.f.Factors) → AdjoinRoot p)`, a finite product of finite separable field
 extensions of `K` indexed by the monic irreducible factors `p` of `f`, and correspondingly

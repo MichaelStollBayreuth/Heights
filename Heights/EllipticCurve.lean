@@ -109,19 +109,19 @@ lemma addX_of_X_ne {xP yP xQ yQ : F} (hn : xP ≠ xQ) :
   simp [addX, slope, hn, div_pow]
   field
 
-/-- We given an explicit expression for `xRep` of `P + P` when `2*P ≠ 0`. -/
+/-- We give an explicit expression for `xRep` of `P + P` when `2*P ≠ 0`. -/
 lemma Point.xRep_add_self_of_Y_ne {x y : F} (h : W.Nonsingular x y) (hn : y ≠ W.negY x y) :
     (some x y h + some x y h).xRep =
       ![(x ^ 4 - W.b₄ * x ^ 2 - 2 * W.b₆ * x - W.b₈) /
         (4 * x ^ 3 + W.b₂ * x ^ 2 + 2 * W.b₄ * x + W.b₆), 1] := by
   simp only [add_self_of_Y_ne hn, ← addX_self_of_Y_ne h.1 hn, xRep_some]
 
-/-- We given an explicit expression for `xRep` of `P + P` when `P ≠ 0` and `2*P = 0`. -/
+/-- We give an explicit expression for `xRep` of `P + P` when `P ≠ 0` and `2*P = 0`. -/
 lemma Point.xRep_add_self_of_Y_eq {x y : F} (h : W.Nonsingular x y) (hn : y = W.negY x y) :
     (some x y h + some x y h).xRep = ![1, 0] := by
   simp only [add_self_of_Y_eq hn, xRep_zero]
 
-/-- We given an explicit expression for `xRep` of `P + Q` when `P ≠ ±Q`. -/
+/-- We give an explicit expression for `xRep` of `P + Q` when `P ≠ ±Q`. -/
 lemma Point.xRep_add_of_X_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP + some xQ yQ hQ).xRep =
@@ -129,7 +129,7 @@ lemma Point.xRep_add_of_X_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
          (xP - xQ) ^ 2, 1] := by
   simp only [add_of_X_ne (h₁ := hP) (h₂ := hQ) hn, xRep_some, addX_of_X_ne hn]
 
-/-- We given an explicit expression for `xRep` of `P - Q` when `P ≠ ±Q`. -/
+/-- We give an explicit expression for `xRep` of `P - Q` when `P ≠ ±Q`. -/
 lemma Point.xRep_sub_of_X_ne {xP yP xQ yQ : F} (hP : W.Nonsingular xP yP)
     (hQ : W.Nonsingular xQ yQ) (hn : xP ≠ xQ) :
     (some xP yP hP - some xQ yQ hQ).xRep =
@@ -228,7 +228,8 @@ lemma Point.sym2x_add_sub_eq_addSubMap_sym2x (P Q : W.Point) :
     -- The following relations are needed for the `grobner` calls below.
     have HeqP := (W.equation_iff xP yP).mp hP.1
     have HeqQ := (W.equation_iff xQ yQ).mp hQ.1
-    rw [Hrs, sym2x, Point.xRep_add_of_X_ne hP hQ hxPQ, Point.xRep_sub_of_X_ne hP hQ hxPQ, b₂, b₄, b₆, b₈]
+    rw [Hrs, sym2x, Point.xRep_add_of_X_ne hP hQ hxPQ, Point.xRep_sub_of_X_ne hP hQ hxPQ,
+      b₂, b₄, b₆, b₈]
     ext i : 1
     fin_cases i <;> simp [field] <;> grobner
 

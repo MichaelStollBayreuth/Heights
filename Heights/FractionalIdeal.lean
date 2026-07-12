@@ -43,8 +43,6 @@ section PrincipalIdeal
 
 variable [IsDomain R]
 
-/-- A principal fractional ideal `(x)` (with `x ≠ 0`) equals `1` exactly when `x` is (the image
-of) a unit of `R`. -/
 lemma spanSingleton_eq_one_iff {x : K} (hx : x ≠ 0) :
     spanSingleton R⁰ x = 1 ↔ ∃ a : Rˣ, algebraMap R K a = x := by
   constructor
@@ -82,7 +80,6 @@ lemma _root_.ClassGroup.mk_eq_one_iff_exists {I : (FractionalIdeal R⁰ K)ˣ} :
   · rintro ⟨x, rfl⟩
     exact ⟨⟨(x : K), by rw [coe_toPrincipalIdeal, coe_spanSingleton]⟩⟩
 
-/-- The ideal class of a principal fractional ideal is trivial. -/
 @[simp]
 lemma _root_.ClassGroup.mk_toPrincipalIdeal (x : Kˣ) :
     ClassGroup.mk K (toPrincipalIdeal R K x) = 1 :=
@@ -158,7 +155,6 @@ noncomputable def factorization :
 @[simp] lemma factorization_apply (I : (FractionalIdeal R⁰ K)ˣ) (v : HeightOneSpectrum R) :
     Multiplicative.toAdd (factorization I) v = count K v (I : FractionalIdeal R⁰ K) := rfl
 
-/-- `ofFinsupp` sends a single generator to the corresponding prime power. -/
 lemma ofFinsupp_single (v : HeightOneSpectrum R) (m : ℤ) :
     (ofFinsupp (Finsupp.single v m) : (FractionalIdeal R⁰ K)ˣ) = unitOfPrime v ^ m := by
   rw [ofFinsupp, Finsupp.prod_single_index (zpow_zero _)]
@@ -190,12 +186,10 @@ noncomputable def _root_.IsDedekindDomain.HeightOneSpectrum.classGroupMk
     (v : HeightOneSpectrum R) : ClassGroup R :=
   ClassGroup.mk0 ⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩
 
-/-- The class of a height one prime is trivial exactly when the prime is principal. -/
 lemma _root_.IsDedekindDomain.HeightOneSpectrum.classGroupMk_eq_one_iff
     (v : HeightOneSpectrum R) : v.classGroupMk = 1 ↔ v.asIdeal.IsPrincipal :=
   ClassGroup.mk0_eq_one_iff _
 
-/-- The class of a height one prime, seen through the fractional-ideal unit `unitOfPrime`. -/
 lemma _root_.IsDedekindDomain.HeightOneSpectrum.classGroupMk_eq_mk_unitOfPrime (K : Type*)
     [Field K] [Algebra R K] [IsFractionRing R K] (v : HeightOneSpectrum R) :
     v.classGroupMk = ClassGroup.mk K (unitOfPrime v) := by
@@ -276,7 +270,8 @@ theorem valuation_eq_exp_neg_count (v : HeightOneSpectrum R) {x : K} (hx : x ≠
   congr 1
   ring
 
-/-- The Selmer/divisibility bridge: the `v`-adic order of a unit `x : Kˣ` is `- count v (x)`. -/
+/-- The `v`-adic order of a unit `x : Kˣ` is `- count v (x)`: the additive form of
+`valuation_eq_exp_neg_count`. -/
 theorem toAdd_valuationOfNeZero (v : HeightOneSpectrum R) (x : Kˣ) :
     Multiplicative.toAdd (v.valuationOfNeZero x) =
       - count K v (spanSingleton R⁰ (x : K)) := by

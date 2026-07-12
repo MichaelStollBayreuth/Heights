@@ -90,10 +90,8 @@ namespace IsDedekindDomain.SInteger
 variable {R : Type*} [CommRing R] [IsDedekindDomain R] (K : Type*) [Field K] [Algebra R K]
   [IsFractionRing R K] (S : Set (HeightOneSpectrum R))
 
-/-- Membership in the ring of `S`-integers is by definition integrality at all primes off `S`. -/
 lemma mem_integer_iff {x : K} : x ∈ S.integer K ↔ ∀ v ∉ S, v.valuation K x ≤ 1 := Iff.rfl
 
-/-- The ring of `S`-integers is contained in the valuation subring of every prime off `S`. -/
 lemma toSubring_le_valuationSubring {v : HeightOneSpectrum R} (hv : v ∉ S) :
     (S.integer K).toSubring ≤ (v.valuation K).valuationSubring.toSubring :=
   fun _ hx ↦ hx v hv
@@ -252,6 +250,8 @@ theorem map_comap_eq (I : Ideal (S.integer K)) :
 ### The Dedekind property
 -/
 
+/-- The ring of `S`-integers is Noetherian: every ideal is extended from the Noetherian
+ring `R` by `map_comap_eq`. -/
 instance isNoetherianRing : IsNoetherianRing (S.integer K) := by
   refine (isNoetherianRing_iff_ideal_fg _).mpr fun I ↦ ?_
   rw [← map_comap_eq K S I]
@@ -265,6 +265,8 @@ lemma comap_ne_bot {P : Ideal (S.integer K)} (hP : P ≠ ⊥) :
   intro h0
   exact hP (by rw [← map_comap_eq K S P, h0, Ideal.map_bot])
 
+/-- The ring of `S`-integers has Krull dimension at most `1`: the contraction to `R` of a
+nonzero prime is maximal, and equalities of ideals lift back through `map_comap_eq`. -/
 instance dimensionLEOne : Ring.DimensionLEOne (S.integer K) := by
   refine ⟨fun {P} hP hPp ↦ ?_⟩
   set f := algebraMap R (S.integer K) with hf
@@ -283,6 +285,7 @@ instance dimensionLEOne : Ring.DimensionLEOne (S.integer K) := by
   rw [← map_comap_eq K S P, heq, map_comap_eq K S M]
   exact hM
 
+/-- **The ring of `S`-integers of a Dedekind domain is a Dedekind domain.** -/
 instance isDedekindDomain : IsDedekindDomain (S.integer K) where
 
 /-!
@@ -321,7 +324,6 @@ lemma map_asIdeal_ne_top {v : HeightOneSpectrum R} (hv : v ∉ S) :
   have h1 : v.valuation K ((1 : S.integer K) : K) < 1 := le_trans htop.ge hle Submodule.mem_top
   simp at h1
 
-/-- For `v ∉ S`, the contraction to `R` of the extension of `v` is `v` again. -/
 lemma comap_map_asIdeal {v : HeightOneSpectrum R} (hv : v ∉ S) :
     (Ideal.map (algebraMap R (S.integer K)) v.asIdeal).comap (algebraMap R (S.integer K)) =
       v.asIdeal := by
@@ -330,7 +332,6 @@ lemma comap_map_asIdeal {v : HeightOneSpectrum R} (hv : v ∉ S) :
   rw [Ne, Ideal.comap_eq_top_iff]
   exact map_asIdeal_ne_top K S hv
 
-/-- For `v ∉ S`, the extension of `v` to `𝒪_S` is maximal. -/
 lemma isMaximal_map_asIdeal {v : HeightOneSpectrum R} (hv : v ∉ S) :
     (Ideal.map (algebraMap R (S.integer K)) v.asIdeal).IsMaximal := by
   set f := algebraMap R (S.integer K) with hf

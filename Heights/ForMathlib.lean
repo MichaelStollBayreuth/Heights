@@ -42,7 +42,12 @@ section Group
 
 variable {G H : Type*} [Group G] [Group H]
 
-@[to_additive]
+/-- A map `f` between groups with `f 1 = 1` that sends triples with product `1` to triples
+with product `1` is a homomorphism. Useful when a map is naturally defined via a symmetric
+ternary relation, like collinearity on a cubic curve. -/
+@[to_additive /-- A map `f` between additive groups with `f 0 = 0` that sends triples with
+sum `0` to triples with sum `0` is a homomorphism. Useful when a map is naturally defined via
+a symmetric ternary relation, like collinearity on a cubic curve. -/]
 def MonoidHom.ofMapMulMulEqOne {f : G → H} (hf₁ : f 1 = 1)
     (hf : ∀ a b c, a * b * c = 1 → f a * f b * f c = 1) :
     G →* H :=
@@ -119,34 +124,27 @@ namespace Units.modPow
 
 variable {α β : Type*} [CommMonoid α] [CommMonoid β] {a b c : α}
 
-/-- A unit class in `Units.modPow α n` is trivial if and only if the representative
-is an `n`-th power. -/
 lemma unit_eq_one_iff (ha : IsUnit a) (n : ℕ) :
     (ha.unit : Units.modPow α n) = 1 ↔ ∃ z, z ^ n = a := by
   rw [QuotientGroup.eq_one_iff]
   simp only [MonoidHom.mem_range, powMonoidHom_apply, IsUnit.exists_pow_eq_unit_iff]
 
-/-- A product of three unit classes in `Units.modPow α n` is trivial if and only if the
-product of the representatives is an `n`-th power. -/
 lemma unit_mul_unit_mul_unit_eq_one_iff (ha : IsUnit a) (hb : IsUnit b) (hc : IsUnit c) (n : ℕ) :
     (ha.unit : Units.modPow α n) * hb.unit * hc.unit = 1 ↔ ∃ z, z ^ n = a * b * c := by
   rw [← QuotientGroup.mk_mul, ← QuotientGroup.mk_mul, ← IsUnit.unit_mul, ← IsUnit.unit_mul]
   exact unit_eq_one_iff ((ha.mul hb).mul hc) n
 
-/-- The class of a unit in `Units.modPow α n` is trivial iff the unit is an `n`-th power. -/
 lemma mk_eq_one_iff {u : αˣ} (n : ℕ) :
     (QuotientGroup.mk u : Units.modPow α n) = 1 ↔ ∃ w : αˣ, w ^ n = u := by
   rw [QuotientGroup.eq_one_iff]
   simp only [MonoidHom.mem_range, powMonoidHom_apply]
 
-/-- Two units have the same class in `Units.modPow α n` iff they differ by an `n`-th power. -/
 lemma mk_eq_mk_iff {u v : αˣ} (n : ℕ) :
     (QuotientGroup.mk u : Units.modPow α n) = QuotientGroup.mk v ↔ ∃ w : αˣ, v = u * w ^ n := by
   rw [QuotientGroup.eq]
   simp only [MonoidHom.mem_range, powMonoidHom_apply]
   exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩, fun ⟨w, hw⟩ ↦ ⟨w, by rw [hw]; group⟩⟩
 
-/-- Every element of `Units.modPow α n` is killed by `n`. -/
 @[simp]
 lemma pow_eq_one {n : ℕ} (m : Units.modPow α n) : m ^ n = 1 := by
   obtain ⟨u, rfl⟩ := QuotientGroup.mk'_surjective _ m
@@ -227,7 +225,6 @@ open Polynomial
 variable {L Γ : Type*} [CommRing L] [LinearOrderedCommGroupWithZero Γ] (ν : Valuation L Γ)
   {t a b : L}
 
-/-- A natural number has valuation at most `1`. -/
 lemma Valuation.map_natCast_le_one {R : Type*} [Ring R] (ν : Valuation R Γ) (n : ℕ) :
     ν (n : R) ≤ 1 := by
   induction n with
@@ -326,12 +323,10 @@ lemma IsDedekindDomain.HeightOneSpectrum.finite_setOf_valuation_ne_one {x : K} (
     exact h
   · exact .inl h
 
-/-- The ring of `S`-integers is monotone in `S`. -/
 lemma Set.integer_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) :
     S.integer K ≤ T.integer K :=
   fun _ hx v hv ↦ hx v fun hvS ↦ hv (hST hvS)
 
-/-- The group of `S`-units is monotone in `S`. -/
 lemma Set.unit_mono {S T : Set (HeightOneSpectrum R)} (hST : S ⊆ T) : S.unit K ≤ T.unit K :=
   fun _ hx v hv ↦ hx v fun hvS ↦ hv (hST hvS)
 
@@ -423,7 +418,6 @@ instance IsDedekindDomain.HeightOneSpectrum.instLiesOverBelow [Algebra.IsIntegra
     (w : HeightOneSpectrum B) : w.asIdeal.LiesOver (w.below R).asIdeal :=
   Ideal.over_under ..
 
-/-- `w` lies above `S` exactly when the prime below it belongs to `S`. -/
 lemma IsDedekindDomain.HeightOneSpectrum.mem_primesAbove_iff [Algebra.IsIntegral R B]
     (S : Set (HeightOneSpectrum R)) (w : HeightOneSpectrum B) :
     w ∈ primesAbove R B S ↔ w.below R ∈ S := by
@@ -452,8 +446,6 @@ def IsDedekindDomain.selmerGroupAbove (L : Type*) [Field L] [Algebra B L] [IsFra
   selmerGroup (R := B) (K := L) (S := HeightOneSpectrum.primesAbove R B S) (n := n)
 
 set_option linter.unusedSectionVars false in
-/-- Membership in the `S`-Selmer group of `L`: the valuation is trivial mod `n`-th powers at
-every prime of `B` not lying above `S`. -/
 lemma IsDedekindDomain.mem_selmerGroupAbove_iff (L : Type*) [Field L] [Algebra B L]
     [IsFractionRing B L] (S : Set (HeightOneSpectrum R)) (n : ℕ) (x : Units.modPow L n) :
     x ∈ selmerGroupAbove R B L S n ↔
@@ -476,7 +468,6 @@ lemma resultant_C_sub_X (f : R[X]) (x : R) (m : ℕ) (hm : f.natDegree ≤ m) :
   rw [show C x - X = C (-1 : R) * (X - C x) by simp, resultant_C_mul_right, h₁,
     ← mul_assoc, ← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow, one_mul]
 
-/-- The resultant of a monic `g` with the constant polynomial `1` is `1`. -/
 lemma Monic.resultant_one_right (hg : g.Monic) (n : ℕ) :
     g.resultant 1 g.natDegree n = 1 := by
   have h := resultant_add_right_deg (f := g) (g := 1) (m := g.natDegree) (n := 0) (k := n)
@@ -485,7 +476,6 @@ lemma Monic.resultant_one_right (hg : g.Monic) (n : ℕ) :
     one_pow] at h
   rw [← C_1, h]
 
-/-- Membership in `R[X]_(g.natDegree)` is the same as having degree less than `g`. -/
 lemma mem_degreeLT_natDegree_iff {q : R[X]} (hg : g ≠ 0) :
     q ∈ degreeLT R g.natDegree ↔ q.degree < g.degree := by
   rw [mem_degreeLT, degree_eq_natDegree hg]
@@ -494,7 +484,6 @@ section
 
 variable [Nontrivial R] {q : R[X]} {n : ℕ}
 
-/-- A polynomial of degree at most `1` vanishing at `x` is a scalar multiple of `X - C x`. -/
 lemma exists_eq_C_mul_X_sub_C_of_natDegree_le_one {p : R[X]} (hdeg : p.natDegree ≤ 1)
     {x : R} (hx : p.IsRoot x) :
     ∃ γ, p = C γ * (X - C x) := by
@@ -509,12 +498,10 @@ lemma exists_eq_C_mul_X_sub_C_of_natDegree_le_one {p : R[X]} (hdeg : p.natDegree
   conv_lhs => rw [eq_C_of_natDegree_eq_zero (by lia : q.natDegree = 0)]
   ring
 
-/-- A remainder modulo a monic `g` has degree less than `g`. -/
 lemma modByMonic_mem_degreeLT (hg : g.Monic) (q : R[X]) :
     q %ₘ g ∈ degreeLT R g.natDegree :=
   (mem_degreeLT_natDegree_iff hg.ne_zero).mpr <| degree_modByMonic_lt q hg
 
-/-- If `q` has degree `< g.natDegree + n` and `g` is monic, then `q /ₘ g` has degree `< n`. -/
 lemma divByMonic_mem_degreeLT (hg : g.Monic)
     (hq : q ∈ degreeLT R (g.natDegree + n)) : q /ₘ g ∈ degreeLT R n := by
   rw [mem_degreeLT] at hq ⊢
@@ -528,7 +515,6 @@ lemma divByMonic_mem_degreeLT (hg : g.Monic)
   rw [← natDegree_lt_iff_degree_lt h, natDegree_divByMonic q hg]
   lia
 
-/-- A polynomial divisible by a monic `g` and of degree less than `g` is zero. -/
 lemma eq_zero_of_monic_dvd_of_degree_lt (hg : g.Monic) (hdvd : g ∣ q)
     (hq : q.degree < g.degree) : q = 0 := by
   have h₁ : q %ₘ g = q := (modByMonic_eq_self_iff hg).mpr hq
@@ -541,12 +527,10 @@ private lemma Monic.divMod_mul_add (hg : g.Monic) (v u : R[X]) :
   conv_rhs => rw [← modByMonic_add_div u g]
   ring
 
-/-- Dividing `g * v + u` by the monic polynomial `g`. -/
 lemma Monic.divByMonic_mul_add (hg : g.Monic) (v u : R[X]) :
     (g * v + u) /ₘ g = v + u /ₘ g :=
   (hg.divMod_mul_add v u).1
 
-/-- Reducing `g * v + u` modulo the monic polynomial `g`. -/
 lemma Monic.modByMonic_mul_add (hg : g.Monic) (v u : R[X]) :
     (g * v + u) %ₘ g = u %ₘ g :=
   (hg.divMod_mul_add v u).2
@@ -702,19 +686,15 @@ namespace AdjoinRoot
 
 variable {R : Type*} [CommRing R] {g : R[X]} {n : ℕ}
 
-/-- Reducing `q` mod `g` does not change its class in `AdjoinRoot g`. -/
 @[simp]
 lemma mk_modByMonic (hg : g.Monic) (q : R[X]) : mk g (q %ₘ g) = mk g q := by
   simpa using mk_leftInverse hg (mk g q)
 
-/-- Every element of `AdjoinRoot g` with `g` monic is represented by a polynomial
-of degree less than that of `g`. -/
 lemma exists_degree_lt_mk_eq [Nontrivial R] (hg : g.Monic) (a : AdjoinRoot g) :
     ∃ p, p.degree < g.degree ∧ a = mk g p := by
   obtain ⟨q, rfl⟩ := mk_surjective a
   exact ⟨q %ₘ g, degree_modByMonic_lt q hg, (mk_modByMonic hg q).symm⟩
 
-/-- `mk g` is injective on polynomials of degree less than that of `g`, for `g` monic. -/
 lemma mk_eq_mk_iff_of_degree_lt [Nontrivial R] (hg : g.Monic) {p q : R[X]}
     (hp : p.degree < g.degree) (hq : q.degree < g.degree) :
     mk g p = mk g q ↔ p = q :=
@@ -828,7 +808,6 @@ lemma mem_normalizedFactors_iff [DecidableEq K] (hf : f ≠ 0) {p : K[X]} :
   refine ⟨fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂ ▸ monic_normalize h₁.ne_zero, h₁, h₃⟩,
     fun ⟨h₁, h₂, h₃⟩ ↦ ⟨h₂, h₁.normalize_eq_self, h₃⟩⟩
 
-/-- A nonzero polynomial has finitely many monic irreducible factors. -/
 lemma finite (hf : f ≠ 0) : Finite f.Factors := by
   classical
   have h : Finite {p : K[X] // p ∈ normalizedFactors f} :=
@@ -837,7 +816,6 @@ lemma finite (hf : f ≠ 0) : Finite f.Factors := by
     (Subtype.impEmbedding _ (· ∈ normalizedFactors f)
       fun p hp ↦ (mem_normalizedFactors_iff hf).mpr hp).injective
 
-/-- Distinct monic irreducible factors of `f` are coprime. -/
 lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[X]) :=
   (Ideal.isCoprime_span_singleton_iff _ _).mp <| Ideal.isCoprime_iff_sup_eq.mpr <|
     Ideal.IsMaximal.coprime_of_ne
@@ -846,13 +824,10 @@ lemma isCoprime {p q : f.Factors} (hne : p ≠ q) : IsCoprime (p : K[X]) (q : K[
       fun h ↦ hne <| Subtype.ext <| eq_of_monic_of_associated p.monic q.monic <|
         Ideal.span_singleton_eq_span_singleton.mp h
 
-/-- Distinct monic irreducible factors of `f` generate coprime ideals. -/
 lemma isCoprime_span {p q : f.Factors} (hne : p ≠ q) :
     IsCoprime (Ideal.span {(p : K[X])}) (Ideal.span {(q : K[X])}) :=
   (Ideal.isCoprime_span_singleton_iff _ _).mpr (isCoprime hne)
 
-/-- For `f` nonzero and squarefree, `f` is associated to the product of its distinct monic
-irreducible factors. -/
 lemma associated_prod [Fintype f.Factors] (hf : f ≠ 0) (hsq : Squarefree f) :
     Associated (∏ p : f.Factors, (p : K[X])) f := by
   classical
@@ -870,7 +845,6 @@ lemma associated_prod [Fintype f.Factors] (hf : f ≠ 0) (hsq : Squarefree f) :
     Multiset.map_id']
   exact prod_normalizedFactors hf
 
-/-- For `f` nonzero and squarefree, `(f)` is the intersection of the `(p)` for `p` a factor. -/
 lemma span_eq_iInf_span (hf : f ≠ 0) (hsq : Squarefree f) :
     Ideal.span {f} = ⨅ p : f.Factors, Ideal.span {(p : K[X])} := by
   have : Fintype f.Factors := @Fintype.ofFinite _ (finite hf)
@@ -890,7 +864,6 @@ instance instFactIrreducible (p : f.Factors) : Fact (Irreducible (p : K[X])) := 
 instance instFiniteDimensional (p : f.Factors) : FiniteDimensional K (AdjoinRoot (p : K[X])) :=
   (powerBasis p.irreducible.ne_zero).finite
 
-/-- The minimal polynomial of the root of a monic irreducible factor is the factor itself. -/
 lemma minpoly_root_factor (p : f.Factors) : minpoly K (root (p : K[X])) = (p : K[X]) := by
   rw [minpoly_root p.irreducible.ne_zero, p.monic.leadingCoeff, inv_one, map_one, mul_one]
 
