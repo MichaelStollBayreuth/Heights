@@ -316,27 +316,12 @@ algebra of any degree; the descent map below is one consumer. -/
 
 variable (W' : Affine ℝ)
 
--- For a monic irreducible real quadratic `q`, the field `ℝ[X]/(q)` is `ℂ`: it is a degree-`2`
--- (hence not `ℝ`) algebraic extension of `ℝ`, and such an extension is `ℝ` or `ℂ`.
-private lemma nonempty_algEquiv_complex {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
-    (hd : q.natDegree = 2) : Nonempty (AdjoinRoot q ≃ₐ[ℝ] ℂ) := by
-  have : Fact (Irreducible q) := ⟨hirr⟩
-  have hfd : FiniteDimensional ℝ (AdjoinRoot q) := (AdjoinRoot.powerBasis' hm).finite
-  have : Algebra.IsAlgebraic ℝ (AdjoinRoot q) := Algebra.IsAlgebraic.of_finite ℝ _
-  have hrank : Module.finrank ℝ (AdjoinRoot q) = 2 := by
-    rw [(AdjoinRoot.powerBasis' hm).finrank, AdjoinRoot.powerBasis'_dim, hd]
-  refine (Real.nonempty_algEquiv_or (AdjoinRoot q)).resolve_left ?_
-  rintro ⟨e⟩
-  have h := e.toLinearEquiv.finrank_eq
-  rw [hrank, Module.finrank_self] at h
-  exact absurd h (by norm_num)
-
 -- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: `ℝ[X]/(q) ≃ ℂ`
 -- is algebraically closed, so its group of square classes is trivial; transport that along the
 -- isomorphism (a monoid isomorphism induces one on square classes, `Units.modPow.congr`).
 private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
     (hd : q.natDegree = 2) : Subsingleton (Units.modPow (AdjoinRoot q) 2) := by
-  obtain ⟨e⟩ := nonempty_algEquiv_complex hm hirr hd
+  obtain ⟨e⟩ := AdjoinRoot.nonempty_algEquiv_complex hm hirr hd
   have : Subsingleton (Units.modPow ℂ 2) := Units.modPow.subsingleton_of_isAlgClosed ℂ two_ne_zero
   exact ⟨fun a b ↦ (Units.modPow.congr e.toMulEquiv 2).injective (Subsingleton.elim _ _)⟩
 

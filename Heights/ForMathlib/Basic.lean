@@ -836,6 +836,17 @@ lemma degreeLTEquiv_apply [Nontrivial R] (hg : g.Monic)
     degreeLTEquiv hg q = mk g (q : R[X]) :=
   rfl
 
+/-- For a monic irreducible quadratic `q : ℝ[X]`, the field `ℝ[X]/(q)` is `ℂ`: it is a degree-`2`
+(hence not `ℝ`) algebraic extension of `ℝ`, and every such extension is `ℝ` or `ℂ`. -/
+theorem nonempty_algEquiv_complex {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) : Nonempty (AdjoinRoot q ≃ₐ[ℝ] ℂ) := by
+  have : Fact (Irreducible q) := ⟨hirr⟩
+  have : FiniteDimensional ℝ (AdjoinRoot q) := (powerBasis' hm).finite
+  refine (Real.nonempty_algEquiv_or (AdjoinRoot q)).resolve_left fun ⟨e⟩ ↦
+    absurd e.toLinearEquiv.finrank_eq (by
+      rw [Module.finrank_self, (powerBasis' hm).finrank, powerBasis'_dim, hd]
+      norm_num)
+
 /-- The norm of `mk g p` is the determinant of multiplication by `p` on `R[X]_(g.natDegree)`,
 because `degreeLTEquiv hg` conjugates the latter into multiplication by `mk g p`. -/
 lemma norm_mk_eq_det_mulModByMonic [Nontrivial R] (hg : g.Monic) (p : R[X]) :
