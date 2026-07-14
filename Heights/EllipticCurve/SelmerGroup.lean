@@ -325,24 +325,28 @@ private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic) (hirr
   have : Subsingleton (Units.modPow ℂ 2) := Units.modPow.subsingleton_of_isAlgClosed ℂ two_ne_zero
   exact ⟨fun a b ↦ (Units.modPow.congr e.toMulEquiv 2).injective (Subsingleton.elim _ _)⟩
 
--- The monic linear factor of `g` attached to a root `e` (over any field).
-private noncomputable def rootFactor {K : Type*} [Field K] {g : K[X]} {e : K}
-    (he : g.eval e = 0) : g.Factors :=
+-- The linear factor `X - e` of `g` at a root `e`, and evaluation on its residue field `K`.
+section RootFactor
+
+variable {K : Type*} [Field K] {g : K[X]} {e : K} (he : g.eval e = 0)
+
+-- The monic linear factor of `g` attached to a root `e`.
+private noncomputable def rootFactor : g.Factors :=
   ⟨X - C e, monic_X_sub_C _, irreducible_X_sub_C _, dvd_iff_isRoot.mpr he⟩
 
 -- Evaluation at `e`: the field factor `K[X]/(X - e)` is `K`, via Mathlib's
 -- `Polynomial.quotientSpanXSubCAlgEquiv`.
-private noncomputable def evalRoot {K : Type*} [Field K] {g : K[X]} {e : K}
-    (he : g.eval e = 0) : AdjoinRoot ((rootFactor he : g.Factors) : K[X]) ≃ₐ[K] K :=
+private noncomputable def evalRoot :
+    AdjoinRoot ((rootFactor he : g.Factors) : K[X]) ≃ₐ[K] K :=
   quotientSpanXSubCAlgEquiv e
 
-private lemma evalRoot_mk {K : Type*} [Field K] {g : K[X]} {e : K} (he : g.eval e = 0)
-    (q : K[X]) : evalRoot he (AdjoinRoot.mk _ q) = q.eval e := rfl
+private lemma evalRoot_mk (q : K[X]) : evalRoot he (AdjoinRoot.mk _ q) = q.eval e := rfl
 
-private lemma isSquare_evalRoot_iff {K : Type*} [Field K] {g : K[X]} {e : K} (he : g.eval e = 0)
-    (a : AdjoinRoot ((rootFactor he : g.Factors) : K[X])) :
+private lemma isSquare_evalRoot_iff (a : AdjoinRoot ((rootFactor he : g.Factors) : K[X])) :
     IsSquare (evalRoot he a) ↔ IsSquare a :=
   ⟨fun h ↦ by simpa using h.map (evalRoot he).symm, fun h ↦ h.map (evalRoot he)⟩
+
+end RootFactor
 
 -- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
 private lemma coe_map_projFactor_unit {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
@@ -381,9 +385,12 @@ private lemma mk_eq_one_iff_forall_evalRoot_nonneg {g : ℝ[X]} (hg0 : g ≠ 0) 
     exact h e he
   · -- quadratic factor: the group of square classes of the factor is trivial
     have hd2 : (p : ℝ[X]).natDegree = 2 := by
+      -- `clear h`: otherwise `lia` (a `grind` wrapper) gets lost case-splitting on the
+      -- `AlgEquiv`-valued hypothesis `h` and fails on this trivial arithmetic goal.
+      clear h
       have h1 := p.irreducible.natDegree_pos
       have h2 := p.irreducible.natDegree_le_two
-      omega -- `lia` here case-splits on the ambient `AlgEquiv`-valued hypothesis and fails
+      lia
     have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
     exact Subsingleton.elim _ _
 
