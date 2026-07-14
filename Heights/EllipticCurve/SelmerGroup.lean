@@ -309,6 +309,11 @@ section RealPlace
 
 open scoped Classical
 
+/- The square-class sign layer, independent of the elliptic curve: for a monic squarefree real
+polynomial `g`, the square class of a unit of `ℝ[X]/(g)` is governed by the signs of its values
+at the real roots of `g` (`mk_eq_one_iff_forall_evalRoot_nonneg`). This is pure real-polynomial
+algebra of any degree; the descent map below is one consumer. -/
+
 variable (W' : Affine ℝ)
 
 -- A monic irreducible real quadratic is positive definite (complete the square).
@@ -361,38 +366,76 @@ private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic)
   have hw0 : w' ≠ 0 := fun h0 ↦ u.ne_zero (by rw [← hu, h0]; exact zero_pow two_ne_zero)
   exact ⟨Units.mk0 w' hw0, Units.ext (by rw [Units.val_pow_eq_pow_val, Units.val_mk0, hu])⟩
 
--- The monic linear factor of `f` attached to a root.
-private noncomputable def rootFactor {e : ℝ} (he : W'.f.eval e = 0) : W'.f.Factors :=
+-- The monic linear factor of a real polynomial `g` attached to a real root `e`.
+private noncomputable def rootFactor {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) : g.Factors :=
   ⟨X - C e, monic_X_sub_C _, irreducible_X_sub_C _, dvd_iff_isRoot.mpr he⟩
 
-variable {W'}
-
 -- Evaluation of the field factor attached to a root `e` at `e`, as a ring homomorphism.
-private noncomputable def evalRoot {e : ℝ} (he : W'.f.eval e = 0) :
-    AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]) →+* ℝ :=
+private noncomputable def evalRoot {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) :
+    AdjoinRoot ((rootFactor he : g.Factors) : ℝ[X]) →+* ℝ :=
   AdjoinRoot.lift (RingHom.id ℝ) e (by show Polynomial.eval₂ _ _ (X - C e) = 0; simp)
 
-private lemma evalRoot_mk {e : ℝ} (he : W'.f.eval e = 0) (g : ℝ[X]) :
-    evalRoot he (AdjoinRoot.mk _ g) = g.eval e := by
+private lemma evalRoot_mk {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) (q : ℝ[X]) :
+    evalRoot he (AdjoinRoot.mk _ q) = q.eval e := by
   rw [evalRoot, AdjoinRoot.lift_mk]
   simp [eval₂_id]
 
-private lemma bijective_evalRoot {e : ℝ} (he : W'.f.eval e = 0) :
+private lemma bijective_evalRoot {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) :
     Function.Bijective (evalRoot he) := by
-  have : Fact (Irreducible ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) :=
-    ⟨(W'.rootFactor he).irreducible⟩
+  have : Fact (Irreducible ((rootFactor he : g.Factors) : ℝ[X])) := ⟨(rootFactor he).irreducible⟩
   refine ⟨(evalRoot he).injective, fun r ↦ ⟨AdjoinRoot.of _ r, ?_⟩⟩
   rw [evalRoot, AdjoinRoot.lift_of]
   rfl
 
-private lemma isSquare_evalRoot_iff {e : ℝ} (he : W'.f.eval e = 0)
-    (a : AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) :
+private lemma isSquare_evalRoot_iff {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0)
+    (a : AdjoinRoot ((rootFactor he : g.Factors) : ℝ[X])) :
     IsSquare (evalRoot he a) ↔ IsSquare a := by
   refine ⟨fun ⟨s, hs⟩ ↦ ?_, fun h ↦ h.map _⟩
   obtain ⟨s', rfl⟩ := (bijective_evalRoot he).2 s
   exact ⟨s', (bijective_evalRoot he).1 (by rw [map_mul]; exact hs)⟩
 
-variable (W')
+-- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
+private lemma coe_map_projFactor_unit {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
+    {a : AdjoinRoot g} (ha : IsUnit a) (p : g.Factors) :
+    ((Units.map (AdjoinRoot.projFactor hg0 hsg p).toMonoidHom ha.unit :
+        (AdjoinRoot (p : ℝ[X]))ˣ) : AdjoinRoot (p : ℝ[X])) =
+      AdjoinRoot.projFactor hg0 hsg p a := by
+  simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
+
+/-- The square class of a unit of `ℝ[X]/(g)` (for `g` monic squarefree) is trivial exactly when
+all its values at the real roots of `g` are nonnegative: at a linear factor `X - e` triviality
+means `evalRoot` is a square in `ℝ`, i.e. nonnegative, and the quadratic factors — whose residue
+field is `ℂ` — carry no nontrivial square classes at all. -/
+private lemma mk_eq_one_iff_forall_evalRoot_nonneg {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
+    {a : AdjoinRoot g} (ha : IsUnit a) :
+    (QuotientGroup.mk ha.unit : Units.modPow (AdjoinRoot g) 2) = 1 ↔
+      ∀ (e : ℝ) (he : g.eval e = 0),
+        0 ≤ evalRoot he (AdjoinRoot.projFactor hg0 hsg (rootFactor he) a) := by
+  rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors hg0 hsg]
+  refine ⟨fun hone e he ↦ ?_, fun h p ↦ ?_⟩
+  · -- trivial class ⟹ the value at each root's linear factor is a square, hence nonnegative
+    have hc := hone (rootFactor he)
+    rwa [Units.modPow.mk_eq_one_iff_isSquare, coe_map_projFactor_unit hg0 hsg ha (rootFactor he),
+      ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
+  rcases eq_or_ne ((p : ℝ[X]).natDegree) 1 with hd | hd
+  · -- linear factor: `p = rootFactor he`
+    obtain ⟨e, he, rfl⟩ : ∃ (e : ℝ) (he : g.eval e = 0), p = rootFactor he := by
+      refine ⟨-(p : ℝ[X]).coeff 0, eval_eq_zero_of_dvd_of_eval_eq_zero p.dvd (by
+          conv_lhs => rw [p.monic.eq_X_add_C hd]
+          simp), Subtype.ext ?_⟩
+      show (p : ℝ[X]) = X - C (-(p : ℝ[X]).coeff 0)
+      conv_lhs => rw [p.monic.eq_X_add_C hd]
+      rw [map_neg, sub_neg_eq_add]
+    rw [Units.modPow.mk_eq_one_iff_isSquare, coe_map_projFactor_unit hg0 hsg ha (rootFactor he),
+      ← isSquare_evalRoot_iff he, Real.isSquare_iff]
+    exact h e he
+  · -- quadratic factor: the group of square classes of the factor is trivial
+    have hd2 : (p : ℝ[X]).natDegree = 2 := by
+      have h1 := p.irreducible.natDegree_pos
+      have h2 := p.irreducible.natDegree_le_two
+      lia
+    have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
+    exact Subsingleton.elim _ _
 
 -- The number of real roots of `f`, from the two splittings (instance-free).
 private lemma card_roots_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
@@ -435,66 +478,27 @@ private lemma root_eq_of_split₃ {e₁ e₂ e₃ t : ℝ}
     · exact .inr (.inl (sub_eq_zero.mp h'))
   · exact .inr (.inr (sub_eq_zero.mp h))
 
+/- The descent layer: the sign-class lemmas above are applied to `g = W'.f`, and combined with
+the values of the `x - T` map `μX` at the real roots to compute the image of `μ` over `ℝ`. -/
+
 variable [W'.IsElliptic] [W'.IsCharNeTwoNF]
 
--- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
-private lemma coe_map_projFactor_unit {a : W'.A} (ha : IsUnit a) (p : W'.f.Factors) :
-    ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f p).toMonoidHom ha.unit :
-        (AdjoinRoot (p : ℝ[X]))ˣ) : AdjoinRoot (p : ℝ[X])) =
-      AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f p a := by
-  simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
-
--- The square class of a unit of the étale algebra is trivial exactly when all its values at the
--- real roots of `f` are nonnegative: at a linear factor `X - e` triviality means `evalRoot` is a
--- square in `ℝ`, i.e. nonnegative, and the quadratic factors have no square classes at all.
-private lemma mk_eq_one_iff_forall_evalRoot_nonneg {a : W'.A} (ha : IsUnit a) :
-    (QuotientGroup.mk ha.unit : W'.M) = 1 ↔
-      ∀ (e : ℝ) (he : W'.f.eval e = 0),
-        0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-          (W'.rootFactor he) a) := by
-  rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors W'.f_ne_zero W'.squarefree_f]
-  refine ⟨fun hone e he ↦ ?_, fun h p ↦ ?_⟩
-  · -- trivial class ⟹ the value at each root's linear factor is a square, hence nonnegative
-    have hc := hone (W'.rootFactor he)
-    rwa [Units.modPow.mk_eq_one_iff_isSquare, W'.coe_map_projFactor_unit ha (W'.rootFactor he),
-      ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
-  rcases eq_or_ne ((p : ℝ[X]).natDegree) 1 with hd | hd
-  · -- linear factor: `p = rootFactor he`
-    obtain ⟨e, he, rfl⟩ : ∃ (e : ℝ) (he : W'.f.eval e = 0), p = W'.rootFactor he := by
-      refine ⟨-(p : ℝ[X]).coeff 0, eval_eq_zero_of_dvd_of_eval_eq_zero p.dvd (by
-          conv_lhs => rw [p.monic.eq_X_add_C hd]
-          simp), Subtype.ext ?_⟩
-      show (p : ℝ[X]) = X - C (-(p : ℝ[X]).coeff 0)
-      conv_lhs => rw [p.monic.eq_X_add_C hd]
-      rw [map_neg, sub_neg_eq_add]
-    rw [Units.modPow.mk_eq_one_iff_isSquare, W'.coe_map_projFactor_unit ha (W'.rootFactor he),
-      ← isSquare_evalRoot_iff he, Real.isSquare_iff]
-    exact h e he
-  · -- quadratic factor: the group of square classes of the factor is trivial
-    have hd2 : (p : ℝ[X]).natDegree = 2 := by
-      have h1 := p.irreducible.natDegree_pos
-      have h2 := p.irreducible.natDegree_le_two
-      lia
-    have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
-    exact Subsingleton.elim _ _
-
--- The square class of a unit of the étale algebra is trivial when all its values at the
--- roots of `f` are nonnegative (the components at the quadratic factors are always trivial).
+-- The étale-algebra descent instance of `mk_eq_one_iff_forall_evalRoot_nonneg` for `g = W'.f`.
 private lemma unit_class_eq_one {a : W'.A} (ha : IsUnit a)
     (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
       0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-        (W'.rootFactor he) a)) :
+        (rootFactor he) a)) :
     (QuotientGroup.mk ha.unit : W'.M) = 1 :=
-  (W'.mk_eq_one_iff_forall_evalRoot_nonneg ha).mpr h
+  (mk_eq_one_iff_forall_evalRoot_nonneg W'.f_ne_zero W'.squarefree_f ha).mpr h
 
 -- The square classes of two units agree when the products of their values at the roots
 -- of `f` are all nonnegative.
 private lemma unit_class_eq {a b : W'.A} (ha : IsUnit a) (hb : IsUnit b)
     (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
       0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-          (W'.rootFactor he) a) *
+          (rootFactor he) a) *
         evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-          (W'.rootFactor he) b)) :
+          (rootFactor he) b)) :
     (QuotientGroup.mk ha.unit : W'.M) = QuotientGroup.mk hb.unit := by
   have hab := W'.unit_class_eq_one (ha.mul hb) (fun e he ↦ by rw [map_mul, map_mul]; exact h e he)
   have hmul : ((ha.mul hb).unit : W'.Aˣ) = ha.unit * hb.unit := Units.ext rfl
@@ -503,13 +507,13 @@ private lemma unit_class_eq {a b : W'.A} (ha : IsUnit a) (hb : IsUnit b)
 
 -- The values of the representatives of `μX x` at a root `e` of `f`.
 private lemma eval_projFactor_generic (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
-    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (rootFactor he)
       (AdjoinRoot.mk W'.f (C x - X))) = x - e := by
   rw [AdjoinRoot.projFactor_mk, evalRoot_mk]
   simp
 
 private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
-    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (rootFactor he)
       (AdjoinRoot.mk W'.f (C x - X + W'.fCofactor x))) =
       x - e + (W'.fCofactor x).eval e := by
   rw [AdjoinRoot.projFactor_mk, evalRoot_mk]
@@ -519,7 +523,7 @@ private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0)
 -- vanishes (as `f e = 0` and `e ≠ x`), so the torsion value at `e` is just `x - e`.
 private lemma eval_projFactor_torsion_ne {x e : ℝ} (hx : W'.f.eval x = 0)
     (he : W'.f.eval e = 0) (hxe : e ≠ x) :
-    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (rootFactor he)
       (AdjoinRoot.mk W'.f (C x - X + W'.fCofactor x))) = x - e := by
   rw [eval_projFactor_torsion]
   have h0 := congrArg (Polynomial.eval e) (W'.fCofactor_mul_eq x)
@@ -703,9 +707,10 @@ private lemma f_split :
 private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : ℝ}
     (he : W'.f.eval e = 0)
     (hlt : evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-      (W'.rootFactor he) a) < 0) :
-    (QuotientGroup.mk ha.unit : W'.M) ≠ 1 :=
-  fun hone ↦ absurd ((W'.mk_eq_one_iff_forall_evalRoot_nonneg ha).mp hone e he) (not_le.mpr hlt)
+      (rootFactor he) a) < 0) :
+    (QuotientGroup.mk ha.unit : W'.M) ≠ 1 := fun hone ↦
+  absurd ((mk_eq_one_iff_forall_evalRoot_nonneg W'.f_ne_zero W'.squarefree_f ha).mp hone e he)
+    (not_le.mpr hlt)
 
 -- The range of `μ` as a set equals the range of the underlying map `μ₀`.
 private lemma range_μ_coe : (Set.range (μ (W := W'))) = Set.range (μ₀ (W := W')) := by
