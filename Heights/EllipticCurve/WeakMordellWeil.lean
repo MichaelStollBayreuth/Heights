@@ -1194,8 +1194,8 @@ lemma valuation_deriv_root_eq_one
     (hw : w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R)) :
     w.valuation (𝕃 p) (3 * θ p ^ 2 + 2 * ι p W.a₂ * θ p + ι p W.a₄) = 1 := by
   set L := 𝕃 p
-  set ν := w.valuation L with hνdef
-  set t := θ p with htdef
+  set ν := w.valuation L
+  set t := θ p
   set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
   set B := algebraMap K L W.a₆ with hBdef
@@ -1242,11 +1242,11 @@ lemma valuation_cofactor_eq_one {x : K}
     w.valuation (𝕃 p) (ι p x ^ 2 + θ p * ι p x + θ p ^ 2
       + ι p W.a₂ * (ι p x + θ p) + ι p W.a₄) = 1 := by
   set L := 𝕃 p
-  set ν := w.valuation L with hνdef
-  set t := θ p with htdef
-  set s := algebraMap K L x with hsdef
-  set A₂ := algebraMap K L W.a₂ with hA₂def
-  set A := algebraMap K L W.a₄ with hAdef
+  set ν := w.valuation L
+  set t := θ p
+  set s := algebraMap K L x
+  set A₂ := algebraMap K L W.a₂
+  set A := algebraMap K L W.a₄
   have hA₂ : ν A₂ ≤ 1 := W.valuation_a₂_le_one_of_notMem_primesAbove R p hw
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw
   have hderiv : ν (3 * t ^ 2 + 2 * A₂ * t + A) = 1 := W.valuation_deriv_root_eq_one R p hw
@@ -1271,8 +1271,8 @@ lemma valuation_projFactor_torsion_eq_one {x : K} (hx : W.f.eval x = 0)
     w.valuation (𝕃 p) (ι p x - θ p + AdjoinRoot.mk (p : K[X]) (W.fCofactor x)) = 1 := by
   rw [W.mk_fCofactor_eq p x]
   set L := 𝕃 p
-  set ν := w.valuation L with hνdef
-  set t := θ p with htdef
+  set ν := w.valuation L
+  set t := θ p
   set s := algebraMap K L x with hsdef
   set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
@@ -1329,7 +1329,7 @@ lemma even_valuationOfNeZero_sub_root_of_one_lt
     (hx' : 1 < w.valuation (𝕃 p) (ι p x)) :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
   set L := 𝕃 p
-  set ν := w.valuation L with hνdef
+  set ν := w.valuation L
   have hx0 : algebraMap K L x ≠ 0 := by
     intro h0
     rw [h0, map_zero] at hx'
@@ -1364,8 +1364,8 @@ lemma even_valuationOfNeZero_sub_root_of_le_one
     (hx' : w.valuation (𝕃 p) (ι p x) ≤ 1) :
     (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) := by
   set L := 𝕃 p
-  set ν := w.valuation L with hνdef
-  set t := θ p with htdef
+  set ν := w.valuation L
+  set t := θ p
   set A₂ := algebraMap K L W.a₂ with hA₂def
   set A := algebraMap K L W.a₄ with hAdef
   have ht : ν t ≤ 1 := W.valuation_root_le_one R p hw

@@ -182,6 +182,64 @@ lemma AddMonoidHom.range_nsmulAddMonoidHom (R : Type*) [CommRing R] (n : ℕ) :
   constructor <;> exact fun ⟨c, hc⟩ ↦ ⟨c, by rw [← hc, nsmul_eq_mul, mul_comm]⟩
 
 open AddSubgroup in
+/-- The relative index of `nU` in `nG` equals the index of `ker(n • ·) ⊔ U`, via the surjection
+`G → nG ⧸ nU` induced by multiplication by `n` (a step of
+`AddSubgroup.index_range_nsmul_mul_card_ker`). -/
+private lemma relIndex_range_comp_subtype {G : Type*} [AddCommGroup G]
+    (U : AddSubgroup G) (n : ℕ) :
+    (((nsmulAddMonoidHom (α := G) n).comp U.subtype).range).relIndex
+        (nsmulAddMonoidHom (α := G) n).range =
+      ((nsmulAddMonoidHom (α := G) n).ker ⊔ U).index := by
+  set φG := nsmulAddMonoidHom (α := G) n
+  set B : AddSubgroup G := (φG.comp U.subtype).range
+  set C : AddSubgroup G := φG.ker ⊔ U
+  set ρ := (QuotientAddGroup.mk' (B.addSubgroupOf φG.range)).comp φG.rangeRestrict with hρdef
+  have hρ : Function.Surjective ρ :=
+    (QuotientAddGroup.mk'_surjective _).comp φG.rangeRestrict_surjective
+  have hker : ρ.ker = C := by
+    ext g
+    rw [AddMonoidHom.mem_ker, hρdef, AddMonoidHom.comp_apply, QuotientAddGroup.mk'_apply,
+      QuotientAddGroup.eq_zero_iff]
+    constructor
+    · rintro ⟨u, hu⟩
+      refine AddSubgroup.mem_sup.mpr ⟨g - u, ?_, u, u.2, by abel⟩
+      rw [AddMonoidHom.mem_ker, map_sub]
+      have : φG (u : G) = φG g := hu
+      rw [this, sub_self]
+    · intro hg
+      obtain ⟨k, hk, u, hu, rfl⟩ := AddSubgroup.mem_sup.mp hg
+      refine ⟨⟨u, hu⟩, ?_⟩
+      have hk0 : φG k = 0 := hk
+      show φG (u : G) = φG (k + u)
+      rw [map_add, hk0, zero_add]
+  calc B.relIndex φG.range
+      = Nat.card (φG.range ⧸ B.addSubgroupOf φG.range) := rfl
+    _ = Nat.card (G ⧸ C) := Nat.card_congr <| ((QuotientAddGroup.quotientKerEquivOfSurjective
+          ρ hρ).symm.trans (QuotientAddGroup.quotientAddEquivOfEq hker)).toEquiv
+    _ = C.index := rfl
+
+open AddSubgroup in
+/-- The second isomorphism theorem applied to `ker(n • ·)` and `U`:
+`(U : ker(n • ·) ⊔ U) · #U[n] = #G[n]` (a step of
+`AddSubgroup.index_range_nsmul_mul_card_ker`). -/
+private lemma relIndex_sup_ker_mul_card_ker {G : Type*} [AddCommGroup G]
+    (U : AddSubgroup G) (n : ℕ) :
+    U.relIndex ((nsmulAddMonoidHom (α := G) n).ker ⊔ U) *
+        Nat.card (nsmulAddMonoidHom (α := U) n).ker =
+      Nat.card (nsmulAddMonoidHom (α := G) n).ker := by
+  set φG := nsmulAddMonoidHom (α := G) n
+  set φU := nsmulAddMonoidHom (α := U) n
+  have h2 : Nat.card (φG.ker ⧸ U.addSubgroupOf φG.ker) = U.relIndex (φG.ker ⊔ U) :=
+    Nat.card_congr (QuotientAddGroup.quotientInfEquivSumNormalQuotient φG.ker U).toEquiv
+  have h3 : Nat.card (U.addSubgroupOf φG.ker) = Nat.card φU.ker :=
+    Nat.card_congr
+      ⟨fun x ↦ ⟨⟨(x : G), x.2⟩, Subtype.ext (x : φG.ker).2⟩,
+        fun y ↦ ⟨⟨(y : U), congrArg Subtype.val y.2⟩, (y : U).2⟩,
+        fun x ↦ rfl, fun y ↦ rfl⟩
+  rw [← h2, ← h3]
+  exact (AddSubgroup.card_eq_card_quotient_mul_card_addSubgroup _).symm
+
+open AddSubgroup in
 /-- For a subgroup `U` of finite index in an abelian group `G` and any `n`,
 `#(G/nG) · #U[n] = #G[n] · #(U/nU)`: the quantity `#(G/nG) / #G[n]` is insensitive to
 passing to a subgroup of finite index. -/
@@ -191,10 +249,10 @@ theorem AddSubgroup.index_range_nsmul_mul_card_ker {G : Type*} [AddCommGroup G]
         Nat.card ((nsmulAddMonoidHom (α := U) n)).ker =
       Nat.card ((nsmulAddMonoidHom (α := G) n)).ker *
         (nsmulAddMonoidHom (α := U) n).range.index := by
-  set φG := nsmulAddMonoidHom (α := G) n with hφG
-  set φU := nsmulAddMonoidHom (α := U) n with hφU
-  set B : AddSubgroup G := (φG.comp U.subtype).range with hB
-  set C : AddSubgroup G := φG.ker ⊔ U with hC
+  set φG := nsmulAddMonoidHom (α := G) n
+  set φU := nsmulAddMonoidHom (α := U) n
+  set B : AddSubgroup G := (φG.comp U.subtype).range
+  set C : AddSubgroup G := φG.ker ⊔ U
   -- the small subgroup `B = nU` sits in both `nG` and `U`
   have hBA : B ≤ φG.range := by
     rintro _ ⟨u, rfl⟩
@@ -209,43 +267,9 @@ theorem AddSubgroup.index_range_nsmul_mul_card_ker {G : Type*} [AddCommGroup G]
       ext u
       exact ⟨fun ⟨w, hw⟩ ↦ ⟨w, Subtype.ext hw⟩, fun ⟨w, hw⟩ ↦ ⟨w, congrArg Subtype.val hw⟩⟩
     rw [relIndex, h]
-  -- `B.relIndex nG = C.index` via the surjection `G → nG ⧸ nU`
-  have hrBA : B.relIndex φG.range = C.index := by
-    set ρ := (QuotientAddGroup.mk' (B.addSubgroupOf φG.range)).comp φG.rangeRestrict with hρdef
-    have hρ : Function.Surjective ρ :=
-      (QuotientAddGroup.mk'_surjective _).comp φG.rangeRestrict_surjective
-    have hker : ρ.ker = C := by
-      ext g
-      rw [AddMonoidHom.mem_ker, hρdef, AddMonoidHom.comp_apply, QuotientAddGroup.mk'_apply,
-        QuotientAddGroup.eq_zero_iff]
-      constructor
-      · rintro ⟨u, hu⟩
-        refine AddSubgroup.mem_sup.mpr ⟨g - u, ?_, u, u.2, by abel⟩
-        rw [AddMonoidHom.mem_ker, map_sub]
-        have : φG (u : G) = φG g := hu
-        rw [this, sub_self]
-      · intro hg
-        obtain ⟨k, hk, u, hu, rfl⟩ := AddSubgroup.mem_sup.mp hg
-        refine ⟨⟨u, hu⟩, ?_⟩
-        have hk0 : φG k = 0 := hk
-        show φG (u : G) = φG (k + u)
-        rw [map_add, hk0, zero_add]
-    calc B.relIndex φG.range
-        = Nat.card (φG.range ⧸ B.addSubgroupOf φG.range) := rfl
-      _ = Nat.card (G ⧸ C) := Nat.card_congr <| ((QuotientAddGroup.quotientKerEquivOfSurjective
-            ρ hρ).symm.trans (QuotientAddGroup.quotientAddEquivOfEq hker)).toEquiv
-      _ = C.index := rfl
-  -- `U.relIndex C · #U[n] = #G[n]` via the second isomorphism theorem
-  have hUK : U.relIndex C * Nat.card φU.ker = Nat.card φG.ker := by
-    have h2 : Nat.card (φG.ker ⧸ U.addSubgroupOf φG.ker) = U.relIndex C :=
-      Nat.card_congr (QuotientAddGroup.quotientInfEquivSumNormalQuotient φG.ker U).toEquiv
-    have h3 : Nat.card (U.addSubgroupOf φG.ker) = Nat.card φU.ker :=
-      Nat.card_congr
-        ⟨fun x ↦ ⟨⟨(x : G), x.2⟩, Subtype.ext (x : φG.ker).2⟩,
-          fun y ↦ ⟨⟨(y : U), congrArg Subtype.val y.2⟩, (y : U).2⟩,
-          fun x ↦ rfl, fun y ↦ rfl⟩
-    rw [← h2, ← h3]
-    exact (AddSubgroup.card_eq_card_quotient_mul_card_addSubgroup _).symm
+  have hrBA : B.relIndex φG.range = C.index := relIndex_range_comp_subtype U n
+  have hUK : U.relIndex C * Nat.card φU.ker = Nat.card φG.ker :=
+    relIndex_sup_ker_mul_card_ker U n
   -- assemble
   have h24 : C.index * φG.range.index = φU.range.index * U.index := by
     rw [← hrBA, ← hrBU, relIndex_mul_index hBA, relIndex_mul_index hBU]
