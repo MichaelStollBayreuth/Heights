@@ -515,6 +515,17 @@ private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0)
   rw [AdjoinRoot.projFactor_mk, evalRoot_mk]
   simp
 
+-- At a root `e` distinct from the `2`-torsion `x`-coordinate, the cofactor `f / (X - x)`
+-- vanishes (as `f e = 0` and `e ≠ x`), so the torsion value at `e` is just `x - e`.
+private lemma eval_projFactor_torsion_ne {x e : ℝ} (hx : W'.f.eval x = 0)
+    (he : W'.f.eval e = 0) (hxe : e ≠ x) :
+    evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he)
+      (AdjoinRoot.mk W'.f (C x - X + W'.fCofactor x))) = x - e := by
+  rw [eval_projFactor_torsion]
+  have h0 := congrArg (Polynomial.eval e) (W'.fCofactor_mul_eq x)
+  simp only [eval_mul, eval_sub, eval_X, eval_C, hx, he, sub_zero] at h0
+  rw [(mul_eq_zero.mp h0).resolve_right (sub_ne_zero.mpr hxe), add_zero]
+
 -- Three real roots, `x` a root: `μX x ∈ {1, μX e₁}`.
 private lemma μX_root_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
     (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) {x : ℝ} (hx : W'.f.eval x = 0) :
@@ -534,10 +545,7 @@ private lemma μX_root_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂
     rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;>
       simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_mul, mul_zero,
         add_zero, zero_add] <;>
-      nlinarith [mul_pos s12 s23, mul_pos s12 s13, mul_pos s23 s13,
-        mul_pos (mul_pos s12 s23) s13, mul_pos (mul_pos s12 s13) s23,
-        mul_pos (mul_pos s12 s23) s12, mul_pos (mul_pos s12 s13) s12,
-        mul_pos (mul_pos s23 s13) s23]
+      nlinarith [mul_pos s12 s23, mul_pos s12 s13, mul_pos s23 s13]
   · -- `μX e₃ = 1`: all values are positive
     refine .inl ?_
     rw [μX_of_eval_f_eq_zero hx]
@@ -590,8 +598,7 @@ private lemma μX_generic_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e
     rcases W'.root_eq_of_split₃ hf ht with rfl | rfl | rfl <;>
       simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_mul, mul_zero,
         add_zero, zero_add] <;>
-      nlinarith [mul_pos sx1 (mul_pos s12 s13), mul_pos sx2 s12, mul_pos sx3 s13,
-        mul_pos sx1 sx2, mul_pos sx1 sx3]
+      nlinarith [mul_pos sx1 (mul_pos s12 s13), mul_pos sx2 s12, mul_pos sx3 s13]
 
 -- Three real roots: the image of `μX` on `{f ≥ 0}` is `{1, μX e₁}`.
 private lemma μX_mem_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
@@ -724,12 +731,10 @@ private lemma μX_root_ne_one_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e
     W'.μX e₁ ≠ 1 := by
   have he₁ : W'.f.eval e₁ = 0 := by rw [hf]; simp
   have he₂ : W'.f.eval e₂ = 0 := by rw [hf]; simp
-  obtain ⟨hcof₁, _, _⟩ := W'.fCofactor_eq_of_f_eq hf
   rw [μX_of_eval_f_eq_zero he₁]
   refine W'.unit_class_ne_one_of_evalRoot_neg _ he₂ ?_
-  rw [eval_projFactor_torsion, hcof₁]
-  simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self]
-  nlinarith [sub_pos.mpr h12]
+  rw [W'.eval_projFactor_torsion_ne he₁ he₂ h12.ne']
+  linarith
 
 -- With three real roots, the image of `μ` is `{1, class of (e₁, 0)}`.
 private lemma range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
