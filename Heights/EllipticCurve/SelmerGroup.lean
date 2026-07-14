@@ -316,14 +316,6 @@ algebra of any degree; the descent map below is one consumer. -/
 
 variable (W' : Affine ℝ)
 
-/-- A monic real polynomial that is irreducible of degree `2` is positive definite: being
-irreducible of degree `> 1` it has no real root, and its leading coefficient is `1 > 0`. -/
-theorem _root_.Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two {q : ℝ[X]}
-    (hm : q.Monic) (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) : 0 < q.eval x :=
-  zero_lt_eval_of_roots_lt_of_leadingCoeff_nonneg
-    (fun y hy ↦ absurd hy (hirr.not_isRoot_of_natDegree_ne_one (by lia)))
-    (hm.leadingCoeff ▸ zero_le_one)
-
 -- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: the quotient
 -- embeds into `ℂ` (with equality by dimension count), where every unit is a square.
 private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic)

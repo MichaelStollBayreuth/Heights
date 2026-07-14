@@ -591,6 +591,14 @@ lemma mem_degreeLT_natDegree_iff {q : R[X]} (hg : g ≠ 0) :
     q ∈ degreeLT R g.natDegree ↔ q.degree < g.degree := by
   rw [mem_degreeLT, degree_eq_natDegree hg]
 
+/-- A monic real polynomial that is irreducible of degree `2` is positive definite: being
+irreducible of degree `> 1` it has no real root, and its leading coefficient is `1 > 0`. -/
+theorem eval_pos_of_monic_of_irreducible_of_natDegree_eq_two {q : ℝ[X]}
+    (hm : q.Monic) (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) : 0 < q.eval x :=
+  zero_lt_eval_of_roots_lt_of_leadingCoeff_nonneg
+    (fun y hy ↦ absurd hy (hirr.not_isRoot_of_natDegree_ne_one (by lia)))
+    (hm.leadingCoeff ▸ zero_le_one)
+
 section
 
 variable [Nontrivial R] {q : R[X]} {n : ℕ}
