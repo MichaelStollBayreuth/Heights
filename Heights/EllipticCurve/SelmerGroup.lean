@@ -316,32 +316,13 @@ algebra of any degree; the descent map below is one consumer. -/
 
 variable (W' : Affine ℝ)
 
--- A monic irreducible real quadratic is positive definite (complete the square).
-private lemma pos_of_monic_irreducible_quadratic {q : ℝ[X]} (hm : q.Monic)
-    (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) :
-    0 < q.eval x := by
-  have hlead : q.coeff 2 = 1 := by rw [← hd, ← Polynomial.leadingCoeff]; exact hm
-  have heval (t : ℝ) : q.eval t = t ^ 2 + q.coeff 1 * t + q.coeff 0 := by
-    rw [Polynomial.eval_eq_sum_range, hd, Finset.sum_range_succ, Finset.sum_range_succ,
-      Finset.sum_range_one, hlead]
-    ring
-  have hnoroot (t : ℝ) : q.eval t ≠ 0 := by
-    intro h0
-    obtain ⟨c, hc⟩ := dvd_iff_isRoot.mpr h0
-    rcases hirr.isUnit_or_isUnit hc with h | h
-    · exact Polynomial.not_isUnit_X_sub_C t h
-    · obtain ⟨u, hu, rfl⟩ := Polynomial.isUnit_iff.mp h
-      apply_fun natDegree at hc
-      rw [hd, natDegree_mul (X_sub_C_ne_zero t) (by simpa using hu.ne_zero),
-        natDegree_X_sub_C, natDegree_C] at hc
-      lia
-  by_contra! hle
-  have hdisc : q.coeff 0 - q.coeff 1 ^ 2 / 4 ≤ 0 := by
-    nlinarith [sq_nonneg (x + q.coeff 1 / 2), heval x]
-  refine hnoroot (-q.coeff 1 / 2 + Real.sqrt (q.coeff 1 ^ 2 / 4 - q.coeff 0)) ?_
-  have hs := Real.sq_sqrt (by linarith : (0:ℝ) ≤ q.coeff 1 ^ 2 / 4 - q.coeff 0)
-  rw [heval]
-  linear_combination hs
+/-- A monic real polynomial that is irreducible of degree `2` is positive definite: being
+irreducible of degree `> 1` it has no real root, and its leading coefficient is `1 > 0`. -/
+theorem _root_.Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two {q : ℝ[X]}
+    (hm : q.Monic) (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) : 0 < q.eval x :=
+  zero_lt_eval_of_roots_lt_of_leadingCoeff_nonneg
+    (fun y hy ↦ absurd hy (hirr.not_isRoot_of_natDegree_ne_one (by lia)))
+    (hm.leadingCoeff ▸ zero_le_one)
 
 -- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: the quotient
 -- embeds into `ℂ` (with equality by dimension count), where every unit is a square.
@@ -452,7 +433,8 @@ private lemma card_roots_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h2
 private lemma card_roots_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
     (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
     Nat.card {x : ℝ // W'.f.eval x = 0} = 1 := by
-  have hq (t : ℝ) : 0 < q.eval t := pos_of_monic_irreducible_quadratic hm hirr hd t
+  have hq (t : ℝ) : 0 < q.eval t :=
+    Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two hm hirr hd t
   have hset : {x : ℝ | W'.f.eval x = 0} = {e} := by
     ext x
     simp only [Set.mem_setOf_eq, hf, eval_mul, eval_sub, eval_X, eval_C, Set.mem_singleton_iff]
@@ -618,7 +600,8 @@ private lemma μX_eq_one_of_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr
     W'.μX x = 1 := by
   have heval (t : ℝ) : W'.f.eval t = (t - e) * q.eval t := by rw [hf]; simp
   have he : W'.f.eval e = 0 := by rw [heval]; ring
-  have hq (t : ℝ) : 0 < q.eval t := pos_of_monic_irreducible_quadratic hm hirr hd t
+  have hq (t : ℝ) : 0 < q.eval t :=
+    Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two hm hirr hd t
   have hroots {t : ℝ} (ht : W'.f.eval t = 0) : t = e := by
     have h0 : (t - e) * q.eval t = 0 := by rw [← heval]; exact ht
     rcases mul_eq_zero.mp h0 with h | h
