@@ -311,26 +311,6 @@ open scoped Classical
 
 variable (W' : Affine ℝ)
 
--- A monic real cubic has a root: intermediate value theorem with an explicit bound.
-private lemma exists_eval_f_eq_zero : ∃ x : ℝ, W'.f.eval x = 0 := by
-  set B := 1 + |W'.a₂| + |W'.a₄| + |W'.a₆| with hB
-  have hB1 : 1 ≤ B := by
-    have := abs_nonneg W'.a₂
-    have := abs_nonneg W'.a₄
-    have := abs_nonneg W'.a₆
-    linarith
-  have hneg : W'.f.eval (-B) ≤ 0 := by
-    rw [eval_f]
-    nlinarith [le_abs_self W'.a₂, neg_abs_le W'.a₂, le_abs_self W'.a₄, neg_abs_le W'.a₄,
-      le_abs_self W'.a₆, neg_abs_le W'.a₆, sq_nonneg B]
-  have hpos : (0 : ℝ) ≤ W'.f.eval B := by
-    rw [eval_f]
-    nlinarith [le_abs_self W'.a₂, neg_abs_le W'.a₂, le_abs_self W'.a₄, neg_abs_le W'.a₄,
-      le_abs_self W'.a₆, neg_abs_le W'.a₆, sq_nonneg B]
-  obtain ⟨x, -, hx⟩ := intermediate_value_Icc (by linarith : -B ≤ B)
-    (W'.f.continuous.continuousOn) ⟨hneg, hpos⟩
-  exact ⟨x, hx⟩
-
 -- A monic irreducible real quadratic is positive definite (complete the square).
 private lemma pos_of_monic_irreducible_quadratic {q : ℝ[X]} (hm : q.Monic)
     (hirr : Irreducible q) (hd : q.natDegree = 2) (x : ℝ) :
@@ -694,19 +674,23 @@ private lemma f_split :
     (∃ e₁ e₂ e₃ : ℝ, e₁ < e₂ ∧ e₂ < e₃ ∧ W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) ∨
       ∃ (e : ℝ) (q : ℝ[X]), q.Monic ∧ Irreducible q ∧ q.natDegree = 2 ∧
         W'.f = (X - C e) * q := by
-  obtain ⟨e, he⟩ := W'.exists_eval_f_eq_zero
-  have hf := W'.f_eq_mul_of_eval_eq_zero he
-  by_cases hirr : Irreducible (W'.fCofactor e)
-  · exact .inr ⟨e, W'.fCofactor e, W'.monic_fCofactor e, hirr, W'.natDegree_fCofactor e,
-      by rw [hf, mul_comm]⟩
-  · -- the quadratic cofactor splits into two linear factors `X - a`, `X - b`
-    obtain ⟨a, b, hab⟩ := exists_linear_split (W'.monic_fCofactor e) (W'.natDegree_fCofactor e) hirr
-    have hsplit : W'.f = (X - C e) * (X - C a) * (X - C b) := by rw [hf, hab]; ring
+  -- peel off a monic quadratic factor `q`, leaving a monic linear factor `l = X - e`
+  have hf3 : IsMonicOfDegree W'.f 3 := ⟨W'.natDegree_f, W'.monic_f⟩
+  obtain ⟨q, l, hq, hl, hf⟩ := hf3.eq_isMonicOfDegree_two_mul_isMonicOfDegree (n := 1)
+  obtain ⟨e, hle⟩ : ∃ e : ℝ, l = X - C e := by
+    refine ⟨-l.coeff 0, ?_⟩
+    conv_lhs => rw [hl.monic.eq_X_add_C hl.natDegree_eq]
+    rw [map_neg, sub_neg_eq_add]
+  by_cases hirr : Irreducible q
+  · exact .inr ⟨e, q, hq.monic, hirr, hq.natDegree_eq, by rw [hf, hle, mul_comm]⟩
+  · -- the quadratic factor splits into two linear factors `X - a`, `X - b`
+    obtain ⟨a, b, hab⟩ := exists_linear_split hq.monic hq.natDegree_eq hirr
+    have hsplit : W'.f = (X - C a) * (X - C b) * (X - C e) := by rw [hf, hle, hab]
     have hne (u v w : ℝ) (huvw : W'.f = (X - C u) * (X - C v) * (X - C w)) : u ≠ v := by
       rintro rfl
       exact Polynomial.not_isUnit_X_sub_C u (W'.squarefree_f (X - C u) ⟨X - C w, by rw [huvw]⟩)
-    exact .inl (sort₃ (hne e a b hsplit) (hne e b a (by rw [hsplit]; ring))
-      (hne a b e (by rw [hsplit]; ring)) hsplit)
+    exact .inl (sort₃ (hne a b e hsplit) (hne a e b (by rw [hsplit]; ring))
+      (hne b e a (by rw [hsplit]; ring)) hsplit)
 
 -- A negative value at some root obstructs triviality of the square class.
 private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : ℝ}
