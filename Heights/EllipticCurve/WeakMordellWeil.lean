@@ -266,10 +266,9 @@ abbrev A' (x : K) : Type _ := AdjoinRoot (W.fCofactor x)
 lemma exists_mk_eq' {x : K} (a : W.A' x) :
     ∃ r s, a = AdjoinRoot.mk (W.fCofactor x) (C r * X + C s) := by
   obtain ⟨p, hp, rfl⟩ := AdjoinRoot.exists_degree_lt_mk_eq (W.monic_fCofactor x) a
-  rw [degree_eq_natDegree (W.monic_fCofactor x).ne_zero, natDegree_fCofactor,
-    show ((2 :) : WithBot ℕ) = Order.succ ↑1 from rfl, Order.lt_succ_iff] at hp
+  rw [degree_eq_natDegree (W.monic_fCofactor x).ne_zero, natDegree_fCofactor] at hp
   exact ⟨_, _, congrArg (AdjoinRoot.mk (W.fCofactor x)) <|
-    eq_X_add_C_of_natDegree_le_one <| natDegree_le_of_degree_le hp⟩
+    eq_X_add_C_of_natDegree_le_one <| natDegree_le_of_degree_le <| Order.lt_succ_iff.mp hp⟩
 
 /-- The norm of `x - θ` is `f x`. -/
 lemma norm_mk_C_sub_X (x : K) : Algebra.norm K (AdjoinRoot.mk W.f (C x - X)) = W.f.eval x := by

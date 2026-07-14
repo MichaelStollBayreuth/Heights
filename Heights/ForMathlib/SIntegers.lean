@@ -372,8 +372,7 @@ noncomputable def primeBelow (P : HeightOneSpectrum (S.integer K)) : HeightOneSp
 lemma primeBelow_notMem (P : HeightOneSpectrum (S.integer K)) : primeBelow K S P ∉ S := by
   intro hv
   have h1 := map_asIdeal_eq_top K S hv
-  rw [show (primeBelow K S P).asIdeal = P.asIdeal.comap (algebraMap R (S.integer K)) from rfl,
-    map_comap_eq] at h1
+  rw [primeBelow_asIdeal, map_comap_eq] at h1
   exact P.isPrime.ne_top h1
 
 /-- The primes of `𝒪_S` are exactly the primes of `R` not in `S`. -/

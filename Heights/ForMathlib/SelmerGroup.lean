@@ -528,7 +528,7 @@ lemma finrank_range_sUnitLog (hS : S.Finite) :
     · rw [hψx v v, if_pos rfl]
       exact hn v
     · rw [hψx v w, if_neg hne]
-  rw [show S.ncard = Nat.card S from rfl, Nat.card_eq_fintype_card]
+  rw [← Nat.card_coe_set_eq, Nat.card_eq_fintype_card]
   refine le_antisymm ?_ ?_
   · have h := Submodule.finrank_le (LinearMap.range (sUnitLog K S))
     rwa [finrank_fintype_fun_eq_card] at h
@@ -709,9 +709,9 @@ theorem ker_toSClassGroup [NeZero n] :
   · rintro ⟨a, w, hw⟩
     refine ⟨(S.unitEquivUnitsInteger K).symm a, Subtype.ext ?_⟩
     show (QuotientGroup.mk _ : Units.modPow K n) = QuotientGroup.mk (u : Kˣ)
-    rw [coe_unitEquivUnitsInteger_symm, ← hw, QuotientGroup.mk_mul,
-      show (QuotientGroup.mk (w ^ n) : Units.modPow K n) = 1 from
-        (QuotientGroup.eq_one_iff _).mpr ⟨w, rfl⟩]
+    have hwn : (QuotientGroup.mk (w ^ n) : Units.modPow K n) = 1 :=
+      (QuotientGroup.eq_one_iff _).mpr ⟨w, rfl⟩
+    rw [coe_unitEquivUnitsInteger_symm, ← hw, QuotientGroup.mk_mul, hwn]
     exact (mul_one _).symm
   · rintro ⟨s, hs⟩
     have hcoe : (QuotientGroup.mk (s : Kˣ) : Units.modPow K n) = QuotientGroup.mk (u : Kˣ) :=
@@ -736,8 +736,7 @@ theorem range_toSClassGroup [NeZero n] :
   constructor
   · rintro ⟨x, rfl⟩
     obtain ⟨u, rfl⟩ := selmerGroupFromUnits_surjective K S n x
-    rw [toSClassGroup_selmerGroupFromUnits, nthRootClass, MonoidHom.comp_apply,
-      MonoidHom.comp_apply, ← map_pow, nthRootHom_pow]
+    rw [toSClassGroup_selmerGroupFromUnits, nthRootClass_apply, ← map_pow, nthRootHom_pow]
     exact ClassGroup.mk_eq_one_iff_exists.mpr ⟨(u : Kˣ), rfl⟩
   · intro hc
     obtain ⟨I, rfl⟩ : ∃ I, ClassGroup.mk K I = c :=
@@ -753,9 +752,7 @@ theorem range_toSClassGroup [NeZero n] :
     have hmem : x ∈ unitsNDivisible (S.integer K) K n := fun v ↦ by
       rw [hcount v]; exact Dvd.intro _ rfl
     refine ⟨selmerGroupFromUnits K S n ⟨x, hmem⟩, ?_⟩
-    rw [toSClassGroup_selmerGroupFromUnits]
-    show ClassGroup.mk K (nthRootHom (S.integer K) K n
-      (unitsNDivisibleToNDivisible (S.integer K) K n ⟨x, hmem⟩)) = _
+    rw [toSClassGroup_selmerGroupFromUnits, nthRootClass_apply]
     congr 1
     refine count_injective fun v ↦ ?_
     rw [nthRootHom_apply, count_nthRootFun, coe_unitsNDivisibleToNDivisible, hcount v,

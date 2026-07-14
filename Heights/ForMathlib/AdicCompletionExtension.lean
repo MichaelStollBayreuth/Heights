@@ -330,9 +330,7 @@ lemma comap_maximalIdeal_adicCompletionIntegersExtension :
     (WithZero (Multiplicative ℤ))))).trans <| Iff.trans ?_
       (Valuation.mem_maximalIdeal_iff (v := (Valued.v : Valuation (v.adicCompletion K)
         (WithZero (Multiplicative ℤ))))).symm
-  rw [show ((adicCompletionIntegersExtension K L v w x : w.adicCompletionIntegers L) :
-      w.adicCompletion L) = adicCompletionExtension K L v w (x : v.adicCompletion K) from rfl,
-    valued_adicCompletionExtension]
+  rw [algebraMap_adicCompletionIntegersExtension K L v w, valued_adicCompletionExtension]
   exact pow_lt_one_iff
     (Ideal.IsDedekindDomain.ramificationIdx'_ne_zero_of_liesOver w.asIdeal v.ne_bot)
 

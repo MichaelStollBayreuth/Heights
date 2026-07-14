@@ -125,6 +125,18 @@ lemma mapA_mk (p : K[X]) :
 noncomputable def localRes : W.M →* Units.modPow (W⁄L).toAffine.A 2 :=
   Units.modPow.map (W.mapA L).toMonoidHom 2
 
+@[simp]
+lemma localRes_mk (u : W.Aˣ) :
+    W.localRes L (QuotientGroup.mk u) =
+      QuotientGroup.mk (Units.map (W.mapA L).toMonoidHom u) :=
+  rfl
+
+@[simp]
+lemma localRes_unit {a : W.A} (ha : IsUnit a) :
+    W.localRes L (ha.unit : W.M) =
+      ((ha.map (W.mapA L).toMonoidHom).unit : Units.modPow (W⁄L).toAffine.A 2) := by
+  rw [localRes, Units.modPow.map_unit]
+
 lemma baseChange_f : (W⁄L).toAffine.f = W.f.map (algebraMap K L) :=
   W.map_f (algebraMap K L)
 
@@ -143,7 +155,7 @@ lemma normM_localRes (m : W.M) :
     normM (W := (W⁄L).toAffine) (W.localRes L m) =
       Units.modPow.map (algebraMap K L).toMonoidHom 2 (W.normM m) := by
   obtain ⟨u, rfl⟩ := QuotientGroup.mk'_surjective _ m
-  simp only [QuotientGroup.mk'_apply, localRes, normM, Units.modPow.map_mk]
+  simp only [QuotientGroup.mk'_apply, localRes_mk, normM, Units.modPow.map_mk]
   exact congrArg _ (Units.ext (by simpa using W.norm_mapA L u))
 
 variable [W.IsElliptic] [W.IsCharNeTwoNF]
@@ -156,6 +168,11 @@ open scoped Classical in
 whose image over `L` comes from an `L`-point of the curve. -/
 noncomputable def localCondition : Subgroup W.M :=
   ((μ (W := (W⁄L).toAffine)).range).comap (W.localRes L)
+
+open scoped Classical in
+lemma mem_localCondition_iff {m : W.M} :
+    m ∈ W.localCondition L ↔ W.localRes L m ∈ (μ (W := (W⁄L).toAffine)).range :=
+  Subgroup.mem_comap
 
 open scoped Classical in
 /-- Over an algebraically closed field extension, the image of the local descent map is
@@ -192,7 +209,7 @@ theorem localRes_μX (x : K) :
   rcases eq_or_ne (W.f.eval x) 0 with hx | hx
   · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) = 0 := by
       rw [W.eval_baseChange_f, hx, map_zero]
-    rw [μX_of_eval_f_eq_zero hxL, μX_of_eval_f_eq_zero hx, localRes, Units.modPow.map_unit]
+    rw [μX_of_eval_f_eq_zero hxL, μX_of_eval_f_eq_zero hx, localRes_unit]
     refine congrArg _ (Units.ext ?_)
     rw [IsUnit.unit_spec, IsUnit.unit_spec]
     simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_add,
@@ -200,7 +217,7 @@ theorem localRes_μX (x : K) :
   · have hxL : (W⁄L).toAffine.f.eval (algebraMap K L x) ≠ 0 := by
       rw [W.eval_baseChange_f]
       exact fun h0 ↦ hx ((map_eq_zero _).mp h0)
-    rw [μX_of_eval_f_ne_zero hxL, μX_of_eval_f_ne_zero hx, localRes, Units.modPow.map_unit]
+    rw [μX_of_eval_f_ne_zero hxL, μX_of_eval_f_ne_zero hx, localRes_unit]
     refine congrArg _ (Units.ext ?_)
     rw [IsUnit.unit_spec, IsUnit.unit_spec]
     simp only [RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, mapA_mk, Polynomial.map_sub,
@@ -212,7 +229,7 @@ field: base change of points is compatible with the `x - T` maps. -/
 theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L := by
   rintro _ ⟨P', rfl⟩
   obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
-  rw [localCondition, Subgroup.mem_comap, μ_apply]
+  rw [mem_localCondition_iff, μ_apply]
   match P with
   | 0 => rw [μ₀_zero, map_one]; exact one_mem _
   | .some x y hP =>
@@ -518,9 +535,8 @@ private lemma unit_class_eq {a b : W'.A} (ha : IsUnit a) (hb : IsUnit b)
           (W'.rootFactor he) b)) :
     (QuotientGroup.mk ha.unit : W'.M) = QuotientGroup.mk hb.unit := by
   have hab := W'.unit_class_eq_one (ha.mul hb) (fun e he ↦ by rw [map_mul, map_mul]; exact h e he)
-  rw [show (QuotientGroup.mk ((ha.mul hb).unit) : W'.M) =
-      QuotientGroup.mk ha.unit * QuotientGroup.mk hb.unit from
-        congrArg QuotientGroup.mk (Units.ext rfl)] at hab
+  have hmul : ((ha.mul hb).unit : W'.Aˣ) = ha.unit * hb.unit := Units.ext rfl
+  rw [hmul, QuotientGroup.mk_mul] at hab
   rw [mul_eq_one_iff_eq_inv.mp hab, M.inv_eq_self]
 
 -- The values of the representatives of `μX x` at a root `e` of `f`.
@@ -1183,7 +1199,7 @@ private lemma localRes_mem_selmerGroupA_iff (a : W.Aˣ) :
         (Units.map (projFactor 𝕎[v].f_ne_zero 𝕎[v].squarefree_f q).toMonoidHom
           (Units.map (W.mapA F_[v]).toMonoidHom a))) := by
   rw [mem_selmerGroupA_iff]
-  simp only [localRes, Units.modPow.map_mk]
+  simp only [localRes_mk]
   refine forall_congr' fun q ↦ ?_
   rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
 
@@ -1282,7 +1298,7 @@ theorem localRes_mem_selmerGroupA {v : HeightOneSpectrum (𝓞 F)} (hv : v ∉ W
   obtain ⟨p, hq⟩ := Polynomial.Factors.exists_dvd_map (algebraMap F F_[v])
     W.f_ne_zero q.prime (q.dvd.trans (W.baseChange_f F_[v]).dvd)
   -- reduce to a valuation-divisibility statement for the `q`-component
-  simp only [QuotientGroup.mk'_apply, localRes, Units.modPow.map_mk] at hm ⊢
+  simp only [QuotientGroup.mk'_apply, localRes_mk] at hm ⊢
   rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
   intro w hw
   -- the prime of the global field factor below `w`
@@ -1754,7 +1770,7 @@ theorem inf_le_localCondition_adicCompletion {v : HeightOneSpectrum (𝓞 F)}
     W.selmerGroupA (𝓞 F) ⊓ (normM (W := W)).ker ≤ W.localCondition F_[v] := by
   intro m hm
   rw [Subgroup.mem_inf] at hm
-  rw [localCondition, Subgroup.mem_comap]
+  rw [mem_localCondition_iff]
   apply (W.selmerGroupA_inf_ker_normM_eq_range_μ hv).le
   rw [Subgroup.mem_inf]
   refine ⟨W.localRes_mem_selmerGroupA hv hm.1, ?_⟩
@@ -1779,7 +1795,7 @@ theorem selmerGroup₂_eq_badPrimes :
   · rintro ⟨h1, h2, h3⟩
     refine ⟨⟨⟨W.mem_selmerGroupA_of_forall_localRes fun v ↦ ?_, h1⟩, fun v ↦ h2 v⟩, h3⟩
     have h := h2 v
-    rw [localCondition, Subgroup.mem_comap] at h
+    rw [mem_localCondition_iff] at h
     exact 𝕎[v].range_μ_le_selmerGroupA
       𝒪_[v] h
   · rintro ⟨⟨⟨hA, h1⟩, h2⟩, h3⟩

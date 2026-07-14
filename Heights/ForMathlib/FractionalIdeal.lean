@@ -204,9 +204,10 @@ lemma _root_.IsDedekindDomain.HeightOneSpectrum.exists_pow_eq_span [Finite (Clas
   set m := orderOf v.classGroupMk with hm
   refine ⟨m, ?_⟩
   have h1 : v.classGroupMk ^ m = 1 := pow_orderOf_eq_one _
-  rw [HeightOneSpectrum.classGroupMk, ← map_pow,
-    show (⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩ : (Ideal R)⁰) ^ m =
-      ⟨v.asIdeal ^ m, pow_mem (mem_nonZeroDivisors_of_ne_zero v.ne_bot) m⟩ from rfl] at h1
+  have hpow : (⟨v.asIdeal, mem_nonZeroDivisors_of_ne_zero v.ne_bot⟩ : (Ideal R)⁰) ^ m =
+      ⟨v.asIdeal ^ m, pow_mem (mem_nonZeroDivisors_of_ne_zero v.ne_bot) m⟩ :=
+    Subtype.ext (SubmonoidClass.coe_pow _ m)
+  rw [HeightOneSpectrum.classGroupMk, ← map_pow, hpow] at h1
   obtain ⟨π, hπ⟩ := (ClassGroup.mk0_eq_one_iff _).mp h1
   rw [Ideal.submodule_span_eq] at hπ
   refine ⟨π, by rw [hm]; exact orderOf_pos _, ?_, hπ⟩
@@ -387,12 +388,18 @@ noncomputable def unitsNDivisibleToNDivisible (n : ℕ) :
 noncomputable def nthRootClass (n : ℕ) : unitsNDivisible R K n →* ClassGroup R :=
   (ClassGroup.mk K).comp ((nthRootHom R K n).comp (unitsNDivisibleToNDivisible R K n))
 
+@[simp]
+lemma nthRootClass_apply (n : ℕ) (u : unitsNDivisible R K n) :
+    nthRootClass R K n u =
+      ClassGroup.mk K (nthRootHom R K n (unitsNDivisibleToNDivisible R K n u)) :=
+  rfl
+
 /-- **Exactness of the fundamental sequence at the middle spot**: the `n`-th-root class of `u`
 vanishes exactly when `u` is a unit of `R` times an `n`-th power. -/
 lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K n) :
     nthRootClass R K n u = 1 ↔
       ∃ (a : Rˣ) (w : Kˣ), Units.map (algebraMap R K : R →* K) a * w ^ n = (u : Kˣ) := by
-  rw [nthRootClass, MonoidHom.comp_apply, MonoidHom.comp_apply, ClassGroup.mk_eq_one_iff_exists]
+  rw [nthRootClass_apply, ClassGroup.mk_eq_one_iff_exists]
   constructor
   · rintro ⟨w, hw⟩
     -- the `n`-th power of the found generator `w` generates `(u)`, so `u / wⁿ` is a unit of `R`
