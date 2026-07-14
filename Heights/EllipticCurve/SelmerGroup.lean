@@ -316,28 +316,29 @@ algebra of any degree; the descent map below is one consumer. -/
 
 variable (W' : Affine ℝ)
 
--- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: the quotient
--- embeds into `ℂ` (with equality by dimension count), where every unit is a square.
-private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic)
-    (hirr : Irreducible q) (hd : q.natDegree = 2) :
-    Subsingleton (Units.modPow (AdjoinRoot q) 2) := by
-  have hfact : Fact (Irreducible q) := ⟨hirr⟩
+-- For a monic irreducible real quadratic `q`, the field `ℝ[X]/(q)` is `ℂ`: it is a degree-`2`
+-- (hence not `ℝ`) algebraic extension of `ℝ`, and such an extension is `ℝ` or `ℂ`.
+private lemma nonempty_algEquiv_complex {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) : Nonempty (AdjoinRoot q ≃ₐ[ℝ] ℂ) := by
+  have : Fact (Irreducible q) := ⟨hirr⟩
   have hfd : FiniteDimensional ℝ (AdjoinRoot q) := (AdjoinRoot.powerBasis' hm).finite
-  -- an embedding into `ℂ`
-  let φ : AdjoinRoot q →ₐ[ℝ] ℂ := IsAlgClosed.lift
-  have hinj : Function.Injective φ := φ.toRingHom.injective
-  have hsurj : Function.Surjective φ := by
-    have hrank : Module.finrank ℝ (LinearMap.range φ.toLinearMap) = Module.finrank ℝ ℂ := by
-      rw [LinearMap.finrank_range_of_inj hinj, Complex.finrank_real_complex,
-        (AdjoinRoot.powerBasis' hm).finrank, AdjoinRoot.powerBasis'_dim, hd]
-    exact LinearMap.range_eq_top.mp (Submodule.eq_top_of_finrank_eq hrank)
-  -- transport squares along the isomorphism
-  refine Units.modPow.subsingleton_of_forall_exists_pow fun u ↦ ?_
-  obtain ⟨w, hw⟩ := IsAlgClosed.exists_pow_nat_eq (φ (u : AdjoinRoot q)) zero_lt_two
-  obtain ⟨w', rfl⟩ := hsurj w
-  have hu : w' ^ 2 = (u : AdjoinRoot q) := hinj (by rw [map_pow, hw])
-  have hw0 : w' ≠ 0 := fun h0 ↦ u.ne_zero (by rw [← hu, h0]; exact zero_pow two_ne_zero)
-  exact ⟨Units.mk0 w' hw0, Units.ext (by rw [Units.val_pow_eq_pow_val, Units.val_mk0, hu])⟩
+  have : Algebra.IsAlgebraic ℝ (AdjoinRoot q) := Algebra.IsAlgebraic.of_finite ℝ _
+  have hrank : Module.finrank ℝ (AdjoinRoot q) = 2 := by
+    rw [(AdjoinRoot.powerBasis' hm).finrank, AdjoinRoot.powerBasis'_dim, hd]
+  refine (Real.nonempty_algEquiv_or (AdjoinRoot q)).resolve_left ?_
+  rintro ⟨e⟩
+  have h := e.toLinearEquiv.finrank_eq
+  rw [hrank, Module.finrank_self] at h
+  exact absurd h (by norm_num)
+
+-- Every unit of `ℝ[X]/(q)` for a monic irreducible quadratic `q` is a square: `ℝ[X]/(q) ≃ ℂ`
+-- is algebraically closed, so its group of square classes is trivial; transport that along the
+-- isomorphism (a monoid isomorphism induces one on square classes, `Units.modPow.congr`).
+private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+    (hd : q.natDegree = 2) : Subsingleton (Units.modPow (AdjoinRoot q) 2) := by
+  obtain ⟨e⟩ := nonempty_algEquiv_complex hm hirr hd
+  have : Subsingleton (Units.modPow ℂ 2) := Units.modPow.subsingleton_of_isAlgClosed ℂ two_ne_zero
+  exact ⟨fun a b ↦ (Units.modPow.congr e.toMulEquiv 2).injective (Subsingleton.elim _ _)⟩
 
 -- The monic linear factor of a real polynomial `g` attached to a real root `e`.
 private noncomputable def rootFactor {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) : g.Factors :=
