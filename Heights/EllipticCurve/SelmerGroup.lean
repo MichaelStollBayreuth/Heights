@@ -348,13 +348,15 @@ private lemma isSquare_evalRoot_iff (a : AdjoinRoot ((rootFactor he : g.Factors)
 
 end RootFactor
 
--- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
-private lemma coe_map_projFactor_unit {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
-    {a : AdjoinRoot g} (ha : IsUnit a) (p : g.Factors) :
-    ((Units.map (AdjoinRoot.projFactor hg0 hsg p).toMonoidHom ha.unit :
-        (AdjoinRoot (p : ℝ[X]))ˣ) : AdjoinRoot (p : ℝ[X])) =
-      AdjoinRoot.projFactor hg0 hsg p a := by
-  simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
+-- At the linear factor `X - e`, the square class of a unit's `projFactor` component is trivial
+-- exactly when the unit's value there (`evalRoot`) is nonnegative.
+private lemma mk_map_projFactor_eq_one_iff {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
+    {a : AdjoinRoot g} (ha : IsUnit a) {e : ℝ} (he : g.eval e = 0) :
+    (QuotientGroup.mk (Units.map (AdjoinRoot.projFactor hg0 hsg (rootFactor he)).toMonoidHom
+        ha.unit) : Units.modPow (AdjoinRoot ((rootFactor he : g.Factors) : ℝ[X])) 2) = 1 ↔
+      0 ≤ evalRoot he (AdjoinRoot.projFactor hg0 hsg (rootFactor he) a) := by
+  rw [Units.modPow.mk_eq_one_iff_isSquare, Units.coe_map, RingHom.toMonoidHom_eq_coe,
+    MonoidHom.coe_coe, IsUnit.unit_spec, ← isSquare_evalRoot_iff he, Real.isSquare_iff]
 
 /-- The square class of a unit of `ℝ[X]/(g)` (for `g` monic squarefree) is trivial exactly when
 all its values at the real roots of `g` are nonnegative: at a linear factor `X - e` triviality
@@ -368,9 +370,7 @@ private lemma mk_eq_one_iff_forall_evalRoot_nonneg {g : ℝ[X]} (hg0 : g ≠ 0) 
   rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors hg0 hsg]
   refine ⟨fun hone e he ↦ ?_, fun h p ↦ ?_⟩
   · -- trivial class ⟹ the value at each root's linear factor is a square, hence nonnegative
-    have hc := hone (rootFactor he)
-    rwa [Units.modPow.mk_eq_one_iff_isSquare, coe_map_projFactor_unit hg0 hsg ha (rootFactor he),
-      ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
+    exact (mk_map_projFactor_eq_one_iff hg0 hsg ha he).mp (hone (rootFactor he))
   rcases eq_or_ne ((p : ℝ[X]).natDegree) 1 with hd | hd
   · -- linear factor: `p = rootFactor he`
     obtain ⟨e, he, rfl⟩ : ∃ (e : ℝ) (he : g.eval e = 0), p = rootFactor he := by
@@ -380,9 +380,7 @@ private lemma mk_eq_one_iff_forall_evalRoot_nonneg {g : ℝ[X]} (hg0 : g ≠ 0) 
       show (p : ℝ[X]) = X - C (-(p : ℝ[X]).coeff 0)
       conv_lhs => rw [p.monic.eq_X_add_C hd]
       rw [map_neg, sub_neg_eq_add]
-    rw [Units.modPow.mk_eq_one_iff_isSquare, coe_map_projFactor_unit hg0 hsg ha (rootFactor he),
-      ← isSquare_evalRoot_iff he, Real.isSquare_iff]
-    exact h e he
+    exact (mk_map_projFactor_eq_one_iff hg0 hsg ha he).mpr (h e he)
   · -- quadratic factor: the group of square classes of the factor is trivial
     have hd2 : (p : ℝ[X]).natDegree = 2 := by
       -- `clear h`: otherwise `lia` (a `grind` wrapper) gets lost case-splitting on the
