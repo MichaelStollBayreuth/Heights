@@ -414,38 +414,6 @@ private lemma isSquare_evalRoot_iff {e : ℝ} (he : W'.f.eval e = 0)
 
 variable (W')
 
--- Over `ℝ`, the factors of the cubic have degree at most `2` (a cubic factor would make
--- `f` irreducible, but `f` has a root).
-private lemma natDegree_factor_le_two (p : W'.f.Factors) : (p : ℝ[X]).natDegree ≤ 2 := by
-  by_contra! h3
-  obtain ⟨e, he⟩ := W'.exists_eval_f_eq_zero
-  obtain ⟨c, hc⟩ := p.dvd
-  have hc0 : c ≠ 0 := fun h0 ↦ W'.f_ne_zero (by rw [hc, h0, mul_zero])
-  have hdeg := congrArg natDegree hc
-  rw [natDegree_f, natDegree_mul p.ne_zero hc0] at hdeg
-  have hcd : c.natDegree = 0 := by
-    have := Polynomial.natDegree_le_of_dvd p.dvd W'.f_ne_zero
-    rw [natDegree_f] at this
-    lia
-  -- the root of `f` is a root of `p`, since the cofactor is a nonzero constant
-  have hpe : (p : ℝ[X]).eval e = 0 := by
-    have h0 : (p : ℝ[X]).eval e * c.eval e = 0 := by rw [← eval_mul, ← hc, he]
-    rcases mul_eq_zero.mp h0 with h | h
-    · exact h
-    · refine absurd ?_ hc0
-      rw [c.eq_C_of_natDegree_eq_zero hcd] at h ⊢
-      rw [eval_C] at h
-      rw [h, map_zero]
-  -- but then `X - e` divides the irreducible `p` of degree `≥ 3`
-  obtain ⟨d, hd⟩ := dvd_iff_isRoot.mpr hpe
-  rcases p.irreducible.isUnit_or_isUnit hd with h | h
-  · exact Polynomial.not_isUnit_X_sub_C e h
-  · obtain ⟨u, hu, rfl⟩ := Polynomial.isUnit_iff.mp h
-    have := congrArg natDegree hd
-    rw [natDegree_mul (X_sub_C_ne_zero e) (by simpa using hu.ne_zero), natDegree_X_sub_C,
-      natDegree_C] at this
-    lia
-
 -- The number of real roots of `f`, from the two splittings (instance-free).
 private lemma card_roots_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
     (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
@@ -489,15 +457,27 @@ private lemma root_eq_of_split₃ {e₁ e₂ e₃ t : ℝ}
 
 variable [W'.IsElliptic] [W'.IsCharNeTwoNF]
 
--- The square class of a unit of the étale algebra is trivial when all its values at the
--- roots of `f` are nonnegative (the components at the quadratic factors are always trivial).
-private lemma unit_class_eq_one {a : W'.A} (ha : IsUnit a)
-    (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
-      0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-        (W'.rootFactor he) a)) :
-    (QuotientGroup.mk ha.unit : W'.M) = 1 := by
+-- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
+private lemma coe_map_projFactor_unit {a : W'.A} (ha : IsUnit a) (p : W'.f.Factors) :
+    ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f p).toMonoidHom ha.unit :
+        (AdjoinRoot (p : ℝ[X]))ˣ) : AdjoinRoot (p : ℝ[X])) =
+      AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f p a := by
+  simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
+
+-- The square class of a unit of the étale algebra is trivial exactly when all its values at the
+-- real roots of `f` are nonnegative: at a linear factor `X - e` triviality means `evalRoot` is a
+-- square in `ℝ`, i.e. nonnegative, and the quadratic factors have no square classes at all.
+private lemma mk_eq_one_iff_forall_evalRoot_nonneg {a : W'.A} (ha : IsUnit a) :
+    (QuotientGroup.mk ha.unit : W'.M) = 1 ↔
+      ∀ (e : ℝ) (he : W'.f.eval e = 0),
+        0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+          (W'.rootFactor he) a) := by
   rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors W'.f_ne_zero W'.squarefree_f]
-  intro p
+  refine ⟨fun hone e he ↦ ?_, fun h p ↦ ?_⟩
+  · -- trivial class ⟹ the value at each root's linear factor is a square, hence nonnegative
+    have hc := hone (W'.rootFactor he)
+    rwa [Units.modPow.mk_eq_one_iff_isSquare, W'.coe_map_projFactor_unit ha (W'.rootFactor he),
+      ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
   rcases eq_or_ne ((p : ℝ[X]).natDegree) 1 with hd | hd
   · -- linear factor: `p = rootFactor he`
     obtain ⟨e, he, rfl⟩ : ∃ (e : ℝ) (he : W'.f.eval e = 0), p = W'.rootFactor he := by
@@ -507,23 +487,25 @@ private lemma unit_class_eq_one {a : W'.A} (ha : IsUnit a)
       show (p : ℝ[X]) = X - C (-(p : ℝ[X]).coeff 0)
       conv_lhs => rw [p.monic.eq_X_add_C hd]
       rw [map_neg, sub_neg_eq_add]
-    rw [Units.modPow.mk_eq_one_iff_isSquare, ← isSquare_evalRoot_iff he, Real.isSquare_iff]
-    have hval : ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-        (W'.rootFactor he)).toMonoidHom ha.unit :
-          (AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]))ˣ) :
-          AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) =
-        AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he) a := by
-      simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe,
-        IsUnit.unit_spec]
-    rw [hval]
+    rw [Units.modPow.mk_eq_one_iff_isSquare, W'.coe_map_projFactor_unit ha (W'.rootFactor he),
+      ← isSquare_evalRoot_iff he, Real.isSquare_iff]
     exact h e he
   · -- quadratic factor: the group of square classes of the factor is trivial
     have hd2 : (p : ℝ[X]).natDegree = 2 := by
       have h1 := p.irreducible.natDegree_pos
-      have h2 := W'.natDegree_factor_le_two p
+      have h2 := p.irreducible.natDegree_le_two
       lia
     have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
     exact Subsingleton.elim _ _
+
+-- The square class of a unit of the étale algebra is trivial when all its values at the
+-- roots of `f` are nonnegative (the components at the quadratic factors are always trivial).
+private lemma unit_class_eq_one {a : W'.A} (ha : IsUnit a)
+    (h : ∀ (e : ℝ) (he : W'.f.eval e = 0),
+      0 ≤ evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
+        (W'.rootFactor he) a)) :
+    (QuotientGroup.mk ha.unit : W'.M) = 1 :=
+  (W'.mk_eq_one_iff_forall_evalRoot_nonneg ha).mpr h
 
 -- The square classes of two units agree when the products of their values at the roots
 -- of `f` are all nonnegative.
@@ -726,24 +708,13 @@ private lemma f_split :
     exact .inl (sort₃ (hne e a b hsplit) (hne e b a (by rw [hsplit]; ring))
       (hne a b e (by rw [hsplit]; ring)) hsplit)
 
--- The value at the root `e` of the representative of a class whose component there is trivial.
+-- A negative value at some root obstructs triviality of the square class.
 private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : ℝ}
     (he : W'.f.eval e = 0)
     (hlt : evalRoot he (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
       (W'.rootFactor he) a) < 0) :
-    (QuotientGroup.mk ha.unit : W'.M) ≠ 1 := by
-  intro hone
-  rw [AdjoinRoot.modPow_mk_eq_one_iff_forall_factors W'.f_ne_zero W'.squarefree_f] at hone
-  have hc := hone (W'.rootFactor he)
-  rw [Units.modPow.mk_eq_one_iff_isSquare] at hc
-  have hval : ((Units.map (AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f
-      (W'.rootFactor he)).toMonoidHom ha.unit :
-        (AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X]))ˣ) :
-        AdjoinRoot ((W'.rootFactor he : W'.f.Factors) : ℝ[X])) =
-      AdjoinRoot.projFactor W'.f_ne_zero W'.squarefree_f (W'.rootFactor he) a := by
-    simp only [Units.coe_map, RingHom.toMonoidHom_eq_coe, MonoidHom.coe_coe, IsUnit.unit_spec]
-  rw [hval, ← isSquare_evalRoot_iff he, Real.isSquare_iff] at hc
-  linarith
+    (QuotientGroup.mk ha.unit : W'.M) ≠ 1 :=
+  fun hone ↦ absurd ((W'.mk_eq_one_iff_forall_evalRoot_nonneg ha).mp hone e he) (not_le.mpr hlt)
 
 -- The range of `μ` as a set equals the range of the underlying map `μ₀`.
 private lemma range_μ_coe : (Set.range (μ (W := W'))) = Set.range (μ₀ (W := W')) := by
