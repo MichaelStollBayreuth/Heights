@@ -61,26 +61,12 @@ section DenomIdeal
 
 variable {R : Type*} [CommRing R] (K : Type*) [CommRing K] [Algebra R K]
 
-/-- The denominator ideal of `x : K`: the `r : R` with `r * x ∈ R`. -/
-def IsDedekindDomain.SInteger.denomIdeal (x : K) : Ideal R where
-  carrier := {r : R | ∃ s : R, algebraMap R K r * x = algebraMap R K s}
-  zero_mem' := ⟨0, by simp⟩
-  add_mem' := by
-    rintro a b ⟨s, hs⟩ ⟨t, ht⟩
-    exact ⟨s + t, by rw [map_add, add_mul, hs, ht, map_add]⟩
-  smul_mem' := by
-    rintro c a ⟨s, hs⟩
-    exact ⟨c * s, by rw [smul_eq_mul, map_mul, mul_assoc, hs, map_mul]⟩
+/-- The denominator ideal of `x : K`: the colon ideal `(R : x) = {r : R | r • x ∈ R}`. -/
+abbrev IsDedekindDomain.SInteger.denomIdeal (x : K) : Ideal R := (1 : Submodule R K).colon {x}
 
 lemma IsDedekindDomain.SInteger.mem_denomIdeal_iff {x : K} {r : R} :
-    r ∈ denomIdeal K x ↔ ∃ s : R, algebraMap R K r * x = algebraMap R K s :=
-  Iff.rfl
-
-/-- The denominator ideal is the colon ideal `(R : x)`. -/
-lemma IsDedekindDomain.SInteger.denomIdeal_eq_colon (x : K) :
-    denomIdeal K x = (1 : Submodule R K).colon {x} := by
-  ext
-  rw [mem_denomIdeal_iff, Submodule.mem_colon_singleton, Algebra.smul_def, Submodule.mem_one]
+    r ∈ denomIdeal K x ↔ ∃ s : R, algebraMap R K r * x = algebraMap R K s := by
+  rw [Submodule.mem_colon_singleton, Algebra.smul_def, Submodule.mem_one]
   exact exists_congr fun s ↦ eq_comm
 
 end DenomIdeal
@@ -193,13 +179,15 @@ prime `x` is integral, so it has a denominator away from the prime. -/
 lemma denomIdeal_not_le {x : K} (hx : x ∈ S.integer K) {w : HeightOneSpectrum R} (hw : w ∉ S) :
     ¬ denomIdeal K x ≤ w.asIdeal := by
   obtain ⟨n, d, hnd⟩ := HeightOneSpectrum.exists_primeCompl_mul_eq_of_integer w x (hx w hw)
-  exact fun hle ↦ d.property (hle ⟨n, by rw [mul_comm]; exact hnd⟩)
+  refine fun hle ↦ d.property (hle ?_)
+  rw [mem_denomIdeal_iff]
+  exact ⟨n, by rw [mul_comm]; exact hnd⟩
 
 /-- The denominator ideal of any `x : K` is nonzero: a common denominator lies in it. -/
 lemma denomIdeal_ne_bot (x : K) : denomIdeal K x ≠ (⊥ : Ideal R) := by
   obtain ⟨⟨a, b, hb⟩, hab⟩ := IsLocalization.surj R⁰ x
   refine fun h0 ↦ nonZeroDivisors.ne_zero hb ?_
-  have : b ∈ denomIdeal K x := ⟨a, by rw [mul_comm]; exact hab⟩
+  have : b ∈ denomIdeal K x := by rw [mem_denomIdeal_iff]; exact ⟨a, by rw [mul_comm]; exact hab⟩
   simpa [h0] using this
 
 /-- The denominator ideal of an `S`-integer extends to the unit ideal of `𝒪_S`: all its prime
@@ -228,6 +216,7 @@ theorem map_comap_eq (I : Ideal (S.integer K)) :
     rw [IsScalarTower.algebraMap_apply R (S.integer K) K]; rfl
   -- for a denominator `d` of `x`, the product `f d * x` is extended from `R` and lies in `I`
   have key (d : R) (hd : d ∈ denomIdeal K (x : K)) : f d * x ∈ J' := by
+    rw [mem_denomIdeal_iff] at hd
     obtain ⟨s, hs⟩ := hd
     have hfx : f d * x = f s := by
       apply Subtype.val_injective
