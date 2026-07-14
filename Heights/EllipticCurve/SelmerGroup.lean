@@ -325,33 +325,24 @@ private lemma subsingleton_modPow_of_quadratic {q : ℝ[X]} (hm : q.Monic) (hirr
   have : Subsingleton (Units.modPow ℂ 2) := Units.modPow.subsingleton_of_isAlgClosed ℂ two_ne_zero
   exact ⟨fun a b ↦ (Units.modPow.congr e.toMulEquiv 2).injective (Subsingleton.elim _ _)⟩
 
--- The monic linear factor of a real polynomial `g` attached to a real root `e`.
-private noncomputable def rootFactor {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) : g.Factors :=
+-- The monic linear factor of `g` attached to a root `e` (over any field).
+private noncomputable def rootFactor {K : Type*} [Field K] {g : K[X]} {e : K}
+    (he : g.eval e = 0) : g.Factors :=
   ⟨X - C e, monic_X_sub_C _, irreducible_X_sub_C _, dvd_iff_isRoot.mpr he⟩
 
--- Evaluation of the field factor attached to a root `e` at `e`, as a ring homomorphism.
-private noncomputable def evalRoot {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) :
-    AdjoinRoot ((rootFactor he : g.Factors) : ℝ[X]) →+* ℝ :=
-  AdjoinRoot.lift (RingHom.id ℝ) e (by show Polynomial.eval₂ _ _ (X - C e) = 0; simp)
+-- Evaluation at `e`: the field factor `K[X]/(X - e)` is `K`, via Mathlib's
+-- `Polynomial.quotientSpanXSubCAlgEquiv`.
+private noncomputable def evalRoot {K : Type*} [Field K] {g : K[X]} {e : K}
+    (he : g.eval e = 0) : AdjoinRoot ((rootFactor he : g.Factors) : K[X]) ≃ₐ[K] K :=
+  quotientSpanXSubCAlgEquiv e
 
-private lemma evalRoot_mk {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) (q : ℝ[X]) :
-    evalRoot he (AdjoinRoot.mk _ q) = q.eval e := by
-  rw [evalRoot, AdjoinRoot.lift_mk]
-  simp [eval₂_id]
+private lemma evalRoot_mk {K : Type*} [Field K] {g : K[X]} {e : K} (he : g.eval e = 0)
+    (q : K[X]) : evalRoot he (AdjoinRoot.mk _ q) = q.eval e := rfl
 
-private lemma bijective_evalRoot {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0) :
-    Function.Bijective (evalRoot he) := by
-  have : Fact (Irreducible ((rootFactor he : g.Factors) : ℝ[X])) := ⟨(rootFactor he).irreducible⟩
-  refine ⟨(evalRoot he).injective, fun r ↦ ⟨AdjoinRoot.of _ r, ?_⟩⟩
-  rw [evalRoot, AdjoinRoot.lift_of]
-  rfl
-
-private lemma isSquare_evalRoot_iff {g : ℝ[X]} {e : ℝ} (he : g.eval e = 0)
-    (a : AdjoinRoot ((rootFactor he : g.Factors) : ℝ[X])) :
-    IsSquare (evalRoot he a) ↔ IsSquare a := by
-  refine ⟨fun ⟨s, hs⟩ ↦ ?_, fun h ↦ h.map _⟩
-  obtain ⟨s', rfl⟩ := (bijective_evalRoot he).2 s
-  exact ⟨s', (bijective_evalRoot he).1 (by rw [map_mul]; exact hs)⟩
+private lemma isSquare_evalRoot_iff {K : Type*} [Field K] {g : K[X]} {e : K} (he : g.eval e = 0)
+    (a : AdjoinRoot ((rootFactor he : g.Factors) : K[X])) :
+    IsSquare (evalRoot he a) ↔ IsSquare a :=
+  ⟨fun h ↦ by simpa using h.map (evalRoot he).symm, fun h ↦ h.map (evalRoot he)⟩
 
 -- The value on `ha.unit` of the projection to a field factor `p` is `projFactor a`.
 private lemma coe_map_projFactor_unit {g : ℝ[X]} (hg0 : g ≠ 0) (hsg : Squarefree g)
@@ -392,7 +383,7 @@ private lemma mk_eq_one_iff_forall_evalRoot_nonneg {g : ℝ[X]} (hg0 : g ≠ 0) 
     have hd2 : (p : ℝ[X]).natDegree = 2 := by
       have h1 := p.irreducible.natDegree_pos
       have h2 := p.irreducible.natDegree_le_two
-      lia
+      omega -- `lia` here case-splits on the ambient `AlgEquiv`-valued hypothesis and fails
     have := subsingleton_modPow_of_quadratic p.monic p.irreducible hd2
     exact Subsingleton.elim _ _
 
