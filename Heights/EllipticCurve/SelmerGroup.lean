@@ -346,9 +346,10 @@ noncomputable instance : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2
 
 -- The real roots have a smallest element (`f` has at least one root).
 private lemma exists_min_root (hpos : 0 < Nat.card {x : ℝ // W'.f.eval x = 0}) :
-    ∃ e₀ : {x : ℝ // W'.f.eval x = 0}, ∀ e, e₀ ≤ e := by
+    ∃ e₀ : {x : ℝ // W'.f.eval x = 0}, ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e := by
   have : Nonempty {x : ℝ // W'.f.eval x = 0} := (Nat.card_pos_iff.mp hpos).1
-  exact ⟨Finset.univ.min' Finset.univ_nonempty, fun e ↦ Finset.min'_le _ e (Finset.mem_univ e)⟩
+  exact ⟨Finset.univ.min' Finset.univ_nonempty,
+    fun e ↦ Subtype.coe_le_coe.mpr (Finset.min'_le _ e (Finset.mem_univ e))⟩
 
 variable [W'.IsElliptic] [W'.IsCharNeTwoNF]
 
@@ -381,7 +382,8 @@ private lemma prod_modPowEtaleEquiv_μ_eq_one {t : W'.M} (ht : t ∈ (μ (W := W
 -- monotone along the roots, via `eval_projFactor_torsion_ne`) at every root, contradicting the
 -- trivial product over an odd number of roots.
 private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.eval x = 0}}
-    (hmin : ∀ e, e₀ ≤ e) (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) (P : W'.Point) :
+    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
+    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) (P : W'.Point) :
     modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f (W'.μ₀ P) e₀ = 1 := by
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
   rcases P with _ | ⟨x, y, h⟩
@@ -397,15 +399,16 @@ private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.ev
     · rcases eq_or_ne (e' : ℝ) x with he'x | he'x
       · rwa [show e₀ = e' from Subtype.ext (he0.trans he'x.symm)]
       · rw [W'.eval_projFactor_torsion_ne hx0 e'.2 he'x] at he'
-        exact absurd (le_antisymm (by linarith) (he0 ▸ Subtype.coe_le_coe.mpr (hmin e'))) he'x
+        exact absurd (le_antisymm (by linarith) (he0 ▸ hmin e')) he'x
     · rw [W'.eval_projFactor_torsion_ne hx0 e₀.2 he0]
-      linarith [Subtype.coe_le_coe.mpr (hmin ⟨x, hx0⟩)]
+      linarith [hmin ⟨x, hx0⟩]
   · rw [μX_of_eval_f_ne_zero hx0, modPowEtaleEquiv_mk_C_sub_X_apply] at he' ⊢
-    exact (Subtype.coe_le_coe.mpr (hmin e')).trans he'
+    exact (hmin e').trans he'
 
 -- Upper bound: every element of the descent image is, under the sign iso, both norm-trivial and
 -- trivial at the smallest root — the intersection of the two kernels.
-private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}} (hmin : ∀ e, e₀ ≤ e)
+private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}}
+    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
     (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
     (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 ∧
       modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e₀ = 1 := by
@@ -414,7 +417,8 @@ private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}} (hm
   exact W'.modPowEtaleEquiv_μ₀_smallest_eq_one hmin hodd g.toAdd
 
 -- Transport the image by the sign iso and bound its size by the number of admissible patterns.
-private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0}} (hmin : ∀ e, e₀ ≤ e)
+private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0}}
+    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
     (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) :
     Nat.card (μ (W := W')).range ≤ Nat.card {s : {x : ℝ // W'.f.eval x = 0} →
       Multiplicative (ZMod 2) // (∏ e, s e) = 1 ∧ s e₀ = 1} := by
@@ -447,7 +451,7 @@ private lemma two_le_card_range_μ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} =
     rw [μX_of_eval_f_eq_zero e₀.2]
     refine W'.unit_class_ne_one_of_evalRoot_neg _ e.2 ?_
     rw [W'.eval_projFactor_torsion_ne e₀.2 e.2 (fun heq ↦ hne (Subtype.ext heq))]
-    have h1 : (e₀ : ℝ) ≤ e := Subtype.coe_le_coe.mpr (hmin e)
+    have h1 : (e₀ : ℝ) ≤ e := hmin e
     have h2 : (e₀ : ℝ) ≠ e := fun heq ↦ hne (Subtype.ext heq.symm)
     linarith [lt_of_le_of_ne h1 h2]
   exact Finite.one_lt_card_iff_nontrivial.mpr
