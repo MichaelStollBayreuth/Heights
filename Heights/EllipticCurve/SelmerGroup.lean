@@ -359,12 +359,8 @@ private lemma root_eq_of_split₃ {e₁ e₂ e₃ t : ℝ}
     · exact .inr (.inl (sub_eq_zero.mp h'))
   · exact .inr (.inr (sub_eq_zero.mp h))
 
--- The values of the representatives of `μX x` at a root `e` of `f` (instance-free).
-private lemma eval_projFactor_generic (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
-    (etaleEvalHom W'.f (AdjoinRoot.mk W'.f (C x - X))).1 ⟨e, he⟩ = x - e := by
-  rw [etaleEvalHom_mk_fst]
-  simp
-
+-- The value of the torsion representative of `μX x` at a root `e` of `f` (instance-free); the
+-- generic value `x - e` is `Polynomial.modPowEtaleEquiv_mk_C_sub_X_apply` (via `etaleEvalHom`).
 private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
     (etaleEvalHom W'.f (AdjoinRoot.mk W'.f (C x - X + W'.fCofactor x))).1 ⟨e, he⟩ =
       x - e + (W'.fCofactor x).eval e := by
@@ -499,18 +495,14 @@ private lemma card_range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e�
   have hc3 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 3 := by
     rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₃ h12 h23 hf
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  -- Block 5: the product of the sign entries of `μ₀ P` is trivial.
-  have hgen : ∀ g : W'.M,
-      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) := by
-    intro g
-    induction g using QuotientGroup.induction_on with
-    | H u =>
-      have hb := Polynomial.normM_eq_prod_modPowEtale W'.f_ne_zero W'.squarefree_f u.isUnit
-      rw [show (u.isUnit).unit = u from Units.ext (IsUnit.unit_spec _)] at hb
-      exact hb.symm
+  -- Block 5 (`prod_modPowEtaleEquiv`): the product of the sign entries of `μ₀ P` is trivial.
+  have hgen (g : W'.M) :
+      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) :=
+    Polynomial.prod_modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f g
   have hProd : ∀ P : W'.Point, (∏ x, Φ (W'.μ₀ P) x) = 1 := fun P ↦ by
     rw [hgen, normM_μ₀_eq_one, map_one]
-  -- Block 6: the sign entry of `μ₀ P` at the smallest root `e₁` is trivial.
+  -- Block 6 (`modPowEtaleEquiv_mk_C_sub_X_apply`): the entry at the smallest root `e₁` is trivial;
+  -- the generic value `x - e₁` and the torsion cofactor at `e₁` are both `≥ 0`.
   have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e₁, he₁⟩ = 1 := by
     rintro (_ | ⟨x, y, h⟩)
     · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]
@@ -529,8 +521,8 @@ private lemma card_range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e�
         nlinarith [mul_pos_of_neg_of_neg (show e₁ - e₂ < 0 by linarith)
           (show e₁ - e₃ < 0 by linarith)]
       · rw [W'.eval_projFactor_torsion_ne hx0 he₁ hne1]; linarith
-    · rw [μX_of_eval_f_ne_zero hx0, modPowEtaleEquiv_mk_apply, eval_projFactor_generic]
-      linarith
+    · rw [μX_of_eval_f_ne_zero hx0]
+      exact (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e₁, he₁⟩).mpr hge
   -- Assemble: `Φ '' range μ₀` is squeezed between `{1, Φ (μX e₁)}` and the 2-element pattern set.
   set H : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
     {s | (∏ x, s x) = 1 ∧ s ⟨e₁, he₁⟩ = 1} with hH
@@ -572,14 +564,9 @@ private lemma card_range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (h
   have hc1 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 1 := by
     rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₁ hm hirr hd hf
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  have hgen : ∀ g : W'.M,
-      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) := by
-    intro g
-    induction g using QuotientGroup.induction_on with
-    | H u =>
-      have hb := Polynomial.normM_eq_prod_modPowEtale W'.f_ne_zero W'.squarefree_f u.isUnit
-      rw [show (u.isUnit).unit = u from Units.ext (IsUnit.unit_spec _)] at hb
-      exact hb.symm
+  have hgen (g : W'.M) :
+      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) :=
+    Polynomial.prod_modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f g
   have hProd : ∀ P : W'.Point, (∏ x, Φ (W'.μ₀ P) x) = 1 := fun P ↦ by
     rw [hgen, normM_μ₀_eq_one, map_one]
   have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e, he⟩ = 1 := by
@@ -593,7 +580,8 @@ private lemma card_range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (h
         hroots hx0, hcof]
       simp only [sub_self, zero_add]
       exact (hq e).le
-    · rw [μX_of_eval_f_ne_zero hx0, modPowEtaleEquiv_mk_apply, eval_projFactor_generic]
+    · rw [μX_of_eval_f_ne_zero hx0]
+      refine (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e, he⟩).mpr ?_
       nlinarith [heval x, hq x, lt_of_le_of_ne hfx (Ne.symm hx0)]
   set H : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
     {s | (∏ x, s x) = 1 ∧ s ⟨e, he⟩ = 1} with hH

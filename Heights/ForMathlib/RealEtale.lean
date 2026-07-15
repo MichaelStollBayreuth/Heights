@@ -27,6 +27,10 @@ intended to generalize to the descent maps of hyperelliptic curves and their Jac
 
 * `Polynomial.mk_eq_one_iff_forall_eval_nonneg`: the square class of a unit of `ℝ[X]/f` is
   trivial exactly when its value at every real root of `f` is nonnegative.
+* `Polynomial.modPowEtaleEquiv_mk_C_sub_X_apply`: the sign entry of the `x - T` class at a real
+  root `e` is trivial exactly when `e ≤ x`.
+* `Polynomial.prod_modPowEtaleEquiv`: the product of the sign entries of a square class is the
+  sign of its norm.
 -/
 open Polynomial Complex
 
@@ -414,6 +418,15 @@ lemma mk_eq_one_iff_forall_eval_nonneg (hf : f ≠ 0) (hsq : Squarefree f) {a : 
   exact forall_congr' fun x ↦ by
     rw [Pi.one_apply]; exact modPowEtaleEquiv_mk_apply hf hsq ha x
 
+/-- The square class of the linear polynomial `x - T = C x - X` (its value at a real root `e`
+being `x - e`) has trivial sign entry at `e` exactly when `e ≤ x`. This is the value, at the real
+roots, of the `x - T` descent map. -/
+lemma modPowEtaleEquiv_mk_C_sub_X_apply (hf : f ≠ 0) (hsq : Squarefree f) {x : ℝ}
+    (hu : IsUnit (AdjoinRoot.mk f (C x - X))) (e : {x : ℝ // f.eval x = 0}) :
+    modPowEtaleEquiv hf hsq (QuotientGroup.mk hu.unit) e = 1 ↔ (e : ℝ) ≤ x := by
+  rw [modPowEtaleEquiv_mk_apply, etaleEvalHom_mk_fst]
+  simp only [eval_sub, eval_C, eval_X, sub_nonneg]
+
 end Polynomial
 
 namespace Polynomial
@@ -570,6 +583,21 @@ lemma normM_eq_prod_modPowEtale [Fintype {x : ℝ // f.eval x = 0}]
     exact ((Prod.isUnit_iff.mp (ha.map (etaleEquiv hf hsq))).2.map (Pi.evalMonoidHom _ p)).ne_zero
   show 0 < Algebra.norm ℝ a ↔ 0 < ∏ x : {x : ℝ // f.eval x = 0}, (etaleEquiv hf hsq a).1 x
   rw [norm_etale hf hsq a, mul_pos_iff_of_pos_right hpos]
+
+/-- **Block 5** for an arbitrary square class `g` (not just `mk a`): the product of the sign
+entries of `g` is the sign of its norm. Obtained from `normM_eq_prod_modPowEtale` by
+`QuotientGroup.induction_on`. -/
+lemma prod_modPowEtaleEquiv [Fintype {x : ℝ // f.eval x = 0}]
+    [Fintype {p : f.Factors // (p : ℝ[X]).natDegree = 2}] (hf : f ≠ 0) (hsq : Squarefree f)
+    (g : Units.modPow (AdjoinRoot f) 2) :
+    (∏ x : {x : ℝ // f.eval x = 0}, modPowEtaleEquiv hf hsq g x)
+      = Units.modPow.realEquivOfEven two_ne_zero even_two
+          (Units.modPow.map (Algebra.norm ℝ) 2 g) := by
+  induction g using QuotientGroup.induction_on with
+  | H u =>
+    have hb := normM_eq_prod_modPowEtale hf hsq u.isUnit
+    rw [show u.isUnit.unit = u from Units.ext (IsUnit.unit_spec _)] at hb
+    exact hb.symm
 
 /-- If the norm class of a unit `a` of `ℝ[X]/f` is trivial, then the product of its values at the
 real roots is nonnegative (a corollary of Block 5: the complex factors give the positive
