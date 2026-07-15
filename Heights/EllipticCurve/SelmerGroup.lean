@@ -450,16 +450,6 @@ private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : 
   absurd ((mk_eq_one_iff_forall_eval_nonneg W'.f_ne_zero W'.squarefree_f ha).mp hone ⟨e, he⟩)
     (not_le.mpr hlt)
 
--- The range of `μ` as a set equals the range of the underlying map `μ₀`.
-private lemma range_μ_coe : (Set.range (μ (W := W'))) = Set.range (μ₀ (W := W')) := by
-  ext m
-  constructor
-  · rintro ⟨P, rfl⟩
-    obtain ⟨Q, rfl⟩ := Multiplicative.ofAdd.surjective P
-    exact ⟨Q, (μ_apply Q).symm⟩
-  · rintro ⟨Q, rfl⟩
-    exact ⟨Multiplicative.ofAdd Q, μ_apply Q⟩
-
 -- `IsCharNeTwoNF` is used by `equation_iff_eval_f_eq_sq` in the proof but erased from the term
 set_option linter.unusedSectionVars false in
 -- Over `ℝ`, `f x` is a square for a point `(x, y)`, hence `≥ 0`.
@@ -479,30 +469,25 @@ private lemma μX_root_ne_one_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e
   rw [W'.eval_projFactor_torsion_ne he₁ he₂ h12.ne']
   linarith
 
--- With three real roots, the image of `μ` has exactly two elements. Structurally: transported by
--- the sign iso `modPowEtaleEquiv`, the image lies in the even-weight patterns trivial at the
--- smallest root `e₁` (Block 5 gives even weight, Block 6 gives triviality at `e₁`); that set has
--- two elements (`card_prodEvalKer_three`), and it already contains `{1, μX e₁}` (with `μX e₁ ≠ 1`).
-private lemma card_range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
+-- With three real roots, the image of `μ` has exactly two elements. Transported by the sign iso
+-- `modPowEtaleEquiv`, it is a subgroup of `(Multiplicative (ZMod 2))³` lying in the two-element set
+-- cut out by triviality of the norm (Block 5, `range_μ_le_ker_normM`) and of the smallest-root
+-- component (Block 6): size `≤ 2` by `card_prodEvalKer_three`, and `≥ 2` as it is nontrivial (it
+-- contains `Φ (μX e₁) ≠ 1`).
+private lemma card_range_μ_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
     (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
-    (Set.range (μ₀ (W := W'))).ncard = 2 := by
+    Nat.card (μ (W := W')).range = 2 := by
   have he₁ : W'.f.eval e₁ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
   obtain ⟨hcof₁, _, _⟩ := W'.fCofactor_eq_of_f_eq hf
-  have hfin : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
+  have : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
   have : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
   have : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
   have : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} := Fintype.ofFinite _
   have hc3 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 3 := by
     rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₃ h12 h23 hf
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  -- Block 5 (`prod_modPowEtaleEquiv`): the product of the sign entries of `μ₀ P` is trivial.
-  have hgen (g : W'.M) :
-      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) :=
-    Polynomial.prod_modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f g
-  have hProd : ∀ P : W'.Point, (∏ x, Φ (W'.μ₀ P) x) = 1 := fun P ↦ by
-    rw [hgen, normM_μ₀_eq_one, map_one]
-  -- Block 6 (`modPowEtaleEquiv_mk_C_sub_X_apply`): the entry at the smallest root `e₁` is trivial;
-  -- the generic value `x - e₁` and the torsion cofactor at `e₁` are both `≥ 0`.
+  -- Block 6 (`modPowEtaleEquiv_mk_C_sub_X_apply`): the entry of every `μ₀ P` at the smallest root
+  -- `e₁` is trivial; the generic value `x - e₁` and the torsion cofactor at `e₁` are both `≥ 0`.
   have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e₁, he₁⟩ = 1 := by
     rintro (_ | ⟨x, y, h⟩)
     · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]
@@ -523,32 +508,39 @@ private lemma card_range_μ₀_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e�
       · rw [W'.eval_projFactor_torsion_ne hx0 he₁ hne1]; linarith
     · rw [μX_of_eval_f_ne_zero hx0]
       exact (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e₁, he₁⟩).mpr hge
-  -- Assemble: `Φ '' range μ₀` is squeezed between `{1, Φ (μX e₁)}` and the 2-element pattern set.
-  set H : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    {s | (∏ x, s x) = 1 ∧ s ⟨e₁, he₁⟩ = 1} with hH
-  have hBH : ⇑Φ '' Set.range W'.μ₀ ⊆ H := by
-    rintro _ ⟨_, ⟨P, rfl⟩, rfl⟩; exact ⟨hProd P, hEval P⟩
-  have hpair : ({1, Φ (W'.μX e₁)} : Set _) ⊆ ⇑Φ '' Set.range W'.μ₀ := by
-    rintro _ (rfl | rfl)
-    · exact ⟨1, ⟨0, rfl⟩, map_one _⟩
-    · exact ⟨W'.μX e₁, ⟨.some e₁ 0 (W'.nonsingular_of_eval_f_eq_zero he₁), rfl⟩, rfl⟩
-  have hHfin : H.Finite := Set.toFinite H
-  have hcardH : H.ncard = 2 := by
-    rw [← Nat.card_coe_set_eq]; exact card_prodEvalKer_three hc3 ⟨e₁, he₁⟩
-  have hne : (1 : {x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) ≠ Φ (W'.μX e₁) := fun hc ↦
-    W'.μX_root_ne_one_of_split₃ h12 hf (Φ.injective (by rw [map_one]; exact hc)).symm
-  have hle1 : (⇑Φ '' Set.range W'.μ₀).ncard ≤ 2 :=
-    (Set.ncard_le_ncard hBH hHfin).trans_eq hcardH
-  have hle2 : 2 ≤ (⇑Φ '' Set.range W'.μ₀).ncard :=
-    (Set.ncard_pair hne).symm.trans_le (Set.ncard_le_ncard hpair (hHfin.subset hBH))
-  rw [← Set.ncard_image_of_injective _ Φ.injective]
-  exact le_antisymm hle1 hle2
+  -- Transport `μ.range` by `Φ` and bound it against the admissible sign patterns `T`.
+  set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+    (μ (W := W')).range.map (Φ : W'.M →* _) with hS
+  have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
+    Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
+  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+    {s | (∏ x, s x) = 1 ∧ s ⟨e₁, he₁⟩ = 1} with hT
+  have hST : (S : Set _) ⊆ T := by
+    rintro s hs
+    rw [SetLike.mem_coe, hS, Subgroup.mem_map] at hs
+    obtain ⟨t, ht, rfl⟩ := hs
+    refine ⟨?_, ?_⟩
+    · show (∏ x, Φ t x) = 1
+      rw [hΦ, Polynomial.prod_modPowEtaleEquiv]
+      exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
+        (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
+    · obtain ⟨g, rfl⟩ := MonoidHom.mem_range.mp ht
+      exact hEval g.toAdd
+  have hmemS : Φ (W'.μX e₁) ∈ S := Subgroup.mem_map_of_mem _
+    (MonoidHom.mem_range.mpr ⟨.ofAdd (.some e₁ 0 (W'.nonsingular_of_eval_f_eq_zero he₁)), rfl⟩)
+  have hne : Φ (W'.μX e₁) ≠ 1 := fun hc ↦
+    W'.μX_root_ne_one_of_split₃ h12 hf (Φ.injective (hc.trans (map_one Φ).symm))
+  rw [hcard]
+  refine le_antisymm ((Nat.card_le_card_of_injective (Set.inclusion hST)
+    (Set.inclusion_injective hST)).trans_eq (card_prodEvalKer_three hc3 ⟨e₁, he₁⟩)) ?_
+  exact Finite.one_lt_card_iff_nontrivial.mpr
+    ⟨⟨Φ (W'.μX e₁), hmemS⟩, 1, fun h ↦ hne (congrArg Subtype.val h)⟩
 
--- With one real root `e`, the image of `μ` is trivial: transported by `modPowEtaleEquiv` it lies
--- in the single pattern trivial at `e` (Block 6; here Block 5's product is that same entry).
-private lemma card_range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
+-- With one real root `e`, the image of `μ` is trivial: transported by `modPowEtaleEquiv` it is a
+-- subgroup of the single admissible sign pattern (norm-even and trivial at `e`), so has size `1`.
+private lemma card_range_μ_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
     (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
-    (Set.range (μ₀ (W := W'))).ncard = 1 := by
+    Nat.card (μ (W := W')).range = 1 := by
   have heval (t : ℝ) : W'.f.eval t = (t - e) * q.eval t := by rw [hf]; simp
   have he : W'.f.eval e = 0 := by rw [heval]; ring
   have hq (t : ℝ) : 0 < q.eval t :=
@@ -557,18 +549,14 @@ private lemma card_range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (h
     sub_eq_zero.mp ((mul_eq_zero.mp (heval t ▸ ht)).resolve_right (hq t).ne')
   have hcof : W'.fCofactor e = q :=
     mul_right_cancel₀ (X_sub_C_ne_zero e) (by rw [← W'.f_eq_mul_of_eval_eq_zero he, hf]; ring)
-  have hfin : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
+  have : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
   have : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
   have : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
   have : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} := Fintype.ofFinite _
   have hc1 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 1 := by
     rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₁ hm hirr hd hf
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  have hgen (g : W'.M) :
-      (∏ x, Φ g x) = Units.modPow.realEquivOfEven two_ne_zero even_two (W'.normM g) :=
-    Polynomial.prod_modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f g
-  have hProd : ∀ P : W'.Point, (∏ x, Φ (W'.μ₀ P) x) = 1 := fun P ↦ by
-    rw [hgen, normM_μ₀_eq_one, map_one]
+  -- Block 6: the sign entry of every `μ₀ P` at the sole root `e` is trivial.
   have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e, he⟩ = 1 := by
     rintro (_ | ⟨x, y, h⟩)
     · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]
@@ -583,36 +571,39 @@ private lemma card_range_μ₀_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (h
     · rw [μX_of_eval_f_ne_zero hx0]
       refine (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e, he⟩).mpr ?_
       nlinarith [heval x, hq x, lt_of_le_of_ne hfx (Ne.symm hx0)]
-  set H : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    {s | (∏ x, s x) = 1 ∧ s ⟨e, he⟩ = 1} with hH
-  have hBH : ⇑Φ '' Set.range W'.μ₀ ⊆ H := by
-    rintro _ ⟨_, ⟨P, rfl⟩, rfl⟩; exact ⟨hProd P, hEval P⟩
-  have hHfin : H.Finite := Set.toFinite H
-  have hcardH : H.ncard = 1 := by
-    rw [← Nat.card_coe_set_eq]; exact card_prodEvalKer_one hc1 ⟨e, he⟩
-  have hle1 : (⇑Φ '' Set.range W'.μ₀).ncard ≤ 1 :=
-    (Set.ncard_le_ncard hBH hHfin).trans_eq hcardH
-  have hmem1 : (1 : {x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) ∈ ⇑Φ '' Set.range W'.μ₀ :=
-    ⟨1, ⟨0, rfl⟩, map_one _⟩
-  have hle2 : 1 ≤ (⇑Φ '' Set.range W'.μ₀).ncard :=
-    (Set.ncard_singleton _).symm.trans_le
-      (Set.ncard_le_ncard (Set.singleton_subset_iff.mpr hmem1) (hHfin.subset hBH))
-  rw [← Set.ncard_image_of_injective _ Φ.injective]
-  exact le_antisymm hle1 hle2
+  -- Transport `μ.range` by `Φ` and bound it against the single admissible sign pattern `T`.
+  set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+    (μ (W := W')).range.map (Φ : W'.M →* _) with hS
+  have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
+    Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
+  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+    {s | (∏ x, s x) = 1 ∧ s ⟨e, he⟩ = 1} with hT
+  have hST : (S : Set _) ⊆ T := by
+    rintro s hs
+    rw [SetLike.mem_coe, hS, Subgroup.mem_map] at hs
+    obtain ⟨t, ht, rfl⟩ := hs
+    refine ⟨?_, ?_⟩
+    · show (∏ x, Φ t x) = 1
+      rw [hΦ, Polynomial.prod_modPowEtaleEquiv]
+      exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
+        (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
+    · obtain ⟨g, rfl⟩ := MonoidHom.mem_range.mp ht
+      exact hEval g.toAdd
+  rw [hcard]
+  refine le_antisymm ((Nat.card_le_card_of_injective (Set.inclusion hST)
+    (Set.inclusion_injective hST)).trans_eq (card_prodEvalKer_one hc1 ⟨e, he⟩)) Nat.card_pos
 
 /-- Over `ℝ`, the image of the descent map has index `2` in the `2`-torsion: `2·#(im μ_ℝ)`
 equals `#E(ℝ)[2]`. The étale algebra is `ℝ × ℂ` (one real root) or `ℝ³` (three real roots), and
-under `modPowEtaleEquiv` the image sits inside the sign patterns that are even (Block 5, the norm)
-and trivial at the smallest root (Block 6); that set has the same size as `{1, μX e₁}`. -/
+under `modPowEtaleEquiv` the image is a subgroup of the sign patterns that are even (Block 5, the
+norm) and trivial at the smallest root (Block 6); that subgroup has size `1` resp. `2`. -/
 theorem two_mul_card_range_μ_real :
     2 * Nat.card (μ (W := W')).range =
       Nat.card (nsmulAddMonoidHom (α := W'.Point) 2).ker := by
-  rw [W'.card_ker_nsmul_two,
-    show Nat.card (μ (W := W')).range = (Set.range (μ₀ (W := W'))).ncard by
-      rw [← W'.range_μ_coe, ← MonoidHom.coe_range]; exact Nat.card_coe_set_eq _]
+  rw [W'.card_ker_nsmul_two]
   rcases W'.f_split with ⟨e₁, e₂, e₃, h12, h23, hf⟩ | ⟨e, q, hm, hirr, hd, hf⟩
-  · rw [W'.card_range_μ₀_split₃ h12 h23 hf, W'.card_roots_split₃ h12 h23 hf]
-  · rw [W'.card_range_μ₀_split₁ hm hirr hd hf, W'.card_roots_split₁ hm hirr hd hf]
+  · rw [W'.card_range_μ_split₃ h12 h23 hf, W'.card_roots_split₃ h12 h23 hf]
+  · rw [W'.card_range_μ_split₁ hm hirr hd hf, W'.card_roots_split₁ hm hirr hd hf]
 
 end RealPlace
 
