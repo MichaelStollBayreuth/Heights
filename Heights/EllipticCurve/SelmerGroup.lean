@@ -317,48 +317,6 @@ sign decomposition `Polynomial.modPowEtaleEquiv`). The descent map below is one 
 
 variable (W' : Affine ℝ)
 
--- The number of real roots of `f`, from the two splittings (instance-free).
-private lemma card_roots_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
-    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
-    Nat.card {x : ℝ // W'.f.eval x = 0} = 3 := by
-  have hset : {x : ℝ | W'.f.eval x = 0} = {e₁, e₂, e₃} := by
-    ext x
-    simp only [Set.mem_setOf_eq, hf, eval_mul, eval_sub, eval_X, eval_C, mul_eq_zero,
-      sub_eq_zero, Set.mem_insert_iff, Set.mem_singleton_iff, or_assoc]
-  show Nat.card ↥{x : ℝ | W'.f.eval x = 0} = 3
-  rw [Nat.card_coe_set_eq, hset]
-  exact Set.ncard_eq_three.mpr ⟨e₁, e₂, e₃, h12.ne, (h12.trans h23).ne, h23.ne, rfl⟩
-
-private lemma card_roots_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
-    (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
-    Nat.card {x : ℝ // W'.f.eval x = 0} = 1 := by
-  have hq (t : ℝ) : 0 < q.eval t :=
-    Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two hm hirr hd t
-  have hset : {x : ℝ | W'.f.eval x = 0} = {e} := by
-    ext x
-    simp only [Set.mem_setOf_eq, hf, eval_mul, eval_sub, eval_X, eval_C, Set.mem_singleton_iff]
-    refine ⟨fun h ↦ ?_, fun h ↦ by rw [h]; simp⟩
-    rcases mul_eq_zero.mp h with h' | h'
-    · exact sub_eq_zero.mp h'
-    · exact absurd h' (hq x).ne'
-  show Nat.card ↥{x : ℝ | W'.f.eval x = 0} = 1
-  rw [Nat.card_coe_set_eq, hset, Set.ncard_singleton]
-
--- The evaluation of `f`, and the roots, in the three-real-roots case (instance-free setup).
-private lemma eval_f_of_split₃ {e₁ e₂ e₃ : ℝ}
-    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) (t : ℝ) :
-    W'.f.eval t = (t - e₁) * (t - e₂) * (t - e₃) := by rw [hf]; simp
-
-private lemma root_eq_of_split₃ {e₁ e₂ e₃ t : ℝ}
-    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) (ht : W'.f.eval t = 0) :
-    t = e₁ ∨ t = e₂ ∨ t = e₃ := by
-  have h0 : (t - e₁) * (t - e₂) * (t - e₃) = 0 := by rw [← W'.eval_f_of_split₃ hf]; exact ht
-  rcases mul_eq_zero.mp h0 with h | h
-  · rcases mul_eq_zero.mp h with h' | h'
-    · exact .inl (sub_eq_zero.mp h')
-    · exact .inr (.inl (sub_eq_zero.mp h'))
-  · exact .inr (.inr (sub_eq_zero.mp h))
-
 -- The value of the torsion representative of `μX x` at a root `e` of `f` (instance-free); the
 -- generic value `x - e` is `Polynomial.modPowEtaleEquiv_mk_C_sub_X_apply` (via `etaleEvalHom`).
 private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
@@ -380,68 +338,31 @@ private lemma eval_projFactor_torsion_ne {x e : ℝ} (hx : W'.f.eval x = 0)
 /- The descent layer: the sign-class lemmas above are applied to `g = W'.f`, and combined with
 the values of the `x - T` map `μX` at the real roots to compute the image of `μ` over `ℝ`. -/
 
+-- Finiteness of the real roots and of the quadratic factors of `f`, available throughout.
+instance : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
+noncomputable instance : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
+instance : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
+noncomputable instance : Fintype W'.f.Factors := Fintype.ofFinite _
+noncomputable instance : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} :=
+  Fintype.ofFinite _
+
+-- The real roots have a smallest element (`f` has at least one root).
+private lemma exists_min_root (hpos : 0 < Nat.card {x : ℝ // W'.f.eval x = 0}) :
+    ∃ e₀ : {x : ℝ // W'.f.eval x = 0}, ∀ e, e₀ ≤ e := by
+  have : Nonempty {x : ℝ // W'.f.eval x = 0} := (Nat.card_pos_iff.mp hpos).1
+  exact ⟨Finset.univ.min' Finset.univ_nonempty, fun e ↦ Finset.min'_le _ e (Finset.mem_univ e)⟩
+
 variable [W'.IsElliptic] [W'.IsCharNeTwoNF]
 
--- Sorting three distinct reals in a triple product.
-private lemma sort₃ {a b c : ℝ} (hab : a ≠ b) (hac : a ≠ c) (hbc : b ≠ c) {g : ℝ[X]}
-    (hg : g = (X - C a) * (X - C b) * (X - C c)) :
-    ∃ e₁ e₂ e₃ : ℝ, e₁ < e₂ ∧ e₂ < e₃ ∧ g = (X - C e₁) * (X - C e₂) * (X - C e₃) := by
-  rcases lt_or_gt_of_ne hab with h1 | h1 <;> rcases lt_or_gt_of_ne hac with h2 | h2 <;>
-    rcases lt_or_gt_of_ne hbc with h3 | h3
-  · exact ⟨a, b, c, h1, h3, hg⟩
-  · exact ⟨a, c, b, h2, h3, by rw [hg]; ring⟩
-  · exact absurd (h2.trans h1) (lt_asymm h3)
-  · exact ⟨c, a, b, h2, h1, by rw [hg]; ring⟩
-  · exact ⟨b, a, c, h1, h2, by rw [hg]; ring⟩
-  · exact absurd (h2.trans h3) (lt_asymm h1)
-  · exact ⟨b, c, a, h3, h2, by rw [hg]; ring⟩
-  · exact ⟨c, b, a, h3, h1, by rw [hg]; ring⟩
+instance : Finite W'.M :=
+  Finite.of_equiv _ (modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f).symm.toEquiv
 
--- The splitting of the real cubic: three (distinct, sorted) real roots, or one real root
--- and a monic irreducible quadratic factor.
--- A monic reducible real quadratic splits into two monic linear factors.
-private lemma exists_linear_split {g : ℝ[X]} (hgm : g.Monic) (hd2 : g.natDegree = 2)
-    (hirr : ¬ Irreducible g) : ∃ a b : ℝ, g = (X - C a) * (X - C b) := by
-  obtain ⟨p, hpm, hpi, d, hd⟩ := g.exists_monic_irreducible_factor
-    (fun hu ↦ by simp [natDegree_eq_zero_of_isUnit hu] at hd2)
-  have hdm : d.Monic := hpm.of_mul_monic_left (hd ▸ hgm)
-  have hdeg := congrArg natDegree hd
-  rw [hd2, natDegree_mul hpm.ne_zero hdm.ne_zero] at hdeg
-  have hp1 : p.natDegree = 1 := by
-    rcases Nat.lt_or_ge p.natDegree 2 with h | h
-    · have := hpi.natDegree_pos; lia
-    · -- `p` of degree `2` would make `g` irreducible
-      rw [Polynomial.eq_one_of_monic_natDegree_zero hdm (by lia), mul_one] at hd
-      exact absurd (hd ▸ hpi) hirr
-  have hpe : p = X - C (-p.coeff 0) := by
-    conv_lhs => rw [hpm.eq_X_add_C hp1]
-    rw [map_neg, sub_neg_eq_add]
-  have hde : d = X - C (-d.coeff 0) := by
-    conv_lhs => rw [hdm.eq_X_add_C (by lia)]
-    rw [map_neg, sub_neg_eq_add]
-  exact ⟨-p.coeff 0, -d.coeff 0, by rw [hd, ← hpe, ← hde]⟩
-
-private lemma f_split :
-    (∃ e₁ e₂ e₃ : ℝ, e₁ < e₂ ∧ e₂ < e₃ ∧ W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) ∨
-      ∃ (e : ℝ) (q : ℝ[X]), q.Monic ∧ Irreducible q ∧ q.natDegree = 2 ∧
-        W'.f = (X - C e) * q := by
-  -- peel off a monic quadratic factor `q`, leaving a monic linear factor `l = X - e`
-  have hf3 : IsMonicOfDegree W'.f 3 := ⟨W'.natDegree_f, W'.monic_f⟩
-  obtain ⟨q, l, hq, hl, hf⟩ := hf3.eq_isMonicOfDegree_two_mul_isMonicOfDegree (n := 1)
-  obtain ⟨e, hle⟩ : ∃ e : ℝ, l = X - C e := by
-    refine ⟨-l.coeff 0, ?_⟩
-    conv_lhs => rw [hl.monic.eq_X_add_C hl.natDegree_eq]
-    rw [map_neg, sub_neg_eq_add]
-  by_cases hirr : Irreducible q
-  · exact .inr ⟨e, q, hq.monic, hirr, hq.natDegree_eq, by rw [hf, hle, mul_comm]⟩
-  · -- the quadratic factor splits into two linear factors `X - a`, `X - b`
-    obtain ⟨a, b, hab⟩ := exists_linear_split hq.monic hq.natDegree_eq hirr
-    have hsplit : W'.f = (X - C a) * (X - C b) * (X - C e) := by rw [hf, hle, hab]
-    have hne (u v w : ℝ) (huvw : W'.f = (X - C u) * (X - C v) * (X - C w)) : u ≠ v := by
-      rintro rfl
-      exact Polynomial.not_isUnit_X_sub_C u (W'.squarefree_f (X - C u) ⟨X - C w, by rw [huvw]⟩)
-    exact .inl (sort₃ (hne a b e hsplit) (hne a e b (by rw [hsplit]; ring))
-      (hne b e a (by rw [hsplit]; ring)) hsplit)
+-- A real cubic has one or three real roots (`#roots + 2·#(quadratic factors) = 3`).
+private lemma card_roots_eq_one_or_three :
+    Nat.card {x : ℝ // W'.f.eval x = 0} = 1 ∨ Nat.card {x : ℝ // W'.f.eval x = 0} = 3 := by
+  have h := Polynomial.card_realRoots_add_card_deg2 W'.f_ne_zero W'.squarefree_f
+  rw [W'.natDegree_f, ← Nat.card_eq_fintype_card] at h
+  lia
 
 -- A negative value at some root obstructs triviality of the square class.
 private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : ℝ}
@@ -450,148 +371,107 @@ private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : 
   absurd ((mk_eq_one_iff_forall_eval_nonneg W'.f_ne_zero W'.squarefree_f ha).mp hone ⟨e, he⟩)
     (not_le.mpr hlt)
 
--- `IsCharNeTwoNF` is used by `equation_iff_eval_f_eq_sq` in the proof but erased from the term
-set_option linter.unusedSectionVars false in
--- Over `ℝ`, `f x` is a square for a point `(x, y)`, hence `≥ 0`.
-private lemma eval_f_nonneg_of_nonsingular {x y : ℝ} (h : W'.Nonsingular x y) :
-    0 ≤ W'.f.eval x := by
-  rw [(W'.equation_iff_eval_f_eq_sq x y).mp h.1]
-  exact sq_nonneg y
+/-- **Norm kernel** (Block 5): the product of the sign entries of any element of the descent
+image is trivial. -/
+private lemma prod_modPowEtaleEquiv_μ_eq_one {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
+    (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 := by
+  rw [Polynomial.prod_modPowEtaleEquiv]
+  exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
+    (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
 
--- The class of `(e₁, 0)` is nontrivial: its value at the factor `e₂` is `e₁ - e₂ < 0`.
-private lemma μX_root_ne_one_of_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂)
-    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
-    W'.μX e₁ ≠ 1 := by
-  have he₁ : W'.f.eval e₁ = 0 := by rw [hf]; simp
-  have he₂ : W'.f.eval e₂ = 0 := by rw [hf]; simp
-  rw [μX_of_eval_f_eq_zero he₁]
-  refine W'.unit_class_ne_one_of_evalRoot_neg _ he₂ ?_
-  rw [W'.eval_projFactor_torsion_ne he₁ he₂ h12.ne']
-  linarith
-
--- With three real roots, the image of `μ` has exactly two elements. Transported by the sign iso
--- `modPowEtaleEquiv`, it is a subgroup of `(Multiplicative (ZMod 2))³` lying in the two-element set
--- cut out by triviality of the norm (Block 5, `range_μ_le_ker_normM`) and of the smallest-root
--- component (Block 6): size `≤ 2` by `card_prodEvalKer_three`, and `≥ 2` as it is nontrivial (it
--- contains `Φ (μX e₁) ≠ 1`).
-private lemma card_range_μ_split₃ {e₁ e₂ e₃ : ℝ} (h12 : e₁ < e₂) (h23 : e₂ < e₃)
-    (hf : W'.f = (X - C e₁) * (X - C e₂) * (X - C e₃)) :
-    Nat.card (μ (W := W')).range = 2 := by
-  have he₁ : W'.f.eval e₁ = 0 := by rw [W'.eval_f_of_split₃ hf]; ring
-  obtain ⟨hcof₁, _, _⟩ := W'.fCofactor_eq_of_f_eq hf
-  have : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
-  have : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
-  have : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
-  have : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} := Fintype.ofFinite _
-  have hc3 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 3 := by
-    rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₃ h12 h23 hf
+/-- **Smallest-root kernel** (Block 6): the sign entry, at the smallest real root `e₀`, of the
+descent class of any point is trivial. Otherwise the sign would be nontrivial at `e₀` and hence
+(the value being monotone along the roots, via `eval_projFactor_torsion_ne`) at every root,
+contradicting the trivial product over an odd number of roots. -/
+private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.eval x = 0}}
+    (hmin : ∀ e, e₀ ≤ e) (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) (P : W'.Point) :
+    modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f (W'.μ₀ P) e₀ = 1 := by
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  -- Block 6 (`modPowEtaleEquiv_mk_C_sub_X_apply`): the entry of every `μ₀ P` at the smallest root
-  -- `e₁` is trivial; the generic value `x - e₁` and the torsion cofactor at `e₁` are both `≥ 0`.
-  have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e₁, he₁⟩ = 1 := by
-    rintro (_ | ⟨x, y, h⟩)
-    · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]
-      rfl
-    have hge : e₁ ≤ x := by
-      by_contra! hlt
-      have := W'.eval_f_nonneg_of_nonsingular h
-      nlinarith [W'.eval_f_of_split₃ hf x,
-        mul_pos_of_neg_of_neg (show x - e₂ < 0 by linarith) (show x - e₃ < 0 by linarith)]
-    rw [μ₀_some, hΦ]
-    rcases eq_or_ne (W'.f.eval x) 0 with hx0 | hx0
-    · rw [μX_of_eval_f_eq_zero hx0, modPowEtaleEquiv_mk_apply]
-      rcases eq_or_ne e₁ x with rfl | hne1
-      · rw [eval_projFactor_torsion, hcof₁]
-        simp only [eval_mul, eval_sub, eval_X, eval_C, sub_self, zero_add]
-        nlinarith [mul_pos_of_neg_of_neg (show e₁ - e₂ < 0 by linarith)
-          (show e₁ - e₃ < 0 by linarith)]
-      · rw [W'.eval_projFactor_torsion_ne hx0 he₁ hne1]; linarith
-    · rw [μX_of_eval_f_ne_zero hx0]
-      exact (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e₁, he₁⟩).mpr hge
-  -- Transport `μ.range` by `Φ` and bound it against the admissible sign patterns `T`.
+  rcases P with _ | ⟨x, y, h⟩
+  · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]; rfl
+  have hprod : (∏ e, Φ (W'.μ₀ (.some x y h)) e) = 1 :=
+    W'.prod_modPowEtaleEquiv_μ_eq_one ⟨.ofAdd (.some x y h), rfl⟩
+  rw [Nat.card_eq_fintype_card] at hodd
+  obtain ⟨e', he'⟩ := exists_eq_one_of_prod_eq_one_of_odd _ hodd hprod
+  rw [μ₀_some, hΦ] at he' ⊢
+  rcases eq_or_ne (W'.f.eval x) 0 with hx0 | hx0
+  · rw [μX_of_eval_f_eq_zero hx0, modPowEtaleEquiv_mk_apply] at he' ⊢
+    rcases eq_or_ne (e₀ : ℝ) x with he0 | he0
+    · rcases eq_or_ne (e' : ℝ) x with he'x | he'x
+      · rwa [show e₀ = e' from Subtype.ext (he0.trans he'x.symm)]
+      · rw [W'.eval_projFactor_torsion_ne hx0 e'.2 he'x] at he'
+        exact absurd (le_antisymm (by linarith) (he0 ▸ Subtype.coe_le_coe.mpr (hmin e'))) he'x
+    · rw [W'.eval_projFactor_torsion_ne hx0 e₀.2 he0]
+      linarith [Subtype.coe_le_coe.mpr (hmin ⟨x, hx0⟩)]
+  · rw [μX_of_eval_f_ne_zero hx0, modPowEtaleEquiv_mk_C_sub_X_apply] at he' ⊢
+    exact (Subtype.coe_le_coe.mpr (hmin e')).trans he'
+
+/-- **Upper bound** (Block 5 ∩ Block 6): every element of the descent image is, under the sign
+iso, both norm-trivial and trivial at the smallest root — the intersection of the two kernels. -/
+private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}} (hmin : ∀ e, e₀ ≤ e)
+    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
+    (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 ∧
+      modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e₀ = 1 := by
+  refine ⟨W'.prod_modPowEtaleEquiv_μ_eq_one ht, ?_⟩
+  obtain ⟨g, rfl⟩ := MonoidHom.mem_range.mp ht
+  exact W'.modPowEtaleEquiv_μ₀_smallest_eq_one hmin hodd g.toAdd
+
+-- Transport the image by the sign iso and bound its size by the number of admissible patterns.
+private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0}} (hmin : ∀ e, e₀ ≤ e)
+    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) :
+    Nat.card (μ (W := W')).range ≤ Nat.card {s : {x : ℝ // W'.f.eval x = 0} →
+      Multiplicative (ZMod 2) // (∏ e, s e) = 1 ∧ s e₀ = 1} := by
+  set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f
   set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
     (μ (W := W')).range.map (Φ : W'.M →* _) with hS
+  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+    {s | (∏ e, s e) = 1 ∧ s e₀ = 1} with hT
   have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
     Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
-  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    {s | (∏ x, s x) = 1 ∧ s ⟨e₁, he₁⟩ = 1} with hT
   have hST : (S : Set _) ⊆ T := by
     rintro s hs
     rw [SetLike.mem_coe, hS, Subgroup.mem_map] at hs
     obtain ⟨t, ht, rfl⟩ := hs
-    refine ⟨?_, ?_⟩
-    · show (∏ x, Φ t x) = 1
-      rw [hΦ, Polynomial.prod_modPowEtaleEquiv]
-      exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
-        (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
-    · obtain ⟨g, rfl⟩ := MonoidHom.mem_range.mp ht
-      exact hEval g.toAdd
-  have hmemS : Φ (W'.μX e₁) ∈ S := Subgroup.mem_map_of_mem _
-    (MonoidHom.mem_range.mpr ⟨.ofAdd (.some e₁ 0 (W'.nonsingular_of_eval_f_eq_zero he₁)), rfl⟩)
-  have hne : Φ (W'.μX e₁) ≠ 1 := fun hc ↦
-    W'.μX_root_ne_one_of_split₃ h12 hf (Φ.injective (hc.trans (map_one Φ).symm))
+    exact W'.mem_kernels_of_mem_range hmin hodd ht
   rw [hcard]
-  refine le_antisymm ((Nat.card_le_card_of_injective (Set.inclusion hST)
-    (Set.inclusion_injective hST)).trans_eq (card_prodEvalKer_three hc3 ⟨e₁, he₁⟩)) ?_
+  exact Nat.card_le_card_of_injective (Set.inclusion hST) (Set.inclusion_injective hST)
+
+/-- **Lower bound**: with three real roots the image is nontrivial — the class of `(e₀, 0)` at the
+smallest root is nontrivial, its value at any other root `e` being `e₀ - e < 0`. -/
+private lemma two_le_card_range_μ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 3) :
+    2 ≤ Nat.card (μ (W := W')).range := by
+  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
+  obtain ⟨e, hne⟩ := Fintype.exists_ne_of_one_lt_card
+    (by rw [← Nat.card_eq_fintype_card, hc]; norm_num) e₀
+  have hmem : W'.μX (e₀ : ℝ) ∈ (μ (W := W')).range :=
+    MonoidHom.mem_range.mpr ⟨.ofAdd (.some _ 0 (W'.nonsingular_of_eval_f_eq_zero e₀.2)), rfl⟩
+  have hne1 : W'.μX (e₀ : ℝ) ≠ 1 := by
+    rw [μX_of_eval_f_eq_zero e₀.2]
+    refine W'.unit_class_ne_one_of_evalRoot_neg _ e.2 ?_
+    rw [W'.eval_projFactor_torsion_ne e₀.2 e.2 (fun heq ↦ hne (Subtype.ext heq))]
+    have h1 : (e₀ : ℝ) ≤ e := Subtype.coe_le_coe.mpr (hmin e)
+    have h2 : (e₀ : ℝ) ≠ e := fun heq ↦ hne (Subtype.ext heq.symm)
+    linarith [lt_of_le_of_ne h1 h2]
   exact Finite.one_lt_card_iff_nontrivial.mpr
-    ⟨⟨Φ (W'.μX e₁), hmemS⟩, 1, fun h ↦ hne (congrArg Subtype.val h)⟩
+    ⟨⟨_, hmem⟩, 1, fun heq ↦ hne1 (congrArg Subtype.val heq)⟩
 
--- With one real root `e`, the image of `μ` is trivial: transported by `modPowEtaleEquiv` it is a
--- subgroup of the single admissible sign pattern (norm-even and trivial at `e`), so has size `1`.
-private lemma card_range_μ_split₁ {e : ℝ} {q : ℝ[X]} (hm : q.Monic) (hirr : Irreducible q)
-    (hd : q.natDegree = 2) (hf : W'.f = (X - C e) * q) :
+-- With three real roots, the image of `μ` has exactly two elements: it lies in the two-element
+-- kernel intersection (upper bound), and it is nontrivial (lower bound).
+private lemma card_range_μ_split₃ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 3) :
+    Nat.card (μ (W := W')).range = 2 := by
+  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
+  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by rw [hc]; norm_num
+  refine le_antisymm ((W'.card_range_μ_le_card_patterns hmin hodd).trans_eq
+    (card_prodEvalKer_three (by rw [← Nat.card_eq_fintype_card]; exact hc) e₀))
+    (W'.two_le_card_range_μ hc)
+
+-- With one real root, the image of `μ` is trivial: it lies in the one-element kernel intersection.
+private lemma card_range_μ_split₁ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 1) :
     Nat.card (μ (W := W')).range = 1 := by
-  have heval (t : ℝ) : W'.f.eval t = (t - e) * q.eval t := by rw [hf]; simp
-  have he : W'.f.eval e = 0 := by rw [heval]; ring
-  have hq (t : ℝ) : 0 < q.eval t :=
-    Polynomial.eval_pos_of_monic_of_irreducible_of_natDegree_eq_two hm hirr hd t
-  have hroots {t : ℝ} (ht : W'.f.eval t = 0) : t = e :=
-    sub_eq_zero.mp ((mul_eq_zero.mp (heval t ▸ ht)).resolve_right (hq t).ne')
-  have hcof : W'.fCofactor e = q :=
-    mul_right_cancel₀ (X_sub_C_ne_zero e) (by rw [← W'.f_eq_mul_of_eval_eq_zero he, hf]; ring)
-  have : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
-  have : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
-  have : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
-  have : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} := Fintype.ofFinite _
-  have hc1 : Fintype.card {x : ℝ // W'.f.eval x = 0} = 1 := by
-    rw [← Nat.card_eq_fintype_card]; exact W'.card_roots_split₁ hm hirr hd hf
-  set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
-  -- Block 6: the sign entry of every `μ₀ P` at the sole root `e` is trivial.
-  have hEval : ∀ P : W'.Point, Φ (W'.μ₀ P) ⟨e, he⟩ = 1 := by
-    rintro (_ | ⟨x, y, h⟩)
-    · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]
-      rfl
-    have hfx := W'.eval_f_nonneg_of_nonsingular h
-    rw [μ₀_some, hΦ]
-    rcases eq_or_ne (W'.f.eval x) 0 with hx0 | hx0
-    · rw [μX_of_eval_f_eq_zero hx0, modPowEtaleEquiv_mk_apply, eval_projFactor_torsion,
-        hroots hx0, hcof]
-      simp only [sub_self, zero_add]
-      exact (hq e).le
-    · rw [μX_of_eval_f_ne_zero hx0]
-      refine (modPowEtaleEquiv_mk_C_sub_X_apply W'.f_ne_zero W'.squarefree_f _ ⟨e, he⟩).mpr ?_
-      nlinarith [heval x, hq x, lt_of_le_of_ne hfx (Ne.symm hx0)]
-  -- Transport `μ.range` by `Φ` and bound it against the single admissible sign pattern `T`.
-  set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    (μ (W := W')).range.map (Φ : W'.M →* _) with hS
-  have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
-    Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
-  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    {s | (∏ x, s x) = 1 ∧ s ⟨e, he⟩ = 1} with hT
-  have hST : (S : Set _) ⊆ T := by
-    rintro s hs
-    rw [SetLike.mem_coe, hS, Subgroup.mem_map] at hs
-    obtain ⟨t, ht, rfl⟩ := hs
-    refine ⟨?_, ?_⟩
-    · show (∏ x, Φ t x) = 1
-      rw [hΦ, Polynomial.prod_modPowEtaleEquiv]
-      exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
-        (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
-    · obtain ⟨g, rfl⟩ := MonoidHom.mem_range.mp ht
-      exact hEval g.toAdd
-  rw [hcard]
-  refine le_antisymm ((Nat.card_le_card_of_injective (Set.inclusion hST)
-    (Set.inclusion_injective hST)).trans_eq (card_prodEvalKer_one hc1 ⟨e, he⟩)) Nat.card_pos
+  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
+  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by rw [hc]; norm_num
+  refine le_antisymm ((W'.card_range_μ_le_card_patterns hmin hodd).trans_eq
+    (card_prodEvalKer_one (by rw [← Nat.card_eq_fintype_card]; exact hc) e₀)) Nat.card_pos
 
 /-- Over `ℝ`, the image of the descent map has index `2` in the `2`-torsion: `2·#(im μ_ℝ)`
 equals `#E(ℝ)[2]`. The étale algebra is `ℝ × ℂ` (one real root) or `ℝ³` (three real roots), and
@@ -601,9 +481,9 @@ theorem two_mul_card_range_μ_real :
     2 * Nat.card (μ (W := W')).range =
       Nat.card (nsmulAddMonoidHom (α := W'.Point) 2).ker := by
   rw [W'.card_ker_nsmul_two]
-  rcases W'.f_split with ⟨e₁, e₂, e₃, h12, h23, hf⟩ | ⟨e, q, hm, hirr, hd, hf⟩
-  · rw [W'.card_range_μ_split₃ h12 h23 hf, W'.card_roots_split₃ h12 h23 hf]
-  · rw [W'.card_range_μ_split₁ hm hirr hd hf, W'.card_roots_split₁ hm hirr hd hf]
+  rcases W'.card_roots_eq_one_or_three with h | h
+  · rw [W'.card_range_μ_split₁ h, h]
+  · rw [W'.card_range_μ_split₃ h, h]
 
 end RealPlace
 

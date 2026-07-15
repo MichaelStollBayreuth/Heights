@@ -647,3 +647,19 @@ lemma card_prodEvalKer_three {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 3
 lemma card_prodEvalKer_one {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 1) (e : ι) :
     Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1} = 1 := by
   rw [card_prodEvalKer_eq hn e, Nat.card_eq_fintype_card]; decide
+
+/-- An odd number of `Multiplicative (ZMod 2)`-signs whose product is trivial cannot be all
+nontrivial: some entry is `1`. -/
+lemma exists_eq_one_of_prod_eq_one_of_odd {ι : Type*} [Fintype ι]
+    (s : ι → Multiplicative (ZMod 2)) (hodd : Odd (Fintype.card ι)) (hprod : ∏ i, s i = 1) :
+    ∃ i, s i = 1 := by
+  by_contra h
+  simp only [not_exists] at h
+  have hz : ∀ z : Multiplicative (ZMod 2), z ≠ 1 → z = Multiplicative.ofAdd 1 := by decide
+  rw [Finset.prod_congr rfl (fun i _ ↦ hz _ (h i)), Finset.prod_const, Finset.card_univ,
+    ← ofAdd_nsmul] at hprod
+  have hc : (Fintype.card ι : ZMod 2) = 0 := by
+    simpa [nsmul_eq_mul] using congrArg Multiplicative.toAdd hprod
+  obtain ⟨k, hk⟩ := hodd
+  obtain ⟨m, hm⟩ := (CharP.cast_eq_zero_iff (ZMod 2) 2 _).mp hc
+  omega
