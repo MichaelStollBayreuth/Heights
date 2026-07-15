@@ -588,3 +588,34 @@ lemma prod_val_nonneg_of_map_norm_eq_one [Fintype {x : ℝ // f.eval x = 0}]
   exact (mul_nonneg_iff_of_pos_right hpos).mp h
 
 end Polynomial
+
+/-! ### Counting sign-pattern subgroups -/
+
+/-- Reindexing: the number of sign patterns `ι → Multiplicative (ZMod 2)` with trivial product
+and trivial value at a chosen index `e` equals the corresponding count for `Fin n`. -/
+lemma card_prodEvalKer_eq {ι : Type*} [Fintype ι] {n : ℕ} [NeZero n] (hn : Fintype.card ι = n)
+    (e : ι) :
+    Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1}
+      = Nat.card {t : Fin n → Multiplicative (ZMod 2) // (∏ i, t i) = 1 ∧ t 0 = 1} := by
+  classical
+  let τ : ι ≃ Fin n :=
+    (Fintype.equivFinOfCardEq hn).trans (Equiv.swap ((Fintype.equivFinOfCardEq hn) e) 0)
+  have hτe : τ e = 0 := by simp [τ, Equiv.trans_apply, Equiv.swap_apply_left]
+  refine Nat.card_congr (Equiv.subtypeEquiv (Equiv.arrowCongr τ (Equiv.refl _)) fun s ↦ ?_)
+  have hp : (∏ j, (Equiv.arrowCongr τ (Equiv.refl _) s) j) = ∏ i, s i := by
+    simp only [Equiv.arrowCongr_apply, Equiv.coe_refl, Function.comp, id_eq]
+    exact Equiv.prod_comp τ.symm s
+  have hz : (Equiv.arrowCongr τ (Equiv.refl _) s) 0 = s e := by
+    simp only [Equiv.arrowCongr_apply, Equiv.coe_refl, Function.comp, id_eq]
+    rw [show (0 : Fin n) = τ e from hτe.symm, τ.symm_apply_apply]
+  rw [hp, hz]
+
+/-- Three sign entries, product trivial and the first trivial: exactly `2` patterns. -/
+lemma card_prodEvalKer_three {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 3) (e : ι) :
+    Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1} = 2 := by
+  rw [card_prodEvalKer_eq hn e, Nat.card_eq_fintype_card]; decide
+
+/-- One sign entry, product trivial and it trivial: exactly `1` pattern. -/
+lemma card_prodEvalKer_one {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 1) (e : ι) :
+    Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1} = 1 := by
+  rw [card_prodEvalKer_eq hn e, Nat.card_eq_fintype_card]; decide
