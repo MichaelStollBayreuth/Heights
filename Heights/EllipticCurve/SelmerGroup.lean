@@ -315,6 +315,9 @@ sign decomposition `Polynomial.modPowEtaleEquiv`). The descent map below is one 
 
 variable (W' : Affine ℝ)
 
+-- The real roots of `f`, as a type (`W'` is fixed throughout the section).
+local notation "𝓡" => {x : ℝ // W'.f.eval x = 0}
+
 -- The value of the torsion representative of `μX x` at a root `e` of `f` (instance-free); the
 -- generic value `x - e` is `Polynomial.modPowEtaleEquiv_mk_C_sub_X_apply` (via `etaleEvalHom`).
 private lemma eval_projFactor_torsion (x : ℝ) {e : ℝ} (he : W'.f.eval e = 0) :
@@ -337,17 +340,17 @@ private lemma eval_projFactor_torsion_ne {x e : ℝ} (hx : W'.f.eval x = 0)
 the values of the `x - T` map `μX` at the real roots to compute the image of `μ` over `ℝ`. -/
 
 -- Finiteness of the real roots and of the quadratic factors of `f`, available throughout.
-instance : Finite {x : ℝ // W'.f.eval x = 0} := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
-noncomputable instance : Fintype {x : ℝ // W'.f.eval x = 0} := Fintype.ofFinite _
+instance : Finite 𝓡 := (finite_setOf_isRoot W'.f_ne_zero).to_subtype
+noncomputable instance : Fintype 𝓡 := Fintype.ofFinite _
 instance : Finite W'.f.Factors := Polynomial.Factors.finite W'.f_ne_zero
 noncomputable instance : Fintype W'.f.Factors := Fintype.ofFinite _
 noncomputable instance : Fintype {p : W'.f.Factors // (p : ℝ[X]).natDegree = 2} :=
   Fintype.ofFinite _
 
 -- The real roots have a smallest element (`f` has at least one root).
-private lemma exists_min_root (hpos : 0 < Nat.card {x : ℝ // W'.f.eval x = 0}) :
-    ∃ e₀ : {x : ℝ // W'.f.eval x = 0}, ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e := by
-  have : Nonempty {x : ℝ // W'.f.eval x = 0} := (Nat.card_pos_iff.mp hpos).1
+private lemma exists_min_root (hpos : 0 < Nat.card 𝓡) :
+    ∃ e₀ : 𝓡, ∀ e : 𝓡, (e₀ : ℝ) ≤ e := by
+  have : Nonempty 𝓡 := (Nat.card_pos_iff.mp hpos).1
   exact ⟨Finset.univ.min' Finset.univ_nonempty,
     fun e ↦ Subtype.coe_le_coe.mpr (Finset.min'_le _ e (Finset.mem_univ e))⟩
 
@@ -358,7 +361,7 @@ instance : Finite W'.M :=
 
 -- A real cubic has one or three real roots (`#roots + 2·#(quadratic factors) = 3`).
 private lemma card_roots_eq_one_or_three :
-    Nat.card {x : ℝ // W'.f.eval x = 0} = 1 ∨ Nat.card {x : ℝ // W'.f.eval x = 0} = 3 := by
+    Nat.card 𝓡 = 1 ∨ Nat.card 𝓡 = 3 := by
   have h := Polynomial.card_realRoots_add_card_deg2 W'.f_ne_zero W'.squarefree_f
   rw [W'.natDegree_f, ← Nat.card_eq_fintype_card] at h
   lia
@@ -381,9 +384,8 @@ private lemma prod_modPowEtaleEquiv_μ_eq_one {t : W'.M} (ht : t ∈ (μ (W := W
 -- any point is trivial. Otherwise the sign would be nontrivial at `e₀` and hence (the value being
 -- monotone along the roots, via `eval_projFactor_torsion_ne`) at every root, contradicting the
 -- trivial product over an odd number of roots.
-private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.eval x = 0}}
-    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
-    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) (P : W'.Point) :
+private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : 𝓡} (hmin : ∀ e : 𝓡, (e₀ : ℝ) ≤ e)
+    (hodd : Odd (Nat.card 𝓡)) (P : W'.Point) :
     modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f (W'.μ₀ P) e₀ = 1 := by
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
   rcases P with _ | ⟨x, y, h⟩
@@ -407,9 +409,8 @@ private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.ev
 
 -- Upper bound: every element of the descent image is, under the sign iso, both norm-trivial and
 -- trivial at the smallest root — the intersection of the two kernels.
-private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}}
-    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
-    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
+private lemma mem_kernels_of_mem_range {e₀ : 𝓡} (hmin : ∀ e : 𝓡, (e₀ : ℝ) ≤ e)
+    (hodd : Odd (Nat.card 𝓡)) {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
     (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 ∧
       modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e₀ = 1 := by
   refine ⟨W'.prod_modPowEtaleEquiv_μ_eq_one ht, ?_⟩
@@ -417,15 +418,14 @@ private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}}
   exact W'.modPowEtaleEquiv_μ₀_smallest_eq_one hmin hodd g.toAdd
 
 -- Transport the image by the sign iso and bound its size by the number of admissible patterns.
-private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0}}
-    (hmin : ∀ e : {x : ℝ // W'.f.eval x = 0}, (e₀ : ℝ) ≤ e)
-    (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) :
-    Nat.card (μ (W := W')).range ≤ Nat.card {s : {x : ℝ // W'.f.eval x = 0} →
-      Multiplicative (ZMod 2) // (∏ e, s e) = 1 ∧ s e₀ = 1} := by
+private lemma card_range_μ_le_card_patterns {e₀ : 𝓡} (hmin : ∀ e : 𝓡, (e₀ : ℝ) ≤ e)
+    (hodd : Odd (Nat.card 𝓡)) :
+    Nat.card (μ (W := W')).range ≤
+      Nat.card {s : 𝓡 → Multiplicative (ZMod 2) // (∏ e, s e) = 1 ∧ s e₀ = 1} := by
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f
-  set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+  set S : Subgroup (𝓡 → Multiplicative (ZMod 2)) :=
     (μ (W := W')).range.map (Φ : W'.M →* _) with hS
-  set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
+  set T : Set (𝓡 → Multiplicative (ZMod 2)) :=
     {s | (∏ e, s e) = 1 ∧ s e₀ = 1}
   have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
     Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
@@ -440,7 +440,7 @@ private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0
 -- Lower bound: with three real roots the image is nontrivial — the class of the `2`-torsion point
 -- `(e₀, 0)` (`e₀` the smallest root) is nontrivial, witnessed by its value `e₀ - e < 0` at any
 -- other root `e`.
-private lemma two_le_card_range_μ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 3) :
+private lemma two_le_card_range_μ (hc : Nat.card 𝓡 = 3) :
     2 ≤ Nat.card (μ (W := W')).range := by
   obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
   obtain ⟨e, hne⟩ := Fintype.exists_ne_of_one_lt_card
@@ -468,7 +468,7 @@ theorem two_mul_card_range_μ_real :
   rw [W'.card_ker_nsmul_two]
   have hdich := W'.card_roots_eq_one_or_three
   obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rcases hdich with h | h <;> rw [h] <;> norm_num)
-  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by
+  have hodd : Odd (Nat.card 𝓡) := by
     rcases hdich with h | h <;> rw [h] <;> norm_num
   have hup := W'.card_range_μ_le_card_patterns hmin hodd
   rcases hdich with h | h
