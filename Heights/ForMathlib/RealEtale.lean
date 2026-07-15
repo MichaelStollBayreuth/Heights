@@ -86,14 +86,14 @@ lemma range_powMonoidHom_real_eq_ker_realSign (hn : n ≠ 0) (he : Even n) :
     apply Units.ext
     rw [Units.val_pow_eq_pow_val, Units.val_mk0, Real.rpow_inv_natCast_pow hu.le hn]
 
-/-- **Block 1 (even case).** For even nonzero `n`, the group of `n`-th power classes of real
+/-- For even nonzero `n`, the group of `n`-th power classes of real
 units is `Multiplicative (ZMod 2)`, via the sign. -/
 def realEquivOfEven (hn : n ≠ 0) (he : Even n) :
     Units.modPow ℝ n ≃* Multiplicative (ZMod 2) :=
   (QuotientGroup.quotientMulEquivOfEq (range_powMonoidHom_real_eq_ker_realSign hn he)).trans
     (QuotientGroup.quotientKerEquivOfSurjective realSign realSign_surjective)
 
-/-- **Block 1 (odd case).** For odd `n`, every real unit is an `n`-th power, so the group of
+/-- For odd `n`, every real unit is an `n`-th power, so the group of
 `n`-th power classes of real units is trivial. -/
 lemma subsingleton_real_of_odd (ho : Odd n) : Subsingleton (Units.modPow ℝ n) := by
   have hn : n ≠ 0 := by rintro rfl; simp at ho
@@ -305,7 +305,7 @@ lemma finrank_etaleTarget (hf : f ≠ 0) (hsq : Squarefree f) :
   simp only [Complex.finrank_real_complex, Finset.sum_const, smul_eq_mul, Finset.card_univ]
   exact card_realRoots_add_card_deg2 hf hsq
 
-/-- **Block 2.** For nonzero squarefree `f`, evaluation gives an `ℝ`-algebra isomorphism
+/-- For nonzero squarefree `f`, evaluation gives an `ℝ`-algebra isomorphism
 `ℝ[X]/f ≃ (real roots → ℝ) × (degree-2 factors → ℂ)`. -/
 def etaleEquiv (hf : f ≠ 0) (hsq : Squarefree f) :
     AdjoinRoot f ≃ₐ[ℝ]
@@ -357,7 +357,7 @@ namespace Polynomial
 
 variable {f : ℝ[X]}
 
-/-- **Block 3.** The square classes of units of `ℝ[X]/f` (for `f` nonzero squarefree) are the
+/-- The square classes of units of `ℝ[X]/f` (for `f` nonzero squarefree) are the
 sign patterns at the real roots of `f`: `Units.modPow (ℝ[X]/f) 2` is the power of
 `Multiplicative (ZMod 2)` indexed by the real roots (the complex factors contribute nothing). -/
 def modPowEtaleEquiv (hf : f ≠ 0) (hsq : Squarefree f) :
@@ -394,8 +394,8 @@ namespace Polynomial
 
 variable {f : ℝ[X]}
 
-/-- At a real root `x`, the square class of a unit `a` of `ℝ[X]/f` is trivial exactly when its
-value `a(x)` there is nonnegative. -/
+/-- The sign entry, at a real root `x`, of the square class of a unit `a` of `ℝ[X]/f` is trivial
+exactly when the value `a(x)` there is nonnegative. -/
 lemma modPowEtaleEquiv_mk_apply (hf : f ≠ 0) (hsq : Squarefree f) {a : AdjoinRoot f}
     (ha : IsUnit a) (x : {x : ℝ // f.eval x = 0}) :
     modPowEtaleEquiv hf hsq (QuotientGroup.mk ha.unit) x = 1 ↔ 0 ≤ (etaleEvalHom f a).1 x := by
@@ -408,7 +408,7 @@ lemma modPowEtaleEquiv_mk_apply (hf : f ≠ 0) (hsq : Squarefree f) {a : AdjoinR
     MonoidHom.coe_fst, Units.coe_mapEquiv, IsUnit.unit_spec]
   rfl
 
-/-- **The sign characterization** (from Block 3): the square class of a unit `a` of `ℝ[X]/f`
+/-- **The sign characterization**: the square class of a unit `a` of `ℝ[X]/f`
 is trivial exactly when its value at every real root of `f` is nonnegative. -/
 lemma mk_eq_one_iff_forall_eval_nonneg (hf : f ≠ 0) (hsq : Squarefree f) {a : AdjoinRoot f}
     (ha : IsUnit a) :
@@ -418,9 +418,9 @@ lemma mk_eq_one_iff_forall_eval_nonneg (hf : f ≠ 0) (hsq : Squarefree f) {a : 
   exact forall_congr' fun x ↦ by
     rw [Pi.one_apply]; exact modPowEtaleEquiv_mk_apply hf hsq ha x
 
-/-- The square class of the linear polynomial `x - T = C x - X` (its value at a real root `e`
-being `x - e`) has trivial sign entry at `e` exactly when `e ≤ x`. This is the value, at the real
-roots, of the `x - T` descent map. -/
+/-- The sign entry at a real root `e` of the square class of the linear polynomial `x - T =
+C x - X` is trivial exactly when `e ≤ x` (its value at `e` being `x - e`). This computes the sign
+of the `x - T` descent map at the real roots. -/
 lemma modPowEtaleEquiv_mk_C_sub_X_apply (hf : f ≠ 0) (hsq : Squarefree f) {x : ℝ}
     (hu : IsUnit (AdjoinRoot.mk f (C x - X))) (e : {x : ℝ // f.eval x = 0}) :
     modPowEtaleEquiv hf hsq (QuotientGroup.mk hu.unit) e = 1 ↔ (e : ℝ) ≤ x := by
@@ -496,9 +496,9 @@ def deg2FactorEquivUpperRoots :
 
 end Polynomial
 
-/-! ### Block 4: the norm on a product algebra -/
+/-! ### The norm on a product algebra -/
 
-/-- **Block 4 (product).** The `R`-norm on a product algebra is the product of the norms. -/
+/-- The `R`-norm on a product algebra is the product of the norms. -/
 theorem Algebra.norm_prod {R A B : Type*} [CommRing R] [CommRing A] [CommRing B] [Algebra R A]
     [Algebra R B] [Module.Free R A] [Module.Finite R A] [Module.Free R B] [Module.Finite R B]
     (x : A × B) : Algebra.norm R x = Algebra.norm R x.1 * Algebra.norm R x.2 := by
@@ -506,7 +506,7 @@ theorem Algebra.norm_prod {R A B : Type*} [CommRing R] [CommRing A] [CommRing B]
     ext <;> simp
   rw [Algebra.norm_apply, Algebra.norm_apply, Algebra.norm_apply, h, LinearMap.det_prodMap]
 
-/-- **Block 4 (finite product).** The `R`-norm on `ι → S` is the product of the norms. -/
+/-- The `R`-norm on `ι → S` is the product of the norms. -/
 theorem Algebra.norm_pi {R : Type*} [CommRing R] {ι : Type*} [Fintype ι] {S : Type*} [CommRing S]
     [Algebra R S] [Module.Free R S] [Module.Finite R S] (g : ι → S) :
     Algebra.norm R g = ∏ i, Algebra.norm R (g i) := by
@@ -522,7 +522,7 @@ namespace Polynomial
 
 variable {f : ℝ[X]}
 
-/-- **Block 4 (étale algebra).** The `ℝ`-norm of an element of `ℝ[X]/f` is the product of its
+/-- The `ℝ`-norm of an element of `ℝ[X]/f` is the product of its
 values at the real roots times the product of the `normSq` (nonnegative!) of its values at the
 upper roots — the product of the component norms under `etaleEquiv`. -/
 lemma norm_etale [Fintype {x : ℝ // f.eval x = 0}]
@@ -540,7 +540,7 @@ lemma norm_etale [Fintype {x : ℝ // f.eval x = 0}]
 
 end Polynomial
 
-/-! ### Block 5: the norm as a product of signs -/
+/-! ### The norm as a product of signs -/
 
 namespace Units.modPow
 
@@ -558,7 +558,7 @@ namespace Polynomial
 
 variable {f : ℝ[X]}
 
-/-- **Block 5.** Under the sign decomposition, the norm map on square classes corresponds to the
+/-- Under the sign decomposition, the norm map on square classes corresponds to the
 product of the entries: `realEquiv (normM (mk a)) = ∏_x modPowEtaleEquiv (mk a) x`. The complex
 factors contribute the (positive) `normSq`, so only the real-root signs survive. -/
 lemma normM_eq_prod_modPowEtale [Fintype {x : ℝ // f.eval x = 0}]
@@ -584,7 +584,7 @@ lemma normM_eq_prod_modPowEtale [Fintype {x : ℝ // f.eval x = 0}]
   show 0 < Algebra.norm ℝ a ↔ 0 < ∏ x : {x : ℝ // f.eval x = 0}, (etaleEquiv hf hsq a).1 x
   rw [norm_etale hf hsq a, mul_pos_iff_of_pos_right hpos]
 
-/-- **Block 5** for an arbitrary square class `g` (not just `mk a`): the product of the sign
+/-- For an arbitrary square class `g` (not just `mk a`), the product of the sign
 entries of `g` is the sign of its norm. Obtained from `normM_eq_prod_modPowEtale` by
 `QuotientGroup.induction_on`. -/
 lemma prod_modPowEtaleEquiv [Fintype {x : ℝ // f.eval x = 0}]
@@ -600,8 +600,7 @@ lemma prod_modPowEtaleEquiv [Fintype {x : ℝ // f.eval x = 0}]
     exact hb.symm
 
 /-- If the norm class of a unit `a` of `ℝ[X]/f` is trivial, then the product of its values at the
-real roots is nonnegative (a corollary of Block 5: the complex factors give the positive
-`normSq`). -/
+real roots is nonnegative (the complex factors give the positive `normSq`). -/
 lemma prod_val_nonneg_of_map_norm_eq_one [Fintype {x : ℝ // f.eval x = 0}]
     [Fintype {p : f.Factors // (p : ℝ[X]).natDegree = 2}] (hf : f ≠ 0) (hsq : Squarefree f)
     {a : AdjoinRoot f} (ha : IsUnit a)
@@ -638,12 +637,12 @@ lemma card_prodEvalKer_eq {ι : Type*} [Fintype ι] {n : ℕ} [NeZero n] (hn : F
     rw [show (0 : Fin n) = τ e from hτe.symm, τ.symm_apply_apply]
   rw [hp, hz]
 
-/-- Three sign entries, product trivial and the first trivial: exactly `2` patterns. -/
+/-- Three sign entries, product trivial and one chosen entry trivial: exactly `2` patterns. -/
 lemma card_prodEvalKer_three {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 3) (e : ι) :
     Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1} = 2 := by
   rw [card_prodEvalKer_eq hn e, Nat.card_eq_fintype_card]; decide
 
-/-- One sign entry, product trivial and it trivial: exactly `1` pattern. -/
+/-- One sign entry, product trivial and that entry trivial: exactly `1` pattern. -/
 lemma card_prodEvalKer_one {ι : Type*} [Fintype ι] (hn : Fintype.card ι = 1) (e : ι) :
     Nat.card {s : ι → Multiplicative (ZMod 2) // (∏ i, s i) = 1 ∧ s e = 1} = 1 := by
   rw [card_prodEvalKer_eq hn e, Nat.card_eq_fintype_card]; decide
