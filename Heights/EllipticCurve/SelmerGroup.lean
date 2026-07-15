@@ -308,8 +308,6 @@ carry it out over `ℝ` directly and transport it to a real completion by the is
 
 section RealPlace
 
-open scoped Classical
-
 /- The square-class sign layer lives in `Heights.ForMathlib.RealEtale`: for a nonzero squarefree
 real polynomial `f`, the square class of a unit of `ℝ[X]/(f)` is trivial exactly when its value
 at every real root of `f` is nonnegative (`Polynomial.mk_eq_one_iff_forall_eval_nonneg`, from the
@@ -371,24 +369,23 @@ private lemma unit_class_ne_one_of_evalRoot_neg {a : W'.A} (ha : IsUnit a) {e : 
   absurd ((mk_eq_one_iff_forall_eval_nonneg W'.f_ne_zero W'.squarefree_f ha).mp hone ⟨e, he⟩)
     (not_le.mpr hlt)
 
-/-- **Norm kernel**: the product of the sign entries of any element of the descent
-image is trivial. -/
+-- Norm kernel: the product of the sign entries of any element of the descent image is trivial.
 private lemma prod_modPowEtaleEquiv_μ_eq_one {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
     (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 := by
   rw [Polynomial.prod_modPowEtaleEquiv]
   exact (congrArg (Units.modPow.realEquivOfEven two_ne_zero even_two)
     (MonoidHom.mem_ker.mp (range_μ_le_ker_normM ht))).trans (map_one _)
 
-/-- **Smallest-root kernel**: the sign entry, at the smallest real root `e₀`, of the
-descent class of any point is trivial. Otherwise the sign would be nontrivial at `e₀` and hence
-(the value being monotone along the roots, via `eval_projFactor_torsion_ne`) at every root,
-contradicting the trivial product over an odd number of roots. -/
+-- Smallest-root kernel: the sign entry, at the smallest real root `e₀`, of the descent class of
+-- any point is trivial. Otherwise the sign would be nontrivial at `e₀` and hence (the value being
+-- monotone along the roots, via `eval_projFactor_torsion_ne`) at every root, contradicting the
+-- trivial product over an odd number of roots.
 private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.eval x = 0}}
     (hmin : ∀ e, e₀ ≤ e) (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) (P : W'.Point) :
     modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f (W'.μ₀ P) e₀ = 1 := by
   set Φ := modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f with hΦ
   rcases P with _ | ⟨x, y, h⟩
-  · rw [show W'.μ₀ Point.zero = 1 from rfl, map_one]; rfl
+  · change Φ (1 : W'.M) e₀ = 1; rw [map_one]; rfl
   have hprod : (∏ e, Φ (W'.μ₀ (.some x y h)) e) = 1 :=
     W'.prod_modPowEtaleEquiv_μ_eq_one ⟨.ofAdd (.some x y h), rfl⟩
   rw [Nat.card_eq_fintype_card] at hodd
@@ -406,8 +403,8 @@ private lemma modPowEtaleEquiv_μ₀_smallest_eq_one {e₀ : {x : ℝ // W'.f.ev
   · rw [μX_of_eval_f_ne_zero hx0, modPowEtaleEquiv_mk_C_sub_X_apply] at he' ⊢
     exact (Subtype.coe_le_coe.mpr (hmin e')).trans he'
 
-/-- **Upper bound**: every element of the descent image is, under the sign
-iso, both norm-trivial and trivial at the smallest root — the intersection of the two kernels. -/
+-- Upper bound: every element of the descent image is, under the sign iso, both norm-trivial and
+-- trivial at the smallest root — the intersection of the two kernels.
 private lemma mem_kernels_of_mem_range {e₀ : {x : ℝ // W'.f.eval x = 0}} (hmin : ∀ e, e₀ ≤ e)
     (hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0})) {t : W'.M} (ht : t ∈ (μ (W := W')).range) :
     (∏ e, modPowEtaleEquiv W'.f_ne_zero W'.squarefree_f t e) = 1 ∧
@@ -425,7 +422,7 @@ private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0
   set S : Subgroup ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
     (μ (W := W')).range.map (Φ : W'.M →* _) with hS
   set T : Set ({x : ℝ // W'.f.eval x = 0} → Multiplicative (ZMod 2)) :=
-    {s | (∏ e, s e) = 1 ∧ s e₀ = 1} with hT
+    {s | (∏ e, s e) = 1 ∧ s e₀ = 1}
   have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
     Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
   have hST : (S : Set _) ⊆ T := by
@@ -436,9 +433,9 @@ private lemma card_range_μ_le_card_patterns {e₀ : {x : ℝ // W'.f.eval x = 0
   rw [hcard]
   exact Nat.card_le_card_of_injective (Set.inclusion hST) (Set.inclusion_injective hST)
 
-/-- **Lower bound**: with three real roots the image is nontrivial — the class of the `2`-torsion
-point `(e₀, 0)` (`e₀` the smallest root) is nontrivial, witnessed by its value `e₀ - e < 0` at any
-other root `e`. -/
+-- Lower bound: with three real roots the image is nontrivial — the class of the `2`-torsion point
+-- `(e₀, 0)` (`e₀` the smallest root) is nontrivial, witnessed by its value `e₀ - e < 0` at any
+-- other root `e`.
 private lemma two_le_card_range_μ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 3) :
     2 ≤ Nat.card (μ (W := W')).range := by
   obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
