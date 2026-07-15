@@ -455,35 +455,29 @@ private lemma two_le_card_range_μ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} =
   exact Finite.one_lt_card_iff_nontrivial.mpr
     ⟨⟨_, hmem⟩, 1, fun heq ↦ hne1 (congrArg Subtype.val heq)⟩
 
--- With three real roots, the image of `μ` has exactly two elements: it lies in the two-element
--- kernel intersection (upper bound), and it is nontrivial (lower bound).
-private lemma card_range_μ_split₃ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 3) :
-    Nat.card (μ (W := W')).range = 2 := by
-  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
-  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by rw [hc]; norm_num
-  refine le_antisymm ((W'.card_range_μ_le_card_patterns hmin hodd).trans_eq
-    (card_prodEvalKer_three (by rw [← Nat.card_eq_fintype_card]; exact hc) e₀))
-    (W'.two_le_card_range_μ hc)
-
--- With one real root, the image of `μ` is trivial: it lies in the one-element kernel intersection.
-private lemma card_range_μ_split₁ (hc : Nat.card {x : ℝ // W'.f.eval x = 0} = 1) :
-    Nat.card (μ (W := W')).range = 1 := by
-  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rw [hc]; norm_num)
-  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by rw [hc]; norm_num
-  refine le_antisymm ((W'.card_range_μ_le_card_patterns hmin hodd).trans_eq
-    (card_prodEvalKer_one (by rw [← Nat.card_eq_fintype_card]; exact hc) e₀)) Nat.card_pos
-
 /-- Over `ℝ`, the image of the descent map has index `2` in the `2`-torsion: `2·#(im μ_ℝ)`
 equals `#E(ℝ)[2]`. The étale algebra is `ℝ × ℂ` (one real root) or `ℝ³` (three real roots), and
 under `modPowEtaleEquiv` the image is a subgroup of the sign patterns that are even (Block 5, the
-norm) and trivial at the smallest root (Block 6); that subgroup has size `1` resp. `2`. -/
+norm) and trivial at the smallest root (Block 6); by `card_range_μ_le_card_patterns` that subgroup
+has size `≤ 1` resp. `≤ 2`, and `two_le_card_range_μ` gives `≥ 2` in the second case. -/
 theorem two_mul_card_range_μ_real :
     2 * Nat.card (μ (W := W')).range =
       Nat.card (nsmulAddMonoidHom (α := W'.Point) 2).ker := by
   rw [W'.card_ker_nsmul_two]
-  rcases W'.card_roots_eq_one_or_three with h | h
-  · rw [W'.card_range_μ_split₁ h, h]
-  · rw [W'.card_range_μ_split₃ h, h]
+  have hdich := W'.card_roots_eq_one_or_three
+  obtain ⟨e₀, hmin⟩ := W'.exists_min_root (by rcases hdich with h | h <;> rw [h] <;> norm_num)
+  have hodd : Odd (Nat.card {x : ℝ // W'.f.eval x = 0}) := by
+    rcases hdich with h | h <;> rw [h] <;> norm_num
+  have hup := W'.card_range_μ_le_card_patterns hmin hodd
+  rcases hdich with h | h
+  · have him : Nat.card (μ (W := W')).range = 1 := le_antisymm
+      (hup.trans_eq (card_prodEvalKer_one (by rw [← Nat.card_eq_fintype_card]; exact h) e₀))
+      Nat.card_pos
+    rw [h, him]
+  · have him : Nat.card (μ (W := W')).range = 2 := le_antisymm
+      (hup.trans_eq (card_prodEvalKer_three (by rw [← Nat.card_eq_fintype_card]; exact h) e₀))
+      (W'.two_le_card_range_μ h)
+    rw [h, him]
 
 end RealPlace
 
