@@ -165,6 +165,49 @@ private lemma bijective_mapA_of_bijective_algebraMap (h : Function.Bijective (al
   (AdjoinRoot.mapRingEquiv (RingEquiv.ofBijective (algebraMap K L) h) W.f (W⁄L).toAffine.f
     (by rw [W.baseChange_f]; exact Associated.refl _)).bijective
 
+lemma baseChange_self : (W⁄K).toAffine = W := by
+  change W.map (algebraMap K K) = W
+  rw [show algebraMap K K = RingHom.id K from Algebra.algebraMap_self]
+  exact W.map_id
+
+section PointMap
+
+variable [DecidableEq K]
+
+/-- Transport of points along an equality of Weierstrass curves. -/
+def Point.congr {W₁ W₂ : Affine K} (h : W₁ = W₂) : W₁.Point ≃+ W₂.Point := by
+  subst h; exact AddEquiv.refl _
+
+lemma Point.congr_zero {W₁ W₂ : Affine K} (h : W₁ = W₂) :
+    Point.congr h (0 : W₁.Point) = 0 := by subst h; rfl
+
+lemma Point.congr_some {W₁ W₂ : Affine K} (h : W₁ = W₂) {x y : K}
+    (hp : W₁.Nonsingular x y) :
+    Point.congr h (Point.some x y hp) = Point.some x y (h ▸ hp) := by subst h; rfl
+
+open scoped Classical in
+/-- The base-change homomorphism on points, `E(K) →+ E(L)`: Mathlib's
+`WeierstrassCurve.Affine.Point.map`, aligned with the plain base change `W⁄L` via
+`baseChange_self`. -/
+noncomputable def pointMap : W.Point →+ (W⁄L).toAffine.Point :=
+  (Point.map (W' := W) (Algebra.ofId K L)).comp
+    (Point.congr (W.baseChange_self).symm).toAddMonoidHom
+
+open scoped Classical in
+lemma pointMap_zero : W.pointMap L 0 = 0 := by
+  simp [pointMap, Point.congr_zero]
+
+open scoped Classical in
+lemma pointMap_some {x y : K} (h : W.Nonsingular x y) :
+    W.pointMap L (Point.some x y h) =
+      Point.some (W' := (W⁄L).toAffine) (algebraMap K L x) (algebraMap K L y)
+        ((W.map_nonsingular (algebraMap K L).injective x y).mpr h) := by
+  rw [pointMap, AddMonoidHom.comp_apply, AddEquiv.coe_toAddMonoidHom, Point.congr_some,
+    Point.map_some]
+  rfl
+
+end PointMap
+
 variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
 instance : (W⁄L).IsElliptic := inferInstanceAs (W.map (algebraMap K L)).IsElliptic
@@ -222,37 +265,48 @@ theorem localRes_μX (x : K) :
       Polynomial.map_C, Polynomial.map_X]
 
 open scoped Classical in
-/-- The image of the global descent map `μ` satisfies the local condition at every extension
-field: base change of points is compatible with the `x - T` maps. -/
-theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L := by
-  rintro _ ⟨P', rfl⟩
+/-- Naturality of the descent map under base change: restricting square classes after the
+global `μ` is applying the local `μ` after the base change of points. -/
+theorem localRes_comp_μ :
+    (W.localRes L).comp (μ (W := W)) =
+      (μ (W := (W⁄L).toAffine)).comp (AddMonoidHom.toMultiplicative (W.pointMap L)) := by
+  refine MonoidHom.ext fun P' ↦ ?_
   obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
-  rw [mem_localCondition_iff, μ_apply]
-  match P with
-  | 0 => rw [μ₀_zero, map_one]; exact one_mem _
-  | .some x y hP =>
-    have hP' : (W⁄L).toAffine.Nonsingular (algebraMap K L x) (algebraMap K L y) :=
-      (W.map_nonsingular (algebraMap K L).injective x y).mpr hP
-    rw [μ₀_some]
-    exact ⟨.ofAdd (.some _ _ hP'), by rw [μ_apply, μ₀_some, W.localRes_μX L x]⟩
+  simp only [MonoidHom.comp_apply, AddMonoidHom.toMultiplicative_apply_apply, toAdd_ofAdd,
+    μ_apply]
+  cases P with
+  | zero =>
+      rw [show (Point.zero : W.Point) = 0 from rfl, μ₀_zero, map_one, W.pointMap_zero L,
+        μ₀_zero (W := (W⁄L).toAffine)]
+  | some x y hP =>
+      rw [μ₀_some, W.pointMap_some L hP, μ₀_some (W := (W⁄L).toAffine), W.localRes_μX L x]
+
+open scoped Classical in
+/-- The image of the global descent map `μ` satisfies the local condition at every extension
+field: this is formal from the naturality `localRes_comp_μ`. -/
+theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L := by
+  rw [localCondition, ← Subgroup.map_le_iff_le_comap, MonoidHom.map_range, localRes_comp_μ]
+  rintro _ ⟨P, rfl⟩
+  exact ⟨_, rfl⟩
 
 -- Under base change along an isomorphism, the descent image over `L` is the image of the
 -- descent image over `K` under the local restriction of square classes.
 open scoped Classical in
 private lemma range_μ_of_bijective_algebraMap (h : Function.Bijective (algebraMap K L)) :
     (μ (W := (W⁄L).toAffine)).range = Subgroup.map (W.localRes L) (μ (W := W)).range := by
-  refine le_antisymm ?_ (Subgroup.map_le_iff_le_comap.mpr (W.range_μ_le_localCondition L))
-  rintro _ ⟨P', rfl⟩
-  obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
-  match P with
-  | 0 => exact ⟨1, one_mem _, by rw [map_one]; rfl⟩
-  | .some x y hP =>
-    obtain ⟨x', rfl⟩ := h.2 x
-    obtain ⟨y', rfl⟩ := h.2 y
-    have hP' : W.Nonsingular x' y' := (W.map_nonsingular (algebraMap K L).injective _ _).mp hP
-    exact ⟨μ (.ofAdd (.some _ _ hP')), ⟨_, rfl⟩, by
-      simp only [μ_apply, μ₀_some]
-      rw [W.localRes_μX L x']⟩
+  -- along an isomorphism, base change of points is surjective; the rest is formal from
+  -- the naturality `localRes_comp_μ`
+  have hpm : Function.Surjective (W.pointMap L) := by
+    rintro (_ | ⟨x, y, hP⟩)
+    · exact ⟨0, W.pointMap_zero L⟩
+    · obtain ⟨x', rfl⟩ := h.2 x
+      obtain ⟨y', rfl⟩ := h.2 y
+      exact ⟨Point.some x' y'
+        ((W.map_nonsingular (algebraMap K L).injective _ _).mp hP), W.pointMap_some L _⟩
+  have hsurj : Function.Surjective (AddMonoidHom.toMultiplicative (W.pointMap L)) :=
+    fun P ↦ (hpm P.toAdd).imp fun _ hQ ↦ congrArg Multiplicative.ofAdd hQ
+  rw [MonoidHom.map_range, localRes_comp_μ, ← MonoidHom.map_range,
+    MonoidHom.range_eq_top.mpr hsurj, ← MonoidHom.range_eq_map]
 
 open scoped Classical in
 /-- If the base change is along an isomorphism, then the local descent map has the same
