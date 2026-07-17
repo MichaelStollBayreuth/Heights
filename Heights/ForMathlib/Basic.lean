@@ -98,6 +98,20 @@ end Units
 
 section modPow
 
+/-- Algebraic closedness transfers along a ring isomorphism. This is
+`IsAlgClosed.of_ringEquiv` without its restriction of both fields to a common universe
+(needed e.g. to transfer `IsAlgClosed ℂ` to a completion of a number field `F : Type*` at a
+complex place). -/
+lemma IsAlgClosed.of_ringEquiv' {k K : Type*} [Field k] [Field K] [IsAlgClosed k]
+    (e : k ≃+* K) : IsAlgClosed K := by
+  refine IsAlgClosed.of_exists_root _ fun p _ hpi ↦ ?_
+  obtain ⟨z, hz⟩ := IsAlgClosed.exists_root (p.map (e.symm : K →+* k))
+    (by rw [Polynomial.degree_map]; exact (Polynomial.degree_pos_of_irreducible hpi).ne')
+  refine ⟨e z, (map_eq_zero_iff (e.symm : K →+* k) e.symm.injective).mp ?_⟩
+  rw [← Polynomial.eval₂_at_apply, ← Polynomial.eval_map,
+    show (e.symm : K →+* k) (e z) = z from e.symm_apply_apply z]
+  exact hz
+
 /-- The group of `n`-th power classes of units of `α`. This is the group underlying the
 Selmer groups of `Mathlib.RingTheory.DedekindDomain.SelmerGroup`, where it only exists
 as a local notation. -/
@@ -206,6 +220,17 @@ lemma map_unit (φ : α →* β) (n : ℕ) (ha : IsUnit a) :
 /-- A multiplicative equivalence `α ≃* β` induces one on `n`-th power classes of units. -/
 def congr (e : α ≃* β) (n : ℕ) : Units.modPow α n ≃* Units.modPow β n :=
   congrRangePowMonoidHom (Units.mapEquiv e) n
+
+/-- The group of `n`-th power classes of units of a domain that is integral over an algebraically
+closed field is trivial (for `n ≠ 0`) — the algebra map is then bijective, so this extends
+`Units.modPow.subsingleton_of_isAlgClosed`; e.g., it applies to the residue fields `L[X]/(p)` of
+an étale algebra over an algebraically closed field. -/
+lemma subsingleton_of_isAlgClosed_of_isIntegral (k K : Type*) [Field k] [IsAlgClosed k]
+    [CommRing K] [IsDomain K] [Algebra k K] [Algebra.IsIntegral k K] {n : ℕ} (hn : n ≠ 0) :
+    Subsingleton (Units.modPow K n) :=
+  have : Subsingleton (Units.modPow k n) := subsingleton_of_isAlgClosed k hn
+  (congr (RingEquiv.ofBijective (algebraMap k K)
+    IsAlgClosed.algebraMap_bijective_of_isIntegral).toMulEquiv n).symm.toEquiv.subsingleton
 
 /-- The map on `n`-th power classes of units induced by a bijective homomorphism is
 bijective. -/

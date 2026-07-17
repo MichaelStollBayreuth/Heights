@@ -159,6 +159,13 @@ lemma normM_localRes (m : W.M) :
   simp only [QuotientGroup.mk'_apply, localRes_mk, normM, Units.modPow.map_mk]
   exact congrArg _ (Units.ext (by simpa using W.norm_mapA L u))
 
+-- Base change of the étale algebra along an isomorphism of fields is an isomorphism:
+-- `mapA` is (definitionally) `AdjoinRoot.map`, which `AdjoinRoot.mapRingEquiv` upgrades.
+private lemma bijective_mapA_of_bijective_algebraMap (h : Function.Bijective (algebraMap K L)) :
+    Function.Bijective (W.mapA L) :=
+  (AdjoinRoot.mapRingEquiv (RingEquiv.ofBijective (algebraMap K L) h) W.f (W⁄L).toAffine.f
+    (by rw [W.baseChange_f]; exact Associated.refl _)).bijective
+
 variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
 instance : (W⁄L).IsElliptic := inferInstanceAs (W.map (algebraMap K L)).IsElliptic
@@ -182,17 +189,8 @@ theorem card_range_μ_of_isAlgClosed [IsAlgClosed L] :
     Nat.card (μ (W := (W⁄L).toAffine)).range = 1 := by
   -- every unit of a field factor of the étale algebra is a square
   have hfac (p : (W⁄L).toAffine.f.Factors) :
-      Subsingleton (Units.modPow (AdjoinRoot (p : L[X])) 2) := by
-    refine Units.modPow.subsingleton_of_forall_exists_pow fun u ↦ ?_
-    obtain ⟨c, hc⟩ := (IsAlgClosed.algebraMap_bijective_of_isIntegral
-      (k := L) (K := AdjoinRoot (p : L[X]))).2 (u : AdjoinRoot (p : L[X]))
-    have hc0 : c ≠ 0 := by
-      rintro rfl
-      exact u.ne_zero (by rw [← hc, map_zero])
-    obtain ⟨d, hd⟩ := IsAlgClosed.exists_pow_nat_eq c zero_lt_two
-    have hd0 : d ≠ 0 := fun h0 ↦ hc0 (by rw [← hd, h0, zero_pow two_ne_zero])
-    refine ⟨Units.mk0 (algebraMap _ _ d) (by simpa using hd0), Units.ext ?_⟩
-    rw [Units.val_pow_eq_pow_val, Units.val_mk0, ← map_pow, hd, hc]
+      Subsingleton (Units.modPow (AdjoinRoot (p : L[X])) 2) :=
+    Units.modPow.subsingleton_of_isAlgClosed_of_isIntegral L _ two_ne_zero
   -- hence the ambient group of square classes, and with it the image of `μ`, is trivial
   have hsub : Subsingleton (Units.modPow (W⁄L).toAffine.A 2) :=
     (AdjoinRoot.modPowEquivPiFactors (W⁄L).toAffine.f_ne_zero
@@ -239,44 +237,32 @@ theorem range_μ_le_localCondition : (μ (W := W)).range ≤ W.localCondition L 
     rw [μ₀_some]
     exact ⟨.ofAdd (.some _ _ hP'), by rw [μ_apply, μ₀_some, W.localRes_μX L x]⟩
 
+-- Under base change along an isomorphism, the descent image over `L` is the image of the
+-- descent image over `K` under the local restriction of square classes.
+open scoped Classical in
+private lemma range_μ_of_bijective_algebraMap (h : Function.Bijective (algebraMap K L)) :
+    (μ (W := (W⁄L).toAffine)).range = Subgroup.map (W.localRes L) (μ (W := W)).range := by
+  refine le_antisymm ?_ (Subgroup.map_le_iff_le_comap.mpr (W.range_μ_le_localCondition L))
+  rintro _ ⟨P', rfl⟩
+  obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
+  match P with
+  | 0 => exact ⟨1, one_mem _, by rw [map_one]; rfl⟩
+  | .some x y hP =>
+    obtain ⟨x', rfl⟩ := h.2 x
+    obtain ⟨y', rfl⟩ := h.2 y
+    have hP' : W.Nonsingular x' y' := (W.map_nonsingular (algebraMap K L).injective _ _).mp hP
+    exact ⟨μ (.ofAdd (.some _ _ hP')), ⟨_, rfl⟩, by
+      simp only [μ_apply, μ₀_some]
+      rw [W.localRes_μX L x']⟩
+
 open scoped Classical in
 /-- If the base change is along an isomorphism, then the local descent map has the same
 image size as the global one (via the induced isomorphism of the étale algebras). -/
 theorem card_range_μ_of_bijective_algebraMap (h : Function.Bijective (algebraMap K L)) :
     Nat.card (μ (W := (W⁄L).toAffine)).range = Nat.card (μ (W := W)).range := by
-  set e := RingEquiv.ofBijective (algebraMap K L) h with he
-  have hcomp : (algebraMap K L).comp (e.symm : L →+* K) = RingHom.id L :=
-    RingHom.ext fun z ↦ e.apply_symm_apply z
-  -- the induced map on square classes is bijective
-  have hA : Function.Bijective (W.mapA L) := by
-    constructor
-    · intro a b hab
-      obtain ⟨g, rfl⟩ := AdjoinRoot.mk_surjective a
-      obtain ⟨g', rfl⟩ := AdjoinRoot.mk_surjective b
-      simp only [mapA_mk, AdjoinRoot.mk_eq_mk, baseChange_f, ← Polynomial.map_sub] at hab ⊢
-      obtain ⟨c, hc⟩ := hab
-      refine ⟨c.map (e.symm : L →+* K), Polynomial.map_injective _ h.1 ?_⟩
-      rw [Polynomial.map_mul, hc, Polynomial.map_map, hcomp, Polynomial.map_id]
-    · intro a
-      obtain ⟨g, rfl⟩ := AdjoinRoot.mk_surjective a
-      refine ⟨AdjoinRoot.mk W.f (g.map (e.symm : L →+* K)), ?_⟩
-      rw [mapA_mk, Polynomial.map_map, hcomp, Polynomial.map_id]
-  have hM := Units.modPow.bijective_map (φ := (W.mapA L).toMonoidHom) hA 2
-  -- the image of `im μ` under the isomorphism of square-class groups is `im μ_L`
-  have hrange : (μ (W := (W⁄L).toAffine)).range = Subgroup.map (W.localRes L) (μ.range) := by
-    refine le_antisymm ?_ (Subgroup.map_le_iff_le_comap.mpr (W.range_μ_le_localCondition L))
-    rintro _ ⟨P', rfl⟩
-    obtain ⟨P, rfl⟩ := Multiplicative.ofAdd.surjective P'
-    match P with
-    | 0 => exact ⟨1, one_mem _, by rw [map_one]; rfl⟩
-    | .some x y hP =>
-      obtain ⟨x', rfl⟩ := h.2 x
-      obtain ⟨y', rfl⟩ := h.2 y
-      have hP' : W.Nonsingular x' y' := (W.map_nonsingular (algebraMap K L).injective _ _).mp hP
-      exact ⟨μ (.ofAdd (.some _ _ hP')), ⟨_, rfl⟩, by
-        simp only [μ_apply, μ₀_some]
-        rw [W.localRes_μX L x']⟩
-  rw [hrange,
+  have hM := Units.modPow.bijective_map (φ := (W.mapA L).toMonoidHom)
+    (W.bijective_mapA_of_bijective_algebraMap L h) 2
+  rw [W.range_μ_of_bijective_algebraMap L h,
     Nat.card_congr (Subgroup.equivMapOfInjective (μ.range) (W.localRes L) hM.1).symm.toEquiv]
 
 /-- If the base change is along an isomorphism, then the `2`-torsion of the group of points
@@ -915,11 +901,8 @@ private lemma comap_integerMapOfDvd_ne_bot {p : W.f.Factors} {q : 𝕎[v].f.Fact
   intro h0
   have h1 := W.comap_comap_integerMapOfDvd v hq w
   rw [h0] at h1
-  have hinj : Function.Injective (algebraMap (𝓞 F) (W.ringOfIntegersFactor (𝓞 F) p)) := by
-    have hinj' : Function.Injective (algebraMap (𝓞 F) (𝕃 p)) := by
-      rw [IsScalarTower.algebraMap_eq (𝓞 F) F (𝕃 p)]
-      exact (algebraMap F (𝕃 p)).injective.comp (IsFractionRing.injective (𝓞 F) F)
-    exact fun a b hab ↦ hinj' (congrArg Subtype.val hab)
+  have hinj : Function.Injective (algebraMap (𝓞 F) (W.ringOfIntegersFactor (𝓞 F) p)) :=
+    FaithfulSMul.algebraMap_injective _ _
   rw [← RingHom.ker_eq_comap_bot, (RingHom.injective_iff_ker_eq_bot _).mp hinj] at h1
   exact v.ne_bot h1.symm
 
@@ -1078,8 +1061,8 @@ theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
   have hczO : CharZero 𝒪_[v] :=
     charZero_of_injective_algebraMap (FaithfulSMul.algebraMap_injective (𝓞 F) 𝒪_[v])
   have hker : Nat.card ((nsmulAddMonoidHom (α := U) 2)).ker = 1 := by
-    rw [AddMonoidHom.ker_eq_bot _ fun a b hab ↦ e.injective <| nsmul_right_injective
-      two_ne_zero (by simpa only [nsmulAddMonoidHom_apply, map_nsmul] using congrArg e hab)]
+    have : IsAddTorsionFree U := Function.Injective.isAddTorsionFree e.toAddMonoidHom e.injective
+    rw [AddMonoidHom.ker_nsmulAddMonoidHom two_ne_zero]
     exact AddSubgroup.card_bot
   -- the Euler-characteristic identity for the finite-index subgroup `U`
   have hchi := AddSubgroup.index_range_nsmul_mul_card_ker U 2
@@ -1138,16 +1121,8 @@ open scoped Classical in
 unit of the étale algebra is a square, so the whole group of square classes is trivial. -/
 theorem card_range_μ_completion_isComplex {v : InfinitePlace F} (hv : v.IsComplex) :
     Nat.card (μ (W := (W⁄v.Completion).toAffine)).range = 1 := by
-  -- `v.Completion ≃+* ℂ` is algebraically closed
-  have halg : IsAlgClosed v.Completion := by
-    set e := InfinitePlace.Completion.ringEquivComplexOfIsComplex hv
-    refine IsAlgClosed.of_exists_root _ fun p hpm hpi ↦ ?_
-    obtain ⟨z, hz⟩ := IsAlgClosed.exists_root (p.map (e : v.Completion →+* ℂ))
-      (by rw [degree_map]; exact (Polynomial.degree_pos_of_irreducible hpi).ne')
-    refine ⟨e.symm z, (map_eq_zero_iff (e : v.Completion →+* ℂ) e.injective).mp ?_⟩
-    rw [← Polynomial.eval₂_at_apply, ← Polynomial.eval_map,
-      show ((e : v.Completion →+* ℂ) (e.symm z)) = z from e.apply_symm_apply z]
-    exact hz
+  have halg : IsAlgClosed v.Completion :=
+    .of_ringEquiv' (InfinitePlace.Completion.ringEquivComplexOfIsComplex hv).symm
   exact W.card_range_μ_of_isAlgClosed v.Completion
 
 section LocalCount
