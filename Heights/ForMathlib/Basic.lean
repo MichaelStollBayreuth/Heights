@@ -906,47 +906,36 @@ lemma norm_mk_eq_resultant [Nontrivial R] (hg : g.Monic) (p : R[X]) :
     Matrix.det_mul, toMatrix_sylvesterMap' g 1 le_rfl (by simp), ← resultant,
     hg.resultant_one_right, one_mul]
 
-section MapOfDvd
+section Map
 
 variable {S : Type*} [CommRing S] (σ : R →+* S)
 
-/-- The homomorphism `R[X]/(p) →+* S[X]/(q)` induced by `σ : R →+* S` when `q` divides the
-image of `p`: it sends the root to the root. -/
-noncomputable def mapOfDvd {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) :
-    AdjoinRoot p →+* AdjoinRoot q :=
-  lift ((of q).comp σ) (root q) <| by
-    rw [← Polynomial.eval₂_map, ← algebraMap_eq, ← Polynomial.aeval_def, aeval_eq,
-      mk_eq_zero.mpr hq]
-
+/-- Evaluation of `AdjoinRoot.map` on the class of a polynomial (the companion of Mathlib's
+`AdjoinRoot.map_of` and `AdjoinRoot.map_root`). -/
 @[simp]
-lemma mapOfDvd_mk {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) (g : R[X]) :
-    mapOfDvd σ hq (mk p g) = mk q (g.map σ) := by
-  rw [mapOfDvd, lift_mk, ← Polynomial.eval₂_map, ← algebraMap_eq, ← Polynomial.aeval_def,
+lemma map_mk {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) (g : R[X]) :
+    AdjoinRoot.map σ p q hq (mk p g) = mk q (g.map σ) := by
+  rw [AdjoinRoot.map, lift_mk, ← Polynomial.eval₂_map, ← algebraMap_eq, ← Polynomial.aeval_def,
     aeval_eq]
 
-@[simp]
-lemma mapOfDvd_of {p : R[X]} {q : S[X]} (hq : q ∣ p.map σ) (c : R) :
-    mapOfDvd σ hq (of p c) = of q (σ c) := by
-  rw [show of p c = mk p (C c) from rfl, mapOfDvd_mk, map_C, show mk q (C (σ c)) = of q (σ c)
-    from rfl]
-
-end MapOfDvd
+end Map
 
 end AdjoinRoot
 
 /-- The base-change map `K[X]/(p) →+* K_v[X]/(q)` of `AdjoinRoot`s at a completion is
 compatible with the algebra maps from the underlying Dedekind domain `R` and from the ring of
 integers of the completion. -/
-lemma AdjoinRoot.mapOfDvd_comp_algebraMap {R : Type*} [CommRing R] [IsDedekindDomain R]
+lemma AdjoinRoot.map_comp_algebraMap {R : Type*} [CommRing R] [IsDedekindDomain R]
     {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
     (v : IsDedekindDomain.HeightOneSpectrum R) {p : K[X]} {q : (v.adicCompletion K)[X]}
     (hq : q ∣ p.map (algebraMap K (v.adicCompletion K))) :
-    (mapOfDvd (algebraMap K (v.adicCompletion K)) hq).comp (algebraMap R (AdjoinRoot p)) =
+    (AdjoinRoot.map (algebraMap K (v.adicCompletion K)) p q hq).comp
+        (algebraMap R (AdjoinRoot p)) =
       (algebraMap (v.adicCompletionIntegers K) (AdjoinRoot q)).comp
         (algebraMap R (v.adicCompletionIntegers K)) := by
   ext c
   simp only [RingHom.comp_apply]
-  rw [IsScalarTower.algebraMap_apply R K (AdjoinRoot p), AdjoinRoot.algebraMap_eq, mapOfDvd_of,
+  rw [IsScalarTower.algebraMap_apply R K (AdjoinRoot p), AdjoinRoot.algebraMap_eq, map_of,
     IsScalarTower.algebraMap_apply (v.adicCompletionIntegers K) (v.adicCompletion K)
       (AdjoinRoot q), AdjoinRoot.algebraMap_eq]
   rfl

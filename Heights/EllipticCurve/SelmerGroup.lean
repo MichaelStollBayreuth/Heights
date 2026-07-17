@@ -110,17 +110,19 @@ lemma baseChange_fCofactor (x : K) :
     (W.fCofactor x).map (algebraMap K L) = (W⁄L).toAffine.fCofactor (algebraMap K L x) :=
   W.map_fCofactor (algebraMap K L) x
 
-/-- The base-change homomorphism `K[X]/(f) →+* L[X]/(f)` of étale algebras. -/
+lemma baseChange_f : (W⁄L).toAffine.f = W.f.map (algebraMap K L) :=
+  W.map_f (algebraMap K L)
+
+/-- The base-change homomorphism `K[X]/(f) →+* L[X]/(f)` of étale algebras, as an instance of
+`AdjoinRoot.map` (so that its API — `map_of`, `map_root`, `map_comp_map`, `mapRingEquiv` —
+applies directly). -/
 noncomputable def mapA : W.A →+* (W⁄L).toAffine.A :=
-  AdjoinRoot.lift ((AdjoinRoot.of _).comp (algebraMap K L)) (AdjoinRoot.root _) <| by
-    rw [← Polynomial.eval₂_map, ← W.map_f (algebraMap K L)]
-    exact AdjoinRoot.eval₂_root _
+  AdjoinRoot.map (algebraMap K L) W.f (W⁄L).toAffine.f (W.baseChange_f L).dvd
 
 @[simp]
 lemma mapA_mk (p : K[X]) :
-    W.mapA L (AdjoinRoot.mk W.f p) = AdjoinRoot.mk (W⁄L).toAffine.f (p.map (algebraMap K L)) := by
-  rw [mapA, AdjoinRoot.lift_mk, ← Polynomial.eval₂_map, ← AdjoinRoot.algebraMap_eq,
-    ← Polynomial.aeval_def, AdjoinRoot.aeval_eq]
+    W.mapA L (AdjoinRoot.mk W.f p) = AdjoinRoot.mk (W⁄L).toAffine.f (p.map (algebraMap K L)) :=
+  AdjoinRoot.map_mk _ _ _
 
 /-- The base-change map on square classes of units of the étale algebra. -/
 noncomputable def localRes : W.M →* Units.modPow (W⁄L).toAffine.A 2 :=
@@ -137,9 +139,6 @@ lemma localRes_unit {a : W.A} (ha : IsUnit a) :
     W.localRes L (ha.unit : W.M) =
       ((ha.map (W.mapA L).toMonoidHom).unit : Units.modPow (W⁄L).toAffine.A 2) := by
   rw [localRes, Units.modPow.map_unit]
-
-lemma baseChange_f : (W⁄L).toAffine.f = W.f.map (algebraMap K L) :=
-  W.map_f (algebraMap K L)
 
 /-- The norm of the étale algebra is compatible with base change: the norm of `f` and `p` is
 the resultant of the two polynomials, and resultants commute with ring homomorphisms. -/
@@ -635,22 +634,22 @@ private lemma two_notMem_asIdeal_of_notMem_badPrimes {v : HeightOneSpectrum (�
 private lemma isIntegral_mapOfDvd {p : W.f.Factors} {q : 𝕎[v].f.Factors}
     (hq : (q : F_[v][X]) ∣ (p : F[X]).map (algebraMap F F_[v]))
     (x : W.ringOfIntegersFactor (𝓞 F) p) :
-    _root_.IsIntegral 𝒪_[v] (mapOfDvd (algebraMap F F_[v]) hq (x : 𝕃 p)) := by
+    _root_.IsIntegral 𝒪_[v] (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq (x : 𝕃 p)) := by
   obtain ⟨P, hPm, hPe⟩ := x.2
   refine ⟨P.map (algebraMap (𝓞 F) 𝒪_[v]), hPm.map _, ?_⟩
-  have h2 := congrArg (mapOfDvd (algebraMap F F_[v]) hq) hPe
+  have h2 := congrArg (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq) hPe
   rw [map_zero, Polynomial.hom_eval₂] at h2
   rw [Polynomial.eval₂_map]
   exact (congrArg (fun φ ↦ Polynomial.eval₂ φ
-    (mapOfDvd (algebraMap F F_[v]) hq (x : 𝕃 p)) P)
-    (mapOfDvd_comp_algebraMap v hq)).symm.trans h2
+    (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq (x : 𝕃 p)) P)
+    (map_comp_algebraMap v hq)).symm.trans h2
 
 -- The base-change map on the rings of integers of the field factors: the restriction of
--- `mapOfDvd` to the integral closures.
+-- `AdjoinRoot.map` to the integral closures.
 private noncomputable def integerMapOfDvd {p : W.f.Factors} {q : 𝕎[v].f.Factors}
     (hq : (q : F_[v][X]) ∣ (p : F[X]).map (algebraMap F F_[v])) :
     W.ringOfIntegersFactor (𝓞 F) p →+* 𝕎[v].ringOfIntegersFactor 𝒪_[v] q :=
-  ((mapOfDvd (algebraMap F F_[v]) hq).comp
+  ((AdjoinRoot.map (algebraMap F F_[v]) _ _ hq).comp
     (algebraMap (W.ringOfIntegersFactor (𝓞 F) p) (𝕃 p))).codRestrict
       (integralClosure 𝒪_[v] (AdjoinRoot (q : F_[v][X]))).toSubring
       fun x ↦ W.isIntegral_mapOfDvd v hq x
@@ -660,7 +659,7 @@ private lemma algebraMap_comp_integerMapOfDvd {p : W.f.Factors} {q : 𝕎[v].f.F
     (hq : (q : F_[v][X]) ∣ (p : F[X]).map (algebraMap F F_[v])) :
     (algebraMap (𝕎[v].ringOfIntegersFactor 𝒪_[v] q) (AdjoinRoot (q : F_[v][X]))).comp
         (W.integerMapOfDvd v hq) =
-      (mapOfDvd (algebraMap F F_[v]) hq).comp
+      (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq).comp
         (algebraMap (W.ringOfIntegersFactor (𝓞 F) p) (𝕃 p)) :=
   RingHom.ext fun _ ↦ rfl
 
@@ -671,7 +670,7 @@ private lemma integerMapOfDvd_comp_algebraMap {p : W.f.Factors} {q : 𝕎[v].f.F
       (algebraMap 𝒪_[v] (𝕎[v].ringOfIntegersFactor 𝒪_[v] q)).comp
         (algebraMap (𝓞 F) 𝒪_[v]) := by
   ext c
-  exact RingHom.congr_fun (mapOfDvd_comp_algebraMap v hq) c
+  exact RingHom.congr_fun (map_comp_algebraMap v hq) c
 
 variable [W.IsElliptic] [W.IsCharNeTwoNF]
 
@@ -915,12 +914,12 @@ private lemma below_comapOfNeBot_integerMapOfDvd {p : W.f.Factors} {q : 𝕎[v].
   HeightOneSpectrum.ext (W.comap_comap_integerMapOfDvd v hq w)
 
 -- The base-change maps of the field factors are compatible with the CRT projections.
-private lemma mapOfDvd_projFactor {p : W.f.Factors} {q : 𝕎[v].f.Factors}
+private lemma map_projFactor {p : W.f.Factors} {q : 𝕎[v].f.Factors}
     (hq : (q : F_[v][X]) ∣ (p : F[X]).map (algebraMap F F_[v])) (a : W.A) :
-    mapOfDvd (algebraMap F F_[v]) hq (projFactor W.f_ne_zero W.squarefree_f p a) =
+    AdjoinRoot.map (algebraMap F F_[v]) _ _ hq (projFactor W.f_ne_zero W.squarefree_f p a) =
       projFactor 𝕎[v].f_ne_zero 𝕎[v].squarefree_f q (W.mapA F_[v] a) := by
   obtain ⟨g, rfl⟩ := mk_surjective a
-  rw [projFactor_mk, mapOfDvd_mk, mapA_mk, projFactor_mk]
+  rw [projFactor_mk, AdjoinRoot.map_mk, mapA_mk, projFactor_mk]
 
 end Semilocal
 
@@ -958,13 +957,13 @@ theorem localRes_mem_selmerGroupA {v : HeightOneSpectrum (𝓞 F)} (hv : v ∉ W
     hv (hbelow ▸ (HeightOneSpectrum.mem_primesAbove_iff (𝓞 F) _ _ _).mp hmem)
   -- transport along the embedding of field factors
   have hkey := HeightOneSpectrum.dvd_toAdd_valuationOfNeZero_map
-    (mapOfDvd (algebraMap F F_[v]) hq) (W.integerMapOfDvd v hq)
+    (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq) (W.integerMapOfDvd v hq)
     (W.algebraMap_comp_integerMapOfDvd v hq) w hne _ hdvd
   have hunits : Units.map (projFactor 𝕎[v].f_ne_zero 𝕎[v].squarefree_f q).toMonoidHom
         (Units.map (W.mapA F_[v]).toMonoidHom a) =
-      Units.map (mapOfDvd (algebraMap F F_[v]) hq : _ →* _)
+      Units.map (AdjoinRoot.map (algebraMap F F_[v]) _ _ hq : _ →* _)
         (Units.map (projFactor W.f_ne_zero W.squarefree_f p).toMonoidHom a) :=
-    Units.ext (W.mapOfDvd_projFactor v hq (a : W.A)).symm
+    Units.ext (W.map_projFactor v hq (a : W.A)).symm
   rw [hunits]
   exact hkey
 
