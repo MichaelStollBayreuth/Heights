@@ -161,16 +161,24 @@ theorem CommGroup.finite_modPow {G : Type*} [CommGroup G] [Group.FG G] (n : ℕ)
   induction x using QuotientGroup.induction_on with
   | H g => exact (QuotientGroup.eq_one_iff _).mpr ⟨g, rfl⟩
 
+/-- First-isomorphism counting: the order of a group is the order of the kernel times the
+order of the range of any homomorphism out of it (with the usual `Nat.card` conventions when
+some of the groups involved are infinite). -/
+@[to_additive /-- First-isomorphism counting: the order of a group is the order of the kernel
+times the order of the range of any homomorphism out of it (with the usual `Nat.card`
+conventions when some of the groups involved are infinite). -/]
+theorem MonoidHom.card_ker_mul_card_range {G H : Type*} [Group G] [Group H] (φ : G →* H) :
+    Nat.card φ.ker * Nat.card φ.range = Nat.card G := by
+  rw [Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv.symm, mul_comm]
+  exact (Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker).symm
+
 /-- On a finite group, the index of the range of an endomorphism equals the order of its
 kernel. -/
 @[to_additive]
 theorem MonoidHom.index_range_eq_card_ker {G : Type*} [Group G] [Finite G] (φ : G →* G) :
     φ.range.index = Nat.card φ.ker := by
   have h1 : φ.range.index * Nat.card φ.range = Nat.card G := φ.range.index_mul_card
-  have h2 : Nat.card φ.ker * Nat.card φ.range = Nat.card G := by
-    rw [Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv.symm, mul_comm]
-    exact (Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker).symm
-  exact Nat.eq_of_mul_eq_mul_right Nat.card_pos (h1.trans h2.symm)
+  exact Nat.eq_of_mul_eq_mul_right Nat.card_pos (h1.trans φ.card_ker_mul_card_range.symm)
 
 /-- On a torsion-free additive group, multiplication by `n ≠ 0` has trivial kernel. -/
 lemma AddMonoidHom.ker_nsmulAddMonoidHom {G : Type*} [AddCommGroup G] [IsAddTorsionFree G]
@@ -302,6 +310,13 @@ lemma AddEquiv.map_ker_nsmulAddMonoidHom {M N : Type*} [AddCommGroup M] [AddComm
   rw [AddSubgroup.mem_map_equiv]
   simp only [AddMonoidHom.mem_ker, nsmulAddMonoidHom_apply]
   rw [← map_nsmul, EmbeddingLike.map_eq_zero_iff]
+
+/-- The index of `n • G` is invariant under additive equivalence. -/
+lemma AddEquiv.index_range_nsmulAddMonoidHom {M N : Type*} [AddCommGroup M] [AddCommGroup N]
+    (e : M ≃+ N) (n : ℕ) :
+    (nsmulAddMonoidHom (α := M) n).range.index = (nsmulAddMonoidHom (α := N) n).range.index := by
+  simpa [AddEquiv.map_range_nsmulAddMonoidHom]
+    using (AddSubgroup.index_map_equiv (nsmulAddMonoidHom (α := M) n).range e).symm
 
 lemma nsmulAddMonoidHom_range_prod (A B : Type*) [AddCommGroup A] [AddCommGroup B] (n : ℕ) :
     (nsmulAddMonoidHom (α := A × B) n).range =

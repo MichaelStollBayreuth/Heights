@@ -556,6 +556,10 @@ local notation:max "𝕎[" v "]" =>
   WeierstrassCurve.toAffine (W⁄(HeightOneSpectrum.adicCompletion F v))
 local notation:max "𝕃" p:max => AdjoinRoot (p : F[X])
 
+instance instFiniteQuotientAsIdeal (v : HeightOneSpectrum (𝓞 F)) :
+    Finite (𝓞 F ⧸ v.asIdeal) :=
+  v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
+
 /-!
 The passage between the global and the local conditions relates unramifiedness of a square
 class `m` of the étale algebra `A = F[X]/(f)` at the primes of the field factors of `A` above
@@ -1043,7 +1047,6 @@ theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
       Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker *
         Nat.card (𝓞 F ⧸ v.asIdeal) ^
           (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {(2 : 𝓞 F)})).factors := by
-  have hfin : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
   obtain ⟨U, hUfin, ⟨e⟩⟩ :=
     exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers v 𝕎[v]
   -- `#(im μ) = [E(F_v) : 2·E(F_v)]`
@@ -1062,11 +1065,7 @@ theorem card_range_μ_adicCompletion (v : HeightOneSpectrum (𝓞 F)) :
   rw [hchi]
   congr 1
   -- transport `[U : 2U]` to `𝒪_v` and count there
-  rw [show (nsmulAddMonoidHom (α := U) 2).range.index =
-      (nsmulAddMonoidHom (α := 𝒪_[v]) 2).range.index by
-        simpa [AddEquiv.map_range_nsmulAddMonoidHom]
-          using (AddSubgroup.index_map_equiv (nsmulAddMonoidHom (α := U) 2).range e).symm,
-    index_range_nsmul_two v]
+  rw [e.index_range_nsmulAddMonoidHom 2, index_range_nsmul_two v]
 
 open scoped Classical in
 /-- The size of the local image at a finite place of odd residue characteristic:
@@ -1250,19 +1249,15 @@ private lemma card_selmerGroupA_eq_prod :
       = Nat.card (𝕎[v].selmerGroupPi 𝒪_[v]) :=
         Nat.card_congr (Equiv.subtypeEquiv (AdjoinRoot.modPowEquivPiFactors
           𝕎[v].f_ne_zero 𝕎[v].squarefree_f 2).toEquiv fun _ ↦ Iff.rfl)
-    _ = Nat.card ((q : 𝕎[v].f.Factors) → (𝕎[v].selmerGroupFactor 𝒪_[v] q)) :=
-        Nat.card_congr
-          ⟨fun x q ↦ ⟨x.1 q, x.2 q (Set.mem_univ q)⟩,
-            fun y ↦ ⟨fun q ↦ (y q : Units.modPow (AdjoinRoot (q : F_[v][X])) 2),
-              fun q _ ↦ (y q).2⟩,
-            fun _ ↦ rfl, fun _ ↦ rfl⟩
+    _ = Nat.card ((q : 𝕎[v].f.Factors) → (𝕎[v].selmerGroupFactor 𝒪_[v] q)) := by
+        refine Nat.card_congr ((Equiv.subtypeEquivRight fun x ↦ ?_).trans Equiv.subtypePiEquivPi)
+        simp [selmerGroupPi, Subgroup.mem_pi]
     _ = ∏ q : 𝕎[v].f.Factors, Nat.card (𝕎[v].selmerGroupFactor 𝒪_[v] q) := Nat.card_pi
 
 -- Each factor contributes exactly two square classes at a good place.
 private lemma card_selmerGroupFactor (hv : v ∉ W.badPrimes (𝓞 F)) (q : 𝕎[v].f.Factors) :
     Nat.card (𝕎[v].selmerGroupFactor 𝒪_[v] q) = 2 := by
   have h2 : (2 : 𝓞 F) ∉ v.asIdeal := W.two_notMem_asIdeal_of_notMem_badPrimes hv
-  have hfin : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
   -- instances for the interface statement
   have hFD : FiniteDimensional F_[v] (AdjoinRoot (q : F_[v][X])) :=
     (AdjoinRoot.powerBasis' q.monic).finite
@@ -1296,14 +1291,14 @@ private lemma finite_selmerGroupA_adicCompletionIntegers (hv : v ∉ W.badPrimes
 private lemma two_mul_card_inf_ker_le (hv : v ∉ W.badPrimes (𝓞 F)) :
     2 * Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
       Subgroup (Units.modPow 𝕎[v].A 2)) ≤ Nat.card (𝕎[v].selmerGroupA 𝒪_[v]) := by
-  have hfinq : Finite (𝓞 F ⧸ v.asIdeal) := v.asIdeal.finiteQuotientOfFreeOfNeBot v.ne_bot
   have hfinA := W.finite_selmerGroupA_adicCompletionIntegers hv
   -- the norm homomorphism restricted to `A(∅, 2)`
-  set φ := (normM (W := 𝕎[v])).comp (𝕎[v].selmerGroupA 𝒪_[v]).subtype
+  set φ := (normM (W := 𝕎[v])).restrict (𝕎[v].selmerGroupA 𝒪_[v])
   have hT : Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
-      Subgroup (Units.modPow 𝕎[v].A 2)) = Nat.card φ.ker :=
-    Nat.card_congr ⟨fun x ↦ ⟨⟨x.1, (Subgroup.mem_inf.mp x.2).1⟩, (Subgroup.mem_inf.mp x.2).2⟩,
-      fun y ↦ ⟨y.1.1, Subgroup.mem_inf.mpr ⟨y.1.2, y.2⟩⟩, fun _ ↦ rfl, fun _ ↦ rfl⟩
+      Subgroup (Units.modPow 𝕎[v].A 2)) = Nat.card φ.ker := by
+    change _ = Nat.card ((normM (W := 𝕎[v])).ker.subgroupOf (𝕎[v].selmerGroupA 𝒪_[v]))
+    rw [← Subgroup.inf_subgroupOf_left]
+    exact (Nat.card_congr (Subgroup.subgroupOfEquivOfLe inf_le_left).toEquiv).symm
   -- the image of the norm is nontrivial: a non-square scalar witnesses this
   obtain ⟨c, hc⟩ := v.exists_unit_not_isSquare (K := F)
     (W.two_notMem_asIdeal_of_notMem_badPrimes hv)
@@ -1319,8 +1314,7 @@ private lemma two_mul_card_inf_ker_le (hv : v ∉ W.badPrimes (𝓞 F)) :
       = 2 * Nat.card φ.ker := by rw [hT]
     _ ≤ Nat.card φ.range * Nat.card φ.ker := Nat.mul_le_mul_right _ hrange2
     _ = Nat.card (𝕎[v].selmerGroupA 𝒪_[v]) := by
-        rw [← Nat.card_congr (QuotientGroup.quotientKerEquivRange φ).toEquiv,
-          ← Subgroup.card_eq_card_quotient_mul_card_subgroup φ.ker]
+        rw [mul_comm]; exact φ.card_ker_mul_card_range
 
 end LocalCount
 
