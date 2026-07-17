@@ -858,7 +858,7 @@ theorem card_ker_nsmul_two :
         Nat.card_coe_set_eq _
     _ = (insert 0 (Set.range pt)).ncard := by rw [hset]
     _ = (Set.range pt).ncard + 1 :=
-        Set.ncard_insert_of_notMem (by rintro ⟨x, hx⟩; exact Point.some_ne_zero _ hx)
+        Set.ncard_insert_of_notMem (by intro ⟨x, hx⟩; exact Point.some_ne_zero _ hx)
     _ = Nat.card {x : K // W.f.eval x = 0} + 1 := by
         rw [← Nat.card_coe_set_eq, Nat.card_range_of_injective hinj]
         rfl

@@ -54,7 +54,7 @@ lemma variableChange_negY_ne {x₁ x₂ y₁ y₂ : F}
       (C.u : F) ^ 3 * y₁ + (C.u : F) ^ 2 * C.s * x₁ + C.t = W.toAffine.negY
         ((C.u : F) ^ 2 * x₂ + C.r) ((C.u : F) ^ 3 * y₂ + (C.u : F) ^ 2 * C.s * x₂ + C.t)) := by
   have hu : (C.u : F) ≠ 0 := C.u.ne_zero
-  rintro ⟨hX, hY⟩
+  intro ⟨hX, hY⟩
   have hx : x₁ = x₂ := mul_left_cancel₀ (pow_ne_zero 2 hu) (by linear_combination hX)
   subst hx
   rw [variableChange_negY] at hY

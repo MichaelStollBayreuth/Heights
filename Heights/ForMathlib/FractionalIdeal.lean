@@ -401,7 +401,7 @@ lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K 
       ∃ (a : Rˣ) (w : Kˣ), Units.map (algebraMap R K : R →* K) a * w ^ n = (u : Kˣ) := by
   rw [nthRootClass_apply, ClassGroup.mk_eq_one_iff_exists]
   constructor
-  · rintro ⟨w, hw⟩
+  · intro ⟨w, hw⟩
     -- the `n`-th power of the found generator `w` generates `(u)`, so `u / wⁿ` is a unit of `R`
     have hpow : toPrincipalIdeal R K (w ^ n) = toPrincipalIdeal R K (u : Kˣ) := by
       rw [map_pow, hw, nthRootHom_pow, coe_unitsNDivisibleToNDivisible]
@@ -409,7 +409,7 @@ lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K 
       rw [map_mul, map_inv, hpow, mul_inv_cancel]
     obtain ⟨a, ha⟩ := (toPrincipalIdeal_eq_one_iff _).mp h1
     exact ⟨a, w, by rw [ha]; group⟩
-  · rintro ⟨a, w, hw⟩
+  · intro ⟨a, w, hw⟩
     -- `w` generates the `n`-th root: its valuations are `count (u) / n`
     refine ⟨w, count_injective fun v ↦ ?_⟩
     have hcu : count K v ((toPrincipalIdeal R K (u : Kˣ) : (FractionalIdeal R⁰ K)ˣ) :

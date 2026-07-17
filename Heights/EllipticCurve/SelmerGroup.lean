@@ -327,7 +327,7 @@ theorem card_ker_nsmul_two_baseChange [DecidableEq L] (h : Function.Bijective (a
   refine congrArg (· + 1) (Nat.card_congr (Equiv.ofBijective
     (fun x ↦ ⟨algebraMap K L x, by rw [W.eval_baseChange_f, x.2, map_zero]⟩) ⟨?_, ?_⟩)).symm
   · exact fun a b hab ↦ Subtype.ext (h.1 (Subtype.ext_iff.mp hab))
-  · rintro ⟨y, hy⟩
+  · intro ⟨y, hy⟩
     obtain ⟨x, rfl⟩ := h.2 y
     exact ⟨⟨x, h.1 (by rw [← W.eval_baseChange_f, hy, map_zero])⟩, rfl⟩
 
@@ -469,7 +469,7 @@ private lemma card_range_μ_le_card_patterns {e₀ : 𝓡} (hmin : ∀ e : 𝓡,
   have hcard : Nat.card (μ (W := W')).range = Nat.card S :=
     Nat.card_congr ((μ (W := W')).range.equivMapOfInjective _ Φ.injective).toEquiv
   have hST : (S : Set _) ⊆ T := by
-    rintro s hs
+    intro s hs
     rw [SetLike.mem_coe, hS, Subgroup.mem_map] at hs
     obtain ⟨t, ht, rfl⟩ := hs
     exact W'.mem_kernels_of_mem_range hmin hodd ht
@@ -1438,13 +1438,10 @@ theorem selmerGroup₂_eq_badPrimes :
         ⊓ ⨅ v : InfinitePlace F, W.localCondition v.Completion := by
   ext m
   simp only [mem_selmerGroup₂_iff, Subgroup.mem_inf, Subgroup.mem_iInf, MonoidHom.mem_ker]
-  constructor
-  · rintro ⟨h1, h2, h3⟩
-    refine ⟨⟨⟨W.mem_selmerGroupA_of_forall_localRes fun v ↦ ?_, h1⟩, fun v ↦ h2 v⟩, h3⟩
-    exact 𝕎[v].range_μ_le_selmerGroupA 𝒪_[v] ((W.mem_localCondition_iff F_[v]).mp (h2 v))
-  · rintro ⟨⟨⟨hA, h1⟩, h2⟩, h3⟩
-    refine ⟨h1, fun v ↦ ?_, h3⟩
-    by_cases hv : v ∈ W.badPrimes (𝓞 F)
+  refine ⟨fun ⟨h1, h2, h3⟩ ↦ ⟨⟨⟨W.mem_selmerGroupA_of_forall_localRes fun v ↦ ?_, h1⟩,
+    fun v ↦ h2 v⟩, h3⟩, fun ⟨⟨⟨hA, h1⟩, h2⟩, h3⟩ ↦ ⟨h1, fun v ↦ ?_, h3⟩⟩
+  · exact 𝕎[v].range_μ_le_selmerGroupA 𝒪_[v] ((W.mem_localCondition_iff F_[v]).mp (h2 v))
+  · by_cases hv : v ∈ W.badPrimes (𝓞 F)
     · exact h2 ⟨v, hv⟩
     · exact W.inf_le_localCondition_adicCompletion hv <| Subgroup.mem_inf.mpr
         ⟨hA, MonoidHom.mem_ker.mpr h1⟩

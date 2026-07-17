@@ -733,7 +733,7 @@ noncomputable def sylvesterEquivOne (hg : g.Monic) (n : ℕ) :
     (degreeLT R g.natDegree × degreeLT R n) ≃ₗ[R] degreeLT R (g.natDegree + n) :=
   ofBijective (sylvesterMap g 1 le_rfl (by simp)) <| by
     constructor
-    · rintro ⟨⟨u, hu⟩, ⟨v, hv⟩⟩ ⟨⟨u', hu'⟩, ⟨v', hv'⟩⟩ h
+    · intro ⟨⟨u, hu⟩, ⟨v, hv⟩⟩ ⟨⟨u', hu'⟩, ⟨v', hv'⟩⟩ h
       replace h : g * v + u = g * v' + u' := by simpa using congrArg Subtype.val h
       rw [mem_degreeLT_natDegree_iff hg.ne_zero] at hu hu'
       have hmod {w : R[X]} (hw : w.degree < g.degree) : w %ₘ g = w :=
@@ -747,7 +747,7 @@ noncomputable def sylvesterEquivOne (hg : g.Monic) (n : ℕ) :
         simpa [hg.divByMonic_mul_add, hdiv hu, hdiv hu'] using this
       simp only [Prod.mk.injEq, Subtype.mk.injEq]
       exact ⟨h₁, h₂⟩
-    · rintro ⟨q, hq⟩
+    · intro ⟨q, hq⟩
       refine ⟨(⟨q %ₘ g, modByMonic_mem_degreeLT hg q⟩,
         ⟨q /ₘ g, divByMonic_mem_degreeLT hg hq⟩), ?_⟩
       ext1
@@ -856,7 +856,7 @@ noncomputable def degreeLTEquiv [Nontrivial R] (hg : g.Monic) :
     degreeLT R g.natDegree ≃ₗ[R] AdjoinRoot g :=
   ofBijective ((mkₐ g).toLinearMap ∘ₗ (degreeLT R g.natDegree).subtype) <| by
     constructor
-    · rintro ⟨q, hq⟩ ⟨q', hq'⟩ h
+    · intro ⟨q, hq⟩ ⟨q', hq'⟩ h
       replace h : mk g q = mk g q' := h
       rw [mk_eq_mk] at h
       rw [mem_degreeLT_natDegree_iff hg.ne_zero] at hq hq'

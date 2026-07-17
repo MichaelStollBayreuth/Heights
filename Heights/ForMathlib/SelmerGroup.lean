@@ -133,7 +133,7 @@ theorem Group.fg_of_fg_ker_of_fg_range {G H : Type*} [Group G] [Group H] (φ : G
   have hmap : (Subgroup.closure U).map φ.rangeRestrict = ⊤ := by
     rw [eq_top_iff, ← hT]
     refine (Subgroup.closure_mono ?_).trans_eq (MonoidHom.map_closure ..).symm
-    rintro t ht
+    intro t ht
     exact ⟨σ t, Set.mem_union_left _ ⟨t, ht, rfl⟩, Function.surjInv_eq _ t⟩
   -- conclude via `comap_map_eq`
   have h := Subgroup.comap_map_eq φ.rangeRestrict (Subgroup.closure U)
@@ -215,7 +215,7 @@ private lemma relIndex_range_comp_subtype {G : Type*} [AddCommGroup G]
     rw [AddMonoidHom.mem_ker, hρdef, AddMonoidHom.comp_apply, QuotientAddGroup.mk'_apply,
       QuotientAddGroup.eq_zero_iff]
     constructor
-    · rintro ⟨u, hu⟩
+    · intro ⟨u, hu⟩
       refine AddSubgroup.mem_sup.mpr ⟨g - u, ?_, u, u.2, by abel⟩
       rw [AddMonoidHom.mem_ker, map_sub]
       have : φG (u : G) = φG g := hu
@@ -698,7 +698,7 @@ noncomputable def selmerGroupFromUnits :
 
 lemma selmerGroupFromUnits_surjective :
     Function.Surjective (selmerGroupFromUnits K S n) := by
-  rintro ⟨c, hc⟩
+  intro ⟨c, hc⟩
   induction c using QuotientGroup.induction_on with
   | H u =>
     exact ⟨⟨u, (mem_selmerGroup_iff_unitsNDivisible K S n u).mp hc⟩, rfl⟩
@@ -751,14 +751,14 @@ theorem ker_toSClassGroup [NeZero n] :
   rw [MonoidHom.mem_ker, toSClassGroup_selmerGroupFromUnits,
     nthRootClass_eq_one_iff _ _ (NeZero.ne n)]
   constructor
-  · rintro ⟨a, w, hw⟩
+  · intro ⟨a, w, hw⟩
     refine ⟨(S.unitEquivUnitsInteger K).symm a, Subtype.ext ?_⟩
     show (QuotientGroup.mk _ : Units.modPow K n) = QuotientGroup.mk (u : Kˣ)
     have hwn : (QuotientGroup.mk (w ^ n) : Units.modPow K n) = 1 :=
       (QuotientGroup.eq_one_iff _).mpr ⟨w, rfl⟩
     rw [coe_unitEquivUnitsInteger_symm, ← hw, QuotientGroup.mk_mul, hwn]
     exact (mul_one _).symm
-  · rintro ⟨s, hs⟩
+  · intro ⟨s, hs⟩
     have hcoe : (QuotientGroup.mk (s : Kˣ) : Units.modPow K n) = QuotientGroup.mk (u : Kˣ) :=
       congrArg Subtype.val hs
     obtain ⟨w, hw⟩ := QuotientGroup.eq.mp hcoe
