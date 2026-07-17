@@ -243,6 +243,15 @@ theorem valuationOfNeZero_maximalIdeal_adicCompletionIntegers (v : HeightOneSpec
     valuation_maximalIdeal_adicCompletionIntegers]
   exact v.valuedAdicCompletion_eq_valuation' _
 
+/-- Any height-one prime `P` of the valuation ring `𝒪_v` (necessarily its maximal ideal)
+induces on `K` the valuation `v` itself. -/
+theorem valuation_adicCompletion_algebraMap (v : HeightOneSpectrum R)
+    (P : HeightOneSpectrum (v.adicCompletionIntegers K)) (z : K) :
+    P.valuation (v.adicCompletion K) (algebraMap K (v.adicCompletion K) z) =
+      v.valuation K z := by
+  rw [P.eq_maximalIdeal, valuation_maximalIdeal_adicCompletionIntegers]
+  exact v.valuedAdicCompletion_eq_valuation' z
+
 end IsDedekindDomain.HeightOneSpectrum
 
 namespace IsDedekindDomain.HeightOneSpectrum

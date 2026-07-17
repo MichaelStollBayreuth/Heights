@@ -665,9 +665,8 @@ private lemma badPrimes_adicCompletionIntegers {v : HeightOneSpectrum (𝓞 F)}
     𝕎[v].badPrimes 𝒪_[v] = ∅ := by
   ext P
   simp only [Set.mem_empty_iff_false, iff_false]
-  have hPval (z : F) : P.valuation F_[v] (algebraMap F F_[v] z) = v.valuation F z := by
-    rw [P.eq_maximalIdeal, valuation_maximalIdeal_adicCompletionIntegers]
-    exact v.valuedAdicCompletion_eq_valuation' z
+  have hPval (z : F) : P.valuation F_[v] (algebraMap F F_[v] z) = v.valuation F z :=
+    valuation_adicCompletion_algebraMap v P z
   have hone {y : F} {c : F_[v]} (hc : c = algebraMap F F_[v] y)
       (h : P.valuation F_[v] c ≠ 1) : v.valuation F y ≠ 1 := by
     rwa [hc, hPval] at h
@@ -1442,10 +1441,7 @@ theorem selmerGroup₂_eq_badPrimes :
   constructor
   · rintro ⟨h1, h2, h3⟩
     refine ⟨⟨⟨W.mem_selmerGroupA_of_forall_localRes fun v ↦ ?_, h1⟩, fun v ↦ h2 v⟩, h3⟩
-    have h := h2 v
-    rw [mem_localCondition_iff] at h
-    exact 𝕎[v].range_μ_le_selmerGroupA
-      𝒪_[v] h
+    exact 𝕎[v].range_μ_le_selmerGroupA 𝒪_[v] ((W.mem_localCondition_iff F_[v]).mp (h2 v))
   · rintro ⟨⟨⟨hA, h1⟩, h2⟩, h3⟩
     refine ⟨h1, fun v ↦ ?_, h3⟩
     by_cases hv : v ∈ W.badPrimes (𝓞 F)
