@@ -1337,6 +1337,34 @@ end LocalCount
 
 attribute [local instance] instFintypeFactorsBaseChange
 
+-- Counting at a good finite place: `#(A(∅,2) ⊓ ker N) ≤ 2^(g-1) ≤ #E(F_v)[2] = #(im μ)`.
+open scoped Classical in
+private lemma card_inf_ker_le_card_range_μ {v : HeightOneSpectrum (𝓞 F)}
+    (hv : v ∉ W.badPrimes (𝓞 F)) :
+    Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
+      Subgroup (Units.modPow 𝕎[v].A 2)) ≤ Nat.card (μ (W := 𝕎[v])).range := by
+  -- there is at least one factor
+  have hg1 : 1 ≤ Nat.card 𝕎[v].f.Factors :=
+    Nat.one_le_iff_ne_zero.mpr <| Nat.card_ne_zero.mpr
+      ⟨Polynomial.Factors.nonempty <| Polynomial.not_isUnit_of_natDegree_pos _
+        (by rw [natDegree_f]; lia), inferInstance⟩
+  have h1 := W.two_mul_card_inf_ker_le hv
+  rw [W.card_selmerGroupA_eq_two_pow hv, show 2 ^ Nat.card 𝕎[v].f.Factors =
+    2 * 2 ^ (Nat.card 𝕎[v].f.Factors - 1) by
+      rw [← pow_succ', Nat.sub_add_cancel hg1]] at h1
+  calc Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
+      Subgroup (Units.modPow 𝕎[v].A 2))
+      ≤ 2 ^ (Nat.card 𝕎[v].f.Factors - 1) := by lia
+    _ ≤ Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} + 1 :=
+        W.two_pow_le_card_linear_factors (v := v)
+    _ = Nat.card {x : F_[v] // 𝕎[v].f.eval x = 0} + 1 := by
+        rw [Nat.card_congr Polynomial.Factors.linearEquivRoots]
+    _ = Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker :=
+        (𝕎[v].card_ker_nsmul_two).symm
+    _ = Nat.card (μ (W := 𝕎[v])).range :=
+        (W.card_range_μ_adicCompletion_of_two_notMem
+          (W.two_notMem_asIdeal_of_notMem_badPrimes hv)).symm
+
 open scoped Classical in
 /-- **The image of the local descent map at a good finite place** consists exactly of the
 unramified square classes with trivial norm. The inclusion `⊇` is the local Hensel input of
@@ -1357,31 +1385,7 @@ theorem selmerGroupA_inf_ker_normM_eq_range_μ {v : HeightOneSpectrum (𝓞 F)}
   have hfinT : Finite (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
       Subgroup (Units.modPow 𝕎[v].A 2)) :=
     Finite.of_injective _ (Subgroup.inclusion_injective inf_le_left)
-  -- there is at least one factor
-  have hg1 : 1 ≤ Nat.card 𝕎[v].f.Factors :=
-    Nat.one_le_iff_ne_zero.mpr <| Nat.card_ne_zero.mpr
-      ⟨Polynomial.Factors.nonempty <| Polynomial.not_isUnit_of_natDegree_pos _
-        (by rw [natDegree_f]; lia), inferInstance⟩
-  -- counting: `#(A(∅,2) ⊓ ker N) ≤ 2^(g-1) ≤ #E(F_v)[2] = #(im μ)`
-  have hchain : Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
-      Subgroup (Units.modPow 𝕎[v].A 2)) ≤ Nat.card (μ (W := 𝕎[v])).range := by
-    have h1 := W.two_mul_card_inf_ker_le hv
-    rw [W.card_selmerGroupA_eq_two_pow hv, show 2 ^ Nat.card 𝕎[v].f.Factors =
-      2 * 2 ^ (Nat.card 𝕎[v].f.Factors - 1) by
-        rw [← pow_succ', Nat.sub_add_cancel hg1]] at h1
-    calc Nat.card (𝕎[v].selmerGroupA 𝒪_[v] ⊓ (normM (W := 𝕎[v])).ker :
-        Subgroup (Units.modPow 𝕎[v].A 2))
-        ≤ 2 ^ (Nat.card 𝕎[v].f.Factors - 1) := by lia
-      _ ≤ Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} + 1 :=
-          W.two_pow_le_card_linear_factors (v := v)
-      _ = Nat.card {x : F_[v] // 𝕎[v].f.eval x = 0} + 1 := by
-          rw [Nat.card_congr Polynomial.Factors.linearEquivRoots]
-      _ = Nat.card (nsmulAddMonoidHom (α := 𝕎[v].Point) 2).ker :=
-          (𝕎[v].card_ker_nsmul_two).symm
-      _ = Nat.card (μ (W := 𝕎[v])).range :=
-          (W.card_range_μ_adicCompletion_of_two_notMem
-            (W.two_notMem_asIdeal_of_notMem_badPrimes hv)).symm
-  exact (Subgroup.eq_of_le_of_card_ge hle hchain).symm
+  exact (Subgroup.eq_of_le_of_card_ge hle (W.card_inf_ker_le_card_range_μ hv)).symm
 
 open scoped Classical in
 /-- At a good finite place, the local condition follows from `S`-unramifiedness and the norm
