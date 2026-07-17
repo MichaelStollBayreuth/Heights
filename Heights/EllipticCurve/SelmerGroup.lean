@@ -1152,47 +1152,29 @@ attribute [local instance] instFintypeFactorsBaseChange
 
 -- the instances are needed by the statement but are erased from the proof term
 set_option linter.unusedSectionVars false in
--- Degree counting for the squarefree cubic: `2 ^ (g - 1) ≤ r + 1` for `g` factors,
--- `r` of them linear.
+-- Degree counting for the squarefree cubic: `2 ^ (g - 1) ≤ r + 1` for `g` factors, `r` of them
+-- linear — the pointwise bound `2 ≤ deg q + [deg q = 1]` sums to `2g ≤ 3 + r`, and `g ≤ 3`.
 private lemma two_pow_le_card_linear_factors :
     2 ^ (Nat.card 𝕎[v].f.Factors - 1) ≤
       Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} + 1 := by
+  have key (g r : ℕ) (hg : g ≤ 3) (h2g : 2 * g ≤ 3 + r) : 2 ^ (g - 1) ≤ r + 1 := by
+    interval_cases g <;> lia
   have hdeg : ∑ q : 𝕎[v].f.Factors, (q : F_[v][X]).natDegree ≤ 3 :=
     natDegree_f 𝕎[v] ▸ Polynomial.Factors.sum_natDegree_le 𝕎[v].f_ne_zero
-  -- split the sum into the contributions of the linear and the higher-degree factors
-  rw [← Finset.sum_filter_add_sum_filter_not Finset.univ
-    (fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1)] at hdeg
-  have h1 : ∑ q ∈ Finset.univ.filter
-      (fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1), (q : F_[v][X]).natDegree =
-      (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1).card := by
-    rw [Finset.sum_congr rfl fun q hq ↦ (Finset.mem_filter.mp hq).2]
-    simp
-  have h2 : 2 * (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦
-      ¬ (q : F_[v][X]).natDegree = 1).card ≤
-      ∑ q ∈ Finset.univ.filter
-        (fun q : 𝕎[v].f.Factors ↦ ¬ (q : F_[v][X]).natDegree = 1),
-        (q : F_[v][X]).natDegree := by
-    rw [mul_comm, ← smul_eq_mul]
-    refine Finset.card_nsmul_le_sum _ _ _ fun q hq ↦ ?_
-    have hpos := q.irreducible.natDegree_pos
-    have hne1 := (Finset.mem_filter.mp hq).2
-    lia
-  have hcards := Finset.card_filter_add_card_filter_not
-    (s := (Finset.univ : Finset 𝕎[v].f.Factors))
-    (p := fun q ↦ (q : F_[v][X]).natDegree = 1)
-  -- translate the cardinalities and case out
-  rw [show Nat.card {q : 𝕎[v].f.Factors // (q : F_[v][X]).natDegree = 1} =
-      (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1).card by
-        rw [Nat.card_eq_fintype_card, Fintype.card_subtype],
-    show Nat.card 𝕎[v].f.Factors = (Finset.univ : Finset 𝕎[v].f.Factors).card by
-        rw [Nat.card_eq_fintype_card, Finset.card_univ],
-    ← hcards]
-  set a := (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1).card
-  set b := (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦ ¬ (q : F_[v][X]).natDegree = 1).card
-  have hab : a + 2 * b ≤ 3 := by lia
-  have hb1 : b ≤ 1 := by lia
-  have ha3 : a ≤ 3 := by lia
-  interval_cases b <;> interval_cases a <;> lia
+  rw [Nat.card_eq_fintype_card, Nat.card_eq_fintype_card,
+    Fintype.card_subtype (fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1)]
+  refine key _ _ ?_ ?_
+  · rw [← Finset.card_univ, Finset.card_eq_sum_ones]
+    exact (Finset.sum_le_sum fun q _ ↦ q.irreducible.natDegree_pos).trans hdeg
+  · calc 2 * Fintype.card 𝕎[v].f.Factors
+        = ∑ _q : 𝕎[v].f.Factors, 2 := by simp [mul_comm]
+      _ ≤ ∑ q : 𝕎[v].f.Factors,
+            ((q : F_[v][X]).natDegree + if (q : F_[v][X]).natDegree = 1 then 1 else 0) :=
+        Finset.sum_le_sum fun q _ ↦ by have := q.irreducible.natDegree_pos; grind
+      _ = (∑ q : 𝕎[v].f.Factors, (q : F_[v][X]).natDegree) +
+            (Finset.univ.filter fun q : 𝕎[v].f.Factors ↦ (q : F_[v][X]).natDegree = 1).card := by
+        rw [Finset.sum_add_distrib, Finset.card_filter]
+      _ ≤ 3 + _ := Nat.add_le_add_right hdeg _
 
 /-- The class of (the image of) a unit of `𝒪_v` in the square classes of the étale algebra
 of the base-changed curve. -/
