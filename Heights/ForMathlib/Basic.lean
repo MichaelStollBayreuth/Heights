@@ -259,6 +259,17 @@ end Units.modPow
 
 end modPow
 
+section Ideal
+
+/-- An ideal contraction is nonzero as soon as its further contraction along an injective ring
+homomorphism is nonzero. -/
+lemma Ideal.comap_ne_bot_of_comap_comap_ne_bot {R S T : Type*} [CommRing R] [CommRing S]
+    [CommRing T] {ρ : R →+* S} {φ : S →+* T} (hρ : Function.Injective ρ) {I : Ideal T}
+    (h : (I.comap φ).comap ρ ≠ ⊥) : I.comap φ ≠ ⊥ := fun h0 ↦
+  h (by rw [h0, ← RingHom.ker_eq_comap_bot, (RingHom.injective_iff_ker_eq_bot ρ).mp hρ])
+
+end Ideal
+
 section LinearAlgebra
 
 /-- A "diagonal" family of vectors — supported at the family index with nonzero value there —

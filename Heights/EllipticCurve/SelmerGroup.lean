@@ -860,28 +860,16 @@ private lemma comap_localFactorIntegerEmb_ne_bot (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor (𝓞 F) p)) [w.asIdeal.LiesOver v.asIdeal] :
     (IsDiscreteValuationRing.maximalIdeal (w.adicCompletionIntegers (𝕃 p))).asIdeal.comap
       (W.localFactorIntegerEmb v p w) ≠ ⊥ := by
-  intro h0
+  refine Ideal.comap_ne_bot_of_comap_comap_ne_bot (FaithfulSMul.algebraMap_injective 𝒪_[v]
+    (𝕎[v].ringOfIntegersFactor 𝒪_[v] (W.localFactor v p w))) ?_
   have hsq0 : (W.localFactorIntegerEmb v p w).comp
       (algebraMap 𝒪_[v] (𝕎[v].ringOfIntegersFactor 𝒪_[v] (W.localFactor v p w))) =
       adicCompletionIntegersExtension F (𝕃 p) v w := by
     ext c
     exact RingHom.congr_fun (W.localFactorEmb_comp_algebraMap v p w) c
-  have h1 := congrArg (Ideal.comap
-    (algebraMap 𝒪_[v] (𝕎[v].ringOfIntegersFactor 𝒪_[v] (W.localFactor v p w)))) h0
   rw [Ideal.comap_comap, hsq0, IsDiscreteValuationRing.asIdeal_maximalIdeal,
-    comap_maximalIdeal_adicCompletionIntegersExtension,
-    ← RingHom.ker_eq_comap_bot] at h1
-  have hinj : Function.Injective
-      (algebraMap 𝒪_[v] (𝕎[v].ringOfIntegersFactor 𝒪_[v] (W.localFactor v p w))) := by
-    have hinj' : Function.Injective
-        (algebraMap 𝒪_[v] (AdjoinRoot (W.localFactor v p w : F_[v][X]))) := by
-      rw [IsScalarTower.algebraMap_eq 𝒪_[v] F_[v]
-        (AdjoinRoot (W.localFactor v p w : F_[v][X]))]
-      exact (algebraMap F_[v] (AdjoinRoot (W.localFactor v p w : F_[v][X]))).injective.comp
-        (IsFractionRing.injective _ _)
-    exact fun a b hab ↦ hinj' (congrArg Subtype.val hab)
-  rw [(RingHom.injective_iff_ker_eq_bot _).mp hinj] at h1
-  exact IsDiscreteValuationRing.not_a_field _ h1
+    comap_maximalIdeal_adicCompletionIntegersExtension]
+  exact IsDiscreteValuationRing.not_a_field _
 
 -- The embedding of the local field factor is compatible with the CRT projections.
 private lemma localFactorEmb_projFactor (p : W.f.Factors)
@@ -953,13 +941,10 @@ private lemma comap_integerMapOfDvd_ne_bot {p : W.f.Factors} {q : 𝕎[v].f.Fact
     (hq : (q : F_[v][X]) ∣ (p : F[X]).map (algebraMap F F_[v]))
     (w : HeightOneSpectrum (𝕎[v].ringOfIntegersFactor 𝒪_[v] q)) :
     w.asIdeal.comap (W.integerMapOfDvd v hq) ≠ ⊥ := by
-  intro h0
-  have h1 := W.comap_comap_integerMapOfDvd v hq w
-  rw [h0] at h1
-  have hinj : Function.Injective (algebraMap (𝓞 F) (W.ringOfIntegersFactor (𝓞 F) p)) :=
-    FaithfulSMul.algebraMap_injective _ _
-  rw [← RingHom.ker_eq_comap_bot, (RingHom.injective_iff_ker_eq_bot _).mp hinj] at h1
-  exact v.ne_bot h1.symm
+  refine Ideal.comap_ne_bot_of_comap_comap_ne_bot (FaithfulSMul.algebraMap_injective (𝓞 F)
+    (W.ringOfIntegersFactor (𝓞 F) p)) ?_
+  rw [W.comap_comap_integerMapOfDvd v hq w]
+  exact v.ne_bot
 
 -- The contracted prime lies over `v`.
 private lemma below_comapOfNeBot_integerMapOfDvd {p : W.f.Factors} {q : 𝕎[v].f.Factors}
