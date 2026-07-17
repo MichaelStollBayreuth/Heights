@@ -847,10 +847,8 @@ private lemma localRes_mem_selmerGroupA_iff (a : W.Aˣ) :
       (2 : ℤ) ∣ Multiplicative.toAdd (w'.valuationOfNeZero
         (Units.map (projFactor 𝕎[v].f_ne_zero 𝕎[v].squarefree_f q).toMonoidHom
           (Units.map (W.mapA F_[v]).toMonoidHom a))) := by
-  rw [mem_selmerGroupA_iff]
-  simp only [localRes_mk]
-  refine forall_congr' fun q ↦ ?_
-  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
+  rw [localRes_mk]
+  exact 𝕎[v].mem_selmerGroupA_unit_iff 𝒪_[v] _
 
 -- Transport of the divisibility from the contracted prime of the local factor to `w`.
 private lemma dvd_toAdd_valuationOfNeZero_of_localFactor (p : W.f.Factors)
@@ -938,22 +936,18 @@ theorem localRes_mem_selmerGroupA {v : HeightOneSpectrum (𝓞 F)} (hv : v ∉ W
     {m : W.M} (hm : m ∈ W.selmerGroupA (𝓞 F)) :
     W.localRes F_[v] m ∈ 𝕎[v].selmerGroupA 𝒪_[v] := by
   obtain ⟨a, rfl⟩ := QuotientGroup.mk'_surjective _ m
-  rw [mem_selmerGroupA_iff] at hm ⊢
-  intro q
+  simp only [QuotientGroup.mk'_apply] at hm ⊢
+  rw [mem_selmerGroupA_unit_iff] at hm
+  rw [W.localRes_mem_selmerGroupA_iff v a]
+  intro q w hw
   -- find the global factor `p` below the local factor `q`
   obtain ⟨p, hq⟩ := Polynomial.Factors.exists_dvd_map (algebraMap F F_[v])
     W.f_ne_zero q.prime (q.dvd.trans (W.baseChange_f F_[v]).dvd)
-  -- reduce to a valuation-divisibility statement for the `q`-component
-  simp only [QuotientGroup.mk'_apply, localRes_mk] at hm ⊢
-  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
-  intro w hw
   -- the prime of the global field factor below `w`
   have hne := W.comap_integerMapOfDvd_ne_bot v hq w
   have hbelow := W.below_comapOfNeBot_integerMapOfDvd v hq w
   -- the global unramifiedness hypothesis at that prime
-  have hp := hm p
-  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff] at hp
-  have hdvd := hp (HeightOneSpectrum.comapOfNeBot (W.integerMapOfDvd v hq) w hne) fun hmem ↦
+  have hdvd := hm p (HeightOneSpectrum.comapOfNeBot (W.integerMapOfDvd v hq) w hne) fun hmem ↦
     hv (hbelow ▸ (HeightOneSpectrum.mem_primesAbove_iff (𝓞 F) _ _ _).mp hmem)
   -- transport along the embedding of field factors
   have hkey := HeightOneSpectrum.dvd_toAdd_valuationOfNeZero_map
@@ -982,11 +976,9 @@ theorem mem_selmerGroupA_of_forall_localRes {m : W.M}
         𝕎[v].selmerGroupA 𝒪_[v]) :
     m ∈ W.selmerGroupA (𝓞 F) := by
   obtain ⟨a, rfl⟩ := QuotientGroup.mk'_surjective _ m
-  rw [mem_selmerGroupA_iff]
-  intro p
   simp only [QuotientGroup.mk'_apply]
-  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
-  intro w hw
+  rw [mem_selmerGroupA_unit_iff]
+  intro p w hw
   have hv : w.below (𝓞 F) ∉ W.badPrimes (𝓞 F) := W.below_notMem_badPrimes (𝓞 F) p hw
   refine W.dvd_toAdd_valuationOfNeZero_of_localFactor (w.below (𝓞 F)) p w a ?_
   refine (W.localRes_mem_selmerGroupA_iff (w.below (𝓞 F)) a).mp (hm (w.below (𝓞 F))) _ _ ?_
@@ -1241,10 +1233,8 @@ variable {v}
 -- The class of a scalar unit of `𝒪_v` is unramified.
 private lemma scalarClass_mem_selmerGroupA (c : 𝒪_[v]ˣ) :
     W.scalarClass v c ∈ 𝕎[v].selmerGroupA 𝒪_[v] := by
-  rw [scalarClass, mem_selmerGroupA_iff]
-  intro q
-  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
-  intro w hw
+  rw [scalarClass, mem_selmerGroupA_unit_iff]
+  intro q w hw
   have hdvd := w.dvd_toAdd_valuationOfNeZero (n := 2) (z := 1)
     (u := Units.map (projFactor 𝕎[v].f_ne_zero 𝕎[v].squarefree_f q).toMonoidHom
       (Units.map (algebraMap F_[v] 𝕎[v].A).toMonoidHom

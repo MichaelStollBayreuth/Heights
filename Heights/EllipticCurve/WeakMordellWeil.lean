@@ -1497,6 +1497,19 @@ lemma mem_selmerGroupFactor_unit_iff (p : W.f.Factors) (u : (𝕃 p)ˣ) :
           (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero u) :=
   forall₂_congr fun w _ ↦ HeightOneSpectrum.valuationOfNeZeroMod_mk_eq_one_iff w 2 u
 
+/-- Membership of the class of a unit of the étale algebra in `A(S,2)`, componentwise: the
+valuation of each `projFactor`-component is even at every prime of the corresponding ring of
+integers that does not lie above a bad prime. -/
+lemma mem_selmerGroupA_unit_iff (a : W.Aˣ) :
+    (QuotientGroup.mk a : W.M) ∈ W.selmerGroupA R ↔
+      ∀ (p : W.f.Factors) (w : HeightOneSpectrum (W.ringOfIntegersFactor R p)),
+        w ∉ HeightOneSpectrum.primesAbove R (W.ringOfIntegersFactor R p) (W.badPrimes R) →
+          (2 : ℤ) ∣ Multiplicative.toAdd (w.valuationOfNeZero
+            (Units.map (AdjoinRoot.projFactor W.f_ne_zero W.squarefree_f p).toMonoidHom a)) := by
+  rw [mem_selmerGroupA_iff]
+  refine forall_congr' fun p ↦ ?_
+  rw [AdjoinRoot.modPowEquivPiFactors_mk, mem_selmerGroupFactor_unit_iff]
+
 /-- Generic case of the arithmetic input: `f x ≠ 0`, so the `p`-component of `μX x` is the class
 of `x - θ`. -/
 lemma mem_selmerGroupFactor_of_eval_f_ne_zero {x y : K} (h : W.Equation x y)
