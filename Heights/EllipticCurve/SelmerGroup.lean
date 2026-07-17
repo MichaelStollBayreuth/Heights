@@ -993,6 +993,7 @@ theorem mem_selmerGroupA_of_forall_localRes {m : W.M}
   refine (W.localRes_mem_selmerGroupA_iff (w.below (𝓞 F)) a).mp (hm (w.below (𝓞 F))) _ _ ?_
   rw [HeightOneSpectrum.mem_primesAbove_iff, W.badPrimes_adicCompletionIntegers hv]
   exact Set.notMem_empty _
+
 /-!
 ### The size of the local images
 
