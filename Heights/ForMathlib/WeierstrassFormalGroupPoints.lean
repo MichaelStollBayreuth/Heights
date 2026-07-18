@@ -59,8 +59,15 @@ theorem eq_of_wPoly_fixed {t r r' : O} (ht : t ∈ maximalIdeal O) (hr : r ∈ m
     IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal (by simpa using neg_mem hm)
   exact sub_eq_zero.mp (hu.mul_right_eq_zero.mp hkey)
 
-variable [UniformSpace O] [Fact (IsAdic (maximalIdeal O))] [IsUniformAddGroup O]
-  [CompleteSpace O] [T2Space O] [IsTopologicalRing O]
+variable [UniformSpace O] [Fact (IsAdic (maximalIdeal O))]
+
+omit W in
+private lemma hasEval_pairElim {t₁ t₂ : O} (h₁ : t₁ ∈ maximalIdeal O)
+    (h₂ : t₂ ∈ maximalIdeal O) :
+    MvPowerSeries.HasEval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂ : Unit ⊕ Unit → O) :=
+  MvPSeries.hasEval_of_mem (by rintro (j | j) <;> assumption)
+
+variable [IsUniformAddGroup O] [CompleteSpace O] [T2Space O] [IsTopologicalRing O]
 
 /-- The value of the fixed-point series `w` at a parameter `t`. -/
 noncomputable def wEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.wSeries
@@ -109,6 +116,251 @@ theorem wEval_ne_zero [IsDomain O] (ht : t ∈ maximalIdeal O) (ht0 : t ≠ 0) :
     W.wEval t ≠ 0 := by
   rw [W.wEval_eq_cube_mul ht]
   exact mul_ne_zero (pow_ne_zero 3 ht0) (W.isUnit_vEval ht).ne_zero
+
+omit ht
+
+/-!
+### Evaluation of the chord data
+
+The values of `u`, its inverse, the formal inverse `ι`, and the two-parameter chord data
+(slope, intercept, third root, addition series) at parameters in the maximal ideal, with
+the evaluated forms of their defining identities.
+-/
+
+/-- The value of the series `u = 1 - a₁t - a₃w(t)` at a parameter `t`. -/
+noncomputable def uEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.uSeries
+
+/-- The value of the inverse of the series `u` at a parameter `t`. -/
+noncomputable def duEval (t : O) : O :=
+  MvPSeries.eval (fun _ : Unit ↦ t) (PowerSeries.invOfUnit W.uSeries 1)
+
+/-- The value of the formal inverse series `ι` at a parameter `t`. -/
+noncomputable def iotaEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.inverseSeries
+
+include ht
+
+theorem uEval_eq : W.uEval t = 1 - W.a₁ * t - W.a₃ * W.wEval t := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t := MvPSeries.hasEval_of_mem fun _ ↦ ht
+  have h := congrArg (MvPSeries.evalRingHom hE) (show W.uSeries =
+    1 - PowerSeries.C W.a₁ * PowerSeries.X - PowerSeries.C W.a₃ * W.wSeries from rfl)
+  simp only [map_sub, map_one, map_mul, MvPSeries.evalRingHom_apply] at h
+  rw [show (PowerSeries.C : O →+* PowerSeries O) = MvPowerSeries.C from rfl,
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl] at h
+  simp only [MvPSeries.eval_C, MvPSeries.eval_X] at h
+  exact h
+
+theorem uEval_mul_duEval : W.uEval t * W.duEval t = 1 := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t := MvPSeries.hasEval_of_mem fun _ ↦ ht
+  have h := congrArg (MvPSeries.evalRingHom hE) W.mul_invOfUnit_uSeries
+  simp only [map_mul, map_one, MvPSeries.evalRingHom_apply] at h
+  exact h
+
+theorem isUnit_uEval : IsUnit (W.uEval t) :=
+  IsUnit.of_mul_eq_one _ (W.uEval_mul_duEval ht)
+
+theorem isUnit_duEval : IsUnit (W.duEval t) :=
+  IsUnit.of_mul_eq_one _ (by rw [mul_comm]; exact W.uEval_mul_duEval ht)
+
+theorem iotaEval_eq : W.iotaEval t = -(t * W.duEval t) := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t := MvPSeries.hasEval_of_mem fun _ ↦ ht
+  have h := congrArg (MvPSeries.evalRingHom hE) (show W.inverseSeries =
+    -(PowerSeries.X * PowerSeries.invOfUnit W.uSeries 1) from rfl)
+  simp only [map_neg, map_mul, MvPSeries.evalRingHom_apply] at h
+  rw [show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl] at h
+  simp only [MvPSeries.eval_X] at h
+  exact h
+
+theorem iotaEval_mem : W.iotaEval t ∈ maximalIdeal O :=
+  MvPSeries.eval_mem_maximalIdeal (MvPSeries.hasEval_of_mem fun _ ↦ ht) (fun _ ↦ ht)
+    W.inverseSeries (by
+      rw [show MvPowerSeries.constantCoeff W.inverseSeries =
+        PowerSeries.constantCoeff W.inverseSeries from rfl, W.constantCoeff_inverseSeries]
+      exact zero_mem _)
+
+omit W in
+/-- Evaluation of a one-variable substitution is evaluation at the value. -/
+theorem eval_subst_single {f : PowerSeries O} (hf : PowerSeries.constantCoeff f = 0)
+    (g : PowerSeries O) :
+    MvPSeries.eval (fun _ : Unit ↦ t) (PowerSeries.subst f g) =
+      MvPSeries.eval (fun _ : Unit ↦ MvPSeries.eval (fun _ : Unit ↦ t) f) g :=
+  MvPSeries.eval_subst (MvPSeries.hasEval_of_mem fun _ ↦ ht)
+    (MvPowerSeries.hasSubst_of_constantCoeff_zero fun _ ↦ hf) g
+
+theorem wEval_iotaEval : W.wEval (W.iotaEval t) = -(W.wEval t * W.duEval t) := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t := MvPSeries.hasEval_of_mem fun _ ↦ ht
+  have h := congrArg (MvPSeries.evalRingHom hE) W.subst_inverseSeries_wSeries
+  rw [map_neg, map_mul] at h
+  simp only [MvPSeries.evalRingHom_apply] at h
+  rw [eval_subst_single ht W.constantCoeff_inverseSeries] at h
+  exact h
+
+theorem iotaEval_iotaEval : W.iotaEval (W.iotaEval t) = t := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t := MvPSeries.hasEval_of_mem fun _ ↦ ht
+  have h := congrArg (MvPSeries.evalRingHom hE) W.subst_inverseSeries_self
+  simp only [MvPSeries.evalRingHom_apply] at h
+  rw [eval_subst_single ht W.constantCoeff_inverseSeries] at h
+  rw [show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPSeries.eval_X] at h
+  exact h
+
+omit ht
+
+/-- The value of the slope series at a pair of parameters. -/
+noncomputable def slopeEval (t₁ t₂ : O) : O :=
+  MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.slopeSeries
+
+/-- The value of the intercept series at a pair of parameters. -/
+noncomputable def interceptEval (t₁ t₂ : O) : O :=
+  MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.interceptSeries
+
+/-- The value of the third-root series at a pair of parameters. -/
+noncomputable def thirdRootEval (t₁ t₂ : O) : O :=
+  MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.thirdRootSeries
+
+/-- The value of the addition series at a pair of parameters. -/
+noncomputable def addEval (t₁ t₂ : O) : O :=
+  MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.addSeries
+
+variable {t₁ t₂ : O} (h₁ : t₁ ∈ maximalIdeal O) (h₂ : t₂ ∈ maximalIdeal O)
+
+include h₁ h₂
+
+omit W in
+/-- Evaluating a substituted one-variable series at a pair is evaluation at the value. -/
+private lemma eval_pair_subst_single {q : MvPowerSeries (Unit ⊕ Unit) O}
+    (hq : MvPowerSeries.constantCoeff q = 0) (g : PowerSeries O) :
+    MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂)
+        (MvPowerSeries.subst (fun _ : Unit ↦ q) g) =
+      MvPSeries.eval (fun _ : Unit ↦
+        MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) q) g :=
+  MvPSeries.eval_subst (hasEval_pairElim h₁ h₂)
+    (MvPowerSeries.hasSubst_of_constantCoeff_zero fun _ ↦ hq) g
+
+omit W in
+/-- Evaluating a renamed one-variable series at a pair evaluates at the matching entry. -/
+private lemma eval_pair_rename (c : Unit → Unit ⊕ Unit) (g : PowerSeries O) :
+    MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) (MvPowerSeries.rename c g) =
+      MvPSeries.eval (fun _ : Unit ↦ Sum.elim (fun _ ↦ t₁) (fun _ ↦ t₂) (c ())) g := by
+  rw [MvPowerSeries.rename_eq_subst]
+  rw [MvPSeries.eval_subst (hasEval_pairElim h₁ h₂) (MvPowerSeries.HasSubst.X_comp c) g]
+  congr 1
+  funext s
+  rw [Function.comp_apply, MvPSeries.eval_X]
+
+/-- The evaluated slope identity: `λ̂·(t₂ - t₁) = w(t₂) - w(t₁)`. -/
+theorem slopeEval_mul_sub :
+    W.slopeEval t₁ t₂ * (t₂ - t₁) = W.wEval t₂ - W.wEval t₁ := by
+  have h := congrArg (MvPSeries.evalRingHom (hasEval_pairElim h₁ h₂)) W.slopeSeries_mul_sub
+  simp only [map_mul, map_sub, MvPSeries.evalRingHom_apply, MvPSeries.eval_X] at h
+  rw [eval_pair_rename h₁ h₂, eval_pair_rename h₁ h₂] at h
+  simp only [Sum.elim_inl, Sum.elim_inr] at h
+  exact h
+
+/-- The evaluated intercept identity: `ν̂ = w(t₁) - λ̂·t₁`. -/
+theorem interceptEval_eq :
+    W.interceptEval t₁ t₂ = W.wEval t₁ - W.slopeEval t₁ t₂ * t₁ := by
+  have h := congrArg (MvPSeries.evalRingHom (hasEval_pairElim h₁ h₂))
+    (show W.interceptSeries = MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries -
+      W.slopeSeries * MvPowerSeries.X (Sum.inl ()) from rfl)
+  simp only [map_sub, map_mul, MvPSeries.evalRingHom_apply, MvPSeries.eval_X] at h
+  rw [eval_pair_rename h₁ h₂] at h
+  simp only [Sum.elim_inl] at h
+  exact h
+
+theorem slopeEval_mem : W.slopeEval t₁ t₂ ∈ maximalIdeal O :=
+  MvPSeries.eval_mem_maximalIdeal (hasEval_pairElim h₁ h₂)
+    (by rintro (j | j) <;> assumption) W.slopeSeries
+    (by rw [show MvPowerSeries.constantCoeff W.slopeSeries = 0 from
+      W.constantCoeff_slopeSeries]; exact zero_mem _)
+
+theorem thirdRootEval_mem : W.thirdRootEval t₁ t₂ ∈ maximalIdeal O :=
+  MvPSeries.eval_mem_maximalIdeal (hasEval_pairElim h₁ h₂)
+    (by rintro (j | j) <;> assumption) W.thirdRootSeries
+    (by rw [W.constantCoeff_thirdRootSeries]; exact zero_mem _)
+
+/-- The evaluated third-root relation, with the inverse of the cubic's leading
+coefficient eliminated. -/
+theorem thirdRootEval_relation :
+    (1 + W.a₂ * W.slopeEval t₁ t₂ + W.a₄ * W.slopeEval t₁ t₂ ^ 2 +
+        W.a₆ * W.slopeEval t₁ t₂ ^ 3) * (W.thirdRootEval t₁ t₂ + t₁ + t₂) =
+      -(W.a₁ * W.slopeEval t₁ t₂ + W.a₂ * W.interceptEval t₁ t₂ +
+        W.a₃ * W.slopeEval t₁ t₂ ^ 2 +
+        2 * W.a₄ * W.slopeEval t₁ t₂ * W.interceptEval t₁ t₂ +
+        3 * W.a₆ * W.slopeEval t₁ t₂ ^ 2 * W.interceptEval t₁ t₂) := by
+  have hE := hasEval_pairElim (t₁ := t₁) (t₂ := t₂) h₁ h₂
+  have hT := congrArg (MvPSeries.evalRingHom hE) (show W.thirdRootSeries =
+    -MvPowerSeries.X (Sum.inl ()) - MvPowerSeries.X (Sum.inr ()) -
+      (MvPowerSeries.C W.a₁ * W.slopeSeries + MvPowerSeries.C W.a₂ * W.interceptSeries +
+        MvPowerSeries.C W.a₃ * W.slopeSeries ^ 2 +
+        2 * MvPowerSeries.C W.a₄ * W.slopeSeries * W.interceptSeries +
+        3 * MvPowerSeries.C W.a₆ * W.slopeSeries ^ 2 * W.interceptSeries) *
+      MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+        MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+        MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1 from rfl)
+  have hD := congrArg (MvPSeries.evalRingHom hE)
+    (MvPowerSeries.mul_invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1
+      (by simp [show MvPowerSeries.constantCoeff W.slopeSeries = 0 from
+        W.constantCoeff_slopeSeries]))
+  simp only [map_sub, map_neg, map_add, map_mul, map_pow, map_one, map_ofNat,
+    MvPSeries.evalRingHom_apply, MvPSeries.eval_X, MvPSeries.eval_C, Sum.elim_inl,
+    Sum.elim_inr] at hT hD
+  simp only [show MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.slopeSeries =
+      W.slopeEval t₁ t₂ from rfl,
+    show MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.interceptSeries =
+      W.interceptEval t₁ t₂ from rfl,
+    show MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂) W.thirdRootSeries =
+      W.thirdRootEval t₁ t₂ from rfl] at hT hD
+  set Λ := W.slopeEval t₁ t₂
+  set N := W.interceptEval t₁ t₂
+  set T := W.thirdRootEval t₁ t₂
+  set d := MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂)
+    (MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1)
+  clear_value Λ N T d
+  linear_combination (1 + W.a₂ * Λ + W.a₄ * Λ ^ 2 + W.a₆ * Λ ^ 3) * hT -
+    (W.a₁ * Λ + W.a₂ * N + W.a₃ * Λ ^ 2 + 2 * W.a₄ * Λ * N + 3 * W.a₆ * Λ ^ 2 * N) * hD
+
+/-- The evaluated on-line identity: `w(t̂₃) = λ̂·t̂₃ + ν̂`. -/
+theorem wEval_thirdRootEval [IsDomain O] :
+    W.wEval (W.thirdRootEval t₁ t₂) =
+      W.slopeEval t₁ t₂ * W.thirdRootEval t₁ t₂ + W.interceptEval t₁ t₂ := by
+  have h := congrArg (MvPSeries.evalRingHom (hasEval_pairElim h₁ h₂))
+    W.subst_thirdRootSeries_wSeries
+  simp only [map_add, map_mul, MvPSeries.evalRingHom_apply] at h
+  rw [eval_pair_subst_single h₁ h₂ W.constantCoeff_thirdRootSeries] at h
+  exact h
+
+/-- The evaluated addition series is the formal inverse of the evaluated third root. -/
+theorem addEval_eq : W.addEval t₁ t₂ = W.iotaEval (W.thirdRootEval t₁ t₂) := by
+  have h := congrArg (MvPSeries.evalRingHom (hasEval_pairElim h₁ h₂))
+    (show W.addSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.inverseSeries from rfl)
+  simp only [MvPSeries.evalRingHom_apply] at h
+  rw [eval_pair_subst_single h₁ h₂ W.constantCoeff_thirdRootSeries] at h
+  exact h
+
+omit h₂ in
+/-- The evaluated formal inverse identity: `F(t, ι(t)) = 0`. -/
+theorem addEval_iotaEval : W.addEval t₁ (W.iotaEval t₁) = 0 := by
+  have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t₁ := MvPSeries.hasEval_of_mem fun _ ↦ h₁
+  have h := congrArg (MvPSeries.evalRingHom hE) (W.subst_inverse_addSeries)
+  rw [map_zero] at h
+  simp only [MvPSeries.evalRingHom_apply] at h
+  rw [MvPSeries.eval_subst hE (MvPowerSeries.hasSubst_of_constantCoeff_zero (by
+    rintro (j | j)
+    · exact MvPowerSeries.constantCoeff_X ()
+    · exact W.constantCoeff_inverseSeries))] at h
+  rw [show (fun s ↦ MvPSeries.eval (fun _ : Unit ↦ t₁)
+      ((Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O))
+        fun _ ↦ W.inverseSeries) s)) =
+      (Sum.elim (fun _ ↦ t₁) fun _ ↦ W.iotaEval t₁) from funext fun s ↦ by
+    rcases s with u | u
+    · exact MvPSeries.eval_X _ _
+    · rfl] at h
+  exact h
 
 end WeierstrassCurve
 
