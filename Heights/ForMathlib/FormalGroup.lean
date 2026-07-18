@@ -2,6 +2,7 @@ import Mathlib
 import Heights.ForMathlib.Henselian
 import Heights.ForMathlib.AdicCompletionExtension
 import Heights.ForMathlib.SelmerGroup
+import Heights.ForMathlib.VariableChange
 
 /-!
 # Interface to formal-group theory over a local field
@@ -13,15 +14,17 @@ machinery needs.
 
 * `WeierstrassCurve.Affine.exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers`:
   for an elliptic curve `E` over `K_v`, the group `E(K_v)` has a subgroup of finite index
-  isomorphic to the additive group `(𝒪_v, +)`. This statement is `sorry`ed for now.
+  isomorphic to the additive group `(𝒪_v, +)`.
 
-  The proof is a separate project: the points reducing to the identity form a subgroup
-  `E₁(K_v)` isomorphic to the group `Ê(𝔪)` of points of the formal group `Ê` of `E`
-  (Silverman, *Arithmetic of Elliptic Curves*, VII.2.2); the formal logarithm gives an
-  isomorphism `Ê(𝔪^k) ≅ (𝔪^k, +) ≅ (𝒪_v, +)` for `k` large compared to the ramification
-  of `p` (Silverman IV.6.4); and `Ê(𝔪^k)` is open in the compact group `E(K_v)`, hence of
-  finite index. Mathlib's `FormalGroup` (one-dimensional formal group laws) is a starting
-  point, but the formal group of an elliptic curve, the formal logarithm, and the topology
+  This is proved from a skeleton of `sorry`ed pieces (Silverman, *Arithmetic of Elliptic
+  Curves*, VII.2 and IV.6): after passing to an integral model
+  (`exists_variableChange_map_eq`), the valuation filtration `E_{n+1}(K_v)` is a subgroup
+  (`filtration`; closure under addition is the group-law part of the formal-group theory),
+  each of its steps is of finite index (`filtration_finiteIndex`; the steps are open in the
+  compact group `E(K_v)`), and a suitable step is identified with `(𝒪_v, +)` by the formal
+  logarithm (`exists_filtration_equiv`, using `k > e/(p-1)`, Silverman IV.6.4). Mathlib's
+  `FormalGroup` (one-dimensional formal group laws) is a starting point for the remaining
+  pieces, but the formal group of an elliptic curve, the formal logarithm, and the topology
   on the points of an elliptic curve over a local field are all still missing.
 
 * `IsDedekindDomain.HeightOneSpectrum.card_selmerGroup_integralClosure`: for odd residue
@@ -44,21 +47,82 @@ open IsDedekindDomain Polynomial
 
 namespace WeierstrassCurve.Affine
 
+open WithZero
+
 variable {R : Type*} [CommRing R] [IsDedekindDomain R]
   {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K] [CharZero K]
   (v : HeightOneSpectrum R) [Finite (R ⧸ v.asIdeal)]
-  (W : Affine (v.adicCompletion K)) [W.IsElliptic]
+
+section IntegralModel
+
+variable (W : Affine (v.adicCompletion K))
+
+/-- Every Weierstrass curve over `K_v` has an integral model: after an admissible change of
+variables, the coefficients lie in `𝒪_v`. -/
+theorem exists_variableChange_map_eq :
+    ∃ (C : VariableChange (v.adicCompletion K))
+      (W₀ : WeierstrassCurve (v.adicCompletionIntegers K)),
+      W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = C • W :=
+  sorry
+
+end IntegralModel
+
+section Filtration
+
+variable {v} [DecidableEq (v.adicCompletion K)] {W : Affine (v.adicCompletion K)}
+  [W.IsElliptic] {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
+
+/-- For an elliptic curve `W` over `K_v` with an integral model `W₀` and `n : ℕ`, the
+subgroup `E_{n+1}(K_v)` of points `(x, y)` with `v(x) ≤ exp (-2 * (n + 1))` (together with
+`0`); this is the kernel of reduction modulo `𝔪^(n+1)`, isomorphic to the group `Ê(𝔪^(n+1))`
+of points of the formal group of `W₀` (Silverman, VII.2.2). The proof that it is closed
+under addition is formal-group material and is `sorry`ed for now. -/
+def filtration (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) (n : ℕ) : AddSubgroup W.Point where
+  carrier := {P | match P with
+    | .zero => True
+    | @Point.some _ _ _ x _ _ => Valued.v x ≤ exp (-(2 * (n + 1) : ℤ))}
+  zero_mem' := trivial
+  neg_mem' {P} hP := by
+    match P with
+    | .zero => exact hP
+    | @Point.some _ _ _ x y h => rw [Set.mem_setOf_eq, Point.neg_some]; exact hP
+  add_mem' := sorry
+
+/-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
+finite index: the filtration steps are open subgroups of the compact group `E(K_v)`. -/
+theorem filtration_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) (n : ℕ) : (filtration hW n).FiniteIndex :=
+  sorry
+
+/-- Some step of the valuation filtration on the points of an elliptic curve over `K_v` is
+isomorphic to the additive group of `𝒪_v`: for `𝔪^k` past the ramification of the residue
+characteristic, the formal logarithm identifies `Ê(𝔪^k)` with `(𝔪^k, +) ≅ (𝒪_v, +)`
+(Silverman, IV.6.4). -/
+theorem exists_filtration_equiv (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) :
+    ∃ n, Nonempty (filtration hW n ≃+ v.adicCompletionIntegers K) :=
+  sorry
+
+end Filtration
+
+variable (W : Affine (v.adicCompletion K)) [W.IsElliptic]
 
 open scoped Classical in
 /-- The group of points of an elliptic curve over the completion `K_v` (a characteristic-`0`
 local field with finite residue field) has a subgroup of finite index that is isomorphic to
 the additive group of the valuation ring `𝒪_v`.
 
-This is the structure theorem coming from the formal group of the curve; see the module
-docstring for the proof sketch. -/
+This is the structure theorem coming from the formal group of the curve: pass to an
+integral model and take a suitable step of the valuation filtration. -/
 theorem exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers :
-    ∃ U : AddSubgroup W.Point, U.FiniteIndex ∧ Nonempty (U ≃+ (v.adicCompletionIntegers K)) :=
-  sorry
+    ∃ U : AddSubgroup W.Point, U.FiniteIndex ∧ Nonempty (U ≃+ (v.adicCompletionIntegers K)) := by
+  obtain ⟨C, W₀, hW⟩ := exists_variableChange_map_eq v W
+  obtain ⟨n, ⟨e⟩⟩ := exists_filtration_equiv hW
+  refine ⟨(filtration hW n).map (Point.equivVariableChange W C : _ →+ _), ⟨?_⟩, ?_⟩
+  · rw [AddSubgroup.index_map_equiv]
+    exact (filtration_finiteIndex hW n).index_ne_zero
+  · exact ⟨((AddEquiv.addSubgroupMap (Point.equivVariableChange W C) _).symm.trans e)⟩
 
 end WeierstrassCurve.Affine
 
