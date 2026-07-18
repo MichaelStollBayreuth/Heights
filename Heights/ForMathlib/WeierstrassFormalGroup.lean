@@ -1096,7 +1096,7 @@ private lemma chord_point_add {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
 
 /-- The parametrized point `(q/w, -1/w)` is nonsingular whenever `(q, w)` satisfies the
 Weierstrass equation in the `(t, w)`-chart and the discriminant does not vanish. -/
-private lemma chord_point_nonsingular {q w : F}
+lemma chord_point_nonsingular {q w : F}
     (hw : w = q ^ 3 + WF.a₁ * q * w + WF.a₂ * q ^ 2 * w + WF.a₃ * w ^ 2 +
       WF.a₄ * q * w ^ 2 + WF.a₆ * w ^ 3)
     (hw0 : w ≠ 0) (hΔ : WF.Δ ≠ 0) :
@@ -2502,26 +2502,3 @@ instance factIsAdic_adicCompletionIntegers :
   ⟨v.isAdic_maximalIdeal_adicCompletionIntegers⟩
 
 end IsDedekindDomain.HeightOneSpectrum
-
-namespace WeierstrassCurve.Affine
-
-variable {R : Type*} [CommRing R] [IsDedekindDomain R]
-  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
-  {v : HeightOneSpectrum R} [DecidableEq (v.adicCompletion K)] [CharZero K]
-  [Finite (R ⧸ v.asIdeal)] {W : Affine (v.adicCompletion K)} [W.IsElliptic]
-  {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
-
-/-- The `𝔪`-points of the formal group law of an integral model `W₀` of `W` are the kernel
-of reduction `E₁(K_v) = filtration hW 0`, via `z ↦ (x, y)` with `x = z/w(z)`,
-`y = -1/w(z)`; the equivalence matches the filtration by valuation on both sides
-(Silverman, VII.2.2). -/
-theorem exists_points_equiv_filtration (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
-    (v.adicCompletion K)) = W) :
-    ∃ θ : W₀.formalGroupLaw.Points ≃+ filtration hW 0,
-      ∀ (z : W₀.formalGroupLaw.Points) (n : ℕ),
-        ((z () : v.adicCompletionIntegers K) ∈
-            IsLocalRing.maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
-          ((θ z : filtration hW 0) : W.Point) ∈ filtration hW n) :=
-  sorry
-
-end WeierstrassCurve.Affine

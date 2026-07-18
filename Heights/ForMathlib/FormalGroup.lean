@@ -128,29 +128,40 @@ theorem exists_variableChange_map_eq :
 
 end IntegralModel
 
-variable [CharZero K] [Finite (R ⧸ v.asIdeal)]
-
 section Filtration
 
 variable {v} [DecidableEq (v.adicCompletion K)] {W : Affine (v.adicCompletion K)}
-  [W.IsElliptic] {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
+  {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
 
 /-- For an elliptic curve `W` over `K_v` with an integral model `W₀` and `n : ℕ`, the
-subgroup `E_{n+1}(K_v)` of points `(x, y)` with `v(x) ≤ exp (-2 * (n + 1))` (together with
-`0`); this is the kernel of reduction modulo `𝔪^(n+1)`, isomorphic to the group `Ê(𝔪^(n+1))`
-of points of the formal group of `W₀` (Silverman, VII.2.2). The proof that it is closed
-under addition is formal-group material and is `sorry`ed for now. -/
+subgroup `E_{n+1}(K_v)` of points `(x, y)` with `exp (2 * (n + 1)) ≤ v(x)` (a pole of order
+at least `2(n + 1)` at `x`, together with `0`); this is the kernel of reduction modulo
+`𝔪^(n+1)`, isomorphic to the group `Ê(𝔪^(n+1))` of points of the formal group of `W₀`
+(Silverman, VII.2.2). The proof that it is closed under addition is formal-group material
+and is `sorry`ed for now. -/
 def filtration (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
     (v.adicCompletion K)) = W) (n : ℕ) : AddSubgroup W.Point where
   carrier := {P | match P with
     | .zero => True
-    | @Point.some _ _ _ x _ _ => Valued.v x ≤ exp (-(2 * (n + 1) : ℤ))}
+    | @Point.some _ _ _ x _ _ => exp (2 * (n + 1) : ℤ) ≤ Valued.v x}
   zero_mem' := trivial
   neg_mem' {P} hP := by
     match P with
     | .zero => exact hP
     | @Point.some _ _ _ x y h => rw [Set.mem_setOf_eq, Point.neg_some]; exact hP
   add_mem' := sorry
+
+variable {hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W}
+  {n : ℕ}
+
+@[simp]
+lemma zero_mem_filtration : (0 : W.Point) ∈ filtration hW n := trivial
+
+@[simp]
+lemma some_mem_filtration {x y : v.adicCompletion K} {h : W.Nonsingular x y} :
+    (.some x y h : W.Point) ∈ filtration hW n ↔ exp (2 * (n + 1) : ℤ) ≤ Valued.v x := Iff.rfl
+
+variable [CharZero K] [Finite (R ⧸ v.asIdeal)] [W.IsElliptic]
 
 /-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
 finite index: the filtration steps are open subgroups of the compact group `E(K_v)`. -/
@@ -169,7 +180,8 @@ theorem exists_filtration_equiv (hW : W₀.map (algebraMap (v.adicCompletionInte
 
 end Filtration
 
-variable (W : Affine (v.adicCompletion K)) [W.IsElliptic]
+variable [CharZero K] [Finite (R ⧸ v.asIdeal)] (W : Affine (v.adicCompletion K))
+  [W.IsElliptic]
 
 open scoped Classical in
 /-- The group of points of an elliptic curve over the completion `K_v` (a characteristic-`0`
