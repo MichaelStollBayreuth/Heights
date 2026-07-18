@@ -2001,6 +2001,57 @@ private lemma thetaPoint_inj (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
   rw [div_eq_div_iff hw₁0 hw₂0, hw] at h1
   exact mul_right_cancel₀ hw₂0 h1
 
+/-- The pair intercept is nonzero as soon as the two parameters are distinct and not
+mutually inverse: otherwise the two parametrized points would have equal `x`-coordinates. -/
+private lemma pair_intercept_ne_zero_of_ne (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
+    {q₁ q₂ : MvPowerSeries σ' O}
+    (h₁ : MvPowerSeries.constantCoeff q₁ = 0) (h₂ : MvPowerSeries.constantCoeff q₂ = 0)
+    (hq₁0 : q₁ ≠ 0) (hq₂0 : q₂ ≠ 0) (hne₁ : q₁ ≠ q₂)
+    (hne₂ : q₁ ≠ MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.inverseSeries) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries ≠ 0 := by
+  classical
+  intro h0
+  set ρ := algebraMap (MvPowerSeries σ' O) KK with hρ
+  have hinj : Function.Injective ρ := IsFractionRing.injective (MvPowerSeries σ' O) KK
+  -- equal x-coordinates
+  have hqw : q₁ * MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries -
+      q₂ * MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries = 0 := by
+    have i₁ := W.pair_intercept_identity₁ h₁ h₂
+    have i₂ := W.pair_intercept_identity₂ h₁ h₂
+    rw [h0] at i₁ i₂
+    linear_combination q₂ * i₁ - q₁ * i₂
+  have hw₁0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries) ≠ 0 := fun hh ↦
+    W.subst_wSeries_ne_zero h₁ hq₁0 (hinj (by rw [hh, map_zero]))
+  have hw₂0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries) ≠ 0 := fun hh ↦
+    W.subst_wSeries_ne_zero h₂ hq₂0 (hinj (by rw [hh, map_zero]))
+  have hx : ρ q₁ / ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries) =
+      ρ q₂ / ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries) := by
+    rw [div_eq_div_iff hw₁0 hw₂0, ← map_mul, ← map_mul]
+    exact congrArg ρ (by linear_combination hqw)
+  -- hence the points agree up to sign
+  have hcase := (Affine.Point.X_eq_iff
+    (h₁ := (chord_point_nonsingular (fracCurve W σ' KK) (W.rho_weierstrass h₁) hw₁0 hΔ))
+    (h₂ := (chord_point_nonsingular (fracCurve W σ' KK) (W.rho_weierstrass h₂) hw₂0 hΔ))).mp hx
+  -- data for `ι ∘ q₂`
+  have hs0 : MvPowerSeries.subst (fun _ : Unit ↦ q₂)
+      (PowerSeries.invOfUnit W.uSeries 1) ≠ 0 := by
+    intro hh
+    have := W.single_u_mul h₂
+    rw [hh, mul_zero] at this
+    exact one_ne_zero this.symm
+  have hi : MvPowerSeries.constantCoeff
+      (MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.inverseSeries) = 0 :=
+    MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_single h₂) (fun _ ↦ h₂)
+      W.constantCoeff_inverseSeries
+  have hi0 : MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.inverseSeries ≠ 0 := by
+    rw [W.single_iota_eq h₂]
+    exact neg_ne_zero.mpr (mul_ne_zero hq₂0 hs0)
+  rcases hcase with hc | hc
+  · exact hne₁ (W.thetaPoint_inj hΔ h₁ h₂ hq₁0 hq₂0 hc)
+  · have hc' : W.thetaPoint hΔ h₁ hq₁0 = -W.thetaPoint hΔ h₂ hq₂0 := hc
+    rw [← W.thetaPoint_neg hΔ h₂ hq₂0 hi hi0] at hc'
+    exact hne₂ (W.thetaPoint_inj hΔ h₁ hi hq₁0 hi0 hc')
+
 end Assembly
 
 end OnLine
