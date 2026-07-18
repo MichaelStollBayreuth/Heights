@@ -1429,6 +1429,83 @@ private lemma pair_u_eq (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
     show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
     MvPowerSeries.subst_C, MvPowerSeries.subst_X (hasSubst_single hT)]
 
+private lemma pair_A_mul (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    (1 + MvPowerSeries.C W.a₂ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries +
+      MvPowerSeries.C W.a₄ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 3) *
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+        (MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+          MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+          MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1) = 1 := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂))
+    (MvPowerSeries.mul_invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1 (by simp))
+  simp only [map_mul, map_add, map_one, map_pow] at h
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂)] at h
+  rwa [show MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+      ((MvPowerSeries.C W.a₂ : MvPowerSeries (Unit ⊕ Unit) O)) = MvPowerSeries.C W.a₂
+      from MvPowerSeries.subst_C _,
+    show MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+      ((MvPowerSeries.C W.a₄ : MvPowerSeries (Unit ⊕ Unit) O)) = MvPowerSeries.C W.a₄
+      from MvPowerSeries.subst_C _,
+    show MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+      ((MvPowerSeries.C W.a₆ : MvPowerSeries (Unit ⊕ Unit) O)) = MvPowerSeries.C W.a₆
+      from MvPowerSeries.subst_C _] at h
+
+/-- The defining relation of the third root at a pair, with the inverse eliminated. -/
+private lemma pair_T₃_relation (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    (1 + MvPowerSeries.C W.a₂ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries +
+      MvPowerSeries.C W.a₄ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 3) *
+      (MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries + q₁ + q₂) =
+      -(MvPowerSeries.C W.a₁ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries +
+        MvPowerSeries.C W.a₂ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries +
+        MvPowerSeries.C W.a₃ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 2 +
+        2 * MvPowerSeries.C W.a₄ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries +
+        3 * MvPowerSeries.C W.a₆ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries ^ 2 *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries) := by
+  have hexp := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂))
+    (show W.thirdRootSeries = -MvPowerSeries.X (Sum.inl ()) - MvPowerSeries.X (Sum.inr ()) -
+      (MvPowerSeries.C W.a₁ * W.slopeSeries + MvPowerSeries.C W.a₂ * W.interceptSeries +
+        MvPowerSeries.C W.a₃ * W.slopeSeries ^ 2 +
+        2 * MvPowerSeries.C W.a₄ * W.slopeSeries * W.interceptSeries +
+        3 * MvPowerSeries.C W.a₆ * W.slopeSeries ^ 2 * W.interceptSeries) *
+      MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+        MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+        MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1 from rfl)
+  simp only [map_sub, map_neg, map_mul, map_add, map_pow, map_ofNat] at hexp
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
+    MvPowerSeries.subst_X (hasSubst_pair h₁ h₂), MvPowerSeries.subst_C, Sum.elim_inl,
+    Sum.elim_inr] at hexp
+  have hAd := W.pair_A_mul h₁ h₂
+  set Λp := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries
+  set Np := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries
+  set Tp := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries
+  set dp := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+    (MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+      MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1)
+  clear_value Λp Np Tp dp
+  linear_combination (1 + MvPowerSeries.C W.a₂ * Λp + MvPowerSeries.C W.a₄ * Λp ^ 2 +
+      MvPowerSeries.C W.a₆ * Λp ^ 3) * hexp -
+    (MvPowerSeries.C W.a₁ * Λp + MvPowerSeries.C W.a₂ * Np + MvPowerSeries.C W.a₃ * Λp ^ 2 +
+      2 * MvPowerSeries.C W.a₄ * Λp * Np + 3 * MvPowerSeries.C W.a₆ * Λp ^ 2 * Np) * hAd
+
 end Pair
 
 section Domain
