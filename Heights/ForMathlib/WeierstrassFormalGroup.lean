@@ -12,8 +12,9 @@ of a Weierstrass curve as a one-dimensional `ChabautyColeman.FormalGroupLaw` (wi
 type `Unit`) and to identify its `𝔪`-points with the kernel of reduction
 `E₁(K_v) = filtration hW 0`.
 
-Everything substantial is `sorry`ed for now; the file records the interface
-(Silverman, *Arithmetic of Elliptic Curves*, IV.1 and VII.2):
+The formal group law itself is fully constructed and proved
+(Silverman, *Arithmetic of Elliptic Curves*, IV.1); the identification of its points with
+the kernel of reduction (VII.2) is still `sorry`ed:
 
 * `WeierstrassCurve.wSeries`: the power series `w(t) ∈ O⟦t⟧` describing the curve near the
   origin in the coordinates `t = -x/y`, `w = -1/y`, as the solution of the fixed-point
@@ -2308,7 +2309,8 @@ end Chord
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
 `t`-coordinate of the sum of the points with parameters `t₁`, `t₂` on the curve
 `(t, w(t))`, via the chord construction (Silverman, IV.1.1). One-dimensional, so the index
-type is `Unit`. The group-law axioms are `sorry`ed for now. -/
+type is `Unit`. Associativity is proved via the group law of the universal curve over the
+fraction field of `ℤ[A₁, …, A₆]⟦t₁, t₂, t₃⟧`. -/
 noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Unit where
   F := fun _ ↦ W.addSeries
   zero_constantCoeff := fun _ ↦ W.constantCoeff_addSeries
