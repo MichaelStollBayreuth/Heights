@@ -637,9 +637,9 @@ private lemma subst_unitR_interceptSeries :
   linear_combination -W.X_mul_subst_unitR_slopeSeries
 
 -- transport of `invOfUnit` along a ring homomorphism fixing the constant coefficient
-private lemma ringHom_invOfUnit {σ' τ' : Type*} {F : Type*}
-    [FunLike F (MvPowerSeries σ' O) (MvPowerSeries τ' O)]
-    [RingHomClass F (MvPowerSeries σ' O) (MvPowerSeries τ' O)] (φ : F)
+private lemma ringHom_invOfUnit {O' : Type*} [CommRing O'] {σ' τ' : Type*} {F : Type*}
+    [FunLike F (MvPowerSeries σ' O) (MvPowerSeries τ' O')]
+    [RingHomClass F (MvPowerSeries σ' O) (MvPowerSeries τ' O')] (φ : F)
     {D : MvPowerSeries σ' O} (hD : MvPowerSeries.constantCoeff D = 1)
     (hD' : MvPowerSeries.constantCoeff (φ D) = 1) :
     φ (MvPowerSeries.invOfUnit D 1) = MvPowerSeries.invOfUnit (φ D) 1 := by
@@ -696,7 +696,7 @@ theorem subst_unitR_thirdRootSeries :
       (MvPowerSeries.invOfUnit D 1) =
       MvPowerSeries.invOfUnit (1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
         PowerSeries.C W.a₆ * L ^ 3) 1 := by
-    have h := ringHom_invOfUnit (MvPowerSeries.substAlgHom hasSubst_unitR) hD1
+    have h := ringHom_invOfUnit (O' := O) (MvPowerSeries.substAlgHom hasSubst_unitR) hD1
       (by rw [MvPowerSeries.coe_substAlgHom, hDsub]; exact hD1')
     rwa [MvPowerSeries.coe_substAlgHom, hDsub] at h
   -- expand the substituted third root
@@ -717,7 +717,6 @@ theorem subst_unitR_thirdRootSeries :
     have h2 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
         (Sum.inl ()) = PowerSeries.X := rfl
     rw [h1, h2]
-    push_cast
     ring
   rw [hexp]
   -- compare with `ι = -X·u⁻¹` after multiplying by the units `u` and `D̃`
@@ -777,6 +776,86 @@ theorem subst_unitL_addSeries :
   exact W.subst_unitR_addSeries
 
 end AddZero
+
+section Naturality
+
+/-! ### Naturality of the chord construction under coefficient ring maps
+
+Every ingredient of the chord construction commutes with base change along a ring
+homomorphism `φ : O →+* O'`. This is the reduction engine for associativity: it transports
+identities from the universal Weierstrass curve over `ℤ[A₁, …, A₆]` to any curve.
+-/
+
+variable {O' : Type*} [CommRing O'] (φ : O →+* O')
+
+theorem map_wSeries : PowerSeries.map φ W.wSeries = (W.map φ).wSeries := by
+  refine (W.map φ).eq_of_wStepAt_fixed (q := X) dvd_rfl ?_ ?_ ?_ ((W.map φ).wSeries_eq_wStep)
+  · rw [PowerSeries.X_dvd_iff, show PowerSeries.constantCoeff (PowerSeries.map φ W.wSeries) =
+      φ (PowerSeries.constantCoeff W.wSeries) from rfl, W.constantCoeff_wSeries, map_zero]
+  · exact PowerSeries.X_dvd_iff.mpr (W.map φ).constantCoeff_wSeries
+  · conv_lhs => rw [W.wSeries_eq_wStep]
+    simp only [wStep, wStepAt, map_add, map_mul, map_pow, PowerSeries.map_C, PowerSeries.map_X,
+      WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₃,
+      WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆]
+
+theorem map_slopeSeries :
+    MvPowerSeries.map φ W.slopeSeries = (W.map φ).slopeSeries := by
+  ext d
+  rw [MvPowerSeries.coeff_map, W.coeff_slopeSeries, (W.map φ).coeff_slopeSeries,
+    ← W.map_wSeries φ, PowerSeries.coeff_map]
+
+theorem map_interceptSeries :
+    MvPowerSeries.map φ W.interceptSeries = (W.map φ).interceptSeries := by
+  simp only [interceptSeries, map_sub, map_mul, ← MvPowerSeries.rename_map,
+    MvPowerSeries.map_X, W.map_slopeSeries φ]
+  rw [show MvPowerSeries.map φ (W.wSeries : MvPowerSeries Unit O) =
+    ((W.map φ).wSeries : MvPowerSeries Unit O') from W.map_wSeries φ]
+
+theorem map_uSeries : PowerSeries.map φ W.uSeries = (W.map φ).uSeries := by
+  simp only [uSeries, map_sub, map_one, map_mul, PowerSeries.map_C, PowerSeries.map_X,
+    W.map_wSeries φ, WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₃]
+
+theorem map_thirdRootSeries :
+    MvPowerSeries.map φ W.thirdRootSeries = (W.map φ).thirdRootSeries := by
+  have hinv : MvPowerSeries.map φ (MvPowerSeries.invOfUnit
+      (1 + MvPowerSeries.C W.a₂ * W.slopeSeries + MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+        MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1) =
+      MvPowerSeries.invOfUnit
+      (1 + MvPowerSeries.C (W.map φ).a₂ * (W.map φ).slopeSeries +
+        MvPowerSeries.C (W.map φ).a₄ * (W.map φ).slopeSeries ^ 2 +
+        MvPowerSeries.C (W.map φ).a₆ * (W.map φ).slopeSeries ^ 3) 1 := by
+    have h := ringHom_invOfUnit (MvPowerSeries.map φ)
+      (D := 1 + MvPowerSeries.C W.a₂ * W.slopeSeries + MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+        MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) (by simp) (by simp)
+    rw [h]
+    congr 1
+    simp only [map_add, map_one, map_mul, map_pow, MvPowerSeries.map_C, W.map_slopeSeries φ,
+      WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆]
+  simp only [thirdRootSeries, map_sub, map_neg, map_add, map_mul, map_pow, map_ofNat,
+    MvPowerSeries.map_X, MvPowerSeries.map_C, W.map_slopeSeries φ, W.map_interceptSeries φ,
+    hinv, WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₃,
+    WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆]
+
+theorem map_inverseSeries :
+    PowerSeries.map φ W.inverseSeries = (W.map φ).inverseSeries := by
+  simp only [inverseSeries, PowerSeries.invOfUnit]
+  have hD' : MvPowerSeries.constantCoeff (PowerSeries.map φ W.uSeries) = 1 := by
+    rw [show (PowerSeries.map φ W.uSeries : PowerSeries O') = (W.map φ).uSeries
+      from W.map_uSeries φ]
+    exact (W.map φ).constantCoeff_uSeries
+  have h := ringHom_invOfUnit (PowerSeries.map φ) (σ' := Unit) (τ' := Unit) (D := W.uSeries)
+    (by exact W.constantCoeff_uSeries) hD'
+  rw [map_neg, map_mul, PowerSeries.map_X, h, W.map_uSeries φ]
+
+theorem map_addSeries :
+    MvPowerSeries.map φ W.addSeries = (W.map φ).addSeries := by
+  rw [addSeries, MvPowerSeries.map_subst W.hasSubst_thirdRootSeries, addSeries]
+  congr 1
+  · funext u
+    exact W.map_thirdRootSeries φ
+  · exact W.map_inverseSeries φ
+
+end Naturality
 
 end Chord
 
