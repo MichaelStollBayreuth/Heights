@@ -197,6 +197,21 @@ theorem wSeries_eq :
       PowerSeries.C W.a₄ * X * W.wSeries ^ 2 + PowerSeries.C W.a₆ * W.wSeries ^ 3 :=
   W.wSeries_eq_wStep
 
+/-- The unit part of `wSeries`: `w = t³·v` with `v(0) = 1`. -/
+noncomputable def vSeries : PowerSeries O :=
+  (W.X_pow_three_dvd_wSeries).choose
+
+lemma wSeries_eq_X_pow_three_mul : W.wSeries = X ^ 3 * W.vSeries :=
+  (W.X_pow_three_dvd_wSeries).choose_spec
+
+@[simp]
+lemma constantCoeff_vSeries : constantCoeff W.vSeries = 1 := by
+  have h := congrArg (coeff 3) W.wSeries_eq_X_pow_three_mul
+  rw [W.coeff_wSeries_three, show (3 : ℕ) = 0 + 3 from rfl,
+    PowerSeries.coeff_X_pow_mul] at h
+  rw [← PowerSeries.coeff_zero_eq_constantCoeff_apply]
+  exact h.symm
+
 /-!
 ### The chord construction
 
@@ -1519,6 +1534,56 @@ theorem subst_thirdRootSeries_wSeries :
       (fun _ ↦ W.constantCoeff_thirdRootSeries) W.constantCoeff_wSeries)
   · exact lowVanish_one (by simp)
 
+variable {σ' : Type*} [Finite σ']
+
+/-- `w` composed with a nonzero parameter is nonzero (over a domain). -/
+private lemma subst_wSeries_ne_zero {q : MvPowerSeries σ' O}
+    (hq : MvPowerSeries.constantCoeff q = 0) (hq0 : q ≠ 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries ≠ 0 := by
+  have hs := hasSubst_single hq
+  have hexp : MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries =
+      q ^ 3 * MvPowerSeries.subst (fun _ : Unit ↦ q) W.vSeries := by
+    conv_lhs => rw [W.wSeries_eq_X_pow_three_mul]
+    rw [← MvPowerSeries.coe_substAlgHom hs, map_mul, map_pow,
+      MvPowerSeries.coe_substAlgHom hs,
+      show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+      MvPowerSeries.subst_X hs]
+  rw [hexp]
+  refine mul_ne_zero (pow_ne_zero 3 hq0) fun h ↦ ?_
+  have hc := congrArg MvPowerSeries.constantCoeff h
+  rw [map_zero, MvPowerSeries.constantCoeff_subst hs, finsum_eq_single _ (0 : Unit →₀ ℕ)
+    (fun d hd ↦ ?_)] at hc
+  · rw [show MvPowerSeries.coeff (0 : Unit →₀ ℕ) W.vSeries =
+      PowerSeries.constantCoeff W.vSeries from rfl, W.constantCoeff_vSeries] at hc
+    simpa using hc
+  · rcases Finsupp.ne_iff.mp hd with ⟨u, hu⟩
+    have hu' : d u ≠ 0 := by simpa using hu
+    rw [smul_eq_mul, Finsupp.prod, map_prod]
+    refine mul_eq_zero_of_right _ (Finset.prod_eq_zero (Finsupp.mem_support_iff.mpr hu') ?_)
+    rw [map_pow, hq, zero_pow hu']
+
+/-- The intercept series does not vanish: its coefficient at `t₁²t₂` is `-1`. -/
+private lemma interceptSeries_ne_zero : W.interceptSeries ≠ 0 := by
+  intro h
+  have h1 := congrArg (MvPowerSeries.coeff
+    (Finsupp.single (Sum.inl ()) 2 + Finsupp.single (Sum.inr ()) 1)) h
+  rw [map_zero, interceptSeries, map_sub, coeff_rename_single,
+    if_neg (by rw [eq_single_iff']; simp),
+    show (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O) =
+      MvPowerSeries.monomial (Finsupp.single (Sum.inl ()) 1) 1 from rfl,
+    MvPowerSeries.coeff_mul_monomial, if_pos (by
+      refine Finsupp.le_def.mpr fun s ↦ ?_
+      rcases s with u | u <;> simp [Finsupp.single_apply]),
+    W.coeff_slopeSeries] at h1
+  have h2 : ((Finsupp.single (Sum.inl ()) 2 + Finsupp.single (Sum.inr ()) 1 -
+      Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ)) (Sum.inl ()) = 1 := by
+    simp [Finsupp.single_apply]
+  have h3 : ((Finsupp.single (Sum.inl ()) 2 + Finsupp.single (Sum.inr ()) 1 -
+      Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ)) (Sum.inr ()) = 1 := by
+    simp [Finsupp.single_apply]
+  rw [h2, h3, W.coeff_wSeries_three, mul_one] at h1
+  simpa using h1
+
 end Domain
 
 end OnLine
@@ -1539,6 +1604,7 @@ noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Uni
     rw [show (fun s : Unit ⊕ Unit ↦ (MvPowerSeries.X s.swap : MvPowerSeries (Unit ⊕ Unit) O))
         = (MvPowerSeries.X ∘ Sum.swap) from rfl, ← MvPowerSeries.rename_eq_subst]
     exact W.rename_swap_addSeries
+
 
 
 end wSeries
