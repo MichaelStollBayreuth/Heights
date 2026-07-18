@@ -1107,46 +1107,6 @@ private lemma chord_point_nonsingular {q w : F}
 
 end FieldChord
 
-section Universal
-
-/-- The universal Weierstrass curve, over `ℤ[A₁, A₂, A₃, A₄, A₆]`. -/
-noncomputable def universal : WeierstrassCurve (MvPolynomial (Fin 5) ℤ) :=
-  ⟨MvPolynomial.X 0, MvPolynomial.X 1, MvPolynomial.X 2, MvPolynomial.X 3, MvPolynomial.X 4⟩
-
-/-- Every Weierstrass curve is a base change of the universal one. -/
-theorem exists_map_universal (W : WeierstrassCurve O) :
-    ∃ φ : MvPolynomial (Fin 5) ℤ →+* O, universal.map φ = W := by
-  refine ⟨(MvPolynomial.aeval ![W.a₁, W.a₂, W.a₃, W.a₄, W.a₆]).toRingHom, ?_⟩
-  ext <;> simp [universal, WeierstrassCurve.map]
-
-/-- Associativity of the addition series for the universal Weierstrass curve.
-
-This is the remaining core: it is proved by identifying the addition series with the group
-law of the (elliptic, since `Δ ≠ 0`) curve over the fraction field of
-`ℤ[A₁, …, A₆]⟦t₁, t₂, t₃⟧`. -/
-theorem assoc_addSeries_universal (i : Unit) :
-    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ universal.addSeries))
-      universal.addSeries =
-    MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ universal.addSeries))
-      universal.addSeries :=
-  sorry
-
-/-- Associativity of the addition series, for any Weierstrass curve, by reduction to the
-universal one. -/
-theorem assoc_addSeries (W : WeierstrassCurve O) :
-    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ W.addSeries)) W.addSeries =
-      MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ W.addSeries)) W.addSeries := by
-  obtain ⟨φ, rfl⟩ := exists_map_universal W
-  have h := congrArg (MvPowerSeries.map φ) (assoc_addSeries_universal ())
-  rw [MvPowerSeries.map_subst universal.hasSubst_assocLeftFam_addSeries,
-    MvPowerSeries.map_subst universal.hasSubst_assocRightFam_addSeries,
-    universal.map_assocLeftFam_addSeries φ, universal.map_assocRightFam_addSeries φ,
-    universal.map_addSeries φ] at h
-  exact h
-
-end Universal
-
-
 section OnLine
 
 /-! ### The third intersection point lies on the chord
@@ -2053,6 +2013,293 @@ private lemma pair_intercept_ne_zero_of_ne (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
     exact hne₂ (W.thetaPoint_inj hΔ h₁ hi hq₁0 hi0 hc')
 
 end Assembly
+
+section Universal
+
+/-- The universal Weierstrass curve, over `ℤ[A₁, A₂, A₃, A₄, A₆]`. -/
+noncomputable def universal : WeierstrassCurve (MvPolynomial (Fin 5) ℤ) :=
+  ⟨MvPolynomial.X 0, MvPolynomial.X 1, MvPolynomial.X 2, MvPolynomial.X 3, MvPolynomial.X 4⟩
+
+/-- Every Weierstrass curve is a base change of the universal one. -/
+theorem exists_map_universal (W : WeierstrassCurve O) :
+    ∃ φ : MvPolynomial (Fin 5) ℤ →+* O, universal.map φ = W := by
+  refine ⟨(MvPolynomial.aeval ![W.a₁, W.a₂, W.a₃, W.a₄, W.a₆]).toRingHom, ?_⟩
+  ext <;> simp [universal, WeierstrassCurve.map]
+
+private lemma universal_Δ_ne_zero : universal.Δ ≠ 0 := by
+  intro h
+  have h2 := congrArg (MvPolynomial.aeval (R := ℤ) ![0, 0, 0, -1, 0]).toRingHom h
+  rw [map_zero, ← WeierstrassCurve.map_Δ] at h2
+  norm_num [WeierstrassCurve.Δ, WeierstrassCurve.b₂, WeierstrassCurve.b₄, WeierstrassCurve.b₆,
+    WeierstrassCurve.b₈, universal, WeierstrassCurve.map] at h2
+  revert h2
+  decide
+
+/-- Associativity of the addition series for the universal Weierstrass curve.
+
+This is the remaining core: it is proved by identifying the addition series with the group
+law of the (elliptic, since `Δ ≠ 0`) curve over the fraction field of
+`ℤ[A₁, …, A₆]⟦t₁, t₂, t₃⟧`. -/
+private lemma X_ne_X {σ'' : Type*} {O' : Type*} [CommRing O'] [Nontrivial O'] {s t : σ''}
+    (h : s ≠ t) : (MvPowerSeries.X s : MvPowerSeries σ'' O') ≠ MvPowerSeries.X t := by
+  classical
+  intro h0
+  have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single s 1)) h0
+  simp [MvPowerSeries.coeff_X, Finsupp.single_eq_single_iff, h] at h1
+
+private lemma X_ne_zero' {σ'' : Type*} {O' : Type*} [CommRing O'] [Nontrivial O'] (s : σ'') :
+    (MvPowerSeries.X s : MvPowerSeries σ'' O') ≠ 0 := by
+  classical
+  intro h0
+  have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single s 1)) h0
+  simp [MvPowerSeries.coeff_X] at h1
+
+theorem assoc_addSeries_universal (i : Unit) :
+    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ universal.addSeries))
+      universal.addSeries =
+    MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ universal.addSeries))
+      universal.addSeries := by
+  classical
+  set KK := FractionRing (MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ))
+    with hKK
+  -- the discriminant of the base-changed universal curve does not vanish
+  have hΔ : (fracCurve universal (Unit ⊕ Unit ⊕ Unit) KK).Δ ≠ 0 := by
+    rw [fracCurve, WeierstrassCurve.map_Δ]
+    intro h
+    exact universal_Δ_ne_zero (MvPowerSeries.C_injective
+      (IsFractionRing.injective (MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ))
+        KK (by rw [RingHom.comp_apply] at h; simp [h])))
+  -- the three coordinate parameters
+  have hc₁ : MvPowerSeries.constantCoeff (MvPowerSeries.X (Sum.inl ()) :
+      MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)) = 0 :=
+    MvPowerSeries.constantCoeff_X _
+  have hc₂ : MvPowerSeries.constantCoeff (MvPowerSeries.X (Sum.inr (Sum.inl ())) :
+      MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)) = 0 :=
+    MvPowerSeries.constantCoeff_X _
+  have hc₃ : MvPowerSeries.constantCoeff (MvPowerSeries.X (Sum.inr (Sum.inr ())) :
+      MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)) = 0 :=
+    MvPowerSeries.constantCoeff_X _
+  have h10 := X_ne_zero' (O' := MvPolynomial (Fin 5) ℤ) (Sum.inl () : Unit ⊕ Unit ⊕ Unit)
+  have h20 := X_ne_zero' (O' := MvPolynomial (Fin 5) ℤ)
+    (Sum.inr (Sum.inl ()) : Unit ⊕ Unit ⊕ Unit)
+  have h30 := X_ne_zero' (O' := MvPolynomial (Fin 5) ℤ)
+    (Sum.inr (Sum.inr ()) : Unit ⊕ Unit ⊕ Unit)
+  -- the two inner sums
+  set F₁₂ := MvPowerSeries.subst (Sum.elim (fun _ ↦ (MvPowerSeries.X (Sum.inl ()) :
+      MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)))
+      (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inl ())))) universal.addSeries with hF₁₂'
+  set F₂₃ := MvPowerSeries.subst (Sum.elim (fun _ ↦ (MvPowerSeries.X (Sum.inr (Sum.inl ())) :
+      MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)))
+      (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inr ())))) universal.addSeries with hF₂₃'
+  have hF₁₂c : MvPowerSeries.constantCoeff F₁₂ = 0 :=
+    MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair hc₁ hc₂)
+      (by rintro (j | j) <;> simp [MvPowerSeries.constantCoeff_X])
+      universal.constantCoeff_addSeries
+  have hF₂₃c : MvPowerSeries.constantCoeff F₂₃ = 0 :=
+    MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair hc₂ hc₃)
+      (by rintro (j | j) <;> simp [MvPowerSeries.constantCoeff_X])
+      universal.constantCoeff_addSeries
+  -- the evaluation `u₁ ↦ X, u₂ ↦ 0, u₃ ↦ 0`
+  have hχ : MvPowerSeries.HasSubst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0) : Unit ⊕ Unit ⊕ Unit →
+      MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) :=
+    MvPowerSeries.hasSubst_of_constantCoeff_zero (by
+      rintro (j | j)
+      · exact PowerSeries.constantCoeff_X
+      · simp)
+  -- `χ`-evaluations: `F₁₂ ↦ X`, `F₂₃ ↦ 0`, third-variable compositions with `ι ↦ 0`
+  have hχF₁₂ : MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0)) F₁₂ = PowerSeries.X := by
+    rw [hF₁₂', MvPowerSeries.subst_comp_subst_apply (hasSubst_pair hc₁ hc₂) hχ,
+      show (fun s : Unit ⊕ Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X :
+          PowerSeries (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+          (Sum.elim (fun _ ↦ (MvPowerSeries.X (Sum.inl ()) :
+            MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)))
+            (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inl ()))) s)) =
+        (Sum.elim MvPowerSeries.X (fun _ ↦ 0) :
+          Unit ⊕ Unit → MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) from funext fun s ↦ by
+        rcases s with u | u <;> simp only [Sum.elim_inl, Sum.elim_inr] <;>
+          rw [MvPowerSeries.subst_X hχ] <;> rfl]
+    exact universal.subst_unitR_addSeries
+  have hχF₂₃ : MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0)) F₂₃ = 0 := by
+    rw [hF₂₃', MvPowerSeries.subst_comp_subst_apply (hasSubst_pair hc₂ hc₃) hχ,
+      show (fun s : Unit ⊕ Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X :
+          PowerSeries (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+          (Sum.elim (fun _ ↦ (MvPowerSeries.X (Sum.inr (Sum.inl ())) :
+            MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)))
+            (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inr ()))) s)) =
+        (0 : Unit ⊕ Unit → MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) from funext fun s ↦ by
+        rcases s with u | u <;> simp only [Sum.elim_inl, Sum.elim_inr] <;>
+          rw [MvPowerSeries.subst_X hχ] <;> rfl]
+    exact MvPowerSeries.subst_zero_of_constantCoeff_zero universal.constantCoeff_addSeries
+  -- generic: `χ` of `ι` composed with anything `χ`-null is `0`
+  have hχι : ∀ q : MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ),
+      MvPowerSeries.constantCoeff q = 0 →
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+        (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0)) q = 0 →
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+        (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+        (MvPowerSeries.subst (fun _ : Unit ↦ q) universal.inverseSeries) = 0 := by
+    intro q hqc hq0
+    rw [MvPowerSeries.subst_comp_subst_apply (hasSubst_single hqc) hχ,
+      show (fun _ : Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X :
+          PowerSeries (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0)) q) =
+        (0 : Unit → MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) from funext fun _ ↦ hq0]
+    exact MvPowerSeries.subst_zero_of_constantCoeff_zero universal.constantCoeff_inverseSeries
+  have hχu₃ : MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+      (MvPowerSeries.X (Sum.inr (Sum.inr ())) :
+        MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)) = 0 := by
+    rw [MvPowerSeries.subst_X hχ]
+    rfl
+  have hχu₁ : MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+      (MvPowerSeries.X (Sum.inl ()) :
+        MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)) = PowerSeries.X := by
+    rw [MvPowerSeries.subst_X hχ]
+    rfl
+  -- the nonvanishing and distinctness facts via `χ`
+  have hXPS : (PowerSeries.X : PowerSeries (MvPolynomial (Fin 5) ℤ)) ≠ 0 := by
+    intro h
+    have h1 := congrArg (PowerSeries.coeff 1) h
+    simp at h1
+  have hF₁₂0 : F₁₂ ≠ 0 := by
+    intro h
+    rw [h, ← MvPowerSeries.coe_substAlgHom hχ, map_zero] at hχF₁₂
+    exact hXPS hχF₁₂.symm
+  have hFne : universal.addSeries ≠ 0 := by
+    intro h
+    have h2 := universal.subst_unitR_addSeries
+    rw [h, ← MvPowerSeries.coe_substAlgHom hasSubst_unitR, map_zero] at h2
+    exact hXPS h2.symm
+  have hF₂₃0 : F₂₃ ≠ 0 := by
+    rw [hF₂₃', subst_pair_X_eq_rename]
+    intro h
+    refine hFne (MvPowerSeries.rename_injective (⟨Sum.elim (fun _ ↦ Sum.inr (Sum.inl ()))
+      (fun _ ↦ Sum.inr (Sum.inr ())), ?_⟩ : Unit ⊕ Unit ↪ Unit ⊕ Unit ⊕ Unit) ?_)
+    · rintro (⟨⟩ | ⟨⟩) (⟨⟩ | ⟨⟩) hv
+      · rfl
+      · exact absurd hv (by simp)
+      · exact absurd hv (by simp)
+      · rfl
+    · rw [map_zero]
+      exact h
+  -- distinctness via `χ`
+  have hne_a : F₁₂ ≠ MvPowerSeries.X (Sum.inr (Sum.inr ())) := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [hχF₁₂, hχu₃] at h2
+    exact hXPS h2
+  have hne_b : F₁₂ ≠ MvPowerSeries.subst (fun _ : Unit ↦ (MvPowerSeries.X (Sum.inr (Sum.inr ()))
+      : MvPowerSeries (Unit ⊕ Unit ⊕ Unit) (MvPolynomial (Fin 5) ℤ)))
+      universal.inverseSeries := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [hχF₁₂, hχι _ hc₃ hχu₃] at h2
+    exact hXPS h2
+  have hne_c : MvPowerSeries.X (Sum.inl ()) ≠ F₂₃ := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [hχu₁, hχF₂₃] at h2
+    exact hXPS h2
+  have hne_d : MvPowerSeries.X (Sum.inl ()) ≠ MvPowerSeries.subst (fun _ : Unit ↦ F₂₃)
+      universal.inverseSeries := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [hχu₁, hχι _ hF₂₃c hχF₂₃] at h2
+    exact hXPS h2
+  -- the four nonvanishing intercepts
+  have hN₁₂ := universal.X_pair_intercept_ne_zero
+    (s₁ := (Sum.inl () : Unit ⊕ Unit ⊕ Unit)) (s₂ := Sum.inr (Sum.inl ())) (by simp)
+  have hN₂₃ := universal.X_pair_intercept_ne_zero
+    (s₁ := (Sum.inr (Sum.inl ()) : Unit ⊕ Unit ⊕ Unit)) (s₂ := Sum.inr (Sum.inr ()))
+    (by simp)
+  have hNL := universal.pair_intercept_ne_zero_of_ne (KK := KK) hΔ hF₁₂c hc₃ hF₁₂0 h30
+    hne_a hne_b
+  have hNR := universal.pair_intercept_ne_zero_of_ne (KK := KK) hΔ hc₁ hF₂₃c h10 hF₂₃0
+    hne_c hne_d
+  -- constants and nonvanishing of the two full sums
+  have hLc : MvPowerSeries.constantCoeff (MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ F₁₂) (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inr ()))))
+      universal.addSeries) = 0 :=
+    MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair hF₁₂c hc₃)
+      (by rintro (j | j) <;> simp [hF₁₂c, MvPowerSeries.constantCoeff_X])
+      universal.constantCoeff_addSeries
+  have hRc : MvPowerSeries.constantCoeff (MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ MvPowerSeries.X (Sum.inl ())) (fun _ ↦ F₂₃))
+      universal.addSeries) = 0 :=
+    MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair hc₁ hF₂₃c)
+      (by rintro (j | j) <;> simp [hF₂₃c, MvPowerSeries.constantCoeff_X])
+      universal.constantCoeff_addSeries
+  have hL0 : MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ F₁₂) (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inr ()))))
+      universal.addSeries ≠ 0 := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [MvPowerSeries.subst_comp_subst_apply (hasSubst_pair hF₁₂c hc₃) hχ,
+      show (fun s : Unit ⊕ Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X :
+          PowerSeries (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+          (Sum.elim (fun _ ↦ F₁₂) (fun _ ↦ MvPowerSeries.X (Sum.inr (Sum.inr ()))) s)) =
+        (Sum.elim MvPowerSeries.X (fun _ ↦ 0) :
+          Unit ⊕ Unit → MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) from funext fun s ↦ by
+        rcases s with u | u
+        · simp only [Sum.elim_inl]
+          exact hχF₁₂
+        · simp only [Sum.elim_inr]
+          exact hχu₃,
+      universal.subst_unitR_addSeries, ← MvPowerSeries.coe_substAlgHom hχ, map_zero] at h2
+    exact hXPS h2
+  have hR0 : MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ MvPowerSeries.X (Sum.inl ())) (fun _ ↦ F₂₃))
+      universal.addSeries ≠ 0 := by
+    intro h
+    have h2 := congrArg (MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X : PowerSeries
+      (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))) h
+    rw [MvPowerSeries.subst_comp_subst_apply (hasSubst_pair hc₁ hF₂₃c) hχ,
+      show (fun s : Unit ⊕ Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ (PowerSeries.X :
+          PowerSeries (MvPolynomial (Fin 5) ℤ))) (fun _ ↦ 0))
+          (Sum.elim (fun _ ↦ MvPowerSeries.X (Sum.inl ())) (fun _ ↦ F₂₃) s)) =
+        (Sum.elim MvPowerSeries.X (fun _ ↦ 0) :
+          Unit ⊕ Unit → MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) from funext fun s ↦ by
+        rcases s with u | u
+        · simp only [Sum.elim_inl]
+          exact hχu₁
+        · simp only [Sum.elim_inr]
+          exact hχF₂₃,
+      universal.subst_unitR_addSeries, ← MvPowerSeries.coe_substAlgHom hχ, map_zero] at h2
+    exact hXPS h2
+  -- the θ-chain
+  have e₁₂ := universal.thetaPoint_add (KK := KK) hΔ hc₁ hc₂ h10 h20
+    (X_ne_X (by simp)) hN₁₂ hF₁₂c hF₁₂0
+  have e₂₃ := universal.thetaPoint_add (KK := KK) hΔ hc₂ hc₃ h20 h30
+    (X_ne_X (by simp)) hN₂₃ hF₂₃c hF₂₃0
+  have eL := universal.thetaPoint_add (KK := KK) hΔ hF₁₂c hc₃ hF₁₂0 h30 hne_a hNL hLc hL0
+  have eR := universal.thetaPoint_add (KK := KK) hΔ hc₁ hF₂₃c h10 hF₂₃0 hne_c hNR hRc hR0
+  have hpts : universal.thetaPoint hΔ hLc hL0 = universal.thetaPoint hΔ hRc hR0 := by
+    rw [← eL, ← e₁₂, ← eR, ← e₂₃, add_assoc]
+  have hkey := universal.thetaPoint_inj hΔ hLc hRc hL0 hR0 hpts
+  exact hkey
+
+/-- Associativity of the addition series, for any Weierstrass curve, by reduction to the
+universal one. -/
+theorem assoc_addSeries (W : WeierstrassCurve O) :
+    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ W.addSeries)) W.addSeries =
+      MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ W.addSeries)) W.addSeries := by
+  obtain ⟨φ, rfl⟩ := exists_map_universal W
+  have h := congrArg (MvPowerSeries.map φ) (assoc_addSeries_universal ())
+  rw [MvPowerSeries.map_subst universal.hasSubst_assocLeftFam_addSeries,
+    MvPowerSeries.map_subst universal.hasSubst_assocRightFam_addSeries,
+    universal.map_assocLeftFam_addSeries φ, universal.map_assocRightFam_addSeries φ,
+    universal.map_addSeries φ] at h
+  exact h
+
+end Universal
 
 end OnLine
 
