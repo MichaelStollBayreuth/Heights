@@ -69,6 +69,29 @@ private lemma hasEval_pairElim {t₁ t₂ : O} (h₁ : t₁ ∈ maximalIdeal O)
 
 variable [IsUniformAddGroup O] [CompleteSpace O] [T2Space O] [IsTopologicalRing O]
 
+omit W in
+/-- The value at points of `𝔪^k` of a series whose constant coefficient lies in `𝔪^k`
+lies in `𝔪^k`. -/
+theorem _root_.ChabautyColeman.MvPSeries.eval_mem_maximalIdeal_pow
+    {σ : Type*} [Finite σ] {z₀ : σ → O} (hz₀ : MvPowerSeries.HasEval z₀) {k : ℕ}
+    (hmem : ∀ i, z₀ i ∈ maximalIdeal O ^ k) (h : MvPowerSeries σ O)
+    (hcc : MvPowerSeries.constantCoeff h ∈ maximalIdeal O ^ k) :
+    MvPSeries.eval z₀ h ∈ maximalIdeal O ^ k := by
+  classical
+  have htot := MvPSeries.hasSum_eval hz₀ h
+  have hval : ∀ d : σ →₀ ℕ,
+      MvPowerSeries.coeff d h * d.prod (fun s e ↦ z₀ s ^ e) ∈ maximalIdeal O ^ k := by
+    intro d
+    rcases eq_or_ne d 0 with rfl | hd
+    · simpa using hcc
+    · obtain ⟨i, hi⟩ := Finsupp.support_nonempty_iff.mpr hd
+      rw [Finsupp.prod, ← Finset.prod_erase_mul _ _ hi]
+      exact Ideal.mul_mem_left _ _ (Ideal.mul_mem_left _ _
+        (Ideal.pow_mem_of_mem _ (hmem i) _
+          (Nat.pos_of_ne_zero (Finsupp.mem_support_iff.mp hi))))
+  have hsum := tsum_mem (IsAdic.isClosed_pow (I := maximalIdeal O) Fact.out k) hval
+  rwa [htot.tsum_eq] at hsum
+
 /-- The value of the fixed-point series `w` at a parameter `t`. -/
 noncomputable def wEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.wSeries
 
@@ -733,6 +756,39 @@ theorem valued_formalPoint_x
   rw [map_div₀, hw, map_mul, map_pow, hvE, mul_one, inv_pow, pow_succ',
     div_mul_eq_div_div, div_self ht0', one_div]
 
+/-- The parameter of a sum of `𝔪`-points lies in every `𝔪`-power containing both
+parameters (evaluation of the addition series preserves the level). -/
+private lemma add_param_mem_pow {z z' : W₀.formalGroupLaw.Points} {n : ℕ}
+    (hz : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1))
+    (hz' : (z' () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1)) :
+    ((z + z') () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) := by
+  rw [W₀.add_apply_coe_eq_addEval]
+  refine MvPSeries.eval_mem_maximalIdeal_pow (hasEval_pairElim (z ()).2 (z' ()).2)
+    (by rintro (j | j) <;> assumption) W₀.addSeries ?_
+  rw [W₀.constantCoeff_addSeries]
+  exact zero_mem _
+
+/-- For a nonzero parameter `t ∈ 𝔪`, membership in `𝔪^(n+1)` is the pole condition on
+the `x`-coordinate of the associated point. -/
+private lemma param_pow_iff {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (h0 : t ≠ 0) (n : ℕ) :
+    t ∈ maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
+      exp (2 * (n + 1) : ℤ) ≤ Valued.v ((t : v.adicCompletion K) /
+        ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
+  rw [valued_formalPoint_x hm h0, mem_maximalIdeal_pow_iff]
+  have ht0' : Valued.v (t : v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, _root_.map_eq_zero, ZeroMemClass.coe_eq_zero]
+    exact h0
+  obtain ⟨m, hmv⟩ : ∃ m : ℤ, Valued.v (t : v.adicCompletion K) = exp m :=
+    ⟨_, (exp_log ht0').symm⟩
+  rw [hmv, ← exp_neg, ← exp_nsmul, exp_le_exp, exp_le_exp, nsmul_eq_mul]
+  push_cast
+  constructor <;> intro h <;> lia
+
+
 variable [DecidableEq (v.adicCompletion K)] [W.IsElliptic]
 
 include hW in
@@ -771,26 +827,6 @@ lemma formalPoint_of_param_ne_zero {z : W₀.formalGroupLaw.Points}
     formalPoint hW z = .some _ _ (formalPoint_nonsingular hW (z ()).2 h0) :=
   dif_neg h0
 
-/-- The filtration correspondence: the parameter lies in `𝔪^(n+1)` exactly when the
-associated point lies in the filtration step `E_{n+1}(K_v)`. -/
-theorem mem_pow_iff_formalPoint_mem_filtration (z : W₀.formalGroupLaw.Points) (n : ℕ) :
-    (z () : v.adicCompletionIntegers K) ∈
-        maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
-      formalPoint hW z ∈ filtration hW n := by
-  rcases eq_or_ne (z () : v.adicCompletionIntegers K) 0 with h0 | h0
-  · simp [h0]
-  · rw [formalPoint_of_param_ne_zero hW h0, some_mem_filtration,
-      valued_formalPoint_x (z ()).2 h0, mem_maximalIdeal_pow_iff]
-    have ht0' : Valued.v ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-      simp only [ne_eq, _root_.map_eq_zero, ZeroMemClass.coe_eq_zero]
-      simpa using h0
-    obtain ⟨m, hm⟩ : ∃ m : ℤ,
-        Valued.v ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) = exp m :=
-      ⟨_, (exp_log ht0').symm⟩
-    rw [hm, ← exp_neg, ← exp_nsmul, exp_le_exp, exp_le_exp, nsmul_eq_mul]
-    push_cast
-    constructor <;> intro h <;> lia
-
 /-- The parametrization of the kernel of reduction is injective. -/
 theorem formalPoint_injective : Function.Injective (formalPoint hW) := by
   intro z z' h
@@ -822,70 +858,63 @@ theorem formalPoint_injective : Function.Injective (formalPoint hW) := by
   funext i
   exact Subtype.ext key
 
-/-- Every point of the kernel of reduction comes from a parameter in `𝔪`:
-the parametrization by the `𝔪`-points of the formal group is surjective onto
-`filtration hW 0`. -/
-theorem formalPoint_surjective {P : W.Point} (hP : P ∈ filtration hW 0) :
-    ∃ z : W₀.formalGroupLaw.Points, formalPoint hW z = P := by
-  match P with
-  | .zero => exact ⟨0, formalPoint_of_param_eq_zero hW (by simp)⟩
-  | .some x y h =>
-    rw [some_mem_filtration] at hP
-    have hx : exp (2 : ℤ) ≤ Valued.v x := by
-      convert hP using 2
-      norm_num
-    obtain ⟨hy0, hs, hr⟩ := valued_of_mem hW h.left hx
-    have hexp1 : (exp (-1 : ℤ) : ℤᵐ⁰) ≤ 1 := by
-      rw [← exp_zero, exp_le_exp]
-      lia
-    have hx0 : x ≠ 0 := by
-      intro h0
-      rw [h0, map_zero] at hx
-      simp at hx
-    set t : v.adicCompletionIntegers K :=
-      ⟨-x / y, by rw [mem_adicCompletionIntegers]; exact hs.trans hexp1⟩ with htdef
-    set r : v.adicCompletionIntegers K :=
-      ⟨-1 / y, by rw [mem_adicCompletionIntegers]; exact hr.trans hexp1⟩ with hrdef
-    have htm : t ∈ maximalIdeal (v.adicCompletionIntegers K) := by
-      have hiff := mem_maximalIdeal_pow_iff (K := K) (x := t) (n := 1)
-      rw [pow_one] at hiff
-      exact hiff.mpr hs
-    have hrm : r ∈ maximalIdeal (v.adicCompletionIntegers K) := by
-      have hiff := mem_maximalIdeal_pow_iff (K := K) (x := r) (n := 1)
-      rw [pow_one] at hiff
-      exact hiff.mpr hr
-    have ht0 : t ≠ 0 := by
-      intro hteq
-      have h0 : (-x / y : v.adicCompletion K) = 0 := congrArg Subtype.val hteq
-      rw [div_eq_zero_iff, neg_eq_zero] at h0
-      exact h0.elim hx0 hy0
-    -- `-1/y` satisfies the Weierstrass fixed-point equation at the parameter `-x/y`
-    have hfixK : (-1 / y : v.adicCompletion K) =
-        (-x / y) ^ 3 + W.a₁ * (-x / y) * (-1 / y) + W.a₂ * (-x / y) ^ 2 * (-1 / y) +
-          W.a₃ * (-1 / y) ^ 2 + W.a₄ * (-x / y) * (-1 / y) ^ 2 + W.a₆ * (-1 / y) ^ 3 := by
-      have heq := (W.equation_iff x y).mp h.left
-      field_simp
-      linear_combination -heq
-    have hfixO : r = W₀.wPoly t r := by
-      refine Subtype.coe_injective ?_
-      rw [wPoly]
-      push_cast
-      rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW]
-      exact hfixK
-    have huniq : W₀.wEval t = r :=
-      W₀.eq_of_wPoly_fixed htm (W₀.wEval_mem htm) hrm (W₀.wEval_eq htm) hfixO
-    refine ⟨fun _ ↦ ⟨t, htm⟩, ?_⟩
-    rw [formalPoint_of_param_ne_zero hW ht0]
-    simp only [Point.some.injEq]
-    have hrcoe : ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) = -1 / y := by
-      rw [huniq]
-    constructor
-    · rw [hrcoe]
-      show (-x / y) / (-1 / y) = x
-      field_simp
-    · rw [hrcoe]
-      show -1 / (-1 / y) = y
-      field_simp
+/-- Every affine point with a pole of order at least `2` at `x` comes from a parameter
+in `𝔪`. -/
+theorem exists_formalPoint_eq_some {x y : v.adicCompletion K} (h : W.Nonsingular x y)
+    (hx : exp (2 : ℤ) ≤ Valued.v x) :
+    ∃ z : W₀.formalGroupLaw.Points, formalPoint hW z = .some x y h := by
+  obtain ⟨hy0, hs, hr⟩ := valued_of_mem hW h.left hx
+  have hexp1 : (exp (-1 : ℤ) : ℤᵐ⁰) ≤ 1 := by
+    rw [← exp_zero, exp_le_exp]
+    lia
+  have hx0 : x ≠ 0 := by
+    intro h0
+    rw [h0, map_zero] at hx
+    simp at hx
+  set t : v.adicCompletionIntegers K :=
+    ⟨-x / y, by rw [mem_adicCompletionIntegers]; exact hs.trans hexp1⟩ with htdef
+  set r : v.adicCompletionIntegers K :=
+    ⟨-1 / y, by rw [mem_adicCompletionIntegers]; exact hr.trans hexp1⟩ with hrdef
+  have htm : t ∈ maximalIdeal (v.adicCompletionIntegers K) := by
+    have hiff := mem_maximalIdeal_pow_iff (K := K) (x := t) (n := 1)
+    rw [pow_one] at hiff
+    exact hiff.mpr hs
+  have hrm : r ∈ maximalIdeal (v.adicCompletionIntegers K) := by
+    have hiff := mem_maximalIdeal_pow_iff (K := K) (x := r) (n := 1)
+    rw [pow_one] at hiff
+    exact hiff.mpr hr
+  have ht0 : t ≠ 0 := by
+    intro hteq
+    have h0 : (-x / y : v.adicCompletion K) = 0 := congrArg Subtype.val hteq
+    rw [div_eq_zero_iff, neg_eq_zero] at h0
+    exact h0.elim hx0 hy0
+  -- `-1/y` satisfies the Weierstrass fixed-point equation at the parameter `-x/y`
+  have hfixK : (-1 / y : v.adicCompletion K) =
+      (-x / y) ^ 3 + W.a₁ * (-x / y) * (-1 / y) + W.a₂ * (-x / y) ^ 2 * (-1 / y) +
+        W.a₃ * (-1 / y) ^ 2 + W.a₄ * (-x / y) * (-1 / y) ^ 2 + W.a₆ * (-1 / y) ^ 3 := by
+    have heq := (W.equation_iff x y).mp h.left
+    field_simp
+    linear_combination -heq
+  have hfixO : r = W₀.wPoly t r := by
+    refine Subtype.coe_injective ?_
+    rw [wPoly]
+    push_cast
+    rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW]
+    exact hfixK
+  have huniq : W₀.wEval t = r :=
+    W₀.eq_of_wPoly_fixed htm (W₀.wEval_mem htm) hrm (W₀.wEval_eq htm) hfixO
+  refine ⟨fun _ ↦ ⟨t, htm⟩, ?_⟩
+  rw [formalPoint_of_param_ne_zero hW ht0]
+  simp only [Point.some.injEq]
+  have hrcoe : ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) = -1 / y := by
+    rw [huniq]
+  constructor
+  · rw [hrcoe]
+    show (-x / y) / (-1 / y) = x
+    field_simp
+  · rw [hrcoe]
+    show -1 / (-1 / y) = y
+    field_simp
 
 theorem formalPoint_eq_zero_iff {z : W₀.formalGroupLaw.Points} :
     formalPoint hW z = 0 ↔ (z () : v.adicCompletionIntegers K) = 0 := by
@@ -1272,6 +1301,103 @@ theorem formalPoint_add (z z' : W₀.formalGroupLaw.Points) :
       (fun h ↦ hnep (congrArg (fun w ↦ (w () : v.adicCompletionIntegers K)) h))
       (fun h ↦ hinv (congrArg (fun w ↦ (w () : v.adicCompletionIntegers K)) h))
 
+/-- For an elliptic curve `W` over `K_v` with an integral model `W₀` and `n : ℕ`, the
+subgroup `E_{n+1}(K_v)` of points `(x, y)` with `exp (2 * (n + 1)) ≤ v(x)` (a pole of order
+at least `2(n + 1)` at `x`, together with `0`); this is the kernel of reduction modulo
+`𝔪^(n+1)`, isomorphic to the group `Ê(𝔪^(n+1))` of points of the formal group of `W₀`
+(Silverman, VII.2.2).  Closure under addition comes from the formal group: both summands
+are parametrized by `𝔪^(n+1)`-parameters, and the addition series preserves that level. -/
+def filtration (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) (n : ℕ) : AddSubgroup W.Point where
+  carrier := {P | match P with
+    | .zero => True
+    | @Point.some _ _ _ x _ _ => exp (2 * (n + 1) : ℤ) ≤ Valued.v x}
+  zero_mem' := trivial
+  neg_mem' {P} hP := by
+    match P with
+    | .zero => exact hP
+    | @Point.some _ _ _ x y h => rw [Set.mem_setOf_eq, Point.neg_some]; exact hP
+  add_mem' {P Q} hP hQ := by
+    match P, Q with
+    | .zero, Q =>
+      rw [show (Point.zero : W.Point) = 0 from rfl, zero_add]
+      exact hQ
+    | @Point.some _ _ _ x₁ y₁ h₁, .zero =>
+      rw [show (Point.zero : W.Point) = 0 from rfl, add_zero]
+      exact hP
+    | @Point.some _ _ _ x₁ y₁ h₁, @Point.some _ _ _ x₂ y₂ h₂ =>
+      rw [Set.mem_setOf_eq] at hP hQ
+      obtain ⟨z, hz⟩ := exists_formalPoint_eq_some hW h₁
+        (le_trans (exp_le_exp.mpr (by lia)) hP)
+      obtain ⟨z', hz'⟩ := exists_formalPoint_eq_some hW h₂
+        (le_trans (exp_le_exp.mpr (by lia)) hQ)
+      have h0 : (z () : v.adicCompletionIntegers K) ≠ 0 := by
+        intro h
+        rw [formalPoint_of_param_eq_zero hW h] at hz
+        exact absurd hz (by simp)
+      have h0' : (z' () : v.adicCompletionIntegers K) ≠ 0 := by
+        intro h
+        rw [formalPoint_of_param_eq_zero hW h] at hz'
+        exact absurd hz' (by simp)
+      have hx₁ : ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) /
+          ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) = x₁ := by
+        have hz2 := hz
+        rw [formalPoint_of_param_ne_zero hW h0] at hz2
+        simp only [Point.some.injEq] at hz2
+        exact hz2.1
+      have hx₂ : ((z' () : v.adicCompletionIntegers K) : v.adicCompletion K) /
+          ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) = x₂ := by
+        have hz2 := hz'
+        rw [formalPoint_of_param_ne_zero hW h0'] at hz2
+        simp only [Point.some.injEq] at hz2
+        exact hz2.1
+      have hzm : (z () : v.adicCompletionIntegers K) ∈
+          maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) :=
+        (param_pow_iff (z ()).2 h0 n).mpr (by rw [hx₁]; exact hP)
+      have hzm' : (z' () : v.adicCompletionIntegers K) ∈
+          maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) :=
+        (param_pow_iff (z' ()).2 h0' n).mpr (by rw [hx₂]; exact hQ)
+      have hsum : Point.some x₁ y₁ h₁ + Point.some x₂ y₂ h₂ = formalPoint hW (z + z') := by
+        rw [formalPoint_add hW, hz, hz']
+      have hsm := add_param_mem_pow hzm hzm'
+      rcases eq_or_ne (((z + z') ()) : v.adicCompletionIntegers K) 0 with hs0 | hs0
+      · rw [Set.mem_setOf_eq, hsum, formalPoint_of_param_eq_zero hW hs0]
+        trivial
+      · rw [Set.mem_setOf_eq, hsum, formalPoint_of_param_ne_zero hW hs0]
+        exact (param_pow_iff ((z + z') ()).2 hs0 n).mp hsm
+
+variable {hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W}
+  {n : ℕ}
+
+@[simp]
+lemma zero_mem_filtration : (0 : W.Point) ∈ filtration hW n := trivial
+
+@[simp]
+lemma some_mem_filtration {x y : v.adicCompletion K} {h : W.Nonsingular x y} :
+    (.some x y h : W.Point) ∈ filtration hW n ↔ exp (2 * (n + 1) : ℤ) ≤ Valued.v x := Iff.rfl
+
+/-- The filtration correspondence: the parameter lies in `𝔪^(n+1)` exactly when the
+associated point lies in the filtration step `E_{n+1}(K_v)`. -/
+theorem mem_pow_iff_formalPoint_mem_filtration (z : W₀.formalGroupLaw.Points) (n : ℕ) :
+    (z () : v.adicCompletionIntegers K) ∈
+        maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
+      formalPoint hW z ∈ filtration hW n := by
+  rcases eq_or_ne (z () : v.adicCompletionIntegers K) 0 with h0 | h0
+  · simp [h0]
+  · rw [formalPoint_of_param_ne_zero hW h0, some_mem_filtration]
+    exact param_pow_iff (z ()).2 h0 n
+
+/-- Every point of the kernel of reduction comes from a parameter in `𝔪`: the
+parametrization by the `𝔪`-points of the formal group is surjective onto
+`filtration hW 0`. -/
+theorem formalPoint_surjective {P : W.Point} (hP : P ∈ filtration hW 0) :
+    ∃ z : W₀.formalGroupLaw.Points, formalPoint hW z = P := by
+  match P with
+  | .zero => exact ⟨0, formalPoint_of_param_eq_zero hW (z := 0) (by simp)⟩
+  | .some x y h =>
+    rw [some_mem_filtration] at hP
+    exact exists_formalPoint_eq_some hW h (le_trans (exp_le_exp.mpr (by lia)) hP)
+
 /-- The `𝔪`-points of the formal group law of an integral model `W₀` of `W` are the kernel
 of reduction `E₁(K_v) = filtration hW 0`, via `z ↦ (x, y)` with `x = z/w(z)`,
 `y = -1/w(z)`; the equivalence matches the filtration by valuation on both sides
@@ -1281,7 +1407,64 @@ theorem exists_points_equiv_filtration :
       ∀ (z : W₀.formalGroupLaw.Points) (n : ℕ),
         ((z () : v.adicCompletionIntegers K) ∈
             maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
-          ((θ z : filtration hW 0) : W.Point) ∈ filtration hW n) :=
+          ((θ z : filtration hW 0) : W.Point) ∈ filtration hW n) := by
+  have hmap : ∀ z : W₀.formalGroupLaw.Points, formalPoint hW z ∈ filtration hW 0 :=
+    fun z ↦ (mem_pow_iff_formalPoint_mem_filtration z 0).mp (by
+      rw [pow_one]
+      exact (z ()).2)
+  let f : W₀.formalGroupLaw.Points →+ filtration hW 0 :=
+    { toFun := fun z ↦ ⟨formalPoint hW z, hmap z⟩
+      map_zero' := Subtype.ext (formalPoint_of_param_eq_zero hW (z := 0) (by simp))
+      map_add' := fun z z' ↦ Subtype.ext (formalPoint_add hW z z') }
+  refine ⟨AddEquiv.ofBijective f
+    ⟨fun z z' h ↦ formalPoint_injective hW (congrArg Subtype.val h), fun P ↦ ?_⟩,
+    fun z n ↦ ?_⟩
+  · obtain ⟨z, hz⟩ := formalPoint_surjective P.2
+    exact ⟨z, Subtype.ext hz⟩
+  · exact mem_pow_iff_formalPoint_mem_filtration z n
+
+variable [Finite (R ⧸ v.asIdeal)]
+
+/-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
+finite index: the filtration steps are open subgroups of the compact group `E(K_v)`. -/
+theorem filtration_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) (n : ℕ) : (filtration hW n).FiniteIndex :=
   sorry
+
+/-- Some step of the valuation filtration on the points of an elliptic curve over `K_v` is
+isomorphic to the additive group of `𝒪_v`: for `𝔪^k` past the ramification of the residue
+characteristic, the formal logarithm identifies `Ê(𝔪^k)` with `(𝔪^k, +) ≅ (𝒪_v, +)`
+(Silverman, IV.6.4). -/
+theorem exists_filtration_equiv (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) :
+    ∃ n, Nonempty (filtration hW n ≃+ v.adicCompletionIntegers K) :=
+  sorry
+
+end WeierstrassCurve.Affine
+
+namespace WeierstrassCurve.Affine
+
+open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum WithZero
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+  (v : HeightOneSpectrum R) [DecidableEq (v.adicCompletion K)] [CharZero K]
+  [Finite (R ⧸ v.asIdeal)] (W : Affine (v.adicCompletion K)) [W.IsElliptic]
+
+open scoped Classical in
+/-- The group of points of an elliptic curve over the completion `K_v` (a characteristic-`0`
+local field with finite residue field) has a subgroup of finite index that is isomorphic to
+the additive group of the valuation ring `𝒪_v`.
+
+This is the structure theorem coming from the formal group of the curve: pass to an
+integral model and take a suitable step of the valuation filtration. -/
+theorem exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers :
+    ∃ U : AddSubgroup W.Point, U.FiniteIndex ∧ Nonempty (U ≃+ (v.adicCompletionIntegers K)) := by
+  obtain ⟨C, W₀, hW⟩ := exists_variableChange_map_eq v W
+  obtain ⟨n, ⟨e⟩⟩ := exists_filtration_equiv hW
+  refine ⟨(filtration hW n).map (Point.equivVariableChange W C : _ →+ _), ⟨?_⟩, ?_⟩
+  · rw [AddSubgroup.index_map_equiv]
+    exact (filtration_finiteIndex hW n).index_ne_zero
+  · exact ⟨((AddEquiv.addSubgroupMap (Point.equivVariableChange W C) _).symm.trans e)⟩
 
 end WeierstrassCurve.Affine

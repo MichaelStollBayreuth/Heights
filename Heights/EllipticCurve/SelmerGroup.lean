@@ -1,7 +1,7 @@
 import Mathlib
 import Heights.ForMathlib.Basic
 import Heights.ForMathlib.AdicCompletionExtension
-import Heights.ForMathlib.FormalGroup
+import Heights.ForMathlib.WeierstrassFormalGroupPoints
 import Heights.ForMathlib.RealEtale
 import Heights.EllipticCurve.WeakMordellWeil
 
