@@ -126,8 +126,7 @@ open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum IsLocalRing WithZero
 
 variable {R : Type*} [CommRing R] [IsDedekindDomain R]
   {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
-  {v : HeightOneSpectrum R} [DecidableEq (v.adicCompletion K)] [CharZero K]
-  [Finite (R ⧸ v.asIdeal)] {W : Affine (v.adicCompletion K)} [W.IsElliptic]
+  {v : HeightOneSpectrum R} {W : Affine (v.adicCompletion K)}
   {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
   (hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W)
   {t : v.adicCompletionIntegers K}
@@ -136,24 +135,122 @@ private lemma algebraMap_eq_coe (x : v.adicCompletionIntegers K) :
     algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) x =
       (x : v.adicCompletion K) := rfl
 
-include hW in
-/-- The parametrized point of the kernel of reduction attached to a parameter `t ∈ 𝔪`,
-`t ≠ 0`, is nonsingular. -/
-theorem formalPoint_nonsingular
-    (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (ht0 : t ≠ 0) :
-    W.Nonsingular ((t : v.adicCompletion K) / (W₀.wEval t : v.adicCompletion K))
-      (-1 / (W₀.wEval t : v.adicCompletion K)) := by
-  refine W.chord_point_nonsingular ?_ ?_ W.isUnit_Δ.ne_zero
-  · have h := congrArg (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
-      (W₀.wEval_eq ht)
-    rw [wPoly] at h
-    simp only [map_add, map_mul, map_pow, algebraMap_eq_coe] at h
-    rw [← hW]
-    simp only [WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₃,
-      WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
+section
+
+include hW
+
+private lemma coe_a₁ : ((W₀.a₁ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₁ := by
+  rw [← hW, WeierstrassCurve.map_a₁, algebraMap_eq_coe]
+
+private lemma coe_a₂ : ((W₀.a₂ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₂ := by
+  rw [← hW, WeierstrassCurve.map_a₂, algebraMap_eq_coe]
+
+private lemma coe_a₃ : ((W₀.a₃ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₃ := by
+  rw [← hW, WeierstrassCurve.map_a₃, algebraMap_eq_coe]
+
+private lemma coe_a₄ : ((W₀.a₄ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₄ := by
+  rw [← hW, WeierstrassCurve.map_a₄, algebraMap_eq_coe]
+
+private lemma coe_a₆ : ((W₀.a₆ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₆ := by
+  rw [← hW, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
+
+/-- On an affine point of the kernel of reduction, `v(y)² = v(x)³`; in particular `y ≠ 0`,
+and the parameter `-x/y` and the value `-1/y` lie in the maximal ideal. -/
+private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
+    (hx : exp (2 : ℤ) ≤ Valued.v x) :
+    y ≠ 0 ∧ Valued.v (-x / y) ≤ exp (-1 : ℤ) ∧ Valued.v (-1 / y) ≤ exp (-1 : ℤ) := by
+  have hcoeff : ∀ a : v.adicCompletionIntegers K, Valued.v (a : v.adicCompletion K) ≤ 1 :=
+    fun a ↦ by have h := a.2; rwa [mem_adicCompletionIntegers] at h
+  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ hcoeff W₀.a₁
+  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ hcoeff W₀.a₂
+  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ hcoeff W₀.a₃
+  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ hcoeff W₀.a₄
+  have ha₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ hcoeff W₀.a₆
+  set A := Valued.v x with hA
+  have hA1 : (1 : ℤᵐ⁰) < A :=
+    lt_of_lt_of_le (by rw [← exp_zero]; exact exp_lt_exp.mpr (by lia)) hx
+  have hA0 : A ≠ 0 := (zero_lt_one.trans hA1).ne'
+  set B := Valued.v y with hB
+  have heq' : y ^ 2 + (W.a₁ * x * y + W.a₃ * y) =
+      x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) := by
+    linear_combination (W.equation_iff x y).mp hxy
+  have hval := congrArg Valued.v heq'
+  have hApow : A ^ 2 < A ^ 3 := pow_lt_pow_right₀ hA1 (by lia)
+  -- the right-hand side has valuation `A³`
+  have hRHS : Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) = A ^ 3 := by
+    have h1 : Valued.v (W.a₂ * x ^ 2) ≤ A ^ 2 := by
+      rw [map_mul, map_pow]
+      exact (mul_le_mul' ha₂ le_rfl).trans_eq (one_mul _)
+    have h2 : Valued.v (W.a₄ * x) ≤ A ^ 2 := by
+      rw [map_mul]
+      exact ((mul_le_mul' ha₄ le_rfl).trans_eq (one_mul _)).trans
+        (le_self_pow hA1.le (by lia))
+    have h3 : Valued.v W.a₆ ≤ A ^ 2 := ha₆.trans (hA1.le.trans (le_self_pow hA1.le (by lia)))
+    have hlow : Valued.v (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) < A ^ 3 :=
+      lt_of_le_of_lt ((Valued.v.map_add _ _).trans
+        (max_le h1 ((Valued.v.map_add _ _).trans (max_le h2 h3)))) hApow
+    rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact hlow), map_pow]
+  -- `B ≤ A` is impossible: the left-hand side would be too small
+  have hBA : A < B := by
+    by_contra hle
+    push Not at hle
+    have h1 : Valued.v (y ^ 2) ≤ A ^ 2 := by
+      rw [map_pow]
+      exact pow_le_pow_left' hle 2
+    have h2 : Valued.v (W.a₁ * x * y) ≤ A ^ 2 := by
+      rw [map_mul, map_mul]
+      calc Valued.v W.a₁ * A * B ≤ 1 * A * A := mul_le_mul' (mul_le_mul' ha₁ le_rfl) hle
+        _ = A ^ 2 := by rw [one_mul, sq]
+    have h3 : Valued.v (W.a₃ * y) ≤ A ^ 2 := by
+      rw [map_mul]
+      exact ((mul_le_mul' ha₃ hle).trans_eq (one_mul _)).trans (le_self_pow hA1.le (by lia))
+    have hLHS_le : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) ≤ A ^ 2 :=
+      (Valued.v.map_add _ _).trans
+        (max_le h1 ((Valued.v.map_add _ _).trans (max_le h2 h3)))
+    rw [hval, hRHS] at hLHS_le
+    exact absurd hLHS_le (not_le.mpr hApow)
+  have hB1 : (1 : ℤᵐ⁰) < B := hA1.trans hBA
+  have hB0 : B ≠ 0 := (zero_lt_one.trans hB1).ne'
+  have hy0 : y ≠ 0 := by
+    intro h
+    rw [hB, h, map_zero] at hBA
+    simp at hBA
+  -- the left-hand side has valuation `B²`, so `B² = A³`
+  have hBA3 : B ^ 2 = A ^ 3 := by
+    have h2 : Valued.v (W.a₁ * x * y) < B ^ 2 := by
+      rw [map_mul, map_mul]
+      calc Valued.v W.a₁ * A * B ≤ 1 * A * B := mul_le_mul' (mul_le_mul' ha₁ le_rfl) le_rfl
+        _ = A * B := by rw [one_mul]
+        _ < B * B := mul_lt_mul_of_pos_right hBA (zero_lt_one.trans hB1)
+        _ = B ^ 2 := (sq B).symm
+    have h3 : Valued.v (W.a₃ * y) < B ^ 2 := by
+      rw [map_mul]
+      calc Valued.v W.a₃ * B ≤ 1 * B := mul_le_mul' ha₃ le_rfl
+        _ = B := one_mul B
+        _ < B ^ 2 := by
+          calc B = B ^ 1 := (pow_one B).symm
+            _ < B ^ 2 := pow_lt_pow_right₀ hB1 (by lia)
+    have hsum : Valued.v (W.a₁ * x * y + W.a₃ * y) < B ^ 2 :=
+      lt_of_le_of_lt (Valued.v.map_add _ _) (max_lt h2 h3)
+    have hLHS : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) = B ^ 2 := by
+      rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact hsum), map_pow]
+    rw [← hLHS, hval, hRHS]
+  -- pass to exponents
+  obtain ⟨a, ha⟩ : ∃ a : ℤ, A = exp a := ⟨log A, (exp_log hA0).symm⟩
+  obtain ⟨b, hb⟩ : ∃ b : ℤ, B = exp b := ⟨log B, (exp_log hB0).symm⟩
+  have h2a : (2 : ℤ) ≤ a := by rwa [ha, exp_le_exp] at hx
+  have h23 : 2 * b = 3 * a := by
+    have h := hBA3
+    rw [ha, hb, ← exp_nsmul, ← exp_nsmul, exp_inj] at h
+    push_cast [nsmul_eq_mul] at h
     exact h
-  · simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero ht ht0
+  refine ⟨hy0, ?_, ?_⟩
+  · rw [map_div₀, Valuation.map_neg, ← hA, ← hB, ha, hb, ← exp_sub, exp_le_exp]
+    lia
+  · rw [map_div₀, Valuation.map_neg, map_one, ← hB, hb, ← exp_zero, ← exp_sub, exp_le_exp]
+    lia
+
+end
 
 /-- The valuation of the `x`-coordinate `t/w(t)` is `v(t)⁻²`. -/
 theorem valued_formalPoint_x
@@ -190,6 +287,27 @@ theorem valued_formalPoint_x
     exact ht0
   rw [map_div₀, hw, map_mul, map_pow, hvE, mul_one, inv_pow, pow_succ',
     div_mul_eq_div_div, div_self ht0', one_div]
+
+variable [DecidableEq (v.adicCompletion K)] [W.IsElliptic]
+
+include hW in
+/-- The parametrized point of the kernel of reduction attached to a parameter `t ∈ 𝔪`,
+`t ≠ 0`, is nonsingular. -/
+theorem formalPoint_nonsingular
+    (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (ht0 : t ≠ 0) :
+    W.Nonsingular ((t : v.adicCompletion K) / (W₀.wEval t : v.adicCompletion K))
+      (-1 / (W₀.wEval t : v.adicCompletion K)) := by
+  refine W.chord_point_nonsingular ?_ ?_ W.isUnit_Δ.ne_zero
+  · have h := congrArg (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
+      (W₀.wEval_eq ht)
+    rw [wPoly] at h
+    simp only [map_add, map_mul, map_pow, algebraMap_eq_coe] at h
+    rw [← hW]
+    simp only [WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₃,
+      WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
+    exact h
+  · simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero ht ht0
 
 /-- The point of the kernel of reduction attached to an `𝔪`-point of the formal group of
 the integral model `W₀`: the parameter `t` gives the affine point `(t/w(t), -1/w(t))`,
@@ -258,6 +376,71 @@ theorem formalPoint_injective : Function.Injective (formalPoint hW) := by
       exact_mod_cast mul_right_cancel₀ hw0' hX
   funext i
   exact Subtype.ext key
+
+/-- Every point of the kernel of reduction comes from a parameter in `𝔪`:
+the parametrization by the `𝔪`-points of the formal group is surjective onto
+`filtration hW 0`. -/
+theorem formalPoint_surjective {P : W.Point} (hP : P ∈ filtration hW 0) :
+    ∃ z : W₀.formalGroupLaw.Points, formalPoint hW z = P := by
+  match P with
+  | .zero => exact ⟨0, formalPoint_of_param_eq_zero hW (by simp)⟩
+  | .some x y h =>
+    rw [some_mem_filtration] at hP
+    have hx : exp (2 : ℤ) ≤ Valued.v x := by
+      convert hP using 2
+      norm_num
+    obtain ⟨hy0, hs, hr⟩ := valued_of_mem hW h.left hx
+    have hexp1 : (exp (-1 : ℤ) : ℤᵐ⁰) ≤ 1 := by
+      rw [← exp_zero, exp_le_exp]
+      lia
+    have hx0 : x ≠ 0 := by
+      intro h0
+      rw [h0, map_zero] at hx
+      simp at hx
+    set t : v.adicCompletionIntegers K :=
+      ⟨-x / y, by rw [mem_adicCompletionIntegers]; exact hs.trans hexp1⟩ with htdef
+    set r : v.adicCompletionIntegers K :=
+      ⟨-1 / y, by rw [mem_adicCompletionIntegers]; exact hr.trans hexp1⟩ with hrdef
+    have htm : t ∈ maximalIdeal (v.adicCompletionIntegers K) := by
+      have hiff := mem_maximalIdeal_pow_iff (K := K) (x := t) (n := 1)
+      rw [pow_one] at hiff
+      exact hiff.mpr hs
+    have hrm : r ∈ maximalIdeal (v.adicCompletionIntegers K) := by
+      have hiff := mem_maximalIdeal_pow_iff (K := K) (x := r) (n := 1)
+      rw [pow_one] at hiff
+      exact hiff.mpr hr
+    have ht0 : t ≠ 0 := by
+      intro hteq
+      have h0 : (-x / y : v.adicCompletion K) = 0 := congrArg Subtype.val hteq
+      rw [div_eq_zero_iff, neg_eq_zero] at h0
+      exact h0.elim hx0 hy0
+    -- `-1/y` satisfies the Weierstrass fixed-point equation at the parameter `-x/y`
+    have hfixK : (-1 / y : v.adicCompletion K) =
+        (-x / y) ^ 3 + W.a₁ * (-x / y) * (-1 / y) + W.a₂ * (-x / y) ^ 2 * (-1 / y) +
+          W.a₃ * (-1 / y) ^ 2 + W.a₄ * (-x / y) * (-1 / y) ^ 2 + W.a₆ * (-1 / y) ^ 3 := by
+      have heq := (W.equation_iff x y).mp h.left
+      field_simp
+      linear_combination -heq
+    have hfixO : r = W₀.wPoly t r := by
+      refine Subtype.coe_injective ?_
+      rw [wPoly]
+      push_cast
+      rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW]
+      exact hfixK
+    have huniq : W₀.wEval t = r :=
+      W₀.eq_of_wPoly_fixed htm (W₀.wEval_mem htm) hrm (W₀.wEval_eq htm) hfixO
+    refine ⟨fun _ ↦ ⟨t, htm⟩, ?_⟩
+    rw [formalPoint_of_param_ne_zero hW ht0]
+    simp only [Point.some.injEq]
+    have hrcoe : ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) = -1 / y := by
+      rw [huniq]
+    constructor
+    · rw [hrcoe]
+      show (-x / y) / (-1 / y) = x
+      field_simp
+    · rw [hrcoe]
+      show -1 / (-1 / y) = y
+      field_simp
 
 /-- The `𝔪`-points of the formal group law of an integral model `W₀` of `W` are the kernel
 of reduction `E₁(K_v) = filtration hW 0`, via `z ↦ (x, y)` with `x = z/w(z)`,
