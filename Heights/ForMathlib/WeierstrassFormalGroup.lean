@@ -286,14 +286,68 @@ theorem interceptSeries_eq :
   simp only [interceptSeries]
   linear_combination h
 
+@[simp]
+lemma constantCoeff_slopeSeries : constantCoeff W.slopeSeries = 0 := by
+  have h : constantCoeff W.slopeSeries =
+      PowerSeries.coeff ((0 : Unit ⊕ Unit →₀ ℕ) (Sum.inl ()) + (0 : Unit ⊕ Unit →₀ ℕ)
+        (Sum.inr ()) + 1) W.wSeries :=
+    W.coeff_slopeSeries 0
+  rw [h]
+  exact W.coeff_wSeries_of_lt (by simp)
+
+lemma constantCoeff_wSeries_mv : MvPowerSeries.constantCoeff W.wSeries = 0 :=
+  W.constantCoeff_wSeries
+
+@[simp]
+lemma constantCoeff_interceptSeries : constantCoeff W.interceptSeries = 0 := by
+  simp [interceptSeries, constantCoeff_rename, W.constantCoeff_wSeries_mv]
+
+/-- The third-root series: the parameter `t₃(t₁, t₂)` of the third intersection point of
+the chord through the points with parameters `t₁`, `t₂` with the curve `(t, w(t))`.
+By Vieta applied to the cubic in `t` obtained by substituting `w = λt + ν` into the
+Weierstrass equation,
+`t₃ = -t₁ - t₂ - (a₁λ + a₂ν + a₃λ² + 2a₄λν + 3a₆λ²ν)/(1 + a₂λ + a₄λ² + a₆λ³)`. -/
+noncomputable def thirdRootSeries : MvPowerSeries (Unit ⊕ Unit) O :=
+  -MvPowerSeries.X (Sum.inl ()) - MvPowerSeries.X (Sum.inr ()) -
+    (MvPowerSeries.C W.a₁ * W.slopeSeries + MvPowerSeries.C W.a₂ * W.interceptSeries +
+        MvPowerSeries.C W.a₃ * W.slopeSeries ^ 2 +
+        2 * MvPowerSeries.C W.a₄ * W.slopeSeries * W.interceptSeries +
+        3 * MvPowerSeries.C W.a₆ * W.slopeSeries ^ 2 * W.interceptSeries) *
+      MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+        MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 + MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1
+
+@[simp]
+lemma constantCoeff_thirdRootSeries : constantCoeff W.thirdRootSeries = 0 := by
+  simp [thirdRootSeries]
+
+/-- The formal inverse parameter series: the parameter `ι(t) = -t/(1 - a₁t - a₃w(t))` of
+the negative of the point with parameter `t` on the curve `(t, w(t))`. -/
+noncomputable def inverseSeries : PowerSeries O :=
+  -(PowerSeries.X * PowerSeries.invOfUnit
+    (1 - PowerSeries.C W.a₁ * PowerSeries.X - PowerSeries.C W.a₃ * W.wSeries) 1)
+
+@[simp]
+lemma constantCoeff_inverseSeries : PowerSeries.constantCoeff W.inverseSeries = 0 := by
+  simp [inverseSeries]
+
+/-- The addition series of the chord construction: `F(t₁, t₂) = ι(t₃(t₁, t₂))`, the
+parameter of the sum of the points with parameters `t₁`, `t₂`. -/
+noncomputable def addSeries : MvPowerSeries (Unit ⊕ Unit) O :=
+  MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.inverseSeries
+
 end Chord
 
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
 `t`-coordinate of the sum of the points with parameters `t₁`, `t₂` on the curve
 `(t, w(t))`, via the chord construction (Silverman, IV.1.1). One-dimensional, so the index
-type is `Unit`. -/
-noncomputable def formalGroupLaw (_W : WeierstrassCurve O) : FormalGroupLaw O Unit :=
-  sorry
+type is `Unit`. The group-law axioms are `sorry`ed for now. -/
+noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Unit where
+  F := fun _ ↦ W.addSeries
+  zero_constantCoeff := sorry
+  add_zero' := sorry
+  zero_add' := sorry
+  comm' := sorry
+  assoc' := sorry
 
 end wSeries
 
