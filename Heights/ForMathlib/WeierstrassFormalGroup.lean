@@ -1751,6 +1751,129 @@ private noncomputable def thetaPoint
       (by rw [h, map_zero])))
     hΔ)
 
+/-- The chord addition of parametrized points: `θ(q₁) + θ(q₂) = θ(F(q₁, q₂))`. -/
+private lemma thetaPoint_add (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
+    {q₁ q₂ : MvPowerSeries σ' O}
+    (h₁ : MvPowerSeries.constantCoeff q₁ = 0) (h₂ : MvPowerSeries.constantCoeff q₂ = 0)
+    (hq₁0 : q₁ ≠ 0) (hq₂0 : q₂ ≠ 0) (hq₁₂ : q₁ ≠ q₂)
+    (hN : MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries ≠ 0)
+    (hF : MvPowerSeries.constantCoeff
+      (MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries) = 0)
+    (hF0 : MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries ≠ 0) :
+    W.thetaPoint hΔ h₁ hq₁0 + W.thetaPoint hΔ h₂ hq₂0 = W.thetaPoint hΔ hF hF0 := by
+  classical
+  set ρ := algebraMap (MvPowerSeries σ' O) KK with hρ
+  have hinj : Function.Injective ρ := IsFractionRing.injective (MvPowerSeries σ' O) KK
+  set Λp := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries with hΛp
+  set Np := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries with hNp
+  set Tp := MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries with hTp
+  set w₁ := MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries with hw₁'
+  set w₂ := MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries with hw₂'
+  set wT := MvPowerSeries.subst (fun _ : Unit ↦ Tp) W.wSeries with hwT'
+  -- the six chord hypotheses, transported to the fraction field
+  have hslope : ρ Λp * (ρ q₂ - ρ q₁) = ρ w₂ - ρ w₁ := by
+    rw [← map_sub, ← map_sub, ← map_mul]
+    exact congrArg ρ (W.pair_slope_identity h₁ h₂)
+  have hNint : ρ Np = ρ w₁ - ρ Λp * ρ q₁ := by
+    rw [← map_mul, ← map_sub]
+    exact congrArg ρ (W.pair_intercept_identity₁ h₁ h₂)
+  have hT₃ : (1 + (fracCurve W σ' KK).a₂ * ρ Λp + (fracCurve W σ' KK).a₄ * ρ Λp ^ 2 +
+      (fracCurve W σ' KK).a₆ * ρ Λp ^ 3) * (ρ Tp + ρ q₁ + ρ q₂) =
+      -((fracCurve W σ' KK).a₁ * ρ Λp + (fracCurve W σ' KK).a₂ * ρ Np +
+        (fracCurve W σ' KK).a₃ * ρ Λp ^ 2 +
+        2 * (fracCurve W σ' KK).a₄ * ρ Λp * ρ Np +
+        3 * (fracCurve W σ' KK).a₆ * ρ Λp ^ 2 * ρ Np) := by
+    have h := congrArg ρ (W.pair_T₃_relation h₁ h₂)
+    simp only [map_add, map_mul, map_neg, map_pow, map_one, map_ofNat] at h
+    exact h
+  have hwT : ρ wT = ρ Λp * ρ Tp + ρ Np := by
+    have h := congrArg ρ (W.pair_online h₁ h₂)
+    simp only [map_add, map_mul] at h
+    exact h
+  have hA : (1 + (fracCurve W σ' KK).a₂ * ρ Λp + (fracCurve W σ' KK).a₄ * ρ Λp ^ 2 +
+      (fracCurve W σ' KK).a₆ * ρ Λp ^ 3) ≠ 0 := by
+    intro h
+    have h0 : ρ (1 + MvPowerSeries.C W.a₂ * Λp + MvPowerSeries.C W.a₄ * Λp ^ 2 +
+        MvPowerSeries.C W.a₆ * Λp ^ 3) = 0 := by
+      simp only [map_add, map_mul, map_pow, map_one]
+      exact h
+    have h1 : (1 : MvPowerSeries σ' O) + MvPowerSeries.C W.a₂ * Λp +
+        MvPowerSeries.C W.a₄ * Λp ^ 2 + MvPowerSeries.C W.a₆ * Λp ^ 3 = 0 :=
+      hinj (by rw [h0, map_zero])
+    have h2 := congrArg MvPowerSeries.constantCoeff h1
+    have hΛ0 : MvPowerSeries.constantCoeff Λp = 0 :=
+      MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair h₁ h₂)
+        (by rintro (j | j) <;> simpa) W.constantCoeff_slopeSeries
+    simp [hΛ0] at h2
+  have hTp0 : Tp ≠ 0 := by
+    intro h
+    apply hN
+    have honline := W.pair_online h₁ h₂
+    rw [← hTp, h] at honline
+    rw [show (fun _ : Unit ↦ (0 : MvPowerSeries σ' O)) = 0 from rfl,
+      MvPowerSeries.subst_zero_of_constantCoeff_zero W.constantCoeff_wSeries] at honline
+    rw [← hNp, ← hΛp] at honline
+    linear_combination -honline
+  have hw₁0 : ρ w₁ ≠ 0 := fun h ↦ W.subst_wSeries_ne_zero h₁ hq₁0 (hinj (by rw [h, map_zero]))
+  have hw₂0 : ρ w₂ ≠ 0 := fun h ↦ W.subst_wSeries_ne_zero h₂ hq₂0 (hinj (by rw [h, map_zero]))
+  have hTc : MvPowerSeries.constantCoeff Tp = 0 := W.pair_thirdRoot_constantCoeff h₁ h₂
+  have hwT0 : ρ wT ≠ 0 := fun h ↦ W.subst_wSeries_ne_zero hTc hTp0 (hinj (by rw [h, map_zero]))
+  have hqw : q₁ * w₂ - q₂ * w₁ = Np * (q₁ - q₂) := by
+    have i₁ := W.pair_intercept_identity₁ h₁ h₂
+    have i₂ := W.pair_intercept_identity₂ h₁ h₂
+    rw [← hNp, ← hΛp, ← hw₁'] at i₁
+    rw [← hNp, ← hΛp, ← hw₂'] at i₂
+    linear_combination q₂ * i₁ - q₁ * i₂
+  have hx : ρ q₁ * ρ w₂ - ρ q₂ * ρ w₁ ≠ 0 := by
+    rw [← map_mul, ← map_mul, ← map_sub]
+    intro h
+    have := hinj (by rw [h, map_zero] : ρ (q₁ * w₂ - q₂ * w₁) = ρ 0)
+    rw [hqw] at this
+    exact (mul_ne_zero hN (sub_ne_zero.mpr hq₁₂)) this
+  -- the Weierstrass equations
+  have hwq₁ := W.rho_weierstrass (KK := KK) h₁
+  have hwq₂ := W.rho_weierstrass (KK := KK) h₂
+  -- apply the point-level chord lemma
+  obtain ⟨h₃, hadd⟩ := chord_point_add (fracCurve W σ' KK) hwq₁ hwq₂ hslope hNint hT₃ hwT hA
+    hw₁0 hw₂0 hwT0 hx
+    (chord_point_nonsingular (fracCurve W σ' KK) hwq₁ hw₁0 hΔ)
+    (chord_point_nonsingular (fracCurve W σ' KK) hwq₂ hw₂0 hΔ)
+  refine Eq.trans (show W.thetaPoint hΔ h₁ hq₁0 + W.thetaPoint hΔ h₂ hq₂0 =
+    Affine.Point.some _ _ h₃ from hadd) ?_
+  -- identify the sum with the point of parameter `F(q₁, q₂)`
+  set sp := MvPowerSeries.subst (fun _ : Unit ↦ Tp)
+    (PowerSeries.invOfUnit W.uSeries 1) with hsp'
+  have hu : ρ (MvPowerSeries.subst (fun _ : Unit ↦ Tp) W.uSeries) * ρ sp = 1 := by
+    rw [← map_mul, ← map_one ρ]
+    exact congrArg ρ (W.pair_u_mul h₁ h₂)
+  have hueq : ρ (MvPowerSeries.subst (fun _ : Unit ↦ Tp) W.uSeries) =
+      1 - (fracCurve W σ' KK).a₁ * ρ Tp - (fracCurve W σ' KK).a₃ * ρ wT := by
+    have h := congrArg ρ (W.pair_u_eq h₁ h₂)
+    simp only [map_sub, map_mul, map_one] at h
+    exact h
+  have hsp0 : ρ sp ≠ 0 := by
+    intro h
+    rw [h, mul_zero] at hu
+    exact one_ne_zero hu.symm
+  have hFeq : ρ (MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries) =
+      -(ρ Tp * ρ sp) := by
+    have h := congrArg ρ (W.pair_F_eq h₁ h₂)
+    simp only [map_neg, map_mul] at h
+    exact h
+  have hwFeq : ρ (MvPowerSeries.subst (fun _ : Unit ↦
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries) W.wSeries) =
+      -(ρ wT * ρ sp) := by
+    have h := congrArg ρ (W.pair_wF h₁ h₂)
+    simp only [map_neg, map_mul] at h
+    exact h
+  rw [thetaPoint]
+  simp only [Affine.Point.some.injEq]
+  constructor
+  · rw [hFeq, hwFeq]
+    field_simp
+  · rw [hwFeq, div_eq_div_iff hwT0 (neg_ne_zero.mpr (mul_ne_zero hwT0 hsp0))]
+    linear_combination (-(ρ wT)) * hu + (ρ wT * ρ sp) * hueq
+
 end Assembly
 
 end OnLine
