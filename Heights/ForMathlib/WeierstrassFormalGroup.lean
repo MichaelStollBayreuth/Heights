@@ -1517,6 +1517,32 @@ private lemma single_wIota (hq : MvPowerSeries.constantCoeff q = 0) :
     ← MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
   simp only [map_neg, map_mul]
 
+/-- The chord through a point and its formal inverse passes through the origin:
+the intercept at the pair `(t, ι(t))`, multiplied by `ι(t) - t`, vanishes. -/
+private lemma pair_X_inverse_intercept_mul :
+    MvPowerSeries.subst
+        (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+        W.interceptSeries * (W.inverseSeries - MvPowerSeries.X ()) = 0 := by
+  have h₁ : MvPowerSeries.constantCoeff (MvPowerSeries.X () : MvPowerSeries Unit O) = 0 :=
+    MvPowerSeries.constantCoeff_X ()
+  have h₂ : MvPowerSeries.constantCoeff (W.inverseSeries : MvPowerSeries Unit O) = 0 :=
+    W.constantCoeff_inverseSeries
+  have hi₁ := W.pair_intercept_identity₁ h₁ h₂
+  have hi₂ := W.pair_intercept_identity₂ h₁ h₂
+  have hidw : MvPowerSeries.subst (fun _ : Unit ↦ (MvPowerSeries.X () : MvPowerSeries Unit O))
+      W.wSeries = W.wSeries := congrFun MvPowerSeries.subst_self _
+  have hw : MvPowerSeries.subst (fun _ : Unit ↦ (W.inverseSeries : MvPowerSeries Unit O))
+      W.wSeries = -(W.wSeries * PowerSeries.invOfUnit W.uSeries 1) := by
+    rw [show MvPowerSeries.subst (fun _ : Unit ↦ (W.inverseSeries : MvPowerSeries Unit O))
+        W.wSeries = PowerSeries.subst W.inverseSeries W.wSeries from rfl,
+      W.subst_inverseSeries_wSeries]
+  have hd : W.inverseSeries =
+      -(MvPowerSeries.X () * PowerSeries.invOfUnit W.uSeries 1) := rfl
+  rw [hidw] at hi₁
+  rw [hw] at hi₂
+  linear_combination W.inverseSeries * hi₁ - MvPowerSeries.X () * hi₂ +
+    (W.wSeries : MvPowerSeries Unit O) * hd
+
 end SingleIota
 
 section Domain
@@ -1714,6 +1740,107 @@ private lemma X_pair_intercept_ne_zero {σ' : Type*} [Finite σ'] {s₁ s₂ : �
     · rfl
   · rw [map_zero]
     exact h0
+
+/-- Over a domain, if `ι ≠ X`, the intercept of the chord through a point and its formal
+inverse vanishes. -/
+private lemma pair_X_inverse_intercept_eq_zero
+    (hne : W.inverseSeries ≠ (MvPowerSeries.X () : MvPowerSeries Unit O)) :
+    MvPowerSeries.subst
+        (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+        W.interceptSeries = 0 :=
+  (mul_eq_zero.mp W.pair_X_inverse_intercept_mul).resolve_right (sub_ne_zero.mpr hne)
+
+/-- Over a domain with `2 ≠ 0` and `ι ≠ X`: the third root of the chord through a point
+and its formal inverse is `0` (the third intersection point is the point at infinity). -/
+private lemma pair_X_inverse_thirdRoot_eq_zero
+    (hne : W.inverseSeries ≠ (MvPowerSeries.X () : MvPowerSeries Unit O))
+    (h2 : (2 : O) ≠ 0) :
+    MvPowerSeries.subst
+        (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+        W.thirdRootSeries = 0 := by
+  have h₁ : MvPowerSeries.constantCoeff (MvPowerSeries.X () : MvPowerSeries Unit O) = 0 :=
+    MvPowerSeries.constantCoeff_X ()
+  have h₂ : MvPowerSeries.constantCoeff (W.inverseSeries : MvPowerSeries Unit O) = 0 :=
+    W.constantCoeff_inverseSeries
+  have hNp := W.pair_X_inverse_intercept_eq_zero hne
+  have hOL := W.pair_online h₁ h₂
+  have hTc := W.pair_thirdRoot_constantCoeff h₁ h₂
+  have hfix := W.subst_wSeries_fix hTc
+  have hrel := W.pair_T₃_relation h₁ h₂
+  have hslope := W.pair_slope_identity h₁ h₂
+  have hidw : MvPowerSeries.subst (fun _ : Unit ↦ (MvPowerSeries.X () : MvPowerSeries Unit O))
+      W.wSeries = W.wSeries := congrFun MvPowerSeries.subst_self _
+  have hw : MvPowerSeries.subst (fun _ : Unit ↦ (W.inverseSeries : MvPowerSeries Unit O))
+      W.wSeries = -(W.wSeries * PowerSeries.invOfUnit W.uSeries 1) := by
+    rw [show MvPowerSeries.subst (fun _ : Unit ↦ (W.inverseSeries : MvPowerSeries Unit O))
+        W.wSeries = PowerSeries.subst W.inverseSeries W.wSeries from rfl,
+      W.subst_inverseSeries_wSeries]
+  rw [hidw, hw] at hslope
+  simp only [mvWStepAt] at hfix
+  set d := PowerSeries.invOfUnit W.uSeries 1 with hddef
+  set Λp := MvPowerSeries.subst
+    (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+    W.slopeSeries
+  set Tp := MvPowerSeries.subst
+    (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+    W.thirdRootSeries
+  set wT := MvPowerSeries.subst (fun _ : Unit ↦ Tp) W.wSeries
+  rw [hNp, add_zero] at hOL
+  -- the cubic in `Tp` with the line substituted in factors through `Tp`
+  have hTP : Tp * (Λp - Tp ^ 2 - MvPowerSeries.C W.a₁ * Λp * Tp -
+      MvPowerSeries.C W.a₂ * Λp * Tp ^ 2 - MvPowerSeries.C W.a₃ * Λp ^ 2 * Tp -
+      MvPowerSeries.C W.a₄ * Λp ^ 2 * Tp ^ 2 - MvPowerSeries.C W.a₆ * Λp ^ 3 * Tp ^ 2) = 0 := by
+    linear_combination hfix - (1 - MvPowerSeries.C W.a₁ * Tp - MvPowerSeries.C W.a₂ * Tp ^ 2 -
+      MvPowerSeries.C W.a₃ * (Λp * Tp + wT) - MvPowerSeries.C W.a₄ * Tp * (Λp * Tp + wT) -
+      MvPowerSeries.C W.a₆ * (Λp ^ 2 * Tp ^ 2 + Λp * Tp * wT + wT ^ 2)) * hOL
+  refine (mul_eq_zero.mp hTP).resolve_right fun hbranch ↦ ?_
+  -- in the second branch, `Λp = -A·Tp·(X + ι)`, contradicting `w·(d + 1)` having order 3
+  rw [hNp] at hrel
+  have hcontr : W.wSeries * (d + 1) =
+      (1 + MvPowerSeries.C W.a₂ * Λp + MvPowerSeries.C W.a₄ * Λp ^ 2 +
+        MvPowerSeries.C W.a₆ * Λp ^ 3) * Tp *
+        (MvPowerSeries.X () + W.inverseSeries) * (W.inverseSeries - MvPowerSeries.X ()) := by
+    linear_combination hslope - (W.inverseSeries - MvPowerSeries.X ()) * hbranch -
+      (W.inverseSeries - MvPowerSeries.X ()) * Tp * hrel
+  have hd : W.inverseSeries =
+      -(MvPowerSeries.X () * d) := rfl
+  have hdvd : (MvPowerSeries.X () : MvPowerSeries Unit O) ^ 4 ∣
+      (1 + MvPowerSeries.C W.a₂ * Λp + MvPowerSeries.C W.a₄ * Λp ^ 2 +
+        MvPowerSeries.C W.a₆ * Λp ^ 3) * Tp *
+        (MvPowerSeries.X () + W.inverseSeries) * (W.inverseSeries - MvPowerSeries.X ()) := by
+    have d1 : (MvPowerSeries.X () : MvPowerSeries Unit O) ∣ Tp :=
+      PowerSeries.X_dvd_iff.mpr hTc
+    have d2 : (MvPowerSeries.X () : MvPowerSeries Unit O) ^ 2 ∣
+        (MvPowerSeries.X () + W.inverseSeries) := by
+      have h1d : (MvPowerSeries.X () : MvPowerSeries Unit O) ∣ (1 - d) :=
+        PowerSeries.X_dvd_iff.mpr (by simp [hddef])
+      obtain ⟨c, hc⟩ := h1d
+      exact ⟨c, by rw [hd]; linear_combination MvPowerSeries.X () * hc⟩
+    have d3 : (MvPowerSeries.X () : MvPowerSeries Unit O) ∣
+        (W.inverseSeries - MvPowerSeries.X ()) :=
+      PowerSeries.X_dvd_iff.mpr
+        (by simp [show (MvPowerSeries.X () : MvPowerSeries Unit O) = PowerSeries.X from rfl])
+    rw [show (MvPowerSeries.X () : MvPowerSeries Unit O) ^ 4 =
+      MvPowerSeries.X () * MvPowerSeries.X () ^ 2 * MvPowerSeries.X () by ring]
+    exact mul_dvd_mul (mul_dvd_mul (Dvd.dvd.mul_left d1 _) d2) d3
+  have h3 := congrArg (PowerSeries.coeff 3) hcontr
+  rw [PowerSeries.X_pow_dvd_iff.mp hdvd 3 (by lia), W.wSeries_eq_X_pow_three_mul,
+    mul_assoc, show (3 : ℕ) = 0 + 3 from rfl, PowerSeries.coeff_X_pow_mul] at h3
+  rw [PowerSeries.coeff_zero_eq_constantCoeff_apply, map_mul, W.constantCoeff_vSeries,
+    map_add, map_one, one_mul, hddef, PowerSeries.constantCoeff_invOfUnit] at h3
+  simp only [inv_one, Units.val_one] at h3
+  exact h2 (by linear_combination h3)
+
+/-- Over a domain with `2 ≠ 0` and `ι ≠ X`: the addition series vanishes at the pair
+`(t, ι(t))` — the formal inverse property. -/
+private lemma pair_X_inverse_addSeries_eq_zero
+    (hne : W.inverseSeries ≠ (MvPowerSeries.X () : MvPowerSeries Unit O))
+    (h2 : (2 : O) ≠ 0) :
+    MvPowerSeries.subst
+        (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+        W.addSeries = 0 := by
+  rw [W.pair_F_eq (MvPowerSeries.constantCoeff_X ()) W.constantCoeff_inverseSeries,
+    W.pair_X_inverse_thirdRoot_eq_zero hne h2, zero_mul, neg_zero]
 
 end Domain
 
@@ -2298,6 +2425,43 @@ theorem assoc_addSeries (W : WeierstrassCurve O) :
     MvPowerSeries.map_subst universal.hasSubst_assocRightFam_addSeries,
     universal.map_assocLeftFam_addSeries φ, universal.map_assocRightFam_addSeries φ,
     universal.map_addSeries φ] at h
+  exact h
+
+private lemma universal_inverseSeries_ne_X :
+    universal.inverseSeries ≠
+      (MvPowerSeries.X () : MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) := by
+  intro h
+  have h1 := congrArg (PowerSeries.coeff 1) h
+  rw [show universal.inverseSeries =
+      -(PowerSeries.X * PowerSeries.invOfUnit universal.uSeries 1) from rfl, map_neg,
+    show (1 : ℕ) = 0 + 1 from rfl, PowerSeries.coeff_succ_X_mul,
+    PowerSeries.coeff_zero_eq_constantCoeff_apply, PowerSeries.constantCoeff_invOfUnit,
+    show (MvPowerSeries.X () : MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ)) = PowerSeries.X
+      from rfl, PowerSeries.coeff_one_X, inv_one, Units.val_one] at h1
+  have h2 := congrArg (MvPolynomial.eval (0 : Fin 5 → ℤ)) h1
+  rw [map_neg, map_one] at h2
+  exact absurd h2 (by decide)
+
+/-- The formal inverse property `F(t, ι(t)) = 0`: the addition series vanishes along the
+pair `(t, ι(t))`, for any Weierstrass curve — proved for the universal curve via the chord
+geometry (the chord through a point and its inverse has intercept `0`, so its third root
+is `0` by Vieta) and transported by naturality. -/
+theorem subst_inverse_addSeries (W : WeierstrassCurve O) :
+    MvPowerSeries.subst
+        (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
+        W.addSeries = 0 := by
+  obtain ⟨φ, rfl⟩ := exists_map_universal W
+  have h := congrArg (MvPowerSeries.map φ) (universal.pair_X_inverse_addSeries_eq_zero
+    universal_inverseSeries_ne_X (by norm_num))
+  rw [map_zero, MvPowerSeries.map_subst (hasSubst_pair (MvPowerSeries.constantCoeff_X ())
+    universal.constantCoeff_inverseSeries), universal.map_addSeries φ] at h
+  rw [show (fun s ↦ MvPowerSeries.map φ ((Sum.elim (fun _ ↦ (MvPowerSeries.X () :
+      MvPowerSeries Unit (MvPolynomial (Fin 5) ℤ))) fun _ ↦ universal.inverseSeries) s)) =
+      Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O))
+        fun _ ↦ (universal.map φ).inverseSeries from funext fun s ↦ by
+      rcases s with u | u
+      · exact MvPowerSeries.map_X φ ()
+      · exact universal.map_inverseSeries φ] at h
   exact h
 
 end Universal
