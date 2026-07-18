@@ -1706,6 +1706,53 @@ private lemma X_pair_intercept_ne_zero {σ' : Type*} [Finite σ'] {s₁ s₂ : �
 
 end Domain
 
+section Assembly
+
+/-! ### Assembly: the addition series realizes the group law over the fraction field -/
+
+variable [IsDomain O] {σ' : Type*} [Finite σ'] {KK : Type*} [Field KK] [DecidableEq KK]
+  [Algebra (MvPowerSeries σ' O) KK] [IsFractionRing (MvPowerSeries σ' O) KK]
+
+/-- The base-changed curve over the fraction field of the series ring. -/
+private noncomputable def fracCurve (W : WeierstrassCurve O) (σ' : Type*) (KK : Type*)
+    [Field KK] [Algebra (MvPowerSeries σ' O) KK] : WeierstrassCurve KK :=
+  W.map ((algebraMap (MvPowerSeries σ' O) KK).comp MvPowerSeries.C)
+
+private lemma rho_weierstrass {q : MvPowerSeries σ' O}
+    (hq : MvPowerSeries.constantCoeff q = 0) :
+    algebraMap (MvPowerSeries σ' O) KK
+        (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) =
+      algebraMap (MvPowerSeries σ' O) KK q ^ 3 +
+        (fracCurve W σ' KK).a₁ * algebraMap (MvPowerSeries σ' O) KK q *
+          algebraMap (MvPowerSeries σ' O) KK
+            (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) +
+        (fracCurve W σ' KK).a₂ * algebraMap (MvPowerSeries σ' O) KK q ^ 2 *
+          algebraMap (MvPowerSeries σ' O) KK
+            (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) +
+        (fracCurve W σ' KK).a₃ * algebraMap (MvPowerSeries σ' O) KK
+            (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) ^ 2 +
+        (fracCurve W σ' KK).a₄ * algebraMap (MvPowerSeries σ' O) KK q *
+          algebraMap (MvPowerSeries σ' O) KK
+            (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) ^ 2 +
+        (fracCurve W σ' KK).a₆ * algebraMap (MvPowerSeries σ' O) KK
+            (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) ^ 3 := by
+  have h := congrArg (algebraMap (MvPowerSeries σ' O) KK) (W.subst_wSeries_fix hq)
+  simp only [mvWStepAt, map_add, map_mul, map_pow] at h
+  exact h
+
+/-- The point of the base-changed curve with parameter `q`. -/
+private noncomputable def thetaPoint
+    (hΔ : (fracCurve W σ' KK).Δ ≠ 0) {q : MvPowerSeries σ' O}
+    (hq : MvPowerSeries.constantCoeff q = 0) (hq0 : q ≠ 0) :
+    (fracCurve W σ' KK).toAffine.Point :=
+  Affine.Point.some _ _ (chord_point_nonsingular (fracCurve W σ' KK)
+    (W.rho_weierstrass hq)
+    (fun h ↦ W.subst_wSeries_ne_zero hq hq0 ((IsFractionRing.injective (MvPowerSeries σ' O) KK)
+      (by rw [h, map_zero])))
+    hΔ)
+
+end Assembly
+
 end OnLine
 
 end Chord
