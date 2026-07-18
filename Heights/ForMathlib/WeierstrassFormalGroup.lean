@@ -1508,6 +1508,56 @@ private lemma pair_T₃_relation (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
 
 end Pair
 
+section SingleIota
+
+variable {σ' : Type*} [Finite σ'] {q : MvPowerSeries σ' O}
+
+private lemma single_u_mul (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦ q) W.uSeries *
+      MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1) = 1 := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_single hq)) W.mul_invOfUnit_uSeries
+  simp only [map_mul, map_one] at h
+  simpa only [MvPowerSeries.coe_substAlgHom (hasSubst_single hq)] using h
+
+private lemma single_u_eq (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦ q) W.uSeries =
+      1 - MvPowerSeries.C W.a₁ * q -
+        MvPowerSeries.C W.a₃ * MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries := by
+  rw [uSeries, ← MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [map_sub, map_one, map_mul]
+  rw [MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl,
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPowerSeries.subst_C, MvPowerSeries.subst_X (hasSubst_single hq)]
+
+private lemma single_iota_eq (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries =
+      -(q * MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1)) := by
+  rw [show W.inverseSeries = -(PowerSeries.X * PowerSeries.invOfUnit W.uSeries 1) from rfl,
+    ← MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [map_neg, map_mul]
+  rw [MvPowerSeries.coe_substAlgHom (hasSubst_single hq),
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPowerSeries.subst_X (hasSubst_single hq)]
+
+private lemma single_wIota (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.subst
+      (fun _ : Unit ↦ MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries) W.wSeries =
+      -(MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries *
+        MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1)) := by
+  have hcomp : MvPowerSeries.subst
+      (fun _ : Unit ↦ MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries) W.wSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦ q)
+        (MvPowerSeries.subst (fun _ : Unit ↦ W.inverseSeries) W.wSeries) := by
+    rw [MvPowerSeries.subst_comp_subst_apply
+      (hasSubst_single W.constantCoeff_inverseSeries) (hasSubst_single hq)]
+  rw [hcomp, show MvPowerSeries.subst (fun _ : Unit ↦ W.inverseSeries) W.wSeries =
+      PowerSeries.subst W.inverseSeries W.wSeries from rfl, W.subst_inverseSeries_wSeries,
+    ← MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [map_neg, map_mul]
+
+end SingleIota
+
 section Domain
 
 variable [IsDomain O]
@@ -1873,6 +1923,58 @@ private lemma thetaPoint_add (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
     field_simp
   · rw [hwFeq, div_eq_div_iff hwT0 (neg_ne_zero.mpr (mul_ne_zero hwT0 hsp0))]
     linear_combination (-(ρ wT)) * hu + (ρ wT * ρ sp) * hueq
+
+
+
+/-- The parametrized point of `ι ∘ q` is the negative of the parametrized point of `q`. -/
+private lemma thetaPoint_neg (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
+    {q : MvPowerSeries σ' O} (hq : MvPowerSeries.constantCoeff q = 0) (hq0 : q ≠ 0)
+    (hi : MvPowerSeries.constantCoeff
+      (MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries) = 0)
+    (hi0 : MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries ≠ 0) :
+    W.thetaPoint hΔ hi hi0 = -W.thetaPoint hΔ hq hq0 := by
+  classical
+  set ρ := algebraMap (MvPowerSeries σ' O) KK with hρ
+  have hu : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.uSeries) *
+      ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1)) = 1 := by
+    rw [← map_mul, ← map_one ρ]
+    exact congrArg ρ (W.single_u_mul hq)
+  have hsp0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q)
+      (PowerSeries.invOfUnit W.uSeries 1)) ≠ 0 := by
+    intro h
+    rw [h, mul_zero] at hu
+    exact one_ne_zero hu.symm
+  have hIeq : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries) =
+      -(ρ q * ρ (MvPowerSeries.subst (fun _ : Unit ↦ q)
+        (PowerSeries.invOfUnit W.uSeries 1))) := by
+    have h := congrArg ρ (W.single_iota_eq hq)
+    simpa only [map_neg, map_mul] using h
+  have hwIeq : ρ (MvPowerSeries.subst (fun _ : Unit ↦
+      MvPowerSeries.subst (fun _ : Unit ↦ q) W.inverseSeries) W.wSeries) =
+      -(ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) *
+        ρ (MvPowerSeries.subst (fun _ : Unit ↦ q)
+          (PowerSeries.invOfUnit W.uSeries 1))) := by
+    have h := congrArg ρ (W.single_wIota hq)
+    simpa only [map_neg, map_mul] using h
+  have hueq : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.uSeries) =
+      1 - (fracCurve W σ' KK).a₁ * ρ q -
+        (fracCurve W σ' KK).a₃ * ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) := by
+    have h := congrArg ρ (W.single_u_eq hq)
+    simp only [map_sub, map_mul, map_one] at h
+    exact h
+  have hw0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) ≠ 0 := fun h ↦
+    W.subst_wSeries_ne_zero hq hq0
+      ((IsFractionRing.injective (MvPowerSeries σ' O) KK) (by rw [h, map_zero]))
+  simp only [thetaPoint, Affine.Point.neg_some, Affine.Point.some.injEq]
+  simp only [← hρ]
+  constructor
+  · rw [hIeq, hwIeq]
+    field_simp
+  · rw [hwIeq, Affine.negY]
+    field_simp
+    linear_combination
+      ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1)) * hueq -
+      hu
 
 end Assembly
 
