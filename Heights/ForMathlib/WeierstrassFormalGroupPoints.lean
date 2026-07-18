@@ -545,6 +545,24 @@ private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
   · rw [map_div₀, Valuation.map_neg, map_one, ← hB, hb, ← exp_zero, ← exp_sub, exp_le_exp]
     lia
 
+/-- The coerced Weierstrass fixed-point equation for the value of `w`. -/
+private lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      (t : v.adicCompletion K) ^ 3 +
+        W.a₁ * t * ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) +
+        W.a₂ * (t : v.adicCompletion K) ^ 2 *
+          ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) +
+        W.a₃ * ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 2 +
+        W.a₄ * t * ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 2 +
+        W.a₆ * ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 3 := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.wEval_eq hm)
+  rw [wPoly] at h
+  push_cast at h
+  rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW] at h
+  exact h
+
 end
 
 /-- The valuation of the `x`-coordinate `t/w(t)` is `v(t)⁻²`. -/
@@ -800,6 +818,152 @@ theorem formalPoint_negPoint (z : W₀.formalGroupLaw.Points) :
       field_simp
       linear_combination -hu + ((W₀.duEval (z ()) : v.adicCompletionIntegers K) :
         v.adicCompletion K) * hueq
+
+include hW in
+/-- The chord addition at the level of parameters: for `t₁, t₂ ∈ 𝔪` nonzero with distinct
+`x`-coordinates and nonvanishing third root `T`, the sum of the parametrized points is the
+point with parameter `ι̂(T)`. -/
+private lemma paramPoint_add {t₁ t₂ : v.adicCompletionIntegers K}
+    (hm : t₁ ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hm' : t₂ ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (h0 : t₁ ≠ 0) (h0' : t₂ ≠ 0)
+    (hx : ((t₁ : v.adicCompletion K)) *
+        ((W₀.wEval t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ≠
+      ((t₂ : v.adicCompletion K)) *
+        ((W₀.wEval t₁ : v.adicCompletionIntegers K) : v.adicCompletion K))
+    (hT0 : W₀.thirdRootEval t₁ t₂ ≠ 0)
+    (hιm : W₀.iotaEval (W₀.thirdRootEval t₁ t₂) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hι0 : W₀.iotaEval (W₀.thirdRootEval t₁ t₂) ≠ 0) :
+    (.some _ _ (formalPoint_nonsingular hW hm h0) : W.Point) +
+        .some _ _ (formalPoint_nonsingular hW hm' h0') =
+      .some _ _ (formalPoint_nonsingular hW hιm hι0) := by
+  have hTm : W₀.thirdRootEval t₁ t₂ ∈ maximalIdeal (v.adicCompletionIntegers K) :=
+    W₀.thirdRootEval_mem hm hm'
+  have hΛm : W₀.slopeEval t₁ t₂ ∈ maximalIdeal (v.adicCompletionIntegers K) :=
+    W₀.slopeEval_mem hm hm'
+  -- the leading coefficient of the chord cubic is a unit
+  have hA : IsUnit (1 + W₀.a₂ * W₀.slopeEval t₁ t₂ + W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 +
+      W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3) := by
+    refine IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal ?_
+    have h2 : (1 + W₀.a₂ * W₀.slopeEval t₁ t₂ + W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 +
+        W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3) - 1 = W₀.a₂ * W₀.slopeEval t₁ t₂ +
+        W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 + W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3 := by ring
+    rw [h2]
+    exact add_mem (add_mem (Ideal.mul_mem_left _ _ hΛm)
+      (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛm 2 two_pos)))
+      (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛm 3 (by lia)))
+  -- coerced hypotheses for the field-level chord lemma
+  have hslope := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.slopeEval_mul_sub hm hm')
+  have hNc := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.interceptEval_eq hm hm')
+  have hT₃c := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.thirdRootEval_relation hm hm')
+  have hwTc := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.wEval_thirdRootEval hm hm')
+  push_cast at hslope hNc hT₃c hwTc
+  rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW] at hT₃c
+  have hAc : ((1 : v.adicCompletion K) + W.a₂ *
+      ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) +
+      W.a₄ * ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 2 +
+      W.a₆ * ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 3)
+      ≠ 0 := by
+    intro hc
+    apply hA.ne_zero
+    refine Subtype.coe_injective ?_
+    push_cast
+    rw [coe_a₂ hW, coe_a₄ hW, coe_a₆ hW]
+    exact hc
+  have hw₁0 : ((W₀.wEval t₁ : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero hm h0
+  have hw₂0 : ((W₀.wEval t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero hm' h0'
+  have hwT0 : ((W₀.wEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
+      v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero hTm hT0
+  obtain ⟨h₃, hsum⟩ := W.chord_point_add (coe_wEval_eq hW hm) (coe_wEval_eq hW hm')
+    hslope hNc hT₃c hwTc hAc hw₁0 hw₂0 hwT0 (sub_ne_zero.mpr hx)
+    (formalPoint_nonsingular hW hm h0) (formalPoint_nonsingular hW hm' h0')
+  rw [hsum]
+  simp only [Point.some.injEq]
+  -- identify the chord point with the parametrized point at `ι̂(T)`
+  have hDU0' : W₀.duEval (W₀.thirdRootEval t₁ t₂) ≠ 0 := (W₀.isUnit_duEval hTm).ne_zero
+  have hiT := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.iotaEval_eq hTm)
+  have hwiT := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.wEval_iotaEval hTm)
+  have hup := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.uEval_mul_duEval hTm)
+  have huTeq := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.uEval_eq hTm)
+  push_cast at hiT hwiT hup huTeq
+  rw [coe_a₁ hW, coe_a₃ hW] at huTeq
+  have hDU0 : ((W₀.duEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
+      v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact hDU0'
+  constructor
+  · rw [hiT, hwiT]
+    field_simp
+  · rw [hwiT]
+    field_simp
+    linear_combination hup - ((W₀.duEval (W₀.thirdRootEval t₁ t₂) :
+      v.adicCompletionIntegers K) : v.adicCompletion K) * huTeq
+
+include hW in
+/-- The chord case of additivity: two nonzero parameters whose points have distinct
+`x`-coordinates. -/
+private lemma formalPoint_add_of_x_ne {z z' : W₀.formalGroupLaw.Points}
+    (h0 : (z () : v.adicCompletionIntegers K) ≠ 0)
+    (h0' : (z' () : v.adicCompletionIntegers K) ≠ 0)
+    (hx : ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠
+      ((z' () : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) :
+    formalPoint hW (z + z') = formalPoint hW z + formalPoint hW z' := by
+  have hm := (z ()).2
+  have hm' := (z' ()).2
+  -- the third root does not vanish (else the chord would be vertical)
+  have hT0 : W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
+      (z' () : v.adicCompletionIntegers K) ≠ 0 := by
+    intro h
+    have honl := W₀.wEval_thirdRootEval hm hm'
+    rw [h, mul_zero, zero_add, W₀.wEval_zero] at honl
+    have hν : W₀.interceptEval (z () : v.adicCompletionIntegers K)
+        (z' () : v.adicCompletionIntegers K) *
+          ((z' () : v.adicCompletionIntegers K) - (z () : v.adicCompletionIntegers K)) =
+        (z' () : v.adicCompletionIntegers K) * W₀.wEval (z ()) -
+          (z () : v.adicCompletionIntegers K) * W₀.wEval (z' ()) := by
+      linear_combination ((z' () : v.adicCompletionIntegers K)) *
+          W₀.interceptEval_eq hm hm' -
+        ((z () : v.adicCompletionIntegers K)) * W₀.interceptEval_eq' hm hm'
+    rw [← honl, zero_mul] at hν
+    apply hx
+    have hc := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K)) hν
+    push_cast at hc
+    linear_combination hc
+  have hTm := W₀.thirdRootEval_mem hm hm'
+  have hιm : W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
+      (z' () : v.adicCompletionIntegers K)) ∈ maximalIdeal (v.adicCompletionIntegers K) :=
+    W₀.iotaEval_mem hTm
+  have hι0 : W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
+      (z' () : v.adicCompletionIntegers K)) ≠ 0 := by
+    rw [W₀.iotaEval_eq hTm]
+    exact neg_ne_zero.mpr (mul_ne_zero hT0 (W₀.isUnit_duEval hTm).ne_zero)
+  have hpcoe : ((z + z') () : v.adicCompletionIntegers K) =
+      W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
+        (z' () : v.adicCompletionIntegers K)) := by
+    rw [W₀.add_apply_coe_eq_addEval, W₀.addEval_eq hm hm']
+  have hp0 : ((z + z') () : v.adicCompletionIntegers K) ≠ 0 := by
+    rw [hpcoe]
+    exact hι0
+  rw [formalPoint_of_param_ne_zero hW h0, formalPoint_of_param_ne_zero hW h0',
+    formalPoint_of_param_ne_zero hW hp0,
+    paramPoint_add hW hm hm' h0 h0' hx hT0 hιm hι0]
+  simp only [hpcoe]
 
 include hW in
 /-- Two nonzero parameters whose points share their `x`-coordinate agree up to the formal

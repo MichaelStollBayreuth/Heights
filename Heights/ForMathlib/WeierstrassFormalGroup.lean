@@ -1068,7 +1068,7 @@ private lemma chord_addX_addY {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
       + 2*WF.a₁*q₁*Λ^2*N^4)) * hAA2
 
 /-- The chord construction computes the group law, at the level of nonsingular points. -/
-private lemma chord_point_add {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
+lemma chord_point_add {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
     (hw₁ : w₁ = q₁ ^ 3 + WF.a₁ * q₁ * w₁ + WF.a₂ * q₁ ^ 2 * w₁ + WF.a₃ * w₁ ^ 2 +
       WF.a₄ * q₁ * w₁ ^ 2 + WF.a₆ * w₁ ^ 3)
     (hw₂ : w₂ = q₂ ^ 3 + WF.a₁ * q₂ * w₂ + WF.a₂ * q₂ ^ 2 * w₂ + WF.a₃ * w₂ ^ 2 +
