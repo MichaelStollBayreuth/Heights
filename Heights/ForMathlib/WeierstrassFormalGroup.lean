@@ -1051,6 +1051,45 @@ private lemma chord_addX_addY {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
       - Λ*WF.a₂*q₁*N^5 - Λ*q₂*N^5*WF.a₁^2 - WF.a₁*WF.a₂*q₁*N^6 - 2*WF.a₁*q₂*Λ^2*N^4
       + 2*WF.a₁*q₁*Λ^2*N^4)) * hAA2
 
+/-- The chord construction computes the group law, at the level of nonsingular points. -/
+private lemma chord_point_add {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
+    (hw₁ : w₁ = q₁ ^ 3 + WF.a₁ * q₁ * w₁ + WF.a₂ * q₁ ^ 2 * w₁ + WF.a₃ * w₁ ^ 2 +
+      WF.a₄ * q₁ * w₁ ^ 2 + WF.a₆ * w₁ ^ 3)
+    (hw₂ : w₂ = q₂ ^ 3 + WF.a₁ * q₂ * w₂ + WF.a₂ * q₂ ^ 2 * w₂ + WF.a₃ * w₂ ^ 2 +
+      WF.a₄ * q₂ * w₂ ^ 2 + WF.a₆ * w₂ ^ 3)
+    (hslope : Λ * (q₂ - q₁) = w₂ - w₁)
+    (hN : N = w₁ - Λ * q₁)
+    (hT₃ : (1 + WF.a₂ * Λ + WF.a₄ * Λ ^ 2 + WF.a₆ * Λ ^ 3) * (T₃ + q₁ + q₂) =
+      -(WF.a₁ * Λ + WF.a₂ * N + WF.a₃ * Λ ^ 2 + 2 * WF.a₄ * Λ * N + 3 * WF.a₆ * Λ ^ 2 * N))
+    (hwT : wT = Λ * T₃ + N)
+    (hA : (1 + WF.a₂ * Λ + WF.a₄ * Λ ^ 2 + WF.a₆ * Λ ^ 3) ≠ 0)
+    (hw₁0 : w₁ ≠ 0) (hw₂0 : w₂ ≠ 0) (hwT0 : wT ≠ 0)
+    (hx : q₁ * w₂ - q₂ * w₁ ≠ 0)
+    (h₁ : WF.toAffine.Nonsingular (q₁ / w₁) (-1 / w₁))
+    (h₂ : WF.toAffine.Nonsingular (q₂ / w₂) (-1 / w₂)) :
+    ∃ h₃ : WF.toAffine.Nonsingular (T₃ / wT) ((1 - WF.a₁ * T₃ - WF.a₃ * wT) / wT),
+      Affine.Point.some _ _ h₁ + Affine.Point.some _ _ h₂ = Affine.Point.some _ _ h₃ := by
+  obtain ⟨hX, hY⟩ := chord_addX_addY WF hw₁ hw₂ hslope hN hT₃ hwT hA hw₁0 hw₂0 hwT0 hx
+  have hxq := chord_x_ne hw₁0 hw₂0 hx
+  have hxy : ¬(q₁ / w₁ = q₂ / w₂ ∧ -1 / w₁ = WF.toAffine.negY (q₂ / w₂) (-1 / w₂)) :=
+    fun h ↦ hxq h.1
+  refine ⟨hX ▸ hY ▸ Affine.nonsingular_add h₁ h₂ hxy, ?_⟩
+  rw [Affine.Point.add_some hxy]
+  simp only [Affine.Point.some.injEq]
+  exact ⟨hX.symm, hY.symm⟩
+
+/-- The parametrized point `(q/w, -1/w)` is nonsingular whenever `(q, w)` satisfies the
+Weierstrass equation in the `(t, w)`-chart and the discriminant does not vanish. -/
+private lemma chord_point_nonsingular {q w : F}
+    (hw : w = q ^ 3 + WF.a₁ * q * w + WF.a₂ * q ^ 2 * w + WF.a₃ * w ^ 2 +
+      WF.a₄ * q * w ^ 2 + WF.a₆ * w ^ 3)
+    (hw0 : w ≠ 0) (hΔ : WF.Δ ≠ 0) :
+    WF.toAffine.Nonsingular (q / w) (-1 / w) := by
+  refine (WF.toAffine.equation_iff_nonsingular_of_Δ_ne_zero hΔ).mp ?_
+  rw [Affine.equation_iff]
+  field_simp
+  linear_combination hw
+
 end FieldChord
 
 section Universal
