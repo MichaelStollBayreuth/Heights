@@ -857,6 +857,94 @@ theorem map_addSeries :
 
 end Naturality
 
+private lemma hasSubst_assocLeftFam_addSeries :
+    MvPowerSeries.HasSubst (assocLeftFam (fun _ : Unit ↦ W.addSeries)) := by
+  refine MvPowerSeries.hasSubst_of_constantCoeff_zero ?_
+  rintro (j | j)
+  · exact MvPowerSeries.constantCoeff_subst_eq_zero (FormalGroupLaw.hasSubst_emb12 (O := O))
+      (by rintro (j | j) <;> simp) W.constantCoeff_addSeries
+  · simp [assocLeftFam]
+
+private lemma hasSubst_assocRightFam_addSeries :
+    MvPowerSeries.HasSubst (assocRightFam (fun _ : Unit ↦ W.addSeries)) := by
+  refine MvPowerSeries.hasSubst_of_constantCoeff_zero ?_
+  rintro (j | j)
+  · simp [assocRightFam]
+  · exact MvPowerSeries.constantCoeff_subst_eq_zero (FormalGroupLaw.hasSubst_emb23 (O := O))
+      (by rintro (j | j) <;> simp) W.constantCoeff_addSeries
+
+section Naturality
+
+variable {O' : Type*} [CommRing O'] (φ : O →+* O')
+
+private lemma map_assocLeftFam_addSeries :
+    (fun s ↦ MvPowerSeries.map φ (assocLeftFam (fun _ : Unit ↦ W.addSeries) s)) =
+      assocLeftFam (fun _ : Unit ↦ (W.map φ).addSeries) := by
+  funext s
+  match s with
+  | .inl j =>
+    simp only [assocLeftFam, Sum.elim_inl,
+      MvPowerSeries.map_subst (FormalGroupLaw.hasSubst_emb12 (O := O)), W.map_addSeries φ]
+    congr 1
+    funext t
+    rcases t with t | t <;> simp [MvPowerSeries.map_X]
+  | .inr j => simp [assocLeftFam, MvPowerSeries.map_X]
+
+private lemma map_assocRightFam_addSeries :
+    (fun s ↦ MvPowerSeries.map φ (assocRightFam (fun _ : Unit ↦ W.addSeries) s)) =
+      assocRightFam (fun _ : Unit ↦ (W.map φ).addSeries) := by
+  funext s
+  match s with
+  | .inl j => simp [assocRightFam, MvPowerSeries.map_X]
+  | .inr j =>
+    simp only [assocRightFam, Sum.elim_inr,
+      MvPowerSeries.map_subst (FormalGroupLaw.hasSubst_emb23 (O := O)), W.map_addSeries φ]
+    congr 1
+    funext t
+    rcases t with t | t <;> simp [MvPowerSeries.map_X]
+
+end Naturality
+
+section Universal
+
+/-- The universal Weierstrass curve, over `ℤ[A₁, A₂, A₃, A₄, A₆]`. -/
+noncomputable def universal : WeierstrassCurve (MvPolynomial (Fin 5) ℤ) :=
+  ⟨MvPolynomial.X 0, MvPolynomial.X 1, MvPolynomial.X 2, MvPolynomial.X 3, MvPolynomial.X 4⟩
+
+/-- Every Weierstrass curve is a base change of the universal one. -/
+theorem exists_map_universal (W : WeierstrassCurve O) :
+    ∃ φ : MvPolynomial (Fin 5) ℤ →+* O, universal.map φ = W := by
+  refine ⟨(MvPolynomial.aeval ![W.a₁, W.a₂, W.a₃, W.a₄, W.a₆]).toRingHom, ?_⟩
+  ext <;> simp [universal, WeierstrassCurve.map]
+
+/-- Associativity of the addition series for the universal Weierstrass curve.
+
+This is the remaining core: it is proved by identifying the addition series with the group
+law of the (elliptic, since `Δ ≠ 0`) curve over the fraction field of
+`ℤ[A₁, …, A₆]⟦t₁, t₂, t₃⟧`. -/
+theorem assoc_addSeries_universal (i : Unit) :
+    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ universal.addSeries))
+      universal.addSeries =
+    MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ universal.addSeries))
+      universal.addSeries :=
+  sorry
+
+/-- Associativity of the addition series, for any Weierstrass curve, by reduction to the
+universal one. -/
+theorem assoc_addSeries (W : WeierstrassCurve O) :
+    MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ W.addSeries)) W.addSeries =
+      MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ W.addSeries)) W.addSeries := by
+  obtain ⟨φ, rfl⟩ := exists_map_universal W
+  have h := congrArg (MvPowerSeries.map φ) (assoc_addSeries_universal ())
+  rw [MvPowerSeries.map_subst universal.hasSubst_assocLeftFam_addSeries,
+    MvPowerSeries.map_subst universal.hasSubst_assocRightFam_addSeries,
+    universal.map_assocLeftFam_addSeries φ, universal.map_assocRightFam_addSeries φ,
+    universal.map_addSeries φ] at h
+  exact h
+
+end Universal
+
+
 end Chord
 
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
@@ -868,11 +956,12 @@ noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Uni
   zero_constantCoeff := fun _ ↦ W.constantCoeff_addSeries
   add_zero' := fun _ ↦ W.subst_unitR_addSeries
   zero_add' := fun _ ↦ W.subst_unitL_addSeries
+  assoc' := fun _ ↦ W.assoc_addSeries
   comm' := fun _ ↦ by
     rw [show (fun s : Unit ⊕ Unit ↦ (MvPowerSeries.X s.swap : MvPowerSeries (Unit ⊕ Unit) O))
         = (MvPowerSeries.X ∘ Sum.swap) from rfl, ← MvPowerSeries.rename_eq_subst]
     exact W.rename_swap_addSeries
-  assoc' := sorry
+
 
 end wSeries
 
