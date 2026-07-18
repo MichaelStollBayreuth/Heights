@@ -945,6 +945,222 @@ theorem assoc_addSeries (W : WeierstrassCurve O) :
 end Universal
 
 
+section OnLine
+
+/-! ### The third intersection point lies on the chord
+
+`w(t₃(t₁, t₂)) = λ(t₁, t₂)·t₃(t₁, t₂) + ν(t₁, t₂)`, proved via a multivariate version of
+the fixed-point uniqueness engine (filtration by total degree) and the Vieta argument:
+the cubic obtained by substituting the chord into the Weierstrass equation has roots
+`t₁`, `t₂`, and its third root is `t₃` by construction, so the line value at `t₃` solves
+the Weierstrass equation there; so does `w ∘ t₃`, and solutions are unique.
+-/
+
+-- vanishing of all coefficients of total degree `< k`
+private def LowVanish {σ : Type*} (k : ℕ) (f : MvPowerSeries σ O) : Prop :=
+  ∀ d : σ →₀ ℕ, Finsupp.degree d < k → MvPowerSeries.coeff d f = 0
+
+private lemma lowVanish_zero {σ : Type*} (f : MvPowerSeries σ O) : LowVanish 0 f :=
+  fun _ hd ↦ absurd hd (by lia)
+
+private lemma LowVanish.of_eq {σ : Type*} {k l : ℕ} {f : MvPowerSeries σ O}
+    (hf : LowVanish k f) (h : k = l) : LowVanish l f := h ▸ hf
+
+private lemma LowVanish.mono {σ : Type*} {k l : ℕ} {f : MvPowerSeries σ O}
+    (hf : LowVanish l f) (h : k ≤ l) : LowVanish k f :=
+  fun d hd ↦ hf d (lt_of_lt_of_le hd h)
+
+private lemma LowVanish.add {σ : Type*} {k : ℕ} {f g : MvPowerSeries σ O}
+    (hf : LowVanish k f) (hg : LowVanish k g) : LowVanish k (f + g) := fun d hd ↦ by
+  rw [map_add, hf d hd, hg d hd, add_zero]
+
+private lemma LowVanish.sub {σ : Type*} {k : ℕ} {f g : MvPowerSeries σ O}
+    (hf : LowVanish k f) (hg : LowVanish k g) : LowVanish k (f - g) := fun d hd ↦ by
+  rw [map_sub, hf d hd, hg d hd, sub_zero]
+
+private lemma LowVanish.mul {σ : Type*} {k l : ℕ} {f g : MvPowerSeries σ O}
+    (hf : LowVanish k f) (hg : LowVanish l g) : LowVanish (k + l) (f * g) := by
+  intro d hd
+  classical
+  rw [MvPowerSeries.coeff_mul]
+  refine Finset.sum_eq_zero fun p hp ↦ ?_
+  rcases lt_or_ge (Finsupp.degree p.1) k with h1 | h1
+  · rw [hf _ h1, zero_mul]
+  · have hpd : p.1 + p.2 = d := by simpa using hp
+    have hdeg : Finsupp.degree p.1 + Finsupp.degree p.2 = Finsupp.degree d := by
+      rw [← hpd, map_add]
+    rw [hg _ (by lia), mul_zero]
+
+private lemma lowVanish_one {σ : Type*} {f : MvPowerSeries σ O}
+    (hf : MvPowerSeries.constantCoeff f = 0) : LowVanish 1 f := by
+  intro d hd
+  have hd0 : d = 0 := by
+    ext s
+    have := Finsupp.le_degree s d
+    simp only [Finsupp.coe_zero, Pi.zero_apply]
+    lia
+  rw [hd0]
+  exact hf
+
+private lemma eq_of_lowVanish {σ : Type*} {f g : MvPowerSeries σ O}
+    (h : ∀ k, LowVanish k (f - g)) : f = g := by
+  ext d
+  have := h (Finsupp.degree d + 1) d (by lia)
+  rwa [map_sub, sub_eq_zero] at this
+
+variable {σ : Type*}
+
+/-- The Weierstrass right-hand side with parameter `q` and unknown `v`, in a multivariate
+power series ring. -/
+private noncomputable def mvWStepAt (q v : MvPowerSeries σ O) : MvPowerSeries σ O :=
+  q ^ 3 + MvPowerSeries.C W.a₁ * q * v + MvPowerSeries.C W.a₂ * q ^ 2 * v +
+    MvPowerSeries.C W.a₃ * v ^ 2 + MvPowerSeries.C W.a₄ * q * v ^ 2 +
+    MvPowerSeries.C W.a₆ * v ^ 3
+
+private lemma mvWStepAt_contract {q u v : MvPowerSeries σ O} (hq : LowVanish 1 q)
+    (hu : LowVanish 1 u) (hv : LowVanish 1 v) {k : ℕ} (h : LowVanish k (u - v)) :
+    LowVanish (k + 1) (W.mvWStepAt q u - W.mvWStepAt q v) := by
+  have hC : ∀ a : O, LowVanish 0 (MvPowerSeries.C a : MvPowerSeries σ O) := fun a ↦
+    lowVanish_zero _
+  have h2 : LowVanish (k + 1) (u ^ 2 - v ^ 2) := by
+    have he : u ^ 2 - v ^ 2 = (u + v) * (u - v) := by ring
+    rw [he]
+    exact ((hu.add hv).mul h).of_eq (by lia)
+  have h3 : LowVanish (k + 1) (u ^ 3 - v ^ 3) := by
+    have he : u ^ 3 - v ^ 3 = (u * u + u * v + v * v) * (u - v) := by ring
+    rw [he]
+    exact ((((hu.mul hu).mono one_le_two).add ((hu.mul hv).mono one_le_two)).add
+      ((hv.mul hv).mono one_le_two)).mul h |>.of_eq (by lia)
+  have hq1 : LowVanish (k + 1) (q * (u - v)) := (hq.mul h).of_eq (by lia)
+  have hstep : W.mvWStepAt q u - W.mvWStepAt q v = MvPowerSeries.C W.a₁ * (q * (u - v)) +
+      MvPowerSeries.C W.a₂ * q * (q * (u - v)) + MvPowerSeries.C W.a₃ * (u ^ 2 - v ^ 2) +
+      MvPowerSeries.C W.a₄ * q * (u ^ 2 - v ^ 2) + MvPowerSeries.C W.a₆ * (u ^ 3 - v ^ 3) := by
+    simp only [mvWStepAt]
+    ring
+  rw [hstep]
+  refine ((((((hC W.a₁).mul hq1).of_eq (by lia)).add ?_).add ?_).add ?_).add ?_
+  · exact (((hC W.a₂).mul hq).mul hq1).mono (by lia)
+  · exact ((hC W.a₃).mul h2).of_eq (by lia)
+  · exact (((hC W.a₄).mul hq).mul h2).mono (by lia)
+  · exact ((hC W.a₆).mul h3).of_eq (by lia)
+
+private lemma eq_of_mvWStepAt_fixed {q v v' : MvPowerSeries σ O} (hq : LowVanish 1 q)
+    (hv : LowVanish 1 v) (hv' : LowVanish 1 v') (h : v = W.mvWStepAt q v)
+    (h' : v' = W.mvWStepAt q v') : v = v' := by
+  refine eq_of_lowVanish fun k ↦ ?_
+  induction k with
+  | zero => exact lowVanish_zero _
+  | succ k ih =>
+    have := W.mvWStepAt_contract hq hv hv' ih
+    rwa [← h, ← h'] at this
+
+section Domain
+
+variable [IsDomain O]
+
+private lemma X_inl_ne_X_inr :
+    (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O) ≠
+      MvPowerSeries.X (Sum.inr ()) := by
+  intro h
+  have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single (Sum.inl ()) 1)) h
+  simp [MvPowerSeries.coeff_X, Finsupp.single_eq_single_iff] at h1
+
+private lemma line_left :
+    W.slopeSeries * MvPowerSeries.X (Sum.inl ()) + W.interceptSeries =
+      MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries := by
+  rw [interceptSeries]
+  ring
+
+private lemma line_right :
+    W.slopeSeries * MvPowerSeries.X (Sum.inr ()) + W.interceptSeries =
+      MvPowerSeries.rename (fun _ ↦ Sum.inr ()) W.wSeries := by
+  rw [interceptSeries_eq]
+  ring
+
+private lemma wsAt_rename (c : Unit → Unit ⊕ Unit) :
+    MvPowerSeries.rename c W.wSeries =
+      W.mvWStepAt (MvPowerSeries.X (c ())) (MvPowerSeries.rename c W.wSeries) := by
+  conv_lhs => rw [W.wSeries_eq_wStep]
+  simp only [wStep, wStepAt, mvWStepAt, map_add, map_mul, map_pow,
+    show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl, MvPowerSeries.rename_C,
+    show MvPowerSeries.rename c (PowerSeries.X : PowerSeries O) =
+      MvPowerSeries.X (c ()) from MvPowerSeries.rename_X c ()]
+
+set_option maxRecDepth 4000 in
+/-- Vieta: the chord value at the third root satisfies the Weierstrass equation there. -/
+private lemma line_at_thirdRoot :
+    W.slopeSeries * W.thirdRootSeries + W.interceptSeries =
+      W.mvWStepAt W.thirdRootSeries
+        (W.slopeSeries * W.thirdRootSeries + W.interceptSeries) := by
+  have hC1 : W.slopeSeries * MvPowerSeries.X (Sum.inl ()) + W.interceptSeries =
+      W.mvWStepAt (MvPowerSeries.X (Sum.inl ()))
+        (W.slopeSeries * MvPowerSeries.X (Sum.inl ()) + W.interceptSeries) := by
+    rw [W.line_left]
+    exact W.wsAt_rename _
+  have hC2 : W.slopeSeries * MvPowerSeries.X (Sum.inr ()) + W.interceptSeries =
+      W.mvWStepAt (MvPowerSeries.X (Sum.inr ()))
+        (W.slopeSeries * MvPowerSeries.X (Sum.inr ()) + W.interceptSeries) := by
+    rw [W.line_right]
+    exact W.wsAt_rename _
+  have hAd : (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 + MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) *
+      MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+        MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 +
+        MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) 1 = 1 :=
+    MvPowerSeries.mul_invOfUnit _ 1 (by simp)
+  simp only [mvWStepAt, thirdRootSeries] at hC1 ⊢
+  set Λ := W.slopeSeries
+  set N := W.interceptSeries
+  set t₁ := (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O)
+  set t₂ := (MvPowerSeries.X (Sum.inr ()) : MvPowerSeries (Unit ⊕ Unit) O)
+  set d := MvPowerSeries.invOfUnit (1 + MvPowerSeries.C W.a₂ * Λ +
+    MvPowerSeries.C W.a₄ * Λ ^ 2 + MvPowerSeries.C W.a₆ * Λ ^ 3) 1
+  -- extract the linear coefficient of the chord cubic by cancelling `t₁ - t₂`
+  have hsub : (t₁ - t₂) * (-(1 + MvPowerSeries.C W.a₂ * Λ + MvPowerSeries.C W.a₄ * Λ ^ 2 +
+      MvPowerSeries.C W.a₆ * Λ ^ 3) * (t₁ ^ 2 + t₁ * t₂ + t₂ ^ 2) -
+      (MvPowerSeries.C W.a₁ * Λ + MvPowerSeries.C W.a₂ * N + MvPowerSeries.C W.a₃ * Λ ^ 2 +
+        2 * MvPowerSeries.C W.a₄ * Λ * N + 3 * MvPowerSeries.C W.a₆ * Λ ^ 2 * N) *
+        (t₁ + t₂) +
+      (Λ - (MvPowerSeries.C W.a₁ * N + 2 * MvPowerSeries.C W.a₃ * Λ * N +
+        MvPowerSeries.C W.a₄ * N ^ 2 + 3 * MvPowerSeries.C W.a₆ * Λ * N ^ 2))) = 0 := by
+    simp only [mvWStepAt] at hC1 hC2
+    linear_combination hC1 - hC2
+  have hE1 := (mul_eq_zero.mp hsub).resolve_left (sub_ne_zero.mpr X_inl_ne_X_inr)
+  clear_value Λ N t₁ t₂ d
+  set B := MvPowerSeries.C W.a₁ * Λ + MvPowerSeries.C W.a₂ * N + MvPowerSeries.C W.a₃ * Λ ^ 2 +
+    2 * MvPowerSeries.C W.a₄ * Λ * N + 3 * MvPowerSeries.C W.a₆ * Λ ^ 2 * N with hB
+  set T := -t₁ - t₂ - B * d with hT
+  clear_value B T
+  linear_combination hC1 + (T - t₁) * hE1 + ((T - t₁) * (T - t₂) * B) * hAd -
+    ((T - t₁) * (T - t₂) * (1 + MvPowerSeries.C W.a₂ * Λ + MvPowerSeries.C W.a₄ * Λ ^ 2 +
+      MvPowerSeries.C W.a₆ * Λ ^ 3)) * hT + (T ^ 2 - t₁ ^ 2) * hB
+
+/-- The third intersection point lies on the chord:
+`w(t₃(t₁, t₂)) = λ(t₁, t₂)·t₃(t₁, t₂) + ν(t₁, t₂)`. -/
+theorem subst_thirdRootSeries_wSeries :
+    MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.wSeries =
+      W.slopeSeries * W.thirdRootSeries + W.interceptSeries := by
+  have hfix : MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.wSeries =
+      W.mvWStepAt W.thirdRootSeries
+        (MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.wSeries) := by
+    conv_lhs => rw [W.wSeries_eq_wStep]
+    rw [show W.wStep W.wSeries = W.wStepAt X W.wSeries from rfl]
+    rw [wStepAt, ← MvPowerSeries.coe_substAlgHom W.hasSubst_thirdRootSeries]
+    simp only [map_add, map_mul, map_pow]
+    rw [MvPowerSeries.coe_substAlgHom W.hasSubst_thirdRootSeries]
+    simp only [show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl,
+      show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+      MvPowerSeries.subst_C, MvPowerSeries.subst_X W.hasSubst_thirdRootSeries, mvWStepAt]
+  refine W.eq_of_mvWStepAt_fixed (q := W.thirdRootSeries)
+    (lowVanish_one W.constantCoeff_thirdRootSeries) ?_ ?_ hfix W.line_at_thirdRoot
+  · exact lowVanish_one (MvPowerSeries.constantCoeff_subst_eq_zero W.hasSubst_thirdRootSeries
+      (fun _ ↦ W.constantCoeff_thirdRootSeries) W.constantCoeff_wSeries)
+  · exact lowVanish_one (by simp)
+
+end Domain
+
+end OnLine
+
 end Chord
 
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
