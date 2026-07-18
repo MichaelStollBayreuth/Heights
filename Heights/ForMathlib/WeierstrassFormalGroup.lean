@@ -335,6 +335,92 @@ parameter of the sum of the points with parameters `t₁`, `t₂`. -/
 noncomputable def addSeries : MvPowerSeries (Unit ⊕ Unit) O :=
   MvPowerSeries.subst (fun _ : Unit ↦ W.thirdRootSeries) W.inverseSeries
 
+lemma hasSubst_thirdRootSeries :
+    MvPowerSeries.HasSubst (fun _ : Unit ↦ W.thirdRootSeries) :=
+  MvPowerSeries.hasSubst_of_constantCoeff_zero fun _ ↦ W.constantCoeff_thirdRootSeries
+
+@[simp]
+lemma constantCoeff_addSeries :
+    MvPowerSeries.constantCoeff W.addSeries = 0 :=
+  MvPowerSeries.constantCoeff_subst_eq_zero W.hasSubst_thirdRootSeries
+    (fun _ ↦ W.constantCoeff_thirdRootSeries) W.constantCoeff_inverseSeries
+
+/-! Swap-invariance of the chord data, giving commutativity of the formal group law. -/
+
+lemma rename_swap_slopeSeries :
+    MvPowerSeries.rename Sum.swap W.slopeSeries = W.slopeSeries := by
+  ext d
+  have hd : d = Finsupp.embDomain (Equiv.sumComm Unit Unit).toEmbedding
+      (Finsupp.mapDomain Sum.swap d) := by
+    ext t
+    rw [Finsupp.embDomain_eq_mapDomain, ← Finsupp.mapDomain_comp]
+    have : (⇑(Equiv.sumComm Unit Unit).toEmbedding ∘ Sum.swap) = id := by
+      ext s
+      match s with
+      | .inl () => rfl
+      | .inr () => rfl
+    rw [this, Finsupp.mapDomain_id]
+  calc MvPowerSeries.coeff d (MvPowerSeries.rename Sum.swap W.slopeSeries)
+      = MvPowerSeries.coeff (Finsupp.mapDomain Sum.swap d) W.slopeSeries := by
+        conv_lhs => rw [hd]
+        exact coeff_embDomain_rename _ _ _
+    _ = MvPowerSeries.coeff d W.slopeSeries := by
+        rw [W.coeff_slopeSeries, W.coeff_slopeSeries]
+        have h1 : Finsupp.mapDomain Sum.swap d (Sum.inl ()) = d (Sum.inr ()) := by
+          rw [show (Sum.inl () : Unit ⊕ Unit) = (Equiv.sumComm Unit Unit) (Sum.inr ()) from rfl]
+          exact Finsupp.mapDomain_equiv_apply (f := Equiv.sumComm Unit Unit) d _ |>.trans (by rfl)
+        have h2 : Finsupp.mapDomain Sum.swap d (Sum.inr ()) = d (Sum.inl ()) := by
+          rw [show (Sum.inr () : Unit ⊕ Unit) = (Equiv.sumComm Unit Unit) (Sum.inl ()) from rfl]
+          exact Finsupp.mapDomain_equiv_apply (f := Equiv.sumComm Unit Unit) d _ |>.trans (by rfl)
+        rw [h1, h2, add_comm (d (Sum.inr ()))]
+
+lemma rename_swap_interceptSeries :
+    MvPowerSeries.rename Sum.swap W.interceptSeries = W.interceptSeries := by
+  rw [interceptSeries, map_sub, map_mul, W.rename_swap_slopeSeries, rename_X, rename_rename]
+  exact W.interceptSeries_eq.symm
+
+private lemma rename_swap_invOfUnit {D : MvPowerSeries (Unit ⊕ Unit) O}
+    (hD : MvPowerSeries.constantCoeff D = 1) :
+    MvPowerSeries.rename Sum.swap (MvPowerSeries.invOfUnit D 1) =
+      MvPowerSeries.invOfUnit (MvPowerSeries.rename Sum.swap D) 1 := by
+  have h1 : MvPowerSeries.rename Sum.swap D *
+      MvPowerSeries.rename Sum.swap (MvPowerSeries.invOfUnit D 1) = 1 := by
+    rw [← map_mul, MvPowerSeries.mul_invOfUnit D 1 (by rw [hD]; rfl), map_one]
+  have h2 : MvPowerSeries.rename Sum.swap D *
+      MvPowerSeries.invOfUnit (MvPowerSeries.rename Sum.swap D) 1 =
+      1 :=
+    MvPowerSeries.mul_invOfUnit _ 1 (by rw [constantCoeff_rename, hD]; rfl)
+  calc MvPowerSeries.rename Sum.swap (MvPowerSeries.invOfUnit D 1)
+      = MvPowerSeries.rename Sum.swap (MvPowerSeries.invOfUnit D 1) *
+        (MvPowerSeries.rename Sum.swap D *
+          MvPowerSeries.invOfUnit (MvPowerSeries.rename Sum.swap D) 1) := by rw [h2, mul_one]
+    _ = (MvPowerSeries.rename Sum.swap D *
+          MvPowerSeries.rename Sum.swap (MvPowerSeries.invOfUnit D 1)) *
+        MvPowerSeries.invOfUnit (MvPowerSeries.rename Sum.swap D) 1 := by ring
+    _ = MvPowerSeries.invOfUnit (MvPowerSeries.rename Sum.swap D) 1 := by rw [h1, one_mul]
+
+lemma rename_swap_thirdRootSeries :
+    MvPowerSeries.rename Sum.swap W.thirdRootSeries = W.thirdRootSeries := by
+  have hD : MvPowerSeries.constantCoeff (1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+      MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 + MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3) =
+      1 := by
+    simp
+  rw [thirdRootSeries]
+  simp only [map_sub, map_neg, map_add, map_mul, map_pow, map_one, map_ofNat, rename_X,
+    MvPowerSeries.rename_C, W.rename_swap_slopeSeries, W.rename_swap_interceptSeries,
+    rename_swap_invOfUnit hD]
+  simp only [show Sum.swap (Sum.inl () : Unit ⊕ Unit) = Sum.inr () from rfl,
+    show Sum.swap (Sum.inr () : Unit ⊕ Unit) = Sum.inl () from rfl]
+  ring
+
+lemma rename_swap_addSeries :
+    MvPowerSeries.rename Sum.swap W.addSeries = W.addSeries := by
+  rw [addSeries, rename_eq_subst,
+    MvPowerSeries.subst_comp_subst_apply W.hasSubst_thirdRootSeries (HasSubst.X_comp _)]
+  congr 1
+  funext u
+  rw [← rename_eq_subst, W.rename_swap_thirdRootSeries]
+
 end Chord
 
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
@@ -343,10 +429,13 @@ end Chord
 type is `Unit`. The group-law axioms are `sorry`ed for now. -/
 noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Unit where
   F := fun _ ↦ W.addSeries
-  zero_constantCoeff := sorry
+  zero_constantCoeff := fun _ ↦ W.constantCoeff_addSeries
   add_zero' := sorry
   zero_add' := sorry
-  comm' := sorry
+  comm' := fun _ ↦ by
+    rw [show (fun s : Unit ⊕ Unit ↦ (MvPowerSeries.X s.swap : MvPowerSeries (Unit ⊕ Unit) O))
+        = (MvPowerSeries.X ∘ Sum.swap) from rfl, ← MvPowerSeries.rename_eq_subst]
+    exact W.rename_swap_addSeries
   assoc' := sorry
 
 end wSeries
