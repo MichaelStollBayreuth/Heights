@@ -566,6 +566,218 @@ lemma rename_swap_addSeries :
   funext u
   rw [← rename_eq_subst, W.rename_swap_thirdRootSeries]
 
+section AddZero
+
+/-! Specialization of the chord data at `t₂ = 0`: the slope becomes `w(t)/t`, the intercept
+vanishes, and the third root becomes the formal inverse `ι(t)`. -/
+
+private lemma hasSubst_unitR :
+    MvPowerSeries.HasSubst
+      (Sum.elim MvPowerSeries.X (fun _ ↦ 0) : Unit ⊕ Unit → MvPowerSeries Unit O) :=
+  MvPowerSeries.hasSubst_of_constantCoeff_zero (by rintro (j | j) <;> simp)
+
+private lemma subst_unitR_renameL :
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries) = W.wSeries := by
+  rw [MvPowerSeries.rename_eq_subst,
+    MvPowerSeries.subst_comp_subst_apply (MvPowerSeries.HasSubst.X_comp _) hasSubst_unitR]
+  have hX : (fun u : Unit ↦ MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      ((MvPowerSeries.X ∘ fun _ ↦ Sum.inl () : Unit → MvPowerSeries (Unit ⊕ Unit) O) u)) =
+      MvPowerSeries.X := by
+    funext u
+    rw [Function.comp_apply, MvPowerSeries.subst_X hasSubst_unitR]
+    rfl
+  rw [hX, ← MvPowerSeries.map_algebraMap_eq_subst_X]
+  have : algebraMap O O = RingHom.id O := rfl
+  rw [this]
+  exact congrFun (congrArg _ (MvPowerSeries.map_id)) W.wSeries
+
+private lemma subst_unitR_renameR :
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (MvPowerSeries.rename (fun _ ↦ Sum.inr ()) W.wSeries) = 0 := by
+  rw [MvPowerSeries.rename_eq_subst,
+    MvPowerSeries.subst_comp_subst_apply (MvPowerSeries.HasSubst.X_comp _) hasSubst_unitR]
+  have hX : (fun u : Unit ↦ MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      ((MvPowerSeries.X ∘ fun _ ↦ Sum.inr () : Unit → MvPowerSeries (Unit ⊕ Unit) O) u)) =
+      fun _ ↦ 0 := by
+    funext u
+    rw [Function.comp_apply, MvPowerSeries.subst_X hasSubst_unitR]
+    rfl
+  rw [hX]
+  exact MvPowerSeries.subst_zero_of_constantCoeff_zero W.constantCoeff_wSeries
+
+private lemma X_mul_subst_unitR_slopeSeries :
+    (PowerSeries.X : PowerSeries O) *
+      MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0) W.slopeSeries = W.wSeries := by
+  have h := congrArg (MvPowerSeries.subst
+    (Sum.elim MvPowerSeries.X (fun _ ↦ 0) : Unit ⊕ Unit → MvPowerSeries Unit O))
+    W.slopeSeries_mul_sub
+  rw [← MvPowerSeries.coe_substAlgHom hasSubst_unitR] at h
+  simp only [map_mul, map_sub] at h
+  simp only [MvPowerSeries.coe_substAlgHom hasSubst_unitR, W.subst_unitR_renameL,
+    W.subst_unitR_renameR, MvPowerSeries.subst_X hasSubst_unitR] at h
+  have h1 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (Sum.inr ()) = 0 := rfl
+  have h2 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (Sum.inl ()) = PowerSeries.X := rfl
+  rw [h1, h2] at h
+  linear_combination -h
+
+private lemma subst_unitR_interceptSeries :
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.interceptSeries = 0 := by
+  rw [interceptSeries, ← MvPowerSeries.coe_substAlgHom hasSubst_unitR, map_sub, map_mul]
+  simp only [MvPowerSeries.coe_substAlgHom hasSubst_unitR, W.subst_unitR_renameL,
+    MvPowerSeries.subst_X hasSubst_unitR]
+  have h2 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (Sum.inl ()) = PowerSeries.X := rfl
+  rw [h2]
+  linear_combination -W.X_mul_subst_unitR_slopeSeries
+
+-- transport of `invOfUnit` along a ring homomorphism fixing the constant coefficient
+private lemma ringHom_invOfUnit {σ' τ' : Type*} {F : Type*}
+    [FunLike F (MvPowerSeries σ' O) (MvPowerSeries τ' O)]
+    [RingHomClass F (MvPowerSeries σ' O) (MvPowerSeries τ' O)] (φ : F)
+    {D : MvPowerSeries σ' O} (hD : MvPowerSeries.constantCoeff D = 1)
+    (hD' : MvPowerSeries.constantCoeff (φ D) = 1) :
+    φ (MvPowerSeries.invOfUnit D 1) = MvPowerSeries.invOfUnit (φ D) 1 := by
+  have h1 : φ D * φ (MvPowerSeries.invOfUnit D 1) = 1 := by
+    rw [← map_mul, MvPowerSeries.mul_invOfUnit D 1 (by rw [hD]; rfl), map_one]
+  have h2 : φ D * MvPowerSeries.invOfUnit (φ D) 1 = 1 :=
+    MvPowerSeries.mul_invOfUnit _ 1 (by rw [hD']; rfl)
+  calc φ (MvPowerSeries.invOfUnit D 1)
+      = φ (MvPowerSeries.invOfUnit D 1) * (φ D * MvPowerSeries.invOfUnit (φ D) 1) := by
+        rw [h2, mul_one]
+    _ = (φ D * φ (MvPowerSeries.invOfUnit D 1)) * MvPowerSeries.invOfUnit (φ D) 1 := by ring
+    _ = MvPowerSeries.invOfUnit (φ D) 1 := by rw [h1, one_mul]
+
+/-- Specializing the third-root series at `t₂ = 0` gives the formal inverse. -/
+theorem subst_unitR_thirdRootSeries :
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.thirdRootSeries = W.inverseSeries := by
+  set L : PowerSeries O :=
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.slopeSeries with hL
+  have hXL : PowerSeries.X * L = W.wSeries := W.X_mul_subst_unitR_slopeSeries
+  -- the specialized slope satisfies the `X`-cancelled Weierstrass equation
+  have hLfix : L = PowerSeries.X ^ 2 + PowerSeries.C W.a₁ * PowerSeries.X * L +
+      PowerSeries.C W.a₂ * PowerSeries.X ^ 2 * L + PowerSeries.C W.a₃ * PowerSeries.X * L ^ 2 +
+      PowerSeries.C W.a₄ * PowerSeries.X ^ 2 * L ^ 2 +
+      PowerSeries.C W.a₆ * PowerSeries.X ^ 2 * L ^ 3 := by
+    refine PowerSeries.X_mul_cancel ?_
+    rw [hXL]
+    conv_lhs => rw [W.wSeries_eq]
+    rw [← hXL]
+    ring
+  have hL0 : PowerSeries.constantCoeff L = 0 := by
+    have := congrArg PowerSeries.constantCoeff hLfix
+    simpa [pow_two] using this
+  -- push the substitution through the definition of the third root
+  set D : MvPowerSeries (Unit ⊕ Unit) O := 1 + MvPowerSeries.C W.a₂ * W.slopeSeries +
+    MvPowerSeries.C W.a₄ * W.slopeSeries ^ 2 + MvPowerSeries.C W.a₆ * W.slopeSeries ^ 3 with hD
+  have hDsub : MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O) D =
+      1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 + PowerSeries.C W.a₆ * L ^ 3 := by
+    rw [hD, ← MvPowerSeries.coe_substAlgHom hasSubst_unitR]
+    simp only [map_add, map_mul, map_pow, map_one]
+    rw [MvPowerSeries.coe_substAlgHom hasSubst_unitR]
+    simp only [MvPowerSeries.subst_C,
+      show (MvPowerSeries.C : O →+* MvPowerSeries Unit O) = PowerSeries.C from rfl]
+    rfl
+  have hD1 : MvPowerSeries.constantCoeff D = 1 := by simp [hD]
+  have hD1' : PowerSeries.constantCoeff
+      (1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
+        PowerSeries.C W.a₆ * L ^ 3) = 1 := by
+    simp [hL0]
+  have hInv : MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      (MvPowerSeries.invOfUnit D 1) =
+      MvPowerSeries.invOfUnit (1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
+        PowerSeries.C W.a₆ * L ^ 3) 1 := by
+    have h := ringHom_invOfUnit (MvPowerSeries.substAlgHom hasSubst_unitR) hD1
+      (by rw [MvPowerSeries.coe_substAlgHom, hDsub]; exact hD1')
+    rwa [MvPowerSeries.coe_substAlgHom, hDsub] at h
+  -- expand the substituted third root
+  have hexp : MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.thirdRootSeries = -PowerSeries.X -
+      (PowerSeries.C W.a₁ * L + PowerSeries.C W.a₃ * L ^ 2) *
+        MvPowerSeries.invOfUnit (1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
+          PowerSeries.C W.a₆ * L ^ 3) 1 := by
+    rw [thirdRootSeries, ← hD, ← MvPowerSeries.coe_substAlgHom hasSubst_unitR]
+    simp only [map_sub, map_neg, map_add, map_mul, map_pow, map_ofNat]
+    rw [MvPowerSeries.coe_substAlgHom hasSubst_unitR]
+    simp only [MvPowerSeries.subst_C, MvPowerSeries.subst_X hasSubst_unitR, hInv,
+      W.subst_unitR_interceptSeries,
+      show (MvPowerSeries.C : O →+* MvPowerSeries Unit O) = PowerSeries.C from rfl]
+    have h1 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+        (Sum.inr ()) = 0 := rfl
+    have h2 : (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+        (Sum.inl ()) = PowerSeries.X := rfl
+    rw [h1, h2]
+    push_cast
+    ring
+  rw [hexp]
+  -- compare with `ι = -X·u⁻¹` after multiplying by the units `u` and `D̃`
+  set d : PowerSeries O := MvPowerSeries.invOfUnit (1 + PowerSeries.C W.a₂ * L +
+    PowerSeries.C W.a₄ * L ^ 2 + PowerSeries.C W.a₆ * L ^ 3) 1 with hd
+  have hUnit2 : (1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
+      PowerSeries.C W.a₆ * L ^ 3) * d = 1 :=
+    MvPowerSeries.mul_invOfUnit _ 1 (by exact_mod_cast hD1')
+  have hUnit1 := W.mul_invOfUnit_uSeries
+  clear_value L d
+  refine (W.isUnit_uSeries.mul (IsUnit.of_mul_eq_one _ hUnit2)).mul_left_cancel ?_
+  rw [inverseSeries]
+  simp only [uSeries] at hUnit1 ⊢
+  rw [← hXL] at hUnit1 ⊢
+  linear_combination ((1 + PowerSeries.C W.a₂ * L + PowerSeries.C W.a₄ * L ^ 2 +
+      PowerSeries.C W.a₆ * L ^ 3) * PowerSeries.X) * hUnit1 -
+    ((1 - PowerSeries.C W.a₁ * PowerSeries.X - PowerSeries.C W.a₃ * (PowerSeries.X * L)) *
+      (PowerSeries.C W.a₁ * L + PowerSeries.C W.a₃ * L ^ 2)) * hUnit2 -
+    (PowerSeries.C W.a₁ + PowerSeries.C W.a₃ * L) * hLfix
+
+/-- Adding the zero point does nothing: specialization of the addition series at `t₂ = 0`
+is the identity. -/
+theorem subst_unitR_addSeries :
+    MvPowerSeries.subst (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.addSeries = PowerSeries.X := by
+  rw [addSeries, MvPowerSeries.subst_comp_subst_apply W.hasSubst_thirdRootSeries hasSubst_unitR]
+  have h : (fun _ : Unit ↦ MvPowerSeries.subst
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.thirdRootSeries) = fun _ : Unit ↦ (W.inverseSeries : MvPowerSeries Unit O) := by
+    funext u
+    exact W.subst_unitR_thirdRootSeries
+  rw [h]
+  exact W.subst_inverseSeries_self
+
+private lemma hasSubst_unitL :
+    MvPowerSeries.HasSubst
+      (Sum.elim (fun _ ↦ 0) MvPowerSeries.X : Unit ⊕ Unit → MvPowerSeries Unit O) :=
+  MvPowerSeries.hasSubst_of_constantCoeff_zero (by rintro (j | j) <;> simp)
+
+/-- Adding the zero point on the left does nothing either, by commutativity. -/
+theorem subst_unitL_addSeries :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ 0) MvPowerSeries.X : Unit ⊕ Unit → MvPowerSeries Unit O)
+      W.addSeries = PowerSeries.X := by
+  conv_lhs => rw [← W.rename_swap_addSeries]
+  rw [MvPowerSeries.rename_eq_subst,
+    MvPowerSeries.subst_comp_subst_apply (MvPowerSeries.HasSubst.X_comp _) hasSubst_unitL]
+  have h : (fun s : Unit ⊕ Unit ↦ MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ 0) MvPowerSeries.X : Unit ⊕ Unit → MvPowerSeries Unit O)
+      ((MvPowerSeries.X ∘ Sum.swap : Unit ⊕ Unit → MvPowerSeries (Unit ⊕ Unit) O) s)) =
+      (Sum.elim MvPowerSeries.X fun _ ↦ 0 : Unit ⊕ Unit → MvPowerSeries Unit O) := by
+    funext s
+    rw [Function.comp_apply, MvPowerSeries.subst_X hasSubst_unitL]
+    match s with
+    | .inl () => rfl
+    | .inr () => rfl
+  rw [h]
+  exact W.subst_unitR_addSeries
+
+end AddZero
+
 end Chord
 
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
@@ -575,8 +787,8 @@ type is `Unit`. The group-law axioms are `sorry`ed for now. -/
 noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Unit where
   F := fun _ ↦ W.addSeries
   zero_constantCoeff := fun _ ↦ W.constantCoeff_addSeries
-  add_zero' := sorry
-  zero_add' := sorry
+  add_zero' := fun _ ↦ W.subst_unitR_addSeries
+  zero_add' := fun _ ↦ W.subst_unitL_addSeries
   comm' := fun _ ↦ by
     rw [show (fun s : Unit ⊕ Unit ↦ (MvPowerSeries.X s.swap : MvPowerSeries (Unit ⊕ Unit) O))
         = (MvPowerSeries.X ∘ Sum.swap) from rfl, ← MvPowerSeries.rename_eq_subst]
