@@ -1976,6 +1976,31 @@ private lemma thetaPoint_neg (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
       ρ (MvPowerSeries.subst (fun _ : Unit ↦ q) (PowerSeries.invOfUnit W.uSeries 1)) * hueq -
       hu
 
+/-- The parametrized point determines the parameter. -/
+private lemma thetaPoint_inj (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
+    {q₁ q₂ : MvPowerSeries σ' O}
+    (h₁ : MvPowerSeries.constantCoeff q₁ = 0) (h₂ : MvPowerSeries.constantCoeff q₂ = 0)
+    (hq₁0 : q₁ ≠ 0) (hq₂0 : q₂ ≠ 0)
+    (h : W.thetaPoint hΔ h₁ hq₁0 = W.thetaPoint hΔ h₂ hq₂0) : q₁ = q₂ := by
+  classical
+  set ρ := algebraMap (MvPowerSeries σ' O) KK with hρ
+  have hinj : Function.Injective ρ := IsFractionRing.injective (MvPowerSeries σ' O) KK
+  simp only [thetaPoint, Affine.Point.some.injEq] at h
+  simp only [← hρ] at h
+  have hw₁0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries) ≠ 0 := fun hh ↦
+    W.subst_wSeries_ne_zero h₁ hq₁0 (hinj (by rw [hh, map_zero]))
+  have hw₂0 : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries) ≠ 0 := fun hh ↦
+    W.subst_wSeries_ne_zero h₂ hq₂0 (hinj (by rw [hh, map_zero]))
+  have hw : ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries) =
+      ρ (MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries) := by
+    have h2 := h.2
+    field_simp at h2
+    linear_combination h2
+  refine hinj ?_
+  have h1 := h.1
+  rw [div_eq_div_iff hw₁0 hw₂0, hw] at h1
+  exact mul_right_cancel₀ hw₂0 h1
+
 end Assembly
 
 end OnLine
