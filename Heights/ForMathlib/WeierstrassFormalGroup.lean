@@ -173,6 +173,121 @@ theorem wSeries_eq :
       PowerSeries.C W.a₄ * X * W.wSeries ^ 2 + PowerSeries.C W.a₆ * W.wSeries ^ 3 :=
   W.wSeries_eq_wStep
 
+/-!
+### The chord construction
+
+The slope and intercept of the chord through the points with parameters `t₁`, `t₂` on the
+curve `(t, w(t))`, as power series in `O⟦t₁, t₂⟧` (variables indexed by `Unit ⊕ Unit`, as
+in the formal-group-law kit).
+-/
+
+section Chord
+
+open MvPowerSeries
+
+-- coefficients of a one-variable series renamed into a single variable `s`
+private lemma coeff_rename_single {τ : Type*} [DecidableEq τ] (s : τ) (w : PowerSeries O)
+    (d : τ →₀ ℕ) :
+    MvPowerSeries.coeff d (MvPowerSeries.rename (fun _ : Unit ↦ s) w) =
+      if d = Finsupp.single s (d s) then PowerSeries.coeff (d s) w else 0 := by
+  split_ifs with h
+  · have hd : d = Finsupp.embDomain (⟨fun _ ↦ s, fun _ _ _ ↦ rfl⟩ : Unit ↪ τ)
+        (Finsupp.single () (d s)) := by
+      rw [Finsupp.embDomain_single]
+      exact h
+    have h1 := coeff_embDomain_rename (⟨fun _ ↦ s, fun _ _ _ ↦ rfl⟩ : Unit ↪ τ) w
+      (Finsupp.single () (d s))
+    rw [← hd] at h1
+    exact h1
+  · refine coeff_rename_eq_zero _ _ fun ⟨y, hy⟩ ↦ h ?_
+    rw [← hy, Finsupp.unique_single y, Finsupp.mapDomain_single]
+    simp
+
+variable (W : WeierstrassCurve O)
+
+/-- The slope (divided difference) series `λ(t₁, t₂) = (w(t₂) - w(t₁))/(t₂ - t₁)`,
+defined directly by its coefficients: the coefficient of `t₁ⁱt₂ʲ` is the coefficient of
+`t^(i+j+1)` in `wSeries`. -/
+noncomputable def slopeSeries : MvPowerSeries (Unit ⊕ Unit) O :=
+  fun d ↦ PowerSeries.coeff (d (Sum.inl ()) + d (Sum.inr ()) + 1) W.wSeries
+
+lemma coeff_slopeSeries (d : Unit ⊕ Unit →₀ ℕ) :
+    MvPowerSeries.coeff d W.slopeSeries =
+      PowerSeries.coeff (d (Sum.inl ()) + d (Sum.inr ()) + 1) W.wSeries :=
+  rfl
+
+private lemma eq_single_iff (d : Unit ⊕ Unit →₀ ℕ) :
+    d = Finsupp.single (Sum.inr ()) (d (Sum.inr ())) ↔ d (Sum.inl ()) = 0 := by
+  constructor
+  · intro h
+    rw [h]
+    simp
+  · intro h
+    ext t
+    match t with
+    | .inl () => simpa using h
+    | .inr () => simp
+
+private lemma eq_single_iff' (d : Unit ⊕ Unit →₀ ℕ) :
+    d = Finsupp.single (Sum.inl ()) (d (Sum.inl ())) ↔ d (Sum.inr ()) = 0 := by
+  constructor
+  · intro h
+    rw [h]
+    simp
+  · intro h
+    ext t
+    match t with
+    | .inl () => simp
+    | .inr () => simpa using h
+
+/-- The defining property of the slope series:
+`λ(t₁, t₂) · (t₂ - t₁) = w(t₂) - w(t₁)`. -/
+theorem slopeSeries_mul_sub :
+    W.slopeSeries * (MvPowerSeries.X (Sum.inr ()) - MvPowerSeries.X (Sum.inl ())) =
+      MvPowerSeries.rename (fun _ ↦ Sum.inr ()) W.wSeries -
+        MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries := by
+  ext d
+  set i := d (Sum.inl ()) with hi
+  set j := d (Sum.inr ()) with hj
+  rw [mul_sub, map_sub, map_sub,
+    show (MvPowerSeries.X (Sum.inr ()) : MvPowerSeries (Unit ⊕ Unit) O) =
+      MvPowerSeries.monomial (Finsupp.single (Sum.inr ()) 1) 1 from rfl,
+    show (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O) =
+      MvPowerSeries.monomial (Finsupp.single (Sum.inl ()) 1) 1 from rfl,
+    MvPowerSeries.coeff_mul_monomial, MvPowerSeries.coeff_mul_monomial,
+    coeff_rename_single, coeff_rename_single]
+  have hsubr : 1 ≤ j → (d - Finsupp.single (Sum.inr ()) 1 : Unit ⊕ Unit →₀ ℕ) (Sum.inl ()) +
+      (d - Finsupp.single (Sum.inr ()) 1 : Unit ⊕ Unit →₀ ℕ) (Sum.inr ()) + 1 = i + j := by
+    intro h
+    simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+    simp
+    lia
+  have hsubl : 1 ≤ i → (d - Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ) (Sum.inl ()) +
+      (d - Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ) (Sum.inr ()) + 1 = i + j := by
+    intro h
+    simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+    simp
+    lia
+  simp only [mul_one, eq_single_iff, eq_single_iff', Finsupp.single_le_iff, coeff_slopeSeries]
+  split_ifs with h1 h2 h3 h4 <;>
+    grind
+
+/-- The intercept series `ν(t₁, t₂) = w(t₁) - λ(t₁, t₂)·t₁` of the chord through the
+points with parameters `t₁`, `t₂` on the curve `(t, w(t))`. -/
+noncomputable def interceptSeries : MvPowerSeries (Unit ⊕ Unit) O :=
+  MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries -
+    W.slopeSeries * MvPowerSeries.X (Sum.inl ())
+
+/-- The intercept series is symmetric in the two parameters. -/
+theorem interceptSeries_eq :
+    W.interceptSeries = MvPowerSeries.rename (fun _ ↦ Sum.inr ()) W.wSeries -
+      W.slopeSeries * MvPowerSeries.X (Sum.inr ()) := by
+  have h := W.slopeSeries_mul_sub
+  simp only [interceptSeries]
+  linear_combination h
+
+end Chord
+
 /-- The formal group law of a Weierstrass curve: the power series `F(t₁, t₂)` giving the
 `t`-coordinate of the sum of the points with parameters `t₁`, `t₂` on the curve
 `(t, w(t))`, via the chord construction (Silverman, IV.1.1). One-dimensional, so the index
