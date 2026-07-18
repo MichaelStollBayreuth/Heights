@@ -1054,6 +1054,181 @@ private lemma eq_of_mvWStepAt_fixed {q v v' : MvPowerSeries σ O} (hq : LowVanis
     have := W.mvWStepAt_contract hq hv hv' ih
     rwa [← h, ← h'] at this
 
+section Pair
+
+/-! Specialization of the chord data along a pair of parameter series `(q₁, q₂)` in a
+multivariate power series ring: the substitution plumbing feeding the identification of
+the addition series with the group law over the fraction field. -/
+
+variable {σ' : Type*} [Finite σ'] {q₁ q₂ : MvPowerSeries σ' O}
+
+private lemma hasSubst_pair (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.HasSubst
+      (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂) : Unit ⊕ Unit → MvPowerSeries σ' O) :=
+  MvPowerSeries.hasSubst_of_constantCoeff_zero (by rintro (j | j) <;> simpa)
+
+private lemma hasSubst_single {q : MvPowerSeries σ' O}
+    (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.HasSubst (fun _ : Unit ↦ q) :=
+  MvPowerSeries.hasSubst_of_constantCoeff_zero fun _ ↦ hq
+
+private lemma subst_pair_rename (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) (c : Unit → Unit ⊕ Unit) (f : PowerSeries O) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) (MvPowerSeries.rename c f) =
+      MvPowerSeries.subst (fun _ : Unit ↦ Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂) (c ())) f := by
+  rw [MvPowerSeries.rename_eq_subst,
+    MvPowerSeries.subst_comp_subst_apply (MvPowerSeries.HasSubst.X_comp _)
+      (hasSubst_pair h₁ h₂)]
+  congr 1
+  funext u
+  rw [Function.comp_apply, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂)]
+
+/-- The Weierstrass equation holds for `w` composed with any parameter series. -/
+private lemma subst_wSeries_fix {q : MvPowerSeries σ' O}
+    (hq : MvPowerSeries.constantCoeff q = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries =
+      W.mvWStepAt q (MvPowerSeries.subst (fun _ : Unit ↦ q) W.wSeries) := by
+  conv_lhs => rw [W.wSeries_eq_wStep]
+  rw [show W.wStep W.wSeries = W.wStepAt X W.wSeries from rfl]
+  rw [wStepAt, ← MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [map_add, map_mul, map_pow]
+  rw [MvPowerSeries.coe_substAlgHom (hasSubst_single hq)]
+  simp only [show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl,
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPowerSeries.subst_C, MvPowerSeries.subst_X (hasSubst_single hq), mvWStepAt]
+
+private lemma pair_slope_identity (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries * (q₂ - q₁) =
+      MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries -
+        MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂)) W.slopeSeries_mul_sub
+  simp only [map_mul, map_sub] at h
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
+    subst_pair_rename h₁ h₂, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂),
+    Sum.elim_inl, Sum.elim_inr] at h
+  exact h
+
+private lemma pair_intercept_identity₁ (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦ q₁) W.wSeries -
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries * q₁ := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂))
+    (show W.interceptSeries = MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries -
+      W.slopeSeries * MvPowerSeries.X (Sum.inl ()) from rfl)
+  simp only [map_sub, map_mul] at h
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
+    subst_pair_rename h₁ h₂, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂),
+    Sum.elim_inl, Sum.elim_inr] at h
+  exact h
+
+private lemma pair_intercept_identity₂ (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦ q₂) W.wSeries -
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries * q₂ := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂)) W.interceptSeries_eq
+  simp only [map_sub, map_mul] at h
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
+    subst_pair_rename h₁ h₂, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂),
+    Sum.elim_inl, Sum.elim_inr] at h
+  exact h
+
+private lemma pair_thirdRoot_constantCoeff (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.constantCoeff
+      (MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries) = 0 :=
+  MvPowerSeries.constantCoeff_subst_eq_zero (hasSubst_pair h₁ h₂)
+    (by rintro (j | j) <;> simpa) W.constantCoeff_thirdRootSeries
+
+private lemma pair_F_comp (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        W.inverseSeries := by
+  rw [addSeries, MvPowerSeries.subst_comp_subst_apply W.hasSubst_thirdRootSeries
+    (hasSubst_pair h₁ h₂)]
+
+private lemma pair_u_mul (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        W.uSeries *
+      MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        (PowerSeries.invOfUnit W.uSeries 1) = 1 := by
+  have h := congrArg (MvPowerSeries.substAlgHom
+    (hasSubst_single (W.pair_thirdRoot_constantCoeff h₁ h₂))) W.mul_invOfUnit_uSeries
+  simp only [map_mul, map_one] at h
+  simpa only [MvPowerSeries.coe_substAlgHom
+    (hasSubst_single (W.pair_thirdRoot_constantCoeff h₁ h₂))] using h
+
+private lemma pair_F_eq (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries =
+      -(MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries *
+        MvPowerSeries.subst (fun _ : Unit ↦
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+          (PowerSeries.invOfUnit W.uSeries 1)) := by
+  rw [W.pair_F_comp h₁ h₂,
+    show W.inverseSeries = -(PowerSeries.X * PowerSeries.invOfUnit W.uSeries 1) from rfl,
+    ← MvPowerSeries.coe_substAlgHom (hasSubst_single (W.pair_thirdRoot_constantCoeff h₁ h₂))]
+  simp only [map_neg, map_mul]
+  rw [MvPowerSeries.coe_substAlgHom (hasSubst_single (W.pair_thirdRoot_constantCoeff h₁ h₂)),
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPowerSeries.subst_X (hasSubst_single (W.pair_thirdRoot_constantCoeff h₁ h₂))]
+
+private lemma pair_wF (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries) W.wSeries =
+      -(MvPowerSeries.subst (fun _ : Unit ↦
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+          W.wSeries *
+        MvPowerSeries.subst (fun _ : Unit ↦
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+          (PowerSeries.invOfUnit W.uSeries 1)) := by
+  have hT := W.pair_thirdRoot_constantCoeff h₁ h₂
+  have hcomp : MvPowerSeries.subst (fun _ : Unit ↦
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.addSeries) W.wSeries =
+      MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        (MvPowerSeries.subst (fun _ : Unit ↦ W.inverseSeries) W.wSeries) := by
+    rw [MvPowerSeries.subst_comp_subst_apply
+      (hasSubst_single W.constantCoeff_inverseSeries) (hasSubst_single hT),
+      show (fun _ : Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂))
+          W.addSeries) = fun _ : Unit ↦ MvPowerSeries.subst (fun _ : Unit ↦
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+          W.inverseSeries
+        from funext fun _ ↦ W.pair_F_comp h₁ h₂]
+  rw [hcomp, show MvPowerSeries.subst (fun _ : Unit ↦ W.inverseSeries) W.wSeries =
+      PowerSeries.subst W.inverseSeries W.wSeries from rfl, W.subst_inverseSeries_wSeries,
+    ← MvPowerSeries.coe_substAlgHom (hasSubst_single hT)]
+  simp only [map_neg, map_mul]
+
+private lemma pair_u_eq (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
+    (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        W.uSeries =
+      1 - MvPowerSeries.C W.a₁ *
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries -
+        MvPowerSeries.C W.a₃ * MvPowerSeries.subst (fun _ : Unit ↦
+          MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+          W.wSeries := by
+  have hT := W.pair_thirdRoot_constantCoeff h₁ h₂
+  rw [uSeries, ← MvPowerSeries.coe_substAlgHom (hasSubst_single hT)]
+  simp only [map_sub, map_one, map_mul]
+  rw [MvPowerSeries.coe_substAlgHom (hasSubst_single hT)]
+  simp only [show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl,
+    show (PowerSeries.X : PowerSeries O) = MvPowerSeries.X () from rfl,
+    MvPowerSeries.subst_C, MvPowerSeries.subst_X (hasSubst_single hT)]
+
+end Pair
+
 section Domain
 
 variable [IsDomain O]
