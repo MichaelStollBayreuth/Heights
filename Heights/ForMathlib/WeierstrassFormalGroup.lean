@@ -1534,6 +1534,22 @@ theorem subst_thirdRootSeries_wSeries :
       (fun _ ↦ W.constantCoeff_thirdRootSeries) W.constantCoeff_wSeries)
   · exact lowVanish_one (by simp)
 
+/-- The on-line identity, along a parameter pair. -/
+private lemma pair_online {σ' : Type*} [Finite σ'] {q₁ q₂ : MvPowerSeries σ' O}
+    (h₁ : MvPowerSeries.constantCoeff q₁ = 0) (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
+    MvPowerSeries.subst (fun _ : Unit ↦
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
+        W.wSeries =
+      MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.slopeSeries *
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries +
+        MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.interceptSeries := by
+  have h := congrArg (MvPowerSeries.substAlgHom (hasSubst_pair h₁ h₂))
+    W.subst_thirdRootSeries_wSeries
+  simp only [map_add, map_mul] at h
+  simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂)] at h
+  rwa [MvPowerSeries.subst_comp_subst_apply W.hasSubst_thirdRootSeries
+    (hasSubst_pair h₁ h₂)] at h
+
 variable {σ' : Type*} [Finite σ']
 
 /-- `w` composed with a nonzero parameter is nonzero (over a domain). -/
@@ -1583,6 +1599,33 @@ private lemma interceptSeries_ne_zero : W.interceptSeries ≠ 0 := by
     simp [Finsupp.single_apply]
   rw [h2, h3, W.coeff_wSeries_three, mul_one] at h1
   simpa using h1
+
+/-- Substitution of a pair of distinct variables is a rename. -/
+private lemma subst_pair_X_eq_rename {σ' : Type*} [Finite σ'] (s₁ s₂ : σ')
+    (f : MvPowerSeries (Unit ⊕ Unit) O) :
+    MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ (MvPowerSeries.X s₁ : MvPowerSeries σ' O)) fun _ ↦ MvPowerSeries.X s₂)
+      f = MvPowerSeries.rename (Sum.elim (fun _ ↦ s₁) fun _ ↦ s₂) f := by
+  rw [MvPowerSeries.rename_eq_subst]
+  congr 1
+  funext s
+  rcases s with u | u <;> rfl
+
+private lemma X_pair_intercept_ne_zero {σ' : Type*} [Finite σ'] {s₁ s₂ : σ'} (h : s₁ ≠ s₂) :
+    MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ (MvPowerSeries.X s₁ : MvPowerSeries σ' O)) fun _ ↦ MvPowerSeries.X s₂)
+      W.interceptSeries ≠ 0 := by
+  rw [subst_pair_X_eq_rename]
+  intro h0
+  refine W.interceptSeries_ne_zero (MvPowerSeries.rename_injective
+    (⟨Sum.elim (fun _ ↦ s₁) fun _ ↦ s₂, ?_⟩ : Unit ⊕ Unit ↪ σ') ?_)
+  · rintro (⟨⟩ | ⟨⟩) (⟨⟩ | ⟨⟩) hv
+    · rfl
+    · exact absurd hv h
+    · exact absurd hv.symm h
+    · rfl
+  · rw [map_zero]
+    exact h0
 
 end Domain
 
