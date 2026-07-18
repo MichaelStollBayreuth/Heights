@@ -344,15 +344,136 @@ noncomputable def thirdRootSeries : MvPowerSeries (Unit ⊕ Unit) O :=
 lemma constantCoeff_thirdRootSeries : constantCoeff W.thirdRootSeries = 0 := by
   simp [thirdRootSeries]
 
+/-- The series `u(t) = 1 - a₁t - a₃w(t)`: minus the denominator `y` of the coordinates
+`x = t/w`, `y = -1/w` of the negative of the point with parameter `t`, rescaled by `w`. -/
+noncomputable def uSeries : PowerSeries O :=
+  1 - PowerSeries.C W.a₁ * PowerSeries.X - PowerSeries.C W.a₃ * W.wSeries
+
+@[simp]
+lemma constantCoeff_uSeries : PowerSeries.constantCoeff W.uSeries = 1 := by
+  simp [uSeries]
+
+lemma mul_invOfUnit_uSeries : W.uSeries * PowerSeries.invOfUnit W.uSeries 1 = 1 :=
+  PowerSeries.mul_invOfUnit _ _ (by simp)
+
+lemma isUnit_uSeries : IsUnit W.uSeries :=
+  IsUnit.of_mul_eq_one _ W.mul_invOfUnit_uSeries
+
 /-- The formal inverse parameter series: the parameter `ι(t) = -t/(1 - a₁t - a₃w(t))` of
 the negative of the point with parameter `t` on the curve `(t, w(t))`. -/
 noncomputable def inverseSeries : PowerSeries O :=
-  -(PowerSeries.X * PowerSeries.invOfUnit
-    (1 - PowerSeries.C W.a₁ * PowerSeries.X - PowerSeries.C W.a₃ * W.wSeries) 1)
+  -(PowerSeries.X * PowerSeries.invOfUnit W.uSeries 1)
 
 @[simp]
 lemma constantCoeff_inverseSeries : PowerSeries.constantCoeff W.inverseSeries = 0 := by
   simp [inverseSeries]
+
+lemma hasSubst_inverseSeries : PowerSeries.HasSubst (W.inverseSeries : PowerSeries O) :=
+  PowerSeries.HasSubst.of_constantCoeff_zero' W.constantCoeff_inverseSeries
+
+private lemma subst_one_eq (a : PowerSeries O) (ha : PowerSeries.HasSubst a) :
+    PowerSeries.subst a (1 : PowerSeries O) = 1 := by
+  rw [← PowerSeries.coe_substAlgHom ha, map_one]
+
+-- substitution along `ι` maps `invOfUnit` to `invOfUnit` of the image
+private lemma subst_inverseSeries_invOfUnit {D : PowerSeries O}
+    (hD : PowerSeries.constantCoeff D = 1)
+    (hD' : PowerSeries.constantCoeff (PowerSeries.subst W.inverseSeries D) = 1) :
+    PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit D 1) =
+      PowerSeries.invOfUnit (PowerSeries.subst W.inverseSeries D) 1 := by
+  have h1 : PowerSeries.subst W.inverseSeries D *
+      PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit D 1) = 1 := by
+    rw [← PowerSeries.subst_mul W.hasSubst_inverseSeries,
+      PowerSeries.mul_invOfUnit _ 1 (by rw [hD]; rfl), subst_one_eq _ W.hasSubst_inverseSeries]
+  have h2 : PowerSeries.subst W.inverseSeries D *
+      PowerSeries.invOfUnit (PowerSeries.subst W.inverseSeries D) 1 = 1 :=
+    PowerSeries.mul_invOfUnit _ 1 (by rw [hD']; rfl)
+  calc PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit D 1)
+      = PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit D 1) *
+        (PowerSeries.subst W.inverseSeries D *
+          PowerSeries.invOfUnit (PowerSeries.subst W.inverseSeries D) 1) := by
+        rw [h2, mul_one]
+    _ = (PowerSeries.subst W.inverseSeries D *
+          PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit D 1)) *
+        PowerSeries.invOfUnit (PowerSeries.subst W.inverseSeries D) 1 := by ring
+    _ = PowerSeries.invOfUnit (PowerSeries.subst W.inverseSeries D) 1 := by rw [h1, one_mul]
+
+private lemma subst_inverseSeries_wStepAt (v : PowerSeries O) :
+    PowerSeries.subst W.inverseSeries (W.wStepAt X v) =
+      W.wStepAt W.inverseSeries (PowerSeries.subst W.inverseSeries v) := by
+  simp only [wStepAt, PowerSeries.subst_add W.hasSubst_inverseSeries,
+    PowerSeries.subst_mul W.hasSubst_inverseSeries,
+    PowerSeries.subst_pow W.hasSubst_inverseSeries, PowerSeries.subst_C,
+    PowerSeries.subst_X W.hasSubst_inverseSeries]
+  rfl
+
+/-- Composition with the formal inverse maps `w` to `-w/u` (the `w`-coordinate of the
+negative of a point). -/
+theorem subst_inverseSeries_wSeries :
+    PowerSeries.subst W.inverseSeries W.wSeries =
+      -(W.wSeries * PowerSeries.invOfUnit W.uSeries 1) := by
+  refine W.eq_of_wStepAt_fixed (q := W.inverseSeries)
+    ⟨-(PowerSeries.invOfUnit W.uSeries 1), by rw [inverseSeries]; ring⟩ ?_ ?_ ?_ ?_
+  · -- `X ∣ subst ι w`
+    rw [PowerSeries.X_dvd_iff]
+    exact MvPowerSeries.constantCoeff_subst_eq_zero W.hasSubst_inverseSeries.const
+      (fun _ ↦ W.constantCoeff_inverseSeries) W.constantCoeff_wSeries
+  · exact ((PowerSeries.X_dvd_iff.mpr W.constantCoeff_wSeries).mul_right _).neg_right
+  · -- `w ∘ ι` solves the Weierstrass equation at `ι`
+    conv_lhs => rw [W.wSeries_eq_wStep]
+    rw [show W.wStep W.wSeries = W.wStepAt X W.wSeries from rfl,
+      W.subst_inverseSeries_wStepAt]
+  · -- `-w/u` solves the Weierstrass equation at `ι`
+    refine (W.isUnit_uSeries.pow 3).mul_left_cancel ?_
+    have h1 := W.mul_invOfUnit_uSeries
+    have h2 := W.wSeries_eq_wStep
+    rw [show W.wStep W.wSeries = W.wStepAt X W.wSeries from rfl, wStepAt] at h2
+    simp only [wStepAt, inverseSeries, uSeries] at h1 h2 ⊢
+    grobner
+
+/-- Composition with the formal inverse maps `u` to its inverse. -/
+theorem subst_inverseSeries_uSeries :
+    PowerSeries.subst W.inverseSeries W.uSeries = PowerSeries.invOfUnit W.uSeries 1 := by
+  refine W.isUnit_uSeries.mul_left_cancel ?_
+  rw [W.mul_invOfUnit_uSeries]
+  simp only [uSeries, PowerSeries.subst_sub W.hasSubst_inverseSeries,
+    PowerSeries.subst_mul W.hasSubst_inverseSeries, PowerSeries.subst_C,
+    PowerSeries.subst_X W.hasSubst_inverseSeries, subst_one_eq _ W.hasSubst_inverseSeries,
+    W.subst_inverseSeries_wSeries]
+  have h1 := W.mul_invOfUnit_uSeries
+  simp only [uSeries, inverseSeries,
+    show (MvPowerSeries.C : O →+* MvPowerSeries Unit O) = PowerSeries.C from rfl] at h1 ⊢
+  grobner
+
+/-- The formal inverse is an involution. -/
+theorem subst_inverseSeries_self :
+    PowerSeries.subst W.inverseSeries W.inverseSeries = PowerSeries.X := by
+  have hinv := W.subst_inverseSeries_invOfUnit (D := W.uSeries) (by simp)
+    (by rw [W.subst_inverseSeries_uSeries]
+        simp [PowerSeries.constantCoeff_invOfUnit])
+  have hdouble : PowerSeries.invOfUnit (PowerSeries.invOfUnit W.uSeries 1) 1 = W.uSeries := by
+    have h1 : PowerSeries.invOfUnit W.uSeries 1 * W.uSeries = 1 := by
+      rw [mul_comm]
+      exact W.mul_invOfUnit_uSeries
+    have h2 : PowerSeries.invOfUnit W.uSeries 1 *
+        PowerSeries.invOfUnit (PowerSeries.invOfUnit W.uSeries 1) 1 = 1 :=
+      PowerSeries.mul_invOfUnit _ 1 (by simp [PowerSeries.constantCoeff_invOfUnit])
+    calc PowerSeries.invOfUnit (PowerSeries.invOfUnit W.uSeries 1) 1
+        = (PowerSeries.invOfUnit W.uSeries 1 * W.uSeries) *
+          PowerSeries.invOfUnit (PowerSeries.invOfUnit W.uSeries 1) 1 := by rw [h1, one_mul]
+      _ = W.uSeries * (PowerSeries.invOfUnit W.uSeries 1 *
+          PowerSeries.invOfUnit (PowerSeries.invOfUnit W.uSeries 1) 1) := by ring
+      _ = W.uSeries := by rw [h2, mul_one]
+  have hexp : PowerSeries.subst W.inverseSeries (-(PowerSeries.X *
+      PowerSeries.invOfUnit W.uSeries 1)) = -(W.inverseSeries *
+      PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit W.uSeries 1)) := by
+    rw [← PowerSeries.coe_substAlgHom W.hasSubst_inverseSeries, map_neg, map_mul,
+      PowerSeries.coe_substAlgHom W.hasSubst_inverseSeries,
+      PowerSeries.subst_X W.hasSubst_inverseSeries]
+  rw [show PowerSeries.subst W.inverseSeries W.inverseSeries = -(W.inverseSeries *
+      PowerSeries.subst W.inverseSeries (PowerSeries.invOfUnit W.uSeries 1)) from hexp,
+    hinv, W.subst_inverseSeries_uSeries, hdouble, inverseSeries]
+  linear_combination (PowerSeries.X : PowerSeries O) * W.mul_invOfUnit_uSeries
 
 /-- The addition series of the chord construction: `F(t₁, t₂) = ι(t₃(t₁, t₂))`, the
 parameter of the sum of the points with parameters `t₁`, `t₂`. -/
