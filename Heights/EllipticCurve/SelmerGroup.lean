@@ -1299,6 +1299,10 @@ private lemma card_selmerGroupFactor (hv : v ∉ W.badPrimes (𝓞 F)) (q : 𝕎
   -- instances for the interface statement
   have hFD : FiniteDimensional F_[v] (AdjoinRoot (q : F_[v][X])) :=
     (AdjoinRoot.powerBasis' q.monic).finite
+  have : Algebra.IsAlgebraic F_[v] (AdjoinRoot (q : F_[v][X])) := .of_finite ..
+  have : CharZero F_[v] :=
+    charZero_of_injective_algebraMap (algebraMap F F_[v]).injective
+  have hsep : Algebra.IsSeparable F_[v] (AdjoinRoot (q : F_[v][X])) := inferInstance
   have hDed : IsDedekindDomain (integralClosure 𝒪_[v] (AdjoinRoot (q : F_[v][X]))) :=
     𝕎[v].isDedekindDomain_ringOfIntegersFactor 𝒪_[v] q
   have hFrac : IsFractionRing (integralClosure 𝒪_[v] (AdjoinRoot (q : F_[v][X])))

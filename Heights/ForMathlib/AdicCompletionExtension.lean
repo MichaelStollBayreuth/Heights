@@ -18,7 +18,11 @@ of `A`. This file provides
   (`comap_maximalIdeal_adicCompletionIntegersExtension`);
 * `IsDedekindDomain.HeightOneSpectrum.valuation_maximalIdeal_adicCompletionIntegers`:
   the valuation associated to the height-one prime of the ring of integers `𝒪_v` (a discrete
-  valuation ring) of a completion `K_v` is the valuation of the completion.
+  valuation ring) of a completion `K_v` is the valuation of the completion;
+* `IsDedekindDomain.HeightOneSpectrum.henselianLocalRing_adicCompletionIntegers` (and the
+  instances leading up to it): the subspace topology on `𝒪_v` is the `𝔪`-adic topology
+  (`isAdic_maximalIdeal_adicCompletionIntegers`, via `mem_maximalIdeal_pow_iff`), `𝒪_v` is
+  complete, hence `𝔪`-adically complete, hence a Henselian local ring.
 
 The completion-extension material is adapted from the FLT project
 (https://github.com/ImperialCollegeLondon/FLT), file
@@ -230,6 +234,88 @@ theorem exists_unit_not_isSquare [Finite (R ⧸ v.asIdeal)] (hv2 : (2 : R) ∉ v
   have hx_eq : x = (⟨d, hdmem⟩ : v.adicCompletionIntegers K) * ⟨d, hdmem⟩ :=
     hinj (by rw [map_mul]; exact hd)
   exact ha ⟨IsLocalRing.residue _ ⟨d, hdmem⟩, by rw [hx_eq, map_mul]⟩
+
+/-- An element of `𝒪_v` lies in the `n`-th power of the maximal ideal exactly when its
+valuation is at most `exp (-n)`. -/
+theorem mem_maximalIdeal_pow_iff {x : v.adicCompletionIntegers K} {n : ℕ} :
+    x ∈ IsLocalRing.maximalIdeal (v.adicCompletionIntegers K) ^ n ↔
+      Valued.v (x : v.adicCompletion K) ≤ exp (-(n : ℤ)) := by
+  obtain ⟨π, hπ⟩ := IsDiscreteValuationRing.exists_irreducible (v.adicCompletionIntegers K)
+  have hπn : Valued.v (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) (π ^ n)) =
+      exp (-(n : ℤ)) := by
+    rw [map_pow, map_pow, v.valued_irreducible_adicCompletionIntegers hπ, ← exp_nsmul]
+    simp
+  rw [← span_singleton_eq_maximalIdeal_pow v hπn, Ideal.mem_span_singleton]
+  have hint := Valuation.valuationSubring.integers (v := (Valued.v : Valuation
+    (v.adicCompletion K) ℤᵐ⁰))
+  exact ⟨fun h ↦ (hint.le_of_dvd h).trans hπn.le, fun h ↦ hint.dvd_of_le (h.trans_eq hπn.symm)⟩
+
+instance isTopologicalRing_adicCompletionIntegers :
+    IsTopologicalRing (v.adicCompletionIntegers K) :=
+  inferInstanceAs (IsTopologicalRing
+    (Valued.v (R := v.adicCompletion K)).valuationSubring.toSubring)
+
+/-- The subspace topology on the ring of integers `𝒪_v` of an adic completion is the
+`𝔪`-adic topology of its maximal ideal. -/
+theorem isAdic_maximalIdeal_adicCompletionIntegers :
+    IsAdic (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K)) := by
+  rw [isAdic_iff]
+  constructor
+  · -- each `𝔪 ^ n` is open: it is the preimage of a closed ball
+    intro n
+    obtain ⟨z, hz⟩ := v.valuedAdicCompletion_surjective K (exp (-(n : ℤ)))
+    have hr0 : Valued.v.restrict z ≠ 0 := by
+      intro h
+      have h0 : Valued.v z = 0 := by rw [← Valuation.embedding_restrict, h, map_zero]
+      rw [hz] at h0
+      exact exp_ne_zero h0
+    have : ((IsLocalRing.maximalIdeal (v.adicCompletionIntegers K) ^ n :
+          Ideal (v.adicCompletionIntegers K)) : Set (v.adicCompletionIntegers K)) =
+        (fun x : v.adicCompletionIntegers K ↦ (x : v.adicCompletion K)) ⁻¹'
+          {y | Valued.v.restrict y ≤ Valued.v.restrict z} := by
+      ext x
+      rw [Set.mem_preimage, Set.mem_setOf, Valuation.restrict_le_iff_le_embedding,
+        Valuation.embedding_restrict, hz]
+      exact v.mem_maximalIdeal_pow_iff (K := K)
+    rw [this]
+    exact (Valued.isOpen_closedBall _ hr0).preimage continuous_subtype_val
+  · -- each neighbourhood of `0` contains some `𝔪 ^ n`
+    intro s hs
+    obtain ⟨t, ht, hts⟩ := mem_nhds_subtype _ _ _ |>.mp hs
+    rw [ZeroMemClass.coe_zero] at ht
+    obtain ⟨γ, hγ⟩ := Valued.mem_nhds_zero.mp ht
+    obtain ⟨m, hm⟩ : ∃ m : ℤ, exp m < MonoidWithZeroHom.ValueGroup₀.embedding γ.1 := by
+      obtain ⟨a, ha⟩ :=
+        WithZero.ne_zero_iff_exists.mp (MonoidWithZeroHom.ValueGroup₀.embedding_unit_ne_zero γ)
+      refine ⟨Multiplicative.toAdd a - 1, ?_⟩
+      rw [← ha, show (a : ℤᵐ⁰) = exp (Multiplicative.toAdd a) from rfl]
+      exact exp_lt_exp.mpr (by lia)
+    refine ⟨(-m).toNat, fun x hx ↦ hts ?_⟩
+    refine Set.mem_preimage.mpr (hγ ?_)
+    have h1 := v.mem_maximalIdeal_pow_iff (K := K) |>.mp hx
+    refine Set.mem_setOf.mpr ((Valuation.restrict_lt_iff_lt_embedding (v := Valued.v)).mpr
+      (h1.trans_lt ?_))
+    calc exp (-(((-m).toNat : ℤ))) ≤ exp m := exp_le_exp.mpr (by lia)
+      _ < _ := hm
+
+instance completeSpace_adicCompletionIntegers : CompleteSpace (v.adicCompletionIntegers K) :=
+  (Valued.isClosed_valuationSubring (v.adicCompletion K)).completeSpace_coe
+
+instance isUniformAddGroup_adicCompletionIntegers :
+    IsUniformAddGroup (v.adicCompletionIntegers K) :=
+  ((Valued.v (R := v.adicCompletion K)).valuationSubring.toSubring.toAddSubgroup).isUniformAddGroup
+
+instance isAdicComplete_adicCompletionIntegers :
+    IsAdicComplete (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K))
+      (v.adicCompletionIntegers K) :=
+  (v.isAdic_maximalIdeal_adicCompletionIntegers (K := K)).isAdicComplete_iff.mpr
+    ⟨inferInstance, inferInstance⟩
+
+instance henselianLocalRing_adicCompletionIntegers :
+    HenselianLocalRing (v.adicCompletionIntegers K) where
+  is_henselian f hf a₀ h₁ h₂ :=
+    (IsAdicComplete.henselianRing _
+      (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K))).is_henselian f hf a₀ h₁ (h₂.map _)
 
 /-- `Units.modPow`-friendly form: the valuation of the height-one prime of `𝒪_v` at the
 image of a unit of `K` is the `v`-adic valuation of the unit. -/
