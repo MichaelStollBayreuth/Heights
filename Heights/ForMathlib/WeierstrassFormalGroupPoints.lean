@@ -342,6 +342,27 @@ theorem addEval_eq : W.addEval t₁ t₂ = W.iotaEval (W.thirdRootEval t₁ t₂
   rw [eval_pair_subst_single h₁ h₂ W.constantCoeff_thirdRootSeries] at h
   exact h
 
+/-- The symmetric evaluated intercept identity: `ν̂ = w(t₂) - λ̂·t₂`. -/
+theorem interceptEval_eq' :
+    W.interceptEval t₁ t₂ = W.wEval t₂ - W.slopeEval t₁ t₂ * t₂ := by
+  have h := congrArg (MvPSeries.evalRingHom (hasEval_pairElim h₁ h₂)) W.interceptSeries_eq
+  simp only [map_sub, map_mul, MvPSeries.evalRingHom_apply, MvPSeries.eval_X] at h
+  rw [eval_pair_rename h₁ h₂] at h
+  simp only [Sum.elim_inr] at h
+  exact h
+
+omit h₁ h₂ in
+@[simp]
+theorem wEval_zero : W.wEval 0 = 0 := by
+  rw [W.wEval_eq_cube_mul (zero_mem _)]
+  ring
+
+omit h₁ h₂ in
+@[simp]
+theorem iotaEval_zero : W.iotaEval 0 = 0 := by
+  rw [W.iotaEval_eq (zero_mem _)]
+  ring
+
 omit h₂ in
 /-- The evaluated formal inverse identity: `F(t, ι(t)) = 0`. -/
 theorem addEval_iotaEval : W.addEval t₁ (W.iotaEval t₁) = 0 := by
@@ -361,6 +382,28 @@ theorem addEval_iotaEval : W.addEval t₁ (W.iotaEval t₁) = 0 := by
     · exact MvPSeries.eval_X _ _
     · rfl] at h
   exact h
+
+omit h₁ h₂
+
+/-- The formal inverse on the `𝔪`-points of the formal group of a Weierstrass curve. -/
+noncomputable def negPoint (z : W.formalGroupLaw.Points) : W.formalGroupLaw.Points :=
+  fun _ ↦ ⟨W.iotaEval (z ()), W.iotaEval_mem (z ()).2⟩
+
+@[simp]
+theorem negPoint_apply_coe (z : W.formalGroupLaw.Points) :
+    ((W.negPoint z) () : O) = W.iotaEval (z ()) := rfl
+
+/-- The coordinate of a sum of `𝔪`-points is the evaluated addition series. -/
+theorem add_apply_coe_eq_addEval (z z' : W.formalGroupLaw.Points) :
+    ((z + z') () : O) = W.addEval (z ()) (z' ()) := rfl
+
+/-- The formal inverse is a right inverse for the addition of `𝔪`-points. -/
+theorem add_negPoint (z : W.formalGroupLaw.Points) : z + W.negPoint z = 0 := by
+  funext i
+  refine Subtype.ext ?_
+  rw [show ((z + W.negPoint z) i : O) = W.addEval (z ()) (W.iotaEval (z ())) from rfl,
+    W.addEval_iotaEval (z ()).2]
+  rfl
 
 end WeierstrassCurve
 
@@ -693,6 +736,110 @@ theorem formalPoint_surjective {P : W.Point} (hP : P ∈ filtration hW 0) :
     · rw [hrcoe]
       show -1 / (-1 / y) = y
       field_simp
+
+theorem formalPoint_eq_zero_iff {z : W₀.formalGroupLaw.Points} :
+    formalPoint hW z = 0 ↔ (z () : v.adicCompletionIntegers K) = 0 := by
+  refine ⟨fun h ↦ ?_, formalPoint_of_param_eq_zero hW⟩
+  by_contra h0
+  rw [formalPoint_of_param_ne_zero hW h0] at h
+  exact absurd h (by simp)
+
+include hW in
+/-- The parametrization intertwines the formal inverse with negation of points. -/
+theorem formalPoint_negPoint (z : W₀.formalGroupLaw.Points) :
+    formalPoint hW (W₀.negPoint z) = -formalPoint hW z := by
+  rcases eq_or_ne ((z ()) : v.adicCompletionIntegers K) 0 with h0 | h0
+  · rw [formalPoint_of_param_eq_zero hW h0, formalPoint_of_param_eq_zero hW
+      (by rw [W₀.negPoint_apply_coe, h0, W₀.iotaEval_zero]), neg_zero]
+  · have hm := (z ()).2
+    have hι0 : W₀.iotaEval (z () : v.adicCompletionIntegers K) ≠ 0 := by
+      rw [W₀.iotaEval_eq hm]
+      exact neg_ne_zero.mpr (mul_ne_zero h0 (W₀.isUnit_duEval hm).ne_zero)
+    rw [formalPoint_of_param_ne_zero hW h0,
+      formalPoint_of_param_ne_zero hW (by rw [W₀.negPoint_apply_coe]; exact hι0),
+      Point.neg_some]
+    simp only [Point.some.injEq, W₀.negPoint_apply_coe]
+    set T : v.adicCompletion K := ((z () : v.adicCompletionIntegers K) : v.adicCompletion K)
+      with hT
+    have hWT0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+      simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+      exact W₀.wEval_ne_zero hm h0
+    have hDU0 : ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+      simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+      exact (W₀.isUnit_duEval hm).ne_zero
+    have hiota : ((W₀.iotaEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
+        -(T * ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
+      rw [W₀.iotaEval_eq hm]
+      push_cast
+      rfl
+    have hwiota : ((W₀.wEval (W₀.iotaEval (z ())) : v.adicCompletionIntegers K) :
+        v.adicCompletion K) =
+        -(((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) *
+          ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
+      rw [W₀.wEval_iotaEval hm]
+      push_cast
+      rfl
+    have hu : ((W₀.uEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 := by
+      have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+        (W₀.uEval_mul_duEval hm)
+      push_cast at h
+      exact h
+    have hueq : ((W₀.uEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
+        1 - W.a₁ * T - W.a₃ *
+          ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) := by
+      have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+        (W₀.uEval_eq hm)
+      push_cast at h
+      rw [coe_a₁ hW, coe_a₃ hW] at h
+      exact h
+    constructor
+    · rw [hiota, hwiota]
+      field_simp
+    · rw [hwiota, Affine.negY]
+      field_simp
+      linear_combination -hu + ((W₀.duEval (z ()) : v.adicCompletionIntegers K) :
+        v.adicCompletion K) * hueq
+
+include hW in
+/-- Two nonzero parameters whose points share their `x`-coordinate agree up to the formal
+inverse. -/
+private lemma eq_or_eq_negPoint_of_x_cond {z z' : W₀.formalGroupLaw.Points}
+    (h0 : (z () : v.adicCompletionIntegers K) ≠ 0)
+    (h0' : (z' () : v.adicCompletionIntegers K) ≠ 0)
+    (hx : ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      ((z' () : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) :
+    z' = z ∨ z' = W₀.negPoint z := by
+  have hm := (z ()).2
+  have hm' := (z' ()).2
+  have hWT0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero hm h0
+  have hWT0' : ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+    exact W₀.wEval_ne_zero hm' h0'
+  have hns := formalPoint_nonsingular hW hm h0
+  have hns' := formalPoint_nonsingular hW hm' h0'
+  have hxeq : ((z' () : v.adicCompletionIntegers K) : v.adicCompletion K) /
+      ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      ((z () : v.adicCompletionIntegers K) : v.adicCompletion K) /
+        ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) := by
+    rw [div_eq_div_iff hWT0' hWT0]
+    linear_combination -hx
+  rcases W.Y_eq_of_X_eq hns'.left hns.left hxeq with hy | hy
+  · left
+    refine formalPoint_injective hW ?_
+    rw [formalPoint_of_param_ne_zero hW h0', formalPoint_of_param_ne_zero hW h0]
+    simp only [Point.some.injEq]
+    exact ⟨hxeq, hy⟩
+  · right
+    refine formalPoint_injective hW ?_
+    rw [formalPoint_negPoint hW, formalPoint_of_param_ne_zero hW h0',
+      formalPoint_of_param_ne_zero hW h0, Point.neg_some]
+    simp only [Point.some.injEq]
+    exact ⟨hxeq, hy⟩
 
 /-- The `𝔪`-points of the formal group law of an integral model `W₀` of `W` are the kernel
 of reduction `E₁(K_v) = filtration hW 0`, via `z ↦ (x, y)` with `x = z/w(z)`,
