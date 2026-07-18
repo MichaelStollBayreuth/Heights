@@ -38,21 +38,19 @@ section wSeries
 
 variable {O : Type*} [CommRing O] (W : WeierstrassCurve O)
 
+/-- The right-hand side of the Weierstrass equation in the coordinates `(t, w)`, with the
+parameter series `q` in place of `t` and the unknown `v` in place of `w`. -/
+private noncomputable def wStepAt (q v : PowerSeries O) : PowerSeries O :=
+  q ^ 3 + C W.a₁ * q * v + C W.a₂ * q ^ 2 * v + C W.a₃ * v ^ 2 + C W.a₄ * q * v ^ 2 +
+    C W.a₆ * v ^ 3
+
 /-- One step of the fixed-point iteration defining `wSeries`: the right-hand side of the
 Weierstrass equation in the coordinates `(t, w)`. -/
 private noncomputable def wStep (w : PowerSeries O) : PowerSeries O :=
-  X ^ 3 + C W.a₁ * X * w + C W.a₂ * X ^ 2 * w + C W.a₃ * w ^ 2 + C W.a₄ * X * w ^ 2 +
-    C W.a₆ * w ^ 3
+  W.wStepAt X w
 
-private lemma X_dvd_wStep {w : PowerSeries O} (hw : X ∣ w) : X ∣ W.wStep w := by
-  obtain ⟨u, rfl⟩ := hw
-  refine ⟨X ^ 2 + C W.a₁ * X * u + C W.a₂ * X ^ 2 * u + C W.a₃ * (X * u ^ 2) +
-    C W.a₄ * X * (X * u ^ 2) + C W.a₆ * (X ^ 2 * u ^ 3), ?_⟩
-  simp only [wStep]
-  ring
-
-private lemma wStep_contract {u v : PowerSeries O} (hu : X ∣ u) (hv : X ∣ v) {k : ℕ}
-    (h : X ^ k ∣ u - v) : X ^ (k + 1) ∣ W.wStep u - W.wStep v := by
+private lemma wStepAt_contract {q u v : PowerSeries O} (hq : X ∣ q) (hu : X ∣ u) (hv : X ∣ v)
+    {k : ℕ} (h : X ^ k ∣ u - v) : X ^ (k + 1) ∣ W.wStepAt q u - W.wStepAt q v := by
   have h2 : X ^ (k + 1) ∣ u ^ 2 - v ^ 2 := by
     have : u ^ 2 - v ^ 2 = (u + v) * (u - v) := by ring
     rw [this, pow_succ, mul_comm (X ^ k)]
@@ -63,16 +61,42 @@ private lemma wStep_contract {u v : PowerSeries O} (hu : X ∣ u) (hv : X ∣ v)
     refine mul_dvd_mul ?_ h
     exact dvd_add (dvd_add ((hu.mul_right u).trans (by rw [pow_two])) (hu.mul_right v))
       ((hv.mul_right v).trans (by rw [pow_two]))
-  have hXk : (X : PowerSeries O) ^ (k + 1) ∣ X * (u - v) := by
+  have hXk : X ^ (k + 1) ∣ q * (u - v) := by
     rw [pow_succ, mul_comm (X ^ k)]
-    exact mul_dvd_mul_left X h
-  have hstep : W.wStep u - W.wStep v = C W.a₁ * (X * (u - v)) + C W.a₂ * X * (X * (u - v)) +
-      C W.a₃ * (u ^ 2 - v ^ 2) + C W.a₄ * X * (u ^ 2 - v ^ 2) + C W.a₆ * (u ^ 3 - v ^ 3) := by
-    simp only [wStep]
+    exact mul_dvd_mul hq h
+  have hstep : W.wStepAt q u - W.wStepAt q v = C W.a₁ * (q * (u - v)) +
+      C W.a₂ * q * (q * (u - v)) + C W.a₃ * (u ^ 2 - v ^ 2) + C W.a₄ * q * (u ^ 2 - v ^ 2) +
+      C W.a₆ * (u ^ 3 - v ^ 3) := by
+    simp only [wStepAt]
     ring
   rw [hstep]
   exact dvd_add (dvd_add (dvd_add (dvd_add (hXk.mul_left _) ((hXk.mul_left _)))
     (h2.mul_left _)) (h2.mul_left _)) (h3.mul_left _)
+
+/-- Two solutions of the Weierstrass equation at the same parameter series that both have
+vanishing constant term agree. -/
+private lemma eq_of_wStepAt_fixed {q v v' : PowerSeries O} (hq : X ∣ q) (hv : X ∣ v)
+    (hv' : X ∣ v') (h : v = W.wStepAt q v) (h' : v' = W.wStepAt q v') : v = v' := by
+  have key (k : ℕ) : X ^ k ∣ v - v' := by
+    induction k with
+    | zero => simp
+    | succ k ih =>
+      have := W.wStepAt_contract hq hv hv' ih
+      rwa [← h, ← h'] at this
+  ext n
+  have h0 := X_pow_dvd_iff.mp (key (n + 1)) n (by lia)
+  rwa [map_sub, sub_eq_zero] at h0
+
+private lemma X_dvd_wStep {w : PowerSeries O} (hw : X ∣ w) : X ∣ W.wStep w := by
+  obtain ⟨u, rfl⟩ := hw
+  refine ⟨X ^ 2 + C W.a₁ * X * u + C W.a₂ * X ^ 2 * u + C W.a₃ * (X * u ^ 2) +
+    C W.a₄ * X * (X * u ^ 2) + C W.a₆ * (X ^ 2 * u ^ 3), ?_⟩
+  simp only [wStep, wStepAt]
+  ring
+
+private lemma wStep_contract {u v : PowerSeries O} (hu : X ∣ u) (hv : X ∣ v) {k : ℕ}
+    (h : X ^ k ∣ u - v) : X ^ (k + 1) ∣ W.wStep u - W.wStep v :=
+  W.wStepAt_contract dvd_rfl hu hv h
 
 private lemma X_dvd_iterate (m : ℕ) : X ∣ (W.wStep)^[m] (0 : PowerSeries O) := by
   induction m with
@@ -135,7 +159,7 @@ private lemma X_pow_three_dvd_wStep {w : PowerSeries O} (hw : X ^ 3 ∣ w) :
   obtain ⟨u, rfl⟩ := hw
   refine ⟨1 + C W.a₁ * X * u + C W.a₂ * X ^ 2 * u + C W.a₃ * (X ^ 3 * u ^ 2) +
     C W.a₄ * (X ^ 4 * u ^ 2) + C W.a₆ * (X ^ 6 * u ^ 3), ?_⟩
-  simp only [wStep]
+  simp only [wStep, wStepAt]
   ring
 
 theorem X_pow_three_dvd_wSeries : (X : PowerSeries O) ^ 3 ∣ W.wSeries := by
@@ -159,7 +183,7 @@ theorem coeff_wSeries_three : coeff 3 W.wSeries = 1 := by
     refine ⟨C W.a₁ * u + C W.a₂ * (X * u) + C W.a₃ * (X ^ 2 * u ^ 2) +
       C W.a₄ * (X ^ 3 * u ^ 2) + C W.a₆ * (X ^ 5 * u ^ 3), ?_⟩
     rw [hu]
-    simp only [wStep]
+    simp only [wStep, wStepAt]
     ring
   have h0 : coeff 3 (W.wStep W.wSeries - X ^ 3) = 0 := X_pow_dvd_iff.mp h4 3 (by lia)
   rw [map_sub, coeff_X_pow, if_pos rfl, sub_eq_zero] at h0
