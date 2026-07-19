@@ -1179,6 +1179,104 @@ private lemma exists_pi_pow_factor {π t : v.adicCompletionIntegers K} {n : ℕ}
   rw [hmax]
   exact Ideal.mem_span_singleton.mpr (dvd_mul_right ..)
 
+private lemma points_ne_zero_param {z : W₀.formalGroupLaw.Points} (hz0 : z ≠ 0) :
+    (z () : v.adicCompletionIntegers K) ≠ 0 :=
+  fun h ↦ hz0 (funext fun i ↦ by cases i; exact Subtype.ext h)
+
+/-- A point of the formal group killed by a prime different from the residue
+characteristic is trivial. -/
+private lemma points_eq_zero_of_nsmul_prime_ne {p q : ℕ} (hp : p.Prime) (hq : q.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hqp : q ≠ p) {z : W₀.formalGroupLaw.Points} (hz : q • z = 0) : z = 0 := by
+  by_contra hz0
+  obtain ⟨k, hk1, hkv⟩ := ChabautyColeman.exists_valued_eq_exp_neg (z ()).2
+    (points_ne_zero_param hz0)
+  have htk : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ k :=
+    (v.mem_maximalIdeal_pow_iff (K := K)).mpr hkv.le
+  have hcong := (W₀.nsmul_apply_coe_mem_and_sub_mem (Nat.one_le_iff_ne_zero.mp hk1) htk q).2
+  rw [hz, FormalGroupLaw.zero_apply_coe, zero_sub, nsmul_eq_mul] at hcong
+  obtain ⟨u, hu⟩ := (isUnit_natCast_of_not_dvd hp hpmem
+    fun hdvd ↦ hqp ((Nat.prime_dvd_prime_iff_eq hp hq).mp hdvd).symm).exists_left_inv
+  have ht2k : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (2 * k) := by
+    rw [show (z () : v.adicCompletionIntegers K) = u * ((q : v.adicCompletionIntegers K) *
+      (z () : v.adicCompletionIntegers K)) by rw [← mul_assoc, hu, one_mul]]
+    exact Ideal.mul_mem_left _ _ (by simpa using neg_mem hcong)
+  have hle := (v.mem_maximalIdeal_pow_iff (K := K)).mp ht2k
+  rw [hkv, exp_le_exp] at hle
+  push_cast at hle
+  lia
+
+/-- The multiplication-by-`p` series splits as `p·X + A + B` with `A` supported in
+degrees `≥ 2` prime to `p` with coefficients divisible by `p`, and `B` supported in
+degrees divisible by `p`. -/
+private lemma exists_mulSeries_split [CharZero K] {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ∃ A B : MvPowerSeries Unit (v.adicCompletionIntegers K),
+      W₀.formalGroupLaw.mulSeries p = MvPowerSeries.C (p : v.adicCompletionIntegers K) *
+          MvPowerSeries.X () + (A + B) ∧
+      (∀ d : Unit →₀ ℕ, MvPowerSeries.coeff d A ∈
+        Ideal.span {(p : v.adicCompletionIntegers K)}) ∧
+      (∀ d : Unit →₀ ℕ, d.degree < 2 → MvPowerSeries.coeff d A = 0) ∧
+      (∀ d : Unit →₀ ℕ, d.degree < p → MvPowerSeries.coeff d B = 0) := by
+  obtain ⟨A, hA⟩ : ∃ A : MvPowerSeries Unit (v.adicCompletionIntegers K),
+      ∀ d : Unit →₀ ℕ, MvPowerSeries.coeff d A = if 2 ≤ d () ∧ ¬ p ∣ d () then
+        MvPowerSeries.coeff d (W₀.formalGroupLaw.mulSeries p) else 0 :=
+    ⟨fun d ↦ if 2 ≤ d () ∧ ¬ p ∣ d () then
+      MvPowerSeries.coeff d (W₀.formalGroupLaw.mulSeries p) else 0, fun _ ↦ rfl⟩
+  obtain ⟨B, hB⟩ : ∃ B : MvPowerSeries Unit (v.adicCompletionIntegers K),
+      ∀ d : Unit →₀ ℕ, MvPowerSeries.coeff d B = if 2 ≤ d () ∧ p ∣ d () then
+        MvPowerSeries.coeff d (W₀.formalGroupLaw.mulSeries p) else 0 :=
+    ⟨fun d ↦ if 2 ≤ d () ∧ p ∣ d () then
+      MvPowerSeries.coeff d (W₀.formalGroupLaw.mulSeries p) else 0, fun _ ↦ rfl⟩
+  have hdeg : ∀ d : Unit →₀ ℕ, d.degree = d () := fun d ↦ by
+    rw [show d = Finsupp.single () (d ()) from Finsupp.ext fun i ↦ by cases i; simp,
+      Finsupp.degree_single, Finsupp.single_eq_same]
+  refine ⟨A, B, ?_, ?_, ?_, ?_⟩
+  · refine MvPowerSeries.ext fun d ↦ ?_
+    have hd : d = Finsupp.single () (d ()) := Finsupp.ext fun i ↦ by cases i; simp
+    rw [map_add, map_add, MvPowerSeries.coeff_C_mul, MvPowerSeries.coeff_X, hA, hB]
+    rcases Nat.lt_or_ge (d ()) 2 with h2 | h2
+    · rcases (show d () = 0 ∨ d () = 1 by lia) with h0 | h1
+      · have hd0 : d = 0 := hd.trans (by rw [h0, Finsupp.single_zero])
+        subst hd0
+        rw [MvPowerSeries.coeff_zero_eq_constantCoeff_apply,
+          W₀.formalGroupLaw.constantCoeff_mulSeries p,
+          if_neg (show ¬((0 : Unit →₀ ℕ) = Finsupp.single () 1) from fun hc ↦
+            one_ne_zero (Finsupp.single_eq_zero.mp hc.symm)),
+          if_neg (show ¬(2 ≤ (0 : Unit →₀ ℕ) () ∧ ¬ p ∣ (0 : Unit →₀ ℕ) ()) from by simp),
+          if_neg (show ¬(2 ≤ (0 : Unit →₀ ℕ) () ∧ p ∣ (0 : Unit →₀ ℕ) ()) from by simp)]
+        ring
+      · have hd1 : d = Finsupp.single () 1 := hd.trans (by rw [h1])
+        subst hd1
+        rw [ChabautyColeman.coeff_single_mulSeries, if_pos rfl,
+          if_neg (show ¬(2 ≤ (Finsupp.single () 1 : Unit →₀ ℕ) () ∧
+            ¬ p ∣ (Finsupp.single () 1 : Unit →₀ ℕ) ()) from by simp),
+          if_neg (show ¬(2 ≤ (Finsupp.single () 1 : Unit →₀ ℕ) () ∧
+            p ∣ (Finsupp.single () 1 : Unit →₀ ℕ) ()) from by simp)]
+        ring
+    · rw [if_neg (show ¬(d = Finsupp.single () 1) from fun hc ↦ by
+        rw [hc, Finsupp.single_eq_same] at h2; lia), mul_zero]
+      rcases Classical.em (p ∣ d ()) with hdvd | hdvd
+      · rw [if_neg (show ¬(2 ≤ d () ∧ ¬ p ∣ d ()) from by tauto),
+          if_pos (⟨h2, hdvd⟩ : 2 ≤ d () ∧ p ∣ d ())]
+        ring
+      · rw [if_pos (⟨h2, hdvd⟩ : 2 ≤ d () ∧ ¬ p ∣ d ()),
+          if_neg (show ¬(2 ≤ d () ∧ p ∣ d ()) from by tauto)]
+        ring
+  · intro d
+    rw [hA]
+    split_ifs with h
+    · exact ChabautyColeman.coeff_mulSeries_mem_span W₀.formalGroupLaw hp hpmem h.2
+    · exact zero_mem _
+  · intro d hlow
+    rw [hdeg] at hlow
+    rw [hA, if_neg fun hc ↦ absurd hc.1 (by omega)]
+  · intro d hlow
+    rw [hdeg] at hlow
+    rw [hB, if_neg fun hc ↦ absurd (Nat.le_of_dvd (by omega) hc.2) (by omega)]
+
 /-- Division by a uniformizer: the maximal ideal of `𝒪_v` is additively isomorphic to
 `𝒪_v` itself. -/
 private lemma maximalIdeal_addEquiv {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
