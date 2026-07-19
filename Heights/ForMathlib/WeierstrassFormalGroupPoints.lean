@@ -108,6 +108,40 @@ theorem _root_.ChabautyColeman.MvPSeries.eval_mem_maximalIdeal_pow
   have hsum := tsum_mem (IsAdic.isClosed_pow (I := maximalIdeal O) Fact.out k) hval
   rwa [htot.tsum_eq] at hsum
 
+omit W in
+/-- The value at points of `𝔪^j` of a series whose coefficients vanish below total degree
+`c` lies in `𝔪^(c·j)`. -/
+theorem _root_.ChabautyColeman.MvPSeries.eval_mem_maximalIdeal_pow_mul
+    {σ : Type*} [Finite σ] {z₀ : σ → O} (hz₀ : MvPowerSeries.HasEval z₀) {j c : ℕ}
+    (hmem : ∀ i, z₀ i ∈ maximalIdeal O ^ j) (h : MvPowerSeries σ O)
+    (hcoeff : ∀ d : σ →₀ ℕ, d.degree < c → MvPowerSeries.coeff d h = 0) :
+    MvPSeries.eval z₀ h ∈ maximalIdeal O ^ (c * j) := by
+  classical
+  have htot := MvPSeries.hasSum_eval hz₀ h
+  have hval : ∀ d : σ →₀ ℕ,
+      MvPowerSeries.coeff d h * d.prod (fun s e ↦ z₀ s ^ e) ∈ maximalIdeal O ^ (c * j) := by
+    intro d
+    rcases lt_or_ge d.degree c with hlt | hge
+    · rw [hcoeff d hlt, zero_mul]
+      exact zero_mem _
+    -- the monomial value lies in `𝔪^(j·degree d)`
+    have key : ∀ t : Finset σ, (∏ s ∈ t, z₀ s ^ d s) ∈ maximalIdeal O ^ (j * ∑ s ∈ t, d s) := by
+      intro t
+      induction t using Finset.induction with
+      | empty => simp
+      | insert s t hs ih =>
+        rw [Finset.prod_insert hs, Finset.sum_insert hs, Nat.mul_add, pow_add]
+        exact Ideal.mul_mem_mul (pow_mul (maximalIdeal O) j (d s) ▸
+          Ideal.pow_mem_pow (hmem s) (d s)) ih
+    refine Ideal.mul_mem_left _ _ (SetLike.le_def.mp
+      (Ideal.pow_le_pow_right (by calc c * j ≤ d.degree * j := by gcongr
+        _ = j * d.degree := mul_comm _ _)) ?_)
+    have hdeg : d.degree = ∑ s ∈ d.support, d s := rfl
+    rw [Finsupp.prod, hdeg]
+    exact key d.support
+  have hsum := tsum_mem (IsAdic.isClosed_pow (I := maximalIdeal O) Fact.out (c * j)) hval
+  rwa [htot.tsum_eq] at hsum
+
 /-- The value of the fixed-point series `w` at a parameter `t`. -/
 noncomputable def wEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.wSeries
 
@@ -380,6 +414,24 @@ theorem addEval_eq : W.addEval t₁ t₂ = W.iotaEval (W.thirdRootEval t₁ t₂
   simp only [MvPSeries.evalRingHom_apply] at h
   rw [eval_pair_subst_single h₁ h₂ W.constantCoeff_thirdRootSeries] at h
   exact h
+
+omit h₁ h₂ in
+/-- The addition series deviates from `t₁ + t₂` by `𝔪^(2j)` when both parameters lie in
+`𝔪^j`: the formal group law is `t₁ + t₂` to first order. -/
+theorem addEval_sub_add_mem {j : ℕ} (hj : j ≠ 0) (h₁ : t₁ ∈ maximalIdeal O ^ j)
+    (h₂ : t₂ ∈ maximalIdeal O ^ j) :
+    W.addEval t₁ t₂ - (t₁ + t₂) ∈ maximalIdeal O ^ (2 * j) := by
+  have h₁' : t₁ ∈ maximalIdeal O := Ideal.pow_le_self hj h₁
+  have h₂' : t₂ ∈ maximalIdeal O := Ideal.pow_le_self hj h₂
+  have hE := hasEval_pairElim h₁' h₂'
+  have heval : W.addEval t₁ t₂ - t₁ - t₂ =
+      MvPSeries.eval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂)
+        (W.addSeries - MvPowerSeries.X (Sum.inl ()) - MvPowerSeries.X (Sum.inr ())) := by
+    rw [MvPSeries.eval_sub hE, MvPSeries.eval_sub hE, MvPSeries.eval_X, MvPSeries.eval_X]
+    rfl
+  rw [show W.addEval t₁ t₂ - (t₁ + t₂) = W.addEval t₁ t₂ - t₁ - t₂ by ring, heval]
+  exact MvPSeries.eval_mem_maximalIdeal_pow_mul hE (by rintro (u | u) <;> assumption) _
+    (fun d hd ↦ W.coeff_addSeries_sub_of_degree_lt hd)
 
 /-- The symmetric evaluated intercept identity: `ν̂ = w(t₂) - λ̂·t₂`. -/
 theorem interceptEval_eq' :

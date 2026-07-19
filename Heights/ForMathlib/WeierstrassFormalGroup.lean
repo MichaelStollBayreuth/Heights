@@ -790,6 +790,89 @@ theorem subst_unitL_addSeries :
   rw [h]
   exact W.subst_unitR_addSeries
 
+/-- Extract a linear coefficient from an axis substitution: if substituting `X` at `s₀` and
+`0` at the other variable turns `f` into `X`, the linear coefficient of `f` at `s₀` is `1`. -/
+private lemma coeff_single_eq_one_of_subst_eq_X {f : MvPowerSeries (Unit ⊕ Unit) O}
+    {s₀ : Unit ⊕ Unit} {fam : Unit ⊕ Unit → MvPowerSeries Unit O}
+    (hfam₀ : fam s₀ = MvPowerSeries.X ()) (hfam : ∀ s ≠ s₀, fam s = 0)
+    (hsubst : MvPowerSeries.subst fam f = PowerSeries.X) :
+    MvPowerSeries.coeff (Finsupp.single s₀ 1) f = 1 := by
+  have hS : MvPowerSeries.HasSubst fam := by
+    refine MvPowerSeries.hasSubst_of_constantCoeff_zero fun s ↦ ?_
+    rcases eq_or_ne s s₀ with rfl | h
+    · rw [hfam₀]
+      exact MvPowerSeries.constantCoeff_X ()
+    · rw [hfam s h, map_zero]
+  have h := congrArg (MvPowerSeries.coeff (Finsupp.single () 1)) hsubst
+  rw [MvPowerSeries.coeff_subst hS, show (PowerSeries.X : PowerSeries O) =
+    MvPowerSeries.X () from rfl, MvPowerSeries.coeff_X, if_pos rfl] at h
+  rw [finsum_eq_single _ (Finsupp.single s₀ 1) (fun d hd ↦ ?_)] at h
+  · rwa [Finsupp.prod_single_index (h := fun s e ↦ fam s ^ e) (pow_zero _), hfam₀, pow_one,
+      MvPowerSeries.coeff_X, if_pos rfl, smul_eq_mul, mul_one] at h
+  · rcases Classical.em (∃ s ≠ s₀, d s ≠ 0) with ⟨s, hs, hds⟩ | hd0
+    · rw [Finsupp.prod, Finset.prod_eq_zero (Finsupp.mem_support_iff.mpr hds)
+        (by rw [hfam s hs, zero_pow hds]), map_zero, smul_zero]
+    · push Not at hd0
+      have hd' : d = Finsupp.single s₀ (d s₀) := Finsupp.ext fun u ↦ by
+        rcases eq_or_ne u s₀ with rfl | hu
+        · rw [Finsupp.single_eq_same]
+        · simp [hd0 u hu, Ne.symm hu]
+      have hne1 : d s₀ ≠ 1 := fun h1 ↦ hd (by rw [hd', h1])
+      rw [hd', Finsupp.prod_single_index (h := fun s e ↦ fam s ^ e) (pow_zero _), hfam₀,
+        MvPowerSeries.X_pow_eq () (d s₀), MvPowerSeries.coeff_monomial,
+        if_neg (by simpa using fun h ↦ absurd h.symm hne1), smul_zero]
+
+/-- The linear coefficient of the addition series in the first variable is `1`. -/
+theorem coeff_single_inl_addSeries :
+    MvPowerSeries.coeff (Finsupp.single (Sum.inl ()) 1) W.addSeries = 1 :=
+  coeff_single_eq_one_of_subst_eq_X rfl
+    (fun s h ↦ by
+      rcases s with u | u
+      · exact absurd rfl h
+      · rfl)
+    W.subst_unitR_addSeries
+
+/-- The linear coefficient of the addition series in the second variable is `1`. -/
+theorem coeff_single_inr_addSeries :
+    MvPowerSeries.coeff (Finsupp.single (Sum.inr ()) 1) W.addSeries = 1 :=
+  coeff_single_eq_one_of_subst_eq_X rfl
+    (fun s h ↦ by
+      rcases s with u | u
+      · rfl
+      · exact absurd rfl h)
+    W.subst_unitL_addSeries
+
+private lemma degree_two_var (d : Unit ⊕ Unit →₀ ℕ) :
+    d.degree = d (Sum.inl ()) + d (Sum.inr ()) := by
+  conv_lhs => rw [show d = Finsupp.single (Sum.inl ()) (d (Sum.inl ())) +
+    Finsupp.single (Sum.inr ()) (d (Sum.inr ())) from Finsupp.ext fun s ↦ by
+      rcases s with u | u <;> simp]
+  rw [map_add, Finsupp.degree_single, Finsupp.degree_single]
+
+/-- Below total degree `2`, the addition series agrees with `t₁ + t₂`: the formal group
+law is `F(t₁, t₂) = t₁ + t₂ + (higher order)`. -/
+theorem coeff_addSeries_sub_of_degree_lt {d : Unit ⊕ Unit →₀ ℕ} (hd : d.degree < 2) :
+    MvPowerSeries.coeff d (W.addSeries - MvPowerSeries.X (Sum.inl ()) -
+      MvPowerSeries.X (Sum.inr ())) = 0 := by
+  rw [degree_two_var] at hd
+  simp only [map_sub, MvPowerSeries.coeff_X]
+  have hcase : d (Sum.inl ()) = 0 ∧ d (Sum.inr ()) = 0 ∨
+      d (Sum.inl ()) = 1 ∧ d (Sum.inr ()) = 0 ∨
+      d (Sum.inl ()) = 0 ∧ d (Sum.inr ()) = 1 := by lia
+  have hext : ∀ a b, d (Sum.inl ()) = a → d (Sum.inr ()) = b →
+      d = Finsupp.single (Sum.inl ()) a + Finsupp.single (Sum.inr ()) b := fun a b ha hb ↦
+    Finsupp.ext fun s ↦ by rcases s with u | u <;> simp [← ha, ← hb]
+  rcases hcase with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;>
+    rw [show d = _ from hext _ _ h1 h2] <;>
+    simp [show MvPowerSeries.coeff (0 : Unit ⊕ Unit →₀ ℕ) W.addSeries =
+        MvPowerSeries.constantCoeff W.addSeries from rfl, W.constantCoeff_addSeries,
+      W.coeff_single_inl_addSeries, W.coeff_single_inr_addSeries,
+      Finsupp.single_eq_single_iff,
+      (Ne.symm (Finsupp.single_ne_zero.mpr one_ne_zero) :
+        (0 : Unit ⊕ Unit →₀ ℕ) ≠ Finsupp.single (Sum.inl ()) 1),
+      (Ne.symm (Finsupp.single_ne_zero.mpr one_ne_zero) :
+        (0 : Unit ⊕ Unit →₀ ℕ) ≠ Finsupp.single (Sum.inr ()) 1)]
+
 end AddZero
 
 section Naturality
