@@ -974,6 +974,30 @@ private lemma exists_aux_param [CharZero K] {t : v.adicCompletionIntegers K}
     exact hks
   · exact ne_iotaEval_self hsm hs0 (by rw [hsv, h2v, exp_lt_exp]; exact hkc)
 
+private lemma ne_of_coe_ne {z z' : W₀.formalGroupLaw.Points}
+    (h : (z () : v.adicCompletionIntegers K) ≠ (z' () : v.adicCompletionIntegers K)) :
+    z ≠ z' :=
+  fun h' ↦ h (congrArg (fun w ↦ (w () : v.adicCompletionIntegers K)) h')
+
+/-- An auxiliary point of the formal group avoiding a given nonzero point `z`, its formal
+inverse, and its own formal inverse (so that all sums involved in doubling `z` are chord
+cases). -/
+private lemma exists_aux_point [CharZero K] {z : W₀.formalGroupLaw.Points}
+    (h0 : (z () : v.adicCompletionIntegers K) ≠ 0) :
+    ∃ u : W₀.formalGroupLaw.Points, (u () : v.adicCompletionIntegers K) ≠ 0 ∧
+      u ≠ z ∧ u ≠ W₀.negPoint z ∧ W₀.negPoint u ≠ z ∧ W₀.negPoint u ≠ W₀.negPoint z ∧
+      (u () : v.adicCompletionIntegers K) ≠ W₀.iotaEval (u ()) := by
+  obtain ⟨s, hsm, hs0, hst, hsιt, hsιs⟩ := exists_aux_param (z ()).2 h0
+  refine ⟨fun _ ↦ ⟨s, hsm⟩, hs0, ne_of_coe_ne hst, ne_of_coe_ne ?_, ne_of_coe_ne ?_,
+    ne_of_coe_ne ?_, hsιs⟩
+  · rw [W₀.negPoint_apply_coe]
+    exact hsιt
+  · rw [W₀.negPoint_apply_coe]
+    exact fun h ↦ hsιt ((W₀.iotaEval_iotaEval hsm).symm.trans (congrArg _ h))
+  · rw [W₀.negPoint_apply_coe, W₀.negPoint_apply_coe]
+    exact fun h ↦ hst (((W₀.iotaEval_iotaEval hsm).symm.trans (congrArg _ h)).trans
+      (W₀.iotaEval_iotaEval (z ()).2))
+
 /-- The valuation of the `x`-coordinate `t/w(t)` is `v(t)⁻²`. -/
 theorem valued_formalPoint_x
     (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (ht0 : t ≠ 0) :
@@ -1428,6 +1452,20 @@ private lemma formalPoint_add_of_ne {z z' : W₀.formalGroupLaw.Points}
   · exact hne h
   · exact hnneg h
 
+
+include hW in
+/-- If additivity holds for a pair whose second point is not the negative of the first,
+the parameter of the sum does not vanish. -/
+private lemma add_param_ne_zero {z w : W₀.formalGroupLaw.Points}
+    (hc : formalPoint hW (z + w) = formalPoint hW z + formalPoint hW w)
+    (hne : w ≠ W₀.negPoint z) :
+    ((z + w) () : v.adicCompletionIntegers K) ≠ 0 := by
+  intro h
+  rw [formalPoint_of_param_eq_zero hW h] at hc
+  refine hne (formalPoint_injective hW ?_)
+  rw [formalPoint_negPoint hW]
+  exact eq_neg_of_add_eq_zero_right hc.symm
+
 variable [CharZero K]
 
 include hW in
@@ -1437,73 +1475,23 @@ private lemma formalPoint_add_self {z : W₀.formalGroupLaw.Points}
     (h0 : (z () : v.adicCompletionIntegers K) ≠ 0)
     (h2t : (z () : v.adicCompletionIntegers K) ≠ W₀.iotaEval (z ())) :
     formalPoint hW (z + z) = formalPoint hW z + formalPoint hW z := by
-  have hm := (z ()).2
-  obtain ⟨s, hsm, hs0, hst, hsιt, hsιs⟩ := exists_aux_param hm h0
-  -- the auxiliary point and the three chord additions
-  obtain ⟨u, hudef⟩ : ∃ u : W₀.formalGroupLaw.Points, u = fun _ ↦ ⟨s, hsm⟩ := ⟨_, rfl⟩
-  have hus : (u () : v.adicCompletionIntegers K) = s := by rw [hudef]
-  have hu0 : (u () : v.adicCompletionIntegers K) ≠ 0 := by rw [hus]; exact hs0
-  have hune : u ≠ z := by
-    intro h
-    apply hst
-    rw [← hus]
-    exact congrArg (fun w ↦ (w () : v.adicCompletionIntegers K)) h
-  have hunneg : u ≠ W₀.negPoint z := by
-    intro h
-    apply hsιt
-    rw [← hus]
-    exact congrArg (fun w ↦ (w () : v.adicCompletionIntegers K)) h
-  have husm : (u () : v.adicCompletionIntegers K) ∈
-      maximalIdeal (v.adicCompletionIntegers K) := (u ()).2
+  obtain ⟨u, hu0, hune, hunneg, hnune, hnunneg, huιu⟩ := exists_aux_point h0
   have hnu0 : ((W₀.negPoint u) () : v.adicCompletionIntegers K) ≠ 0 := by
-    rw [W₀.negPoint_apply_coe, hus]
-    exact W₀.iotaEval_ne_zero hsm hs0
-  have hnune : W₀.negPoint u ≠ z := by
-    intro h
-    apply hsιt
-    have h' := congrArg (fun w ↦ W₀.iotaEval (w () : v.adicCompletionIntegers K)) h
-    simp only [W₀.negPoint_apply_coe, hus] at h'
-    rw [W₀.iotaEval_iotaEval hsm] at h'
-    rw [← h']
-  have hnunneg : W₀.negPoint u ≠ W₀.negPoint z := by
-    intro h
-    apply hst
-    have h' := congrArg (fun w ↦ W₀.iotaEval (w () : v.adicCompletionIntegers K)) h
-    simp only [W₀.negPoint_apply_coe, hus] at h'
-    rw [W₀.iotaEval_iotaEval hsm, W₀.iotaEval_iotaEval hm] at h'
-    exact h'
+    rw [W₀.negPoint_apply_coe]
+    exact W₀.iotaEval_ne_zero (u ()).2 hu0
   have c1 : formalPoint hW (z + u) = formalPoint hW z + formalPoint hW u :=
     formalPoint_add_of_ne hW h0 hu0 hune hunneg
   have c2 : formalPoint hW (z + W₀.negPoint u) =
       formalPoint hW z + formalPoint hW (W₀.negPoint u) :=
     formalPoint_add_of_ne hW h0 hnu0 hnune hnunneg
-  have hpu : ((z + u) () : v.adicCompletionIntegers K) ≠ 0 := by
-    intro h
-    have hz : formalPoint hW z + formalPoint hW u = 0 := by
-      rw [← c1, formalPoint_of_param_eq_zero hW h]
-    have h1 : formalPoint hW u = formalPoint hW (W₀.negPoint z) := by
-      rw [formalPoint_negPoint hW]
-      exact eq_neg_of_add_eq_zero_right hz
-    exact hunneg (formalPoint_injective hW h1)
-  have hpnu : ((z + W₀.negPoint u) () : v.adicCompletionIntegers K) ≠ 0 := by
-    intro h
-    have hz : formalPoint hW z + formalPoint hW (W₀.negPoint u) = 0 := by
-      rw [← c2, formalPoint_of_param_eq_zero hW h]
-    have h1 : formalPoint hW u = formalPoint hW z := by
-      have h2 : formalPoint hW (W₀.negPoint u) = -formalPoint hW z :=
-        eq_neg_of_add_eq_zero_right hz
-      rw [formalPoint_negPoint hW, neg_inj] at h2
-      exact h2
-    exact hune (formalPoint_injective hW h1)
   have hcne : z + W₀.negPoint u ≠ z + u := by
     intro h
     have h' := congrArg (formalPoint hW) h
     rw [c1, c2] at h'
-    have h'' := add_left_cancel h'
     have h3 := congrArg (fun w ↦ (w () : v.adicCompletionIntegers K))
-      (formalPoint_injective hW h'')
-    simp only [W₀.negPoint_apply_coe, hus] at h3
-    exact hsιs h3.symm
+      (formalPoint_injective hW (add_left_cancel h'))
+    rw [W₀.negPoint_apply_coe] at h3
+    exact huιu h3.symm
   have hcnneg : z + W₀.negPoint u ≠ W₀.negPoint (z + u) := by
     intro h
     have h' := congrArg (formalPoint hW) h
@@ -1514,18 +1502,12 @@ private lemma formalPoint_add_self {z : W₀.formalGroupLaw.Points}
       (formalPoint_injective hW h''))
   have c3 : formalPoint hW ((z + u) + (z + W₀.negPoint u)) =
       formalPoint hW (z + u) + formalPoint hW (z + W₀.negPoint u) :=
-    formalPoint_add_of_ne hW hpu hpnu hcne hcnneg
+    formalPoint_add_of_ne hW (add_param_ne_zero hW c1 hunneg)
+      (add_param_ne_zero hW c2 hnunneg) hcne hcnneg
   have hkey : (z + u) + (z + W₀.negPoint u) = z + z := by
     rw [add_add_add_comm, W₀.add_negPoint, add_zero]
-  calc formalPoint hW (z + z)
-      = formalPoint hW ((z + u) + (z + W₀.negPoint u)) :=
-        (congrArg (formalPoint hW) hkey).symm
-    _ = formalPoint hW (z + u) + formalPoint hW (z + W₀.negPoint u) := c3
-    _ = (formalPoint hW z + formalPoint hW u) +
-        (formalPoint hW z + formalPoint hW (W₀.negPoint u)) := by rw [c1, c2]
-    _ = formalPoint hW z + formalPoint hW z := by
-      rw [formalPoint_negPoint hW]
-      abel
+  rw [← hkey, c3, c1, c2, formalPoint_negPoint hW]
+  abel
 
 include hW in
 /-- The parametrization of the kernel of reduction is additive. -/
