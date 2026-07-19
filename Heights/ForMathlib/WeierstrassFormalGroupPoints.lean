@@ -544,6 +544,11 @@ private lemma valued_le_one_of_sub {a b : v.adicCompletion K} {n : ℕ}
   rw [← exp_zero, exp_le_exp]
   lia
 
+private lemma valued_lhs_eq_rhs {x y : v.adicCompletion K} (hxy : W.Equation x y) :
+    Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) =
+      Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) :=
+  congrArg Valued.v (by linear_combination (W.equation_iff x y).mp hxy)
+
 private lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.iotaEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
@@ -598,98 +603,135 @@ private lemma valued_a₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_
 private lemma valued_a₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
 private lemma valued_a₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ valued_coe_le_one W₀.a₆
 
+/-- For `v(x) > 1`, the right-hand side of the Weierstrass equation has valuation `v(x)³`. -/
+private lemma valued_rhs_eq {x : v.adicCompletion K} (hA1 : 1 < Valued.v x) :
+    Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) = Valued.v x ^ 3 := by
+  set A := Valued.v x
+  have h1 : Valued.v (W.a₂ * x ^ 2) ≤ A ^ 2 := by
+    rw [map_mul, map_pow]
+    exact (mul_le_mul' (valued_a₂ hW) le_rfl).trans_eq (one_mul _)
+  have h2 : Valued.v (W.a₄ * x) ≤ A ^ 2 := by
+    rw [map_mul]
+    exact ((mul_le_mul' (valued_a₄ hW) le_rfl).trans_eq (one_mul _)).trans
+      (le_self_pow hA1.le (by lia))
+  have h3 : Valued.v W.a₆ ≤ A ^ 2 :=
+    (valued_a₆ hW).trans (hA1.le.trans (le_self_pow hA1.le (by lia)))
+  have hlow : Valued.v (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) < A ^ 3 :=
+    lt_of_le_of_lt ((Valued.v.map_add _ _).trans
+      (max_le h1 ((Valued.v.map_add _ _).trans (max_le h2 h3))))
+      (pow_lt_pow_right₀ hA1 (by lia))
+  rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact hlow), map_pow]
+
+/-- For integral `x`, the right-hand side of the Weierstrass equation is integral. -/
+private lemma valued_rhs_le {x : v.adicCompletion K} (hA1 : Valued.v x ≤ 1) :
+    Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) ≤ 1 := by
+  refine le_trans (Valued.v.map_add _ _) (max_le ?_ (le_trans (Valued.v.map_add _ _)
+    (max_le ?_ (le_trans (Valued.v.map_add _ _) (max_le ?_ (valued_a₆ hW))))))
+  · rw [map_pow]
+    exact pow_le_one' hA1 3
+  · rw [map_mul, map_pow]
+    exact mul_le_one' (valued_a₂ hW) (pow_le_one' hA1 2)
+  · rw [map_mul]
+    exact mul_le_one' (valued_a₄ hW) hA1
+
+/-- When `v(y)` dominates `v(x)` and exceeds `1`, the left-hand side of the Weierstrass
+equation has valuation `v(y)²`. -/
+private lemma valued_lhs_eq {x y : v.adicCompletion K} (hAB : Valued.v x < Valued.v y)
+    (hB1 : 1 < Valued.v y) :
+    Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) = Valued.v y ^ 2 := by
+  set B := Valued.v y
+  have h2 : Valued.v (W.a₁ * x * y) < B ^ 2 := by
+    rw [map_mul, map_mul]
+    calc Valued.v W.a₁ * Valued.v x * B ≤ 1 * Valued.v x * B :=
+        mul_le_mul' (mul_le_mul' (valued_a₁ hW) le_rfl) le_rfl
+      _ = Valued.v x * B := by rw [one_mul]
+      _ < B * B := mul_lt_mul_of_pos_right hAB (zero_lt_one.trans hB1)
+      _ = B ^ 2 := (sq B).symm
+  have h3 : Valued.v (W.a₃ * y) < B ^ 2 := by
+    rw [map_mul]
+    calc Valued.v W.a₃ * B ≤ 1 * B := mul_le_mul' (valued_a₃ hW) le_rfl
+      _ = B ^ 1 := by rw [one_mul, pow_one]
+      _ < B ^ 2 := pow_lt_pow_right₀ hB1 (by lia)
+  rw [Valuation.map_add_eq_of_lt_left _
+    (by rw [map_pow]; exact lt_of_le_of_lt (Valued.v.map_add _ _) (max_lt h2 h3)), map_pow]
+
+/-- A common bound `C ≥ 1` on `v(x)` and `v(y)` bounds the left-hand side of the
+Weierstrass equation by `C²`. -/
+private lemma valued_lhs_le {x y : v.adicCompletion K} {C : ℤᵐ⁰} (hxC : Valued.v x ≤ C)
+    (hyC : Valued.v y ≤ C) (h1C : 1 ≤ C) :
+    Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) ≤ C ^ 2 := by
+  refine le_trans (Valued.v.map_add _ _) (max_le ?_ (le_trans (Valued.v.map_add _ _)
+    (max_le ?_ ?_)))
+  · rw [map_pow]
+    exact pow_le_pow_left' hyC 2
+  · rw [map_mul, map_mul]
+    calc Valued.v W.a₁ * Valued.v x * Valued.v y ≤ 1 * C * C :=
+        mul_le_mul' (mul_le_mul' (valued_a₁ hW) hxC) hyC
+      _ = C ^ 2 := by rw [one_mul, sq]
+  · rw [map_mul]
+    calc Valued.v W.a₃ * Valued.v y ≤ 1 * C := mul_le_mul' (valued_a₃ hW) hyC
+      _ = C := one_mul C
+      _ ≤ C ^ 2 := le_self_pow h1C (by lia)
+
+/-- No point on the curve has `v(x) = exp 1`: an `x`-pole has even order. -/
+private lemma valued_ne_exp_one {x y : v.adicCompletion K} (hxy : W.Equation x y) :
+    Valued.v x ≠ exp (1 : ℤ) := by
+  intro hA1
+  have hval := valued_lhs_eq_rhs hxy
+  have hRHS : Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) = exp (3 : ℤ) := by
+    rw [valued_rhs_eq hW (by rw [hA1, ← exp_zero, exp_lt_exp]; lia), hA1, ← exp_nsmul,
+      nsmul_eq_mul]
+    norm_num
+  rcases le_or_gt (Valued.v y) (exp 1) with hB1 | hB1
+  · -- `v(y) ≤ exp 1` bounds the left-hand side by `exp 2 < exp 3`
+    have hle := valued_lhs_le hW hA1.le hB1 (by rw [← exp_zero, exp_le_exp]; lia)
+    rw [hval, hRHS, show (exp 1 : ℤᵐ⁰) ^ 2 = exp (2 : ℤ) by
+      rw [← exp_nsmul, nsmul_eq_mul]; norm_num, exp_le_exp] at hle
+    lia
+  · -- `v(y) > exp 1` gives `v(y)² = exp 3`, impossible by parity
+    have hB3 : Valued.v y ^ 2 = exp (3 : ℤ) := by
+      rw [← valued_lhs_eq hW (hA1 ▸ hB1) ((by rw [← exp_zero, exp_lt_exp]; lia :
+        (1 : ℤᵐ⁰) < exp (1 : ℤ)).trans hB1), hval, hRHS]
+    obtain ⟨b, hb⟩ : ∃ b : ℤ, Valued.v y = exp b :=
+      ⟨_, (exp_log (exp_pos.trans hB1).ne').symm⟩
+    rw [hb, ← exp_nsmul, exp_inj, nsmul_eq_mul] at hB3
+    push_cast at hB3
+    lia
+
 /-- On an affine point of the kernel of reduction, `v(y)² = v(x)³`; in particular `y ≠ 0`,
 and the parameter `-x/y` and the value `-1/y` lie in the maximal ideal. -/
 private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : exp (2 : ℤ) ≤ Valued.v x) :
     y ≠ 0 ∧ Valued.v (-x / y) ≤ exp (-1 : ℤ) ∧ Valued.v (-1 / y) ≤ exp (-1 : ℤ) := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := valued_a₁ hW
-  have ha₂ : Valued.v W.a₂ ≤ 1 := valued_a₂ hW
-  have ha₃ : Valued.v W.a₃ ≤ 1 := valued_a₃ hW
-  have ha₄ : Valued.v W.a₄ ≤ 1 := valued_a₄ hW
-  have ha₆ : Valued.v W.a₆ ≤ 1 := valued_a₆ hW
-  set A := Valued.v x with hA
-  have hA1 : (1 : ℤᵐ⁰) < A :=
+  have hA1 : (1 : ℤᵐ⁰) < Valued.v x :=
     lt_of_lt_of_le (by rw [← exp_zero]; exact exp_lt_exp.mpr (by lia)) hx
-  have hA0 : A ≠ 0 := (zero_lt_one.trans hA1).ne'
-  set B := Valued.v y with hB
-  have heq' : y ^ 2 + (W.a₁ * x * y + W.a₃ * y) =
-      x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) := by
-    linear_combination (W.equation_iff x y).mp hxy
-  have hval := congrArg Valued.v heq'
-  have hApow : A ^ 2 < A ^ 3 := pow_lt_pow_right₀ hA1 (by lia)
-  -- the right-hand side has valuation `A³`
-  have hRHS : Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) = A ^ 3 := by
-    have h1 : Valued.v (W.a₂ * x ^ 2) ≤ A ^ 2 := by
-      rw [map_mul, map_pow]
-      exact (mul_le_mul' ha₂ le_rfl).trans_eq (one_mul _)
-    have h2 : Valued.v (W.a₄ * x) ≤ A ^ 2 := by
-      rw [map_mul]
-      exact ((mul_le_mul' ha₄ le_rfl).trans_eq (one_mul _)).trans
-        (le_self_pow hA1.le (by lia))
-    have h3 : Valued.v W.a₆ ≤ A ^ 2 := ha₆.trans (hA1.le.trans (le_self_pow hA1.le (by lia)))
-    have hlow : Valued.v (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) < A ^ 3 :=
-      lt_of_le_of_lt ((Valued.v.map_add _ _).trans
-        (max_le h1 ((Valued.v.map_add _ _).trans (max_le h2 h3)))) hApow
-    rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact hlow), map_pow]
-  -- `B ≤ A` is impossible: the left-hand side would be too small
-  have hBA : A < B := by
+  have hval := valued_lhs_eq_rhs hxy
+  have hRHS := valued_rhs_eq hW hA1
+  -- `v(y) ≤ v(x)` would bound the left-hand side by `v(x)² < v(x)³`
+  have hBA : Valued.v x < Valued.v y := by
     by_contra hle
     push Not at hle
-    have h1 : Valued.v (y ^ 2) ≤ A ^ 2 := by
-      rw [map_pow]
-      exact pow_le_pow_left' hle 2
-    have h2 : Valued.v (W.a₁ * x * y) ≤ A ^ 2 := by
-      rw [map_mul, map_mul]
-      calc Valued.v W.a₁ * A * B ≤ 1 * A * A := mul_le_mul' (mul_le_mul' ha₁ le_rfl) hle
-        _ = A ^ 2 := by rw [one_mul, sq]
-    have h3 : Valued.v (W.a₃ * y) ≤ A ^ 2 := by
-      rw [map_mul]
-      exact ((mul_le_mul' ha₃ hle).trans_eq (one_mul _)).trans (le_self_pow hA1.le (by lia))
-    have hLHS_le : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) ≤ A ^ 2 :=
-      (Valued.v.map_add _ _).trans
-        (max_le h1 ((Valued.v.map_add _ _).trans (max_le h2 h3)))
-    rw [hval, hRHS] at hLHS_le
-    exact absurd hLHS_le (not_le.mpr hApow)
-  have hB1 : (1 : ℤᵐ⁰) < B := hA1.trans hBA
-  have hB0 : B ≠ 0 := (zero_lt_one.trans hB1).ne'
-  have hy0 : y ≠ 0 := by
-    intro h
-    rw [hB, h, map_zero] at hBA
-    simp at hBA
-  -- the left-hand side has valuation `B²`, so `B² = A³`
-  have hBA3 : B ^ 2 = A ^ 3 := by
-    have h2 : Valued.v (W.a₁ * x * y) < B ^ 2 := by
-      rw [map_mul, map_mul]
-      calc Valued.v W.a₁ * A * B ≤ 1 * A * B := mul_le_mul' (mul_le_mul' ha₁ le_rfl) le_rfl
-        _ = A * B := by rw [one_mul]
-        _ < B * B := mul_lt_mul_of_pos_right hBA (zero_lt_one.trans hB1)
-        _ = B ^ 2 := (sq B).symm
-    have h3 : Valued.v (W.a₃ * y) < B ^ 2 := by
-      rw [map_mul]
-      calc Valued.v W.a₃ * B ≤ 1 * B := mul_le_mul' ha₃ le_rfl
-        _ = B := one_mul B
-        _ < B ^ 2 := by
-          calc B = B ^ 1 := (pow_one B).symm
-            _ < B ^ 2 := pow_lt_pow_right₀ hB1 (by lia)
-    have hsum : Valued.v (W.a₁ * x * y + W.a₃ * y) < B ^ 2 :=
-      lt_of_le_of_lt (Valued.v.map_add _ _) (max_lt h2 h3)
-    have hLHS : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) = B ^ 2 := by
-      rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact hsum), map_pow]
-    rw [← hLHS, hval, hRHS]
+    have h := valued_lhs_le hW le_rfl hle hA1.le
+    rw [hval, hRHS] at h
+    exact absurd h (not_le.mpr (pow_lt_pow_right₀ hA1 (by lia)))
+  have hB1 : (1 : ℤᵐ⁰) < Valued.v y := hA1.trans hBA
+  have hy0 : y ≠ 0 := fun h ↦ by simp [h] at hB1
+  have hBA3 : Valued.v y ^ 2 = Valued.v x ^ 3 := by
+    rw [← valued_lhs_eq hW hBA hB1, hval, hRHS]
   -- pass to exponents
-  obtain ⟨a, ha⟩ : ∃ a : ℤ, A = exp a := ⟨log A, (exp_log hA0).symm⟩
-  obtain ⟨b, hb⟩ : ∃ b : ℤ, B = exp b := ⟨log B, (exp_log hB0).symm⟩
+  obtain ⟨a, ha⟩ : ∃ a : ℤ, Valued.v x = exp a :=
+    ⟨_, (exp_log (zero_lt_one.trans hA1).ne').symm⟩
+  obtain ⟨b, hb⟩ : ∃ b : ℤ, Valued.v y = exp b :=
+    ⟨_, (exp_log (zero_lt_one.trans hB1).ne').symm⟩
   have h2a : (2 : ℤ) ≤ a := by rwa [ha, exp_le_exp] at hx
   have h23 : 2 * b = 3 * a := by
-    have h := hBA3
-    rw [ha, hb, ← exp_nsmul, ← exp_nsmul, exp_inj] at h
-    push_cast [nsmul_eq_mul] at h
-    exact h
+    rw [ha, hb, ← exp_nsmul, ← exp_nsmul, exp_inj] at hBA3
+    push_cast [nsmul_eq_mul] at hBA3
+    exact hBA3
   refine ⟨hy0, ?_, ?_⟩
-  · rw [map_div₀, Valuation.map_neg, ← hA, ← hB, ha, hb, ← exp_sub, exp_le_exp]
+  · rw [map_div₀, Valuation.map_neg, ha, hb, ← exp_sub, exp_le_exp]
     lia
-  · rw [map_div₀, Valuation.map_neg, map_one, ← hB, hb, ← exp_zero, ← exp_sub, exp_le_exp]
+  · rw [map_div₀, Valuation.map_neg, map_one, hb, ← exp_zero, ← exp_sub, exp_le_exp]
     lia
 
 /-- An affine point outside the kernel of reduction has integral coordinates: the only
@@ -697,119 +739,23 @@ poles on a Weierstrass curve with integral coefficients have even order at `x`. 
 private lemma integral_of_not_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : ¬ exp (2 : ℤ) ≤ Valued.v x) :
     Valued.v x ≤ 1 ∧ Valued.v y ≤ 1 := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := valued_a₁ hW
-  have ha₂ : Valued.v W.a₂ ≤ 1 := valued_a₂ hW
-  have ha₃ : Valued.v W.a₃ ≤ 1 := valued_a₃ hW
-  have ha₄ : Valued.v W.a₄ ≤ 1 := valued_a₄ hW
-  have ha₆ : Valued.v W.a₆ ≤ 1 := valued_a₆ hW
-  have heq' : y ^ 2 + (W.a₁ * x * y + W.a₃ * y) =
-      x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) := by
-    linear_combination (W.equation_iff x y).mp hxy
-  have hval := congrArg Valued.v heq'
-  have hcase : (Valued.v x) ≤ 1 ∨ (Valued.v x) = exp 1 := by
+  have hA1 : Valued.v x ≤ 1 := by
     rcases eq_or_ne (Valued.v x) 0 with h0 | h0
-    · exact .inl (h0 ▸ zero_le)
-    · obtain ⟨a, ha⟩ : ∃ a : ℤ, (Valued.v x) = exp a := ⟨log (Valued.v x), (exp_log h0).symm⟩
+    · exact h0 ▸ zero_le
+    · obtain ⟨a, ha⟩ : ∃ a : ℤ, Valued.v x = exp a := ⟨_, (exp_log h0).symm⟩
       have ha1 : a ≤ 1 := by
         by_contra hlt
         exact hx (ha ▸ exp_le_exp.mpr (by lia))
       rcases eq_or_lt_of_le ha1 with h1 | h1
-      · exact .inr (by rw [ha, h1])
-      · exact .inl (by rw [ha, ← exp_zero, exp_le_exp]; lia)
-  rcases hcase with hA1 | hA1
-  · -- `x` integral forces `y` integral
-    refine ⟨hA1, ?_⟩
-    by_contra hB1
-    push Not at hB1
-    have hB0 : (Valued.v y) ≠ 0 := fun h ↦ by simp [h] at hB1
-    have h1 : Valued.v (W.a₁ * x * y + W.a₃ * y) < (Valued.v y) ^ 2 := by
-      refine lt_of_le_of_lt (Valued.v.map_add _ _) (max_lt ?_ ?_)
-      · rw [map_mul, map_mul]
-        calc Valued.v W.a₁ * Valued.v x * Valued.v y ≤ 1 * 1 * Valued.v y :=
-            mul_le_mul' (mul_le_mul' ha₁ hA1) le_rfl
-          _ = 1 * (Valued.v y) := by rw [one_mul]
-          _ < (Valued.v y) * (Valued.v y) := mul_lt_mul_of_pos_right hB1 (zero_lt_iff.mpr hB0)
-          _ = (Valued.v y) ^ 2 := (sq (Valued.v y)).symm
-      · rw [map_mul]
-        calc Valued.v W.a₃ * (Valued.v y) ≤ 1 * (Valued.v y) := mul_le_mul' ha₃ le_rfl
-          _ = (Valued.v y) ^ 1 := by rw [one_mul, pow_one]
-          _ < (Valued.v y) ^ 2 := pow_lt_pow_right₀ hB1 (by lia)
-    have hLHS : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) = (Valued.v y) ^ 2 := by
-      rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact h1), map_pow]
-    have hRHS : Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) ≤ 1 := by
-      refine le_trans (Valued.v.map_add _ _) (max_le ?_ (le_trans (Valued.v.map_add _ _)
-        (max_le ?_ (le_trans (Valued.v.map_add _ _) (max_le ?_ ha₆)))))
-      · rw [map_pow]
-        exact pow_le_one' hA1 3
-      · rw [map_mul, map_pow]
-        exact mul_le_one' ha₂ (pow_le_one' hA1 2)
-      · rw [map_mul]
-        exact mul_le_one' ha₄ hA1
-    rw [← hval, hLHS] at hRHS
-    exact absurd hRHS (not_le.mpr (one_lt_pow₀ hB1 (by lia)))
-  · -- `v(x) = exp 1` is impossible
-    exfalso
-    have hRHS : Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) = exp (3 : ℤ) := by
-      have hlow : Valued.v (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) < exp (3 : ℤ) := by
-        refine lt_of_le_of_lt (le_trans (Valued.v.map_add _ _) (max_le ?_
-          (le_trans (Valued.v.map_add _ _) (max_le ?_ ?_)))) (?_ : exp (2 : ℤ) < _)
-        · rw [map_mul, map_pow, hA1]
-          calc Valued.v W.a₂ * exp 1 ^ 2 ≤ 1 * exp 1 ^ 2 := mul_le_mul' ha₂ le_rfl
-            _ = exp (2 : ℤ) := by rw [one_mul, ← exp_nsmul, nsmul_eq_mul]; norm_num
-        · rw [map_mul, hA1]
-          calc Valued.v W.a₄ * exp 1 ≤ 1 * exp 1 := mul_le_mul' ha₄ le_rfl
-            _ ≤ exp (2 : ℤ) := by rw [one_mul, exp_le_exp]; lia
-        · exact ha₆.trans (by rw [← exp_zero, exp_le_exp]; lia)
-        · rw [exp_lt_exp]
-          lia
-      rw [show x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) = x ^ 3 +
-        (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) from rfl,
-        Valuation.map_add_eq_of_lt_left _ (by
-          rw [map_pow, hA1, ← exp_nsmul, nsmul_eq_mul]
-          norm_num at hlow ⊢
-          exact hlow),
-        map_pow, hA1, ← exp_nsmul, nsmul_eq_mul]
-      norm_num
-    rcases le_or_gt (Valued.v y) (exp 1) with hB1 | hB1
-    · have hLHS_le : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) ≤ exp (2 : ℤ) := by
-        refine le_trans (Valued.v.map_add _ _) (max_le ?_ (le_trans (Valued.v.map_add _ _)
-          (max_le ?_ ?_)))
-        · rw [map_pow]
-          calc (Valued.v y) ^ 2 ≤ exp 1 ^ 2 := pow_le_pow_left' hB1 2
-            _ = exp (2 : ℤ) := by rw [← exp_nsmul, nsmul_eq_mul]; norm_num
-        · rw [map_mul, map_mul, hA1]
-          calc Valued.v W.a₁ * exp 1 * (Valued.v y) ≤ 1 * exp 1 * exp 1 :=
-              mul_le_mul' (mul_le_mul' ha₁ le_rfl) hB1
-            _ = exp (2 : ℤ) := by rw [one_mul, ← exp_add]; norm_num
-        · rw [map_mul]
-          calc Valued.v W.a₃ * (Valued.v y) ≤ 1 * exp 1 := mul_le_mul' ha₃ hB1
-            _ ≤ exp (2 : ℤ) := by rw [one_mul, exp_le_exp]; lia
-      rw [hval, hRHS] at hLHS_le
-      rw [exp_le_exp] at hLHS_le
-      lia
-    · have hB0 : (Valued.v y) ≠ 0 := fun h ↦ by
-        rw [h] at hB1
-        exact absurd hB1 (by simp)
-      have h1 : Valued.v (W.a₁ * x * y + W.a₃ * y) < (Valued.v y) ^ 2 := by
-        refine lt_of_le_of_lt (Valued.v.map_add _ _) (max_lt ?_ ?_)
-        · rw [map_mul, map_mul, hA1]
-          calc Valued.v W.a₁ * exp 1 * (Valued.v y) ≤ 1 * exp 1 * (Valued.v y) :=
-              mul_le_mul' (mul_le_mul' ha₁ le_rfl) le_rfl
-            _ = exp 1 * (Valued.v y) := by rw [one_mul]
-            _ < (Valued.v y) * (Valued.v y) := mul_lt_mul_of_pos_right hB1 (zero_lt_iff.mpr hB0)
-            _ = (Valued.v y) ^ 2 := (sq (Valued.v y)).symm
-        · rw [map_mul]
-          calc Valued.v W.a₃ * (Valued.v y) ≤ 1 * (Valued.v y) := mul_le_mul' ha₃ le_rfl
-            _ = (Valued.v y) ^ 1 := by rw [one_mul, pow_one]
-            _ < (Valued.v y) ^ 2 := pow_lt_pow_right₀
-              (lt_trans (by rw [← exp_zero, exp_lt_exp]; lia) hB1) (by lia)
-      have hLHS : Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) = (Valued.v y) ^ 2 := by
-        rw [Valuation.map_add_eq_of_lt_left _ (by rw [map_pow]; exact h1), map_pow]
-      have hB3 : (Valued.v y) ^ 2 = exp (3 : ℤ) := by rw [← hLHS, hval, hRHS]
-      obtain ⟨b, hb⟩ : ∃ b : ℤ, (Valued.v y) = exp b := ⟨log (Valued.v y), (exp_log hB0).symm⟩
-      rw [hb, ← exp_nsmul, exp_inj, nsmul_eq_mul] at hB3
-      push_cast at hB3
-      lia
+      · exact absurd (by rw [ha, h1]) (valued_ne_exp_one hW hxy)
+      · rw [ha, ← exp_zero, exp_le_exp]
+        lia
+  refine ⟨hA1, ?_⟩
+  by_contra hB1
+  push Not at hB1
+  have h := valued_rhs_le hW hA1
+  rw [← valued_lhs_eq_rhs hxy, valued_lhs_eq hW (hA1.trans_lt hB1) hB1] at h
+  exact absurd h (not_le.mpr (one_lt_pow₀ hB1 (by lia)))
 
 /-- The coerced Weierstrass fixed-point equation for the value of `w`. -/
 private lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
