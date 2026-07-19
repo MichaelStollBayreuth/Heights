@@ -579,7 +579,9 @@ theorem nsmul_apply_coe_eq_eval (z : W.formalGroupLaw.Points) (m : ℕ) :
     ((m • z) () : O) = MvPSeries.eval (fun _ : Unit ↦ (z () : O))
       (W.formalGroupLaw.mulSeries m) := by
   induction m with
-  | zero => rw [zero_smul, FormalGroupLaw.mulSeries_zero, MvPSeries.eval_zero, FormalGroupLaw.zero_apply_coe]
+  | zero =>
+    rw [zero_smul, FormalGroupLaw.mulSeries_zero, MvPSeries.eval_zero,
+      FormalGroupLaw.zero_apply_coe]
   | succ m ih =>
     have hE : MvPowerSeries.HasEval (fun _ : Unit ↦ (z () : O)) :=
       MvPSeries.hasEval_of_mem fun _ ↦ (z ()).2
@@ -1276,6 +1278,84 @@ private lemma exists_mulSeries_split [CharZero K] {p : ℕ} (hp : p.Prime)
   · intro d hlow
     rw [hdeg] at hlow
     rw [hB, if_neg fun hc ↦ absurd (Nat.le_of_dvd (by omega) hc.2) (by omega)]
+
+/-- The absolute ramification index of the residue characteristic: `v(p) = exp(-e)` with
+`1 ≤ e`, and `e ≤ p - 2` under the ramification condition `p ∉ 𝔪^(p-1)`. -/
+private lemma exists_ramificationBound [CharZero K] {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1)) :
+    ∃ e : ℕ, 1 ≤ e ∧ e ≤ p - 2 ∧
+      Valued.v (((p : v.adicCompletionIntegers K) : v.adicCompletionIntegers K) :
+        v.adicCompletion K) = exp (-(e : ℤ)) ∧
+      (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K) ^ e := by
+  have hp0 : (p : v.adicCompletionIntegers K) ≠ 0 := fun h ↦ hp.ne_zero (by
+    have hchar : CharZero (v.adicCompletion K) :=
+      charZero_of_injective_algebraMap (algebraMap K (v.adicCompletion K)).injective
+    have h' := congrArg (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) h
+    rw [map_natCast, map_zero] at h'
+    exact_mod_cast h')
+  obtain ⟨e, he1, hev⟩ := ChabautyColeman.exists_valued_eq_exp_neg hpmem hp0
+  refine ⟨e, he1, ?_, hev, (v.mem_maximalIdeal_pow_iff (K := K)).mpr hev.le⟩
+  by_contra hlt
+  exact hpram ((v.mem_maximalIdeal_pow_iff (K := K)).mpr (by
+    rw [hev, exp_le_exp]
+    have := hp.two_le
+    omega))
+
+/-- A point of the formal group killed by the residue characteristic `p` is trivial
+under the ramification condition `p ∉ 𝔪^(p-1)` (that is, `e < p − 1`): the value
+`ψ_p(t) = p·t + A(t) + B(t)` cannot vanish, since `v(p·t)` beats both tails. -/
+private lemma points_eq_zero_of_nsmul_residueChar [CharZero K] {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {z : W₀.formalGroupLaw.Points} (hz : p • z = 0) : z = 0 := by
+  by_contra hz0
+  obtain ⟨k, hk1, hkv⟩ := ChabautyColeman.exists_valued_eq_exp_neg (z ()).2
+    (points_ne_zero_param hz0)
+  have htk : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ k :=
+    (v.mem_maximalIdeal_pow_iff (K := K)).mpr hkv.le
+  obtain ⟨e, he1, hele, hev, hpe⟩ := exists_ramificationBound hp hpmem hpram
+  -- the vanishing of `ψ_p(t)` and the two tail estimates
+  have h0 : MvPSeries.eval (fun _ : Unit ↦ (z () : v.adicCompletionIntegers K))
+      (W₀.formalGroupLaw.mulSeries p) = 0 := by
+    rw [← W₀.nsmul_apply_coe_eq_eval, hz, FormalGroupLaw.zero_apply_coe]
+  obtain ⟨A, B, hsplit, hAmem, hAlow, hBlow⟩ := exists_mulSeries_split (W₀ := W₀) hp hpmem
+  have hE : MvPowerSeries.HasEval (fun _ : Unit ↦ (z () : v.adicCompletionIntegers K)) :=
+    MvPSeries.hasEval_of_mem fun _ ↦ (z ()).2
+  have hevalA := MvPSeries.eval_mem_maximalIdeal_pow_add_mul hE (a := e) (c := 2)
+    (fun _ ↦ htk) A (fun d ↦ SetLike.le_def.mp
+      ((Ideal.span_singleton_le_iff_mem _).mpr hpe) (hAmem d)) hAlow
+  have hevalB := MvPSeries.eval_mem_maximalIdeal_pow_mul hE (c := p) (fun _ ↦ htk) B hBlow
+  -- hence `p·t` lies one level too deep
+  have hpt : (p : v.adicCompletionIntegers K) * (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (e + k + 1) := by
+    have hple : maximalIdeal (v.adicCompletionIntegers K) ^ (p * k) ≤
+        maximalIdeal (v.adicCompletionIntegers K) ^ (e + k + 1) :=
+      Ideal.pow_le_pow_right (by
+        have h2 := hp.two_le
+        have hmul : p - 1 ≤ (p - 1) * k := Nat.le_mul_of_pos_right _ (by omega)
+        have hdist : (p - 1) * k = p * k - k := by rw [Nat.sub_mul, one_mul]
+        omega)
+    have hale : maximalIdeal (v.adicCompletionIntegers K) ^ (e + 2 * k) ≤
+        maximalIdeal (v.adicCompletionIntegers K) ^ (e + k + 1) :=
+      Ideal.pow_le_pow_right (by omega)
+    have hsum := congrArg (MvPSeries.eval
+      (fun _ : Unit ↦ (z () : v.adicCompletionIntegers K))) hsplit
+    rw [h0, MvPSeries.eval_add hE, MvPSeries.eval_add hE, MvPSeries.eval_mul hE,
+      MvPSeries.eval_C, MvPSeries.eval_X] at hsum
+    rw [show (p : v.adicCompletionIntegers K) * (z () : v.adicCompletionIntegers K)
+      = -(MvPSeries.eval (fun _ : Unit ↦ (z () : v.adicCompletionIntegers K)) A
+        + MvPSeries.eval (fun _ : Unit ↦ (z () : v.adicCompletionIntegers K)) B) by
+      linear_combination -hsum]
+    exact neg_mem (add_mem (hale hevalA) (hple hevalB))
+  -- contradiction with the exact valuation `v(p·t) = exp (-(e+k))`
+  have hle := (v.mem_maximalIdeal_pow_iff (K := K)).mp hpt
+  rw [MulMemClass.coe_mul, map_mul, hev, hkv, ← exp_add, exp_le_exp] at hle
+  push_cast at hle
+  omega
 
 /-- Division by a uniformizer: the maximal ideal of `𝒪_v` is additively isomorphic to
 `𝒪_v` itself. -/
@@ -2102,6 +2182,58 @@ private lemma exists_sfun_eval_eq {n : ℕ} {π : v.adicCompletionIntegers K} (h
     rw [← hseq, hP, hzdef]
   rw [hsfun]
   exact ChabautyColeman.eval_eval_of_subst_eq_X hw he0 hle
+
+/-- **The kernel of reduction is torsion-free** under the standard ramification condition
+(Silverman VII.3.1(b)/VII.3.4): if the residue characteristic `p` satisfies
+`(p : 𝒪_v) ∉ 𝔪^(p-1)` — that is, `e < p − 1` for the absolute ramification index `e` —
+then `E₁(K_v)` contains no nonzero point of finite order.  Consequently the torsion of
+`E(K_v)` (and of any subgroup, such as the image of `E(K)`) injects into the reduction
+`E(K_v)/E₁(K_v)`. -/
+theorem eq_zero_of_isOfFinAddOrder_of_mem_filtration {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {P : W.Point} (hP : P ∈ filtration hW 0) (hord : IsOfFinAddOrder P) : P = 0 := by
+  by_contra hP0
+  obtain ⟨q, hq, hqdvd⟩ := (addOrderOf P).exists_prime_and_dvd
+    fun h1 ↦ hP0 (AddMonoid.addOrderOf_eq_one_iff.mp h1)
+  have hQmem : (addOrderOf P / q) • P ∈ filtration hW 0 :=
+    AddSubgroup.nsmul_mem _ hP _
+  have hQq : q • ((addOrderOf P / q) • P) = 0 := by
+    rw [← mul_nsmul, Nat.div_mul_cancel hqdvd]
+    exact addOrderOf_nsmul_eq_zero P
+  have hQ0 : (addOrderOf P / q) • P ≠ 0 := by
+    intro h
+    have hdvd := addOrderOf_dvd_iff_nsmul_eq_zero.mpr h
+    have hnpos : 0 < addOrderOf P := hord.addOrderOf_pos
+    have hmul : addOrderOf P = q * (addOrderOf P / q) := (Nat.mul_div_cancel' hqdvd).symm
+    have hm0 : addOrderOf P / q ≠ 0 := fun h0 ↦ by rw [h0, mul_zero] at hmul; omega
+    have hle := Nat.le_of_dvd (Nat.pos_of_ne_zero hm0) hdvd
+    have h2m := Nat.mul_le_mul_right (addOrderOf P / q) hq.two_le
+    omega
+  obtain ⟨θ, hθ⟩ := exists_points_equiv_filtration (hW := hW)
+  have hz : q • θ.symm ⟨(addOrderOf P / q) • P, hQmem⟩ = 0 := by
+    rw [← map_nsmul, show q • (⟨(addOrderOf P / q) • P, hQmem⟩ : filtration hW 0) = 0 from
+      Subtype.ext (by rw [AddSubgroup.coe_nsmul]; exact hQq), map_zero]
+  have hzz : θ.symm ⟨(addOrderOf P / q) • P, hQmem⟩ = 0 := by
+    rcases eq_or_ne q p with rfl | hqp
+    · exact points_eq_zero_of_nsmul_residueChar hp hpmem hpram hz
+    · exact points_eq_zero_of_nsmul_prime_ne hp hq hpmem hqp hz
+  refine hQ0 ?_
+  have h1 := congrArg θ hzz
+  rw [θ.apply_symm_apply, map_zero] at h1
+  simpa using congrArg Subtype.val h1
+
+/-- Torsion points of `E(K_v)` with the same image modulo the kernel of reduction agree:
+the reduction map is injective on torsion under the ramification condition. -/
+theorem isOfFinAddOrder.eq_of_sub_mem_filtration {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {P Q : W.Point} (hP : IsOfFinAddOrder P) (hQ : IsOfFinAddOrder Q)
+    (h : P - Q ∈ filtration hW 0) : P = Q :=
+  sub_eq_zero.mp (eq_zero_of_isOfFinAddOrder_of_mem_filtration hp hpmem hpram h
+    (sub_eq_add_neg P Q ▸ hP.add hQ.neg))
 
 variable [Finite (R ⧸ v.asIdeal)]
 
