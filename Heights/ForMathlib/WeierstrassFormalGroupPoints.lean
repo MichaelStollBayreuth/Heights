@@ -75,6 +75,17 @@ theorem eq_of_wPoly_fixed {t r r' : O} (ht : t ∈ maximalIdeal O) (hr : r ∈ m
     IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal (by simpa using neg_mem hm)
   exact sub_eq_zero.mp (hu.mul_right_eq_zero.mp hkey)
 
+/-- The leading coefficient `1 + a₂ Λ + a₄ Λ² + a₆ Λ³` of the chord cubic is a unit for
+`Λ` in the maximal ideal. -/
+lemma isUnit_chordCoeff {Λ : O} (hΛ : Λ ∈ maximalIdeal O) :
+    IsUnit (1 + W.a₂ * Λ + W.a₄ * Λ ^ 2 + W.a₆ * Λ ^ 3) := by
+  refine IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal ?_
+  rw [show 1 + W.a₂ * Λ + W.a₄ * Λ ^ 2 + W.a₆ * Λ ^ 3 - 1 =
+    W.a₂ * Λ + W.a₄ * Λ ^ 2 + W.a₆ * Λ ^ 3 by ring]
+  exact add_mem (add_mem (Ideal.mul_mem_left _ _ hΛ)
+    (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛ 2 two_pos)))
+    (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛ 3 (by lia)))
+
 variable [UniformSpace O] [Fact (IsAdic (maximalIdeal O))]
 
 omit W in
@@ -803,6 +814,20 @@ private lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
   rw [coe_a₁ hW, coe_a₃ hW] at h
   exact h
 
+/-- The coerced chord-cubic leading coefficient does not vanish. -/
+private lemma coe_chordCoeff_ne_zero {Λ : v.adicCompletionIntegers K}
+    (hΛ : Λ ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    (1 : v.adicCompletion K) +
+      W.a₂ * ((Λ : v.adicCompletionIntegers K) : v.adicCompletion K) +
+      W.a₄ * ((Λ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 2 +
+      W.a₆ * ((Λ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 3 ≠ 0 := by
+  intro hc
+  apply (W₀.isUnit_chordCoeff hΛ).ne_zero
+  refine Subtype.coe_injective ?_
+  push_cast
+  rw [coe_a₂ hW, coe_a₄ hW, coe_a₆ hW]
+  exact hc
+
 /-- Near a `2`-torsion base point `(x₀, y₀)`, the second factor of the finite-difference
 identity `(y - negY x₀ y₀) * (y - y₀) = (x - x₀) * (…)` is congruent to the negative of the
 partial derivative in `x` at the base point, hence has the same valuation `exp c`. -/
@@ -1299,19 +1324,6 @@ private lemma paramPoint_add {t₁ t₂ : v.adicCompletionIntegers K}
       .some _ _ (formalPoint_nonsingular hW hιm hι0) := by
   have hTm : W₀.thirdRootEval t₁ t₂ ∈ maximalIdeal (v.adicCompletionIntegers K) :=
     W₀.thirdRootEval_mem hm hm'
-  have hΛm : W₀.slopeEval t₁ t₂ ∈ maximalIdeal (v.adicCompletionIntegers K) :=
-    W₀.slopeEval_mem hm hm'
-  -- the leading coefficient of the chord cubic is a unit
-  have hA : IsUnit (1 + W₀.a₂ * W₀.slopeEval t₁ t₂ + W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 +
-      W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3) := by
-    refine IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal ?_
-    have h2 : (1 + W₀.a₂ * W₀.slopeEval t₁ t₂ + W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 +
-        W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3) - 1 = W₀.a₂ * W₀.slopeEval t₁ t₂ +
-        W₀.a₄ * W₀.slopeEval t₁ t₂ ^ 2 + W₀.a₆ * W₀.slopeEval t₁ t₂ ^ 3 := by ring
-    rw [h2]
-    exact add_mem (add_mem (Ideal.mul_mem_left _ _ hΛm)
-      (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛm 2 two_pos)))
-      (Ideal.mul_mem_left _ _ (Ideal.pow_mem_of_mem _ hΛm 3 (by lia)))
   -- coerced hypotheses for the field-level chord lemma
   have hslope := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
     (W₀.slopeEval_mul_sub hm hm')
@@ -1323,17 +1335,7 @@ private lemma paramPoint_add {t₁ t₂ : v.adicCompletionIntegers K}
     (W₀.wEval_thirdRootEval hm hm')
   push_cast at hslope hNc hT₃c hwTc
   rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW] at hT₃c
-  have hAc : ((1 : v.adicCompletion K) + W.a₂ *
-      ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) +
-      W.a₄ * ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 2 +
-      W.a₆ * ((W₀.slopeEval t₁ t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ^ 3)
-      ≠ 0 := by
-    intro hc
-    apply hA.ne_zero
-    refine Subtype.coe_injective ?_
-    push_cast
-    rw [coe_a₂ hW, coe_a₄ hW, coe_a₆ hW]
-    exact hc
+  have hAc := coe_chordCoeff_ne_zero hW (W₀.slopeEval_mem hm hm')
   have hw₁0 := coe_wEval_ne_zero (W₀ := W₀) hm h0
   have hw₂0 := coe_wEval_ne_zero (W₀ := W₀) hm' h0'
   have hwT0 := coe_wEval_ne_zero (W₀ := W₀) hTm hT0
