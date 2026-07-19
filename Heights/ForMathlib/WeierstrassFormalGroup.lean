@@ -925,7 +925,7 @@ section FieldChord
 
 /-! ### The chord construction computes the group law, at the level of field identities -/
 
-variable {F : Type*} [Field F] [DecidableEq F] (WF : WeierstrassCurve F)
+variable {F : Type*} [Field F] (WF : WeierstrassCurve F)
 
 private lemma chord_x_ne {q₁ q₂ w₁ w₂ : F} (hw₁0 : w₁ ≠ 0) (hw₂0 : w₂ ≠ 0)
     (hx : q₁ * w₂ - q₂ * w₁ ≠ 0) : q₁ / w₁ ≠ q₂ / w₂ := by
@@ -933,6 +933,20 @@ private lemma chord_x_ne {q₁ q₂ w₁ w₂ : F} (hw₁0 : w₁ ≠ 0) (hw₂0
   apply hx
   field_simp at h
   linear_combination h
+
+/-- The parametrized point `(q/w, -1/w)` is nonsingular whenever `(q, w)` satisfies the
+Weierstrass equation in the `(t, w)`-chart and the discriminant does not vanish. -/
+lemma chord_point_nonsingular {q w : F}
+    (hw : w = q ^ 3 + WF.a₁ * q * w + WF.a₂ * q ^ 2 * w + WF.a₃ * w ^ 2 +
+      WF.a₄ * q * w ^ 2 + WF.a₆ * w ^ 3)
+    (hw0 : w ≠ 0) (hΔ : WF.Δ ≠ 0) :
+    WF.toAffine.Nonsingular (q / w) (-1 / w) := by
+  refine (WF.toAffine.equation_iff_nonsingular_of_Δ_ne_zero hΔ).mp ?_
+  rw [Affine.equation_iff]
+  field_simp
+  linear_combination hw
+
+variable [DecidableEq F]
 
 private lemma chord_addX_addY {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
     (hw₁ : w₁ = q₁ ^ 3 + WF.a₁ * q₁ * w₁ + WF.a₂ * q₁ ^ 2 * w₁ + WF.a₃ * w₁ ^ 2 +
@@ -1094,18 +1108,6 @@ lemma chord_point_add {q₁ q₂ w₁ w₂ Λ N T₃ wT : F}
   simp only [Affine.Point.some.injEq]
   exact ⟨hX.symm, hY.symm⟩
 
-/-- The parametrized point `(q/w, -1/w)` is nonsingular whenever `(q, w)` satisfies the
-Weierstrass equation in the `(t, w)`-chart and the discriminant does not vanish. -/
-lemma chord_point_nonsingular {q w : F}
-    (hw : w = q ^ 3 + WF.a₁ * q * w + WF.a₂ * q ^ 2 * w + WF.a₃ * w ^ 2 +
-      WF.a₄ * q * w ^ 2 + WF.a₆ * w ^ 3)
-    (hw0 : w ≠ 0) (hΔ : WF.Δ ≠ 0) :
-    WF.toAffine.Nonsingular (q / w) (-1 / w) := by
-  refine (WF.toAffine.equation_iff_nonsingular_of_Δ_ne_zero hΔ).mp ?_
-  rw [Affine.equation_iff]
-  field_simp
-  linear_combination hw
-
 end FieldChord
 
 section OnLine
@@ -1223,7 +1225,7 @@ section Pair
 multivariate power series ring: the substitution plumbing feeding the identification of
 the addition series with the group law over the fraction field. -/
 
-variable {σ' : Type*} [Finite σ'] {q₁ q₂ : MvPowerSeries σ' O}
+variable {σ' : Type*} {q₁ q₂ : MvPowerSeries σ' O}
 
 private lemma hasSubst_pair (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
     (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
@@ -1284,7 +1286,7 @@ private lemma pair_intercept_identity₁ (h₁ : MvPowerSeries.constantCoeff q�
   simp only [map_sub, map_mul] at h
   simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
     subst_pair_rename h₁ h₂, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂),
-    Sum.elim_inl, Sum.elim_inr] at h
+    Sum.elim_inl] at h
   exact h
 
 private lemma pair_intercept_identity₂ (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
@@ -1296,7 +1298,7 @@ private lemma pair_intercept_identity₂ (h₁ : MvPowerSeries.constantCoeff q�
   simp only [map_sub, map_mul] at h
   simp only [MvPowerSeries.coe_substAlgHom (hasSubst_pair h₁ h₂),
     subst_pair_rename h₁ h₂, MvPowerSeries.subst_X (hasSubst_pair h₁ h₂),
-    Sum.elim_inl, Sum.elim_inr] at h
+    Sum.elim_inr] at h
   exact h
 
 private lemma pair_thirdRoot_constantCoeff (h₁ : MvPowerSeries.constantCoeff q₁ = 0)
@@ -1471,7 +1473,7 @@ end Pair
 
 section SingleIota
 
-variable {σ' : Type*} [Finite σ'] {q : MvPowerSeries σ' O}
+variable {σ' : Type*} {q : MvPowerSeries σ' O}
 
 private lemma single_u_mul (hq : MvPowerSeries.constantCoeff q = 0) :
     MvPowerSeries.subst (fun _ : Unit ↦ q) W.uSeries *
@@ -1545,17 +1547,6 @@ private lemma pair_X_inverse_intercept_mul :
 
 end SingleIota
 
-section Domain
-
-variable [IsDomain O]
-
-private lemma X_inl_ne_X_inr :
-    (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O) ≠
-      MvPowerSeries.X (Sum.inr ()) := by
-  intro h
-  have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single (Sum.inl ()) 1)) h
-  simp [MvPowerSeries.coeff_X, Finsupp.single_eq_single_iff] at h1
-
 private lemma line_left :
     W.slopeSeries * MvPowerSeries.X (Sum.inl ()) + W.interceptSeries =
       MvPowerSeries.rename (fun _ ↦ Sum.inl ()) W.wSeries := by
@@ -1576,6 +1567,28 @@ private lemma wsAt_rename (c : Unit → Unit ⊕ Unit) :
     show (PowerSeries.C : O →+* O⟦X⟧) = MvPowerSeries.C from rfl, MvPowerSeries.rename_C,
     show MvPowerSeries.rename c (PowerSeries.X : PowerSeries O) =
       MvPowerSeries.X (c ()) from MvPowerSeries.rename_X c ()]
+
+/-- Substitution of a pair of distinct variables is a rename. -/
+private lemma subst_pair_X_eq_rename {σ' : Type*} (s₁ s₂ : σ')
+    (f : MvPowerSeries (Unit ⊕ Unit) O) :
+    MvPowerSeries.subst
+      (Sum.elim (fun _ ↦ (MvPowerSeries.X s₁ : MvPowerSeries σ' O)) fun _ ↦ MvPowerSeries.X s₂)
+      f = MvPowerSeries.rename (Sum.elim (fun _ ↦ s₁) fun _ ↦ s₂) f := by
+  rw [MvPowerSeries.rename_eq_subst]
+  congr 1
+  funext s
+  rcases s with u | u <;> rfl
+
+section Domain
+
+variable [IsDomain O]
+
+private lemma X_inl_ne_X_inr :
+    (MvPowerSeries.X (Sum.inl ()) : MvPowerSeries (Unit ⊕ Unit) O) ≠
+      MvPowerSeries.X (Sum.inr ()) := by
+  intro h
+  have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single (Sum.inl ()) 1)) h
+  simp [MvPowerSeries.coeff_X, Finsupp.single_eq_single_iff] at h1
 
 set_option maxRecDepth 4000 in
 /-- Vieta: the chord value at the third root satisfies the Weierstrass equation there. -/
@@ -1649,7 +1662,7 @@ theorem subst_thirdRootSeries_wSeries :
   · exact lowVanish_one (by simp)
 
 /-- The on-line identity, along a parameter pair. -/
-private lemma pair_online {σ' : Type*} [Finite σ'] {q₁ q₂ : MvPowerSeries σ' O}
+private lemma pair_online {σ' : Type*} {q₁ q₂ : MvPowerSeries σ' O}
     (h₁ : MvPowerSeries.constantCoeff q₁ = 0) (h₂ : MvPowerSeries.constantCoeff q₂ = 0) :
     MvPowerSeries.subst (fun _ : Unit ↦
         MvPowerSeries.subst (Sum.elim (fun _ ↦ q₁) (fun _ ↦ q₂)) W.thirdRootSeries)
@@ -1664,7 +1677,7 @@ private lemma pair_online {σ' : Type*} [Finite σ'] {q₁ q₂ : MvPowerSeries 
   rwa [MvPowerSeries.subst_comp_subst_apply W.hasSubst_thirdRootSeries
     (hasSubst_pair h₁ h₂)] at h
 
-variable {σ' : Type*} [Finite σ']
+variable {σ' : Type*}
 
 /-- `w` composed with a nonzero parameter is nonzero (over a domain). -/
 private lemma subst_wSeries_ne_zero {q : MvPowerSeries σ' O}
@@ -1685,7 +1698,7 @@ private lemma subst_wSeries_ne_zero {q : MvPowerSeries σ' O}
     (fun d hd ↦ ?_)] at hc
   · rw [show MvPowerSeries.coeff (0 : Unit →₀ ℕ) W.vSeries =
       PowerSeries.constantCoeff W.vSeries from rfl, W.constantCoeff_vSeries] at hc
-    simpa using hc
+    simp at hc
   · rcases Finsupp.ne_iff.mp hd with ⟨u, hu⟩
     have hu' : d u ≠ 0 := by simpa using hu
     rw [smul_eq_mul, Finsupp.prod, map_prod]
@@ -1703,29 +1716,18 @@ private lemma interceptSeries_ne_zero : W.interceptSeries ≠ 0 := by
       MvPowerSeries.monomial (Finsupp.single (Sum.inl ()) 1) 1 from rfl,
     MvPowerSeries.coeff_mul_monomial, if_pos (by
       refine Finsupp.le_def.mpr fun s ↦ ?_
-      rcases s with u | u <;> simp [Finsupp.single_apply]),
+      rcases s with u | u <;> simp),
     W.coeff_slopeSeries] at h1
   have h2 : ((Finsupp.single (Sum.inl ()) 2 + Finsupp.single (Sum.inr ()) 1 -
       Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ)) (Sum.inl ()) = 1 := by
-    simp [Finsupp.single_apply]
+    simp
   have h3 : ((Finsupp.single (Sum.inl ()) 2 + Finsupp.single (Sum.inr ()) 1 -
       Finsupp.single (Sum.inl ()) 1 : Unit ⊕ Unit →₀ ℕ)) (Sum.inr ()) = 1 := by
-    simp [Finsupp.single_apply]
+    simp
   rw [h2, h3, W.coeff_wSeries_three, mul_one] at h1
-  simpa using h1
+  simp at h1
 
-/-- Substitution of a pair of distinct variables is a rename. -/
-private lemma subst_pair_X_eq_rename {σ' : Type*} [Finite σ'] (s₁ s₂ : σ')
-    (f : MvPowerSeries (Unit ⊕ Unit) O) :
-    MvPowerSeries.subst
-      (Sum.elim (fun _ ↦ (MvPowerSeries.X s₁ : MvPowerSeries σ' O)) fun _ ↦ MvPowerSeries.X s₂)
-      f = MvPowerSeries.rename (Sum.elim (fun _ ↦ s₁) fun _ ↦ s₂) f := by
-  rw [MvPowerSeries.rename_eq_subst]
-  congr 1
-  funext s
-  rcases s with u | u <;> rfl
-
-private lemma X_pair_intercept_ne_zero {σ' : Type*} [Finite σ'] {s₁ s₂ : σ'} (h : s₁ ≠ s₂) :
+private lemma X_pair_intercept_ne_zero {σ' : Type*} {s₁ s₂ : σ'} (h : s₁ ≠ s₂) :
     MvPowerSeries.subst
       (Sum.elim (fun _ ↦ (MvPowerSeries.X s₁ : MvPowerSeries σ' O)) fun _ ↦ MvPowerSeries.X s₂)
       W.interceptSeries ≠ 0 := by
@@ -1848,8 +1850,7 @@ section Assembly
 
 /-! ### Assembly: the addition series realizes the group law over the fraction field -/
 
-variable [IsDomain O] {σ' : Type*} [Finite σ'] {KK : Type*} [Field KK] [DecidableEq KK]
-  [Algebra (MvPowerSeries σ' O) KK] [IsFractionRing (MvPowerSeries σ' O) KK]
+variable {σ' : Type*} {KK : Type*} [Field KK] [Algebra (MvPowerSeries σ' O) KK]
 
 /-- The base-changed curve over the fraction field of the series ring. -/
 private noncomputable def fracCurve (W : WeierstrassCurve O) (σ' : Type*) (KK : Type*)
@@ -1878,6 +1879,8 @@ private lemma rho_weierstrass {q : MvPowerSeries σ' O}
   simp only [mvWStepAt, map_add, map_mul, map_pow] at h
   exact h
 
+variable [IsDomain O] [IsFractionRing (MvPowerSeries σ' O) KK]
+
 /-- The point of the base-changed curve with parameter `q`. -/
 private noncomputable def thetaPoint
     (hΔ : (fracCurve W σ' KK).Δ ≠ 0) {q : MvPowerSeries σ' O}
@@ -1889,6 +1892,7 @@ private noncomputable def thetaPoint
       (by rw [h, map_zero])))
     hΔ)
 
+variable [DecidableEq KK] in
 /-- The chord addition of parametrized points: `θ(q₁) + θ(q₂) = θ(F(q₁, q₂))`. -/
 private lemma thetaPoint_add (hΔ : (fracCurve W σ' KK).Δ ≠ 0)
     {q₁ q₂ : MvPowerSeries σ' O}
@@ -2182,7 +2186,7 @@ private lemma X_ne_zero' {σ'' : Type*} {O' : Type*} [CommRing O'] [Nontrivial O
   have h1 := congrArg (MvPowerSeries.coeff (Finsupp.single s 1)) h0
   simp [MvPowerSeries.coeff_X] at h1
 
-theorem assoc_addSeries_universal (i : Unit) :
+theorem assoc_addSeries_universal :
     MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ universal.addSeries))
       universal.addSeries =
     MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ universal.addSeries))
@@ -2420,7 +2424,7 @@ theorem assoc_addSeries (W : WeierstrassCurve O) :
     MvPowerSeries.subst (assocLeftFam (fun _ : Unit ↦ W.addSeries)) W.addSeries =
       MvPowerSeries.subst (assocRightFam (fun _ : Unit ↦ W.addSeries)) W.addSeries := by
   obtain ⟨φ, rfl⟩ := exists_map_universal W
-  have h := congrArg (MvPowerSeries.map φ) (assoc_addSeries_universal ())
+  have h := congrArg (MvPowerSeries.map φ) assoc_addSeries_universal
   rw [MvPowerSeries.map_subst universal.hasSubst_assocLeftFam_addSeries,
     MvPowerSeries.map_subst universal.hasSubst_assocRightFam_addSeries,
     universal.map_assocLeftFam_addSeries φ, universal.map_assocRightFam_addSeries φ,

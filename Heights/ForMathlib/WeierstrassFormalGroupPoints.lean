@@ -789,7 +789,7 @@ private lemma param_pow_iff {t : v.adicCompletionIntegers K}
   constructor <;> intro h <;> lia
 
 
-variable [DecidableEq (v.adicCompletion K)] [W.IsElliptic]
+variable [W.IsElliptic]
 
 include hW in
 /-- The parametrized point of the kernel of reduction attached to a parameter `t ∈ 𝔪`,
@@ -809,6 +809,8 @@ theorem formalPoint_nonsingular
     exact h
   · simp only [ne_eq, ZeroMemClass.coe_eq_zero]
     exact W₀.wEval_ne_zero ht ht0
+
+variable [DecidableEq (v.adicCompletion K)]
 
 /-- The point of the kernel of reduction attached to an `𝔪`-point of the formal group of
 the integral model `W₀`: the parameter `t` gives the affine point `(t/w(t), -1/w(t))`,
