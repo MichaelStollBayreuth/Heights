@@ -875,6 +875,31 @@ private lemma param_pow_iff {t : v.adicCompletionIntegers K}
   push_cast
   constructor <;> intro h <;> lia
 
+/-- The parameter map modulo `𝔪^(k+2)` is additive on parameters in `𝔪^(k+1)`. -/
+private lemma mk_add_param {k : ℕ} {z z' : W₀.formalGroupLaw.Points}
+    (hz : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1))
+    (hz' : (z' () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1)) :
+    Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+        (((z + z') ()) : v.adicCompletionIntegers K) =
+      Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)) (z ()) +
+      Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)) (z' ()) := by
+  rw [← map_add (Ideal.Quotient.mk _)]
+  refine (Ideal.Quotient.mk_eq_mk_iff_sub_mem _ _).mpr ?_
+  rw [W₀.add_apply_coe_eq_addEval]
+  refine SetLike.le_def.mp
+    (Ideal.pow_le_pow_right (m := k + 2) (n := 2 * (k + 1)) (by lia)) ?_
+  exact W₀.addEval_sub_add_mem (Nat.succ_ne_zero k) hz hz'
+
+private lemma finite_quotient_pow [Finite (R ⧸ v.asIdeal)] (m : ℕ) :
+    Finite (v.adicCompletionIntegers K ⧸
+      (maximalIdeal (v.adicCompletionIntegers K) ^ m)) := by
+  have hfin : Finite (v.adicCompletionIntegers K ⧸
+      maximalIdeal (v.adicCompletionIntegers K)) :=
+    Finite.of_equiv _ (v.residueFieldEquivAdicCompletionIntegers (K := K)).toEquiv
+  exact Ideal.finite_quotient_pow (IsNoetherian.noetherian _) m
+
 variable [W.IsElliptic]
 
 include hW in
@@ -1460,13 +1485,78 @@ theorem exists_points_equiv_filtration :
     exact ⟨z, Subtype.ext hz⟩
   · exact mem_pow_iff_formalPoint_mem_filtration z n
 
+/-- The filtration is decreasing. -/
+theorem filtration_anti {m n : ℕ} (hmn : m ≤ n) : filtration hW n ≤ filtration hW m := by
+  intro P hP
+  match P with
+  | .zero => trivial
+  | @Point.some _ _ _ x y h =>
+    rw [some_mem_filtration] at hP ⊢
+    refine le_trans (exp_le_exp.mpr ?_) hP
+    lia
+
 variable [Finite (R ⧸ v.asIdeal)]
 
-/-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
-finite index: the filtration steps are open subgroups of the compact group `E(K_v)`. -/
-theorem filtration_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
-    (v.adicCompletion K)) = W) (n : ℕ) : (filtration hW n).FiniteIndex :=
+/-- Each filtration step has finite index in the previous one: the parameter map modulo
+`𝔪^(k+2)` is additive on the `k`-th step (the formal group law is `t₁ + t₂` to first
+order) with kernel the next step, and it takes values in a finite quotient. -/
+private lemma relIndex_filtration_succ_ne_zero (k : ℕ) :
+    (filtration hW (k + 1)).relIndex (filtration hW k) ≠ 0 := by
+  obtain ⟨θ, hθ⟩ := exists_points_equiv_filtration (hW := hW)
+  -- the parameter of a point of the `k`-th filtration step
+  obtain ⟨par, hpar⟩ : ∃ par : filtration hW k → W₀.formalGroupLaw.Points,
+      par = fun P ↦ θ.symm ⟨P.1, filtration_anti (Nat.zero_le k) P.2⟩ := ⟨_, rfl⟩
+  have hθpar (P : filtration hW k) : ((θ (par P) : filtration hW 0) : W.Point) = P.1 := by
+    rw [hpar, θ.apply_symm_apply]
+  have hparam (P : filtration hW k) : ((par P) () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1) :=
+    (hθ _ k).mpr (by rw [hθpar]; exact P.2)
+  have hpar_add (P Q : filtration hW k) : par (P + Q) = par P + par Q := by
+    simp only [hpar]
+    rw [← map_add]
+    exact congrArg θ.symm (Subtype.ext rfl)
+  -- the parameter map modulo `𝔪^(k+2)` is additive
+  have hadd (P Q : filtration hW k) :
+      Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par (P + Q)) ()) =
+        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par P) ()) +
+        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par Q) ()) := by
+    rw [hpar_add]
+    exact mk_add_param (hparam P) (hparam Q)
+  obtain ⟨f, hf⟩ : ∃ f : filtration hW k →+ v.adicCompletionIntegers K ⧸
+      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)),
+      f = AddMonoidHom.mk' (fun P ↦ Ideal.Quotient.mk _ (((par P) ()) : v.adicCompletionIntegers K)) hadd := ⟨_, rfl⟩
+  have hker : f.ker = (filtration hW (k + 1)).addSubgroupOf (filtration hW k) := by
+    ext P
+    rw [AddMonoidHom.mem_ker, AddSubgroup.mem_addSubgroupOf, hf, AddMonoidHom.mk'_apply,
+      Ideal.Quotient.eq_zero_iff_mem, hθ _ (k + 1), hθpar]
+  have hfin : Finite (v.adicCompletionIntegers K ⧸
+      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))) := finite_quotient_pow (k + 2)
+  have hrel : (filtration hW (k + 1)).relIndex (filtration hW k) = f.ker.index :=
+    congrArg AddSubgroup.index hker.symm
+  rw [hrel, AddSubgroup.index_ker, Nat.card_ne_zero]
+  exact ⟨⟨0, 0, map_zero f⟩, Set.Finite.to_subtype (Set.toFinite _)⟩
+
+/-- The index of the `0`-th filtration step — the kernel of reduction `E₁(K_v)` — in
+`E(K_v)` is finite.  This is the remaining core of the finite-index statement. -/
+theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) : (filtration hW 0).FiniteIndex :=
   sorry
+
+/-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
+finite index, by induction: each step has finite index in the previous one
+(`relIndex_filtration_succ_ne_zero`), and the `0`-th step has finite index in `E(K_v)`. -/
+theorem filtration_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) (n : ℕ) : (filtration hW n).FiniteIndex := by
+  induction n with
+  | zero => exact filtration_zero_finiteIndex hW
+  | succ k ih =>
+    have h1 : (filtration hW (k + 1)).index ≠ 0 := by
+      rw [← AddSubgroup.relIndex_mul_index (filtration_anti (hW := hW) (Nat.le_succ k))]
+      exact Nat.mul_ne_zero (relIndex_filtration_succ_ne_zero k) ih.index_ne_zero
+    exact ⟨h1⟩
 
 /-- Some step of the valuation filtration on the points of an elliptic curve over `K_v` is
 isomorphic to the additive group of `𝒪_v`: for `𝔪^k` past the ramification of the residue
