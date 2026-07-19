@@ -1164,6 +1164,31 @@ private lemma isCompact_integerSet [Finite (R ⧸ v.asIdeal)] :
     rw [hset]
     exact (Valued.isClosed_valuationSubring _).isComplete
 
+/-- The set of integral points of a Weierstrass curve over `K_v` is compact. -/
+private lemma isCompact_integralPoints [Finite (R ⧸ v.asIdeal)] :
+    IsCompact {p : (v.adicCompletion K) × (v.adicCompletion K) |
+      W.Equation p.1 p.2 ∧ Valued.v p.1 ≤ 1 ∧ Valued.v p.2 ≤ 1} := by
+  have hcl : IsClosed {p : (v.adicCompletion K) × (v.adicCompletion K) |
+      W.Equation p.1 p.2} := by
+    have hset : {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} =
+        {p : (v.adicCompletion K) × (v.adicCompletion K) |
+          p.2 ^ 2 + W.a₁ * p.1 * p.2 + W.a₃ * p.2 =
+            p.1 ^ 3 + W.a₂ * p.1 ^ 2 + W.a₄ * p.1 + W.a₆} := by
+      ext p
+      rw [Set.mem_setOf, Set.mem_setOf, W.equation_iff]
+    rw [hset]
+    exact isClosed_eq (by fun_prop) (by fun_prop)
+  have hZeq : {p : (v.adicCompletion K) × (v.adicCompletion K) |
+      W.Equation p.1 p.2 ∧ Valued.v p.1 ≤ 1 ∧ Valued.v p.2 ≤ 1} =
+      ({a : v.adicCompletion K | Valued.v a ≤ 1} ×ˢ
+        {a : v.adicCompletion K | Valued.v a ≤ 1}) ∩
+      {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} := by
+    ext p
+    simp only [Set.mem_setOf, Set.mem_inter_iff, Set.mem_prod]
+    tauto
+  rw [hZeq]
+  exact (isCompact_integerSet.prod isCompact_integerSet).inter_right hcl
+
 variable [W.IsElliptic]
 
 include hW in
@@ -1832,52 +1857,25 @@ private lemma relIndex_filtration_succ_ne_zero (k : ℕ) :
   rw [hrel, AddSubgroup.index_ker, Nat.card_ne_zero]
   exact ⟨⟨0, 0, map_zero f⟩, Set.Finite.to_subtype (Set.toFinite _)⟩
 
-/-- The index of the `0`-th filtration step — the kernel of reduction `E₁(K_v)` — in
-`E(K_v)` is finite: the complement consists of integral points, which form a compact set
-covered by finitely many congruence neighbourhoods, each inside a single coset. -/
-theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
-    (v.adicCompletion K)) = W) : (filtration hW 0).FiniteIndex := by
-  rw [AddSubgroup.finiteIndex_iff_finite_quotient]
-  -- the compact set of integral points of the curve
+/-- Finitely many integral points cover the integral locus of the curve up to elements of
+the kernel of reduction (by compactness and the local congruence levels). -/
+private lemma exists_finite_integral_cover :
+    ∃ P : Set W.Point, P.Finite ∧ ∀ {x y : v.adicCompletion K}
+      (h : W.Nonsingular x y), Valued.v x ≤ 1 → Valued.v y ≤ 1 →
+      ∃ p ∈ P, (.some x y h : W.Point) - p ∈ filtration hW 0 := by
   obtain ⟨Z, hZdef⟩ : ∃ Z : Set ((v.adicCompletion K) × (v.adicCompletion K)),
       Z = {p | W.Equation p.1 p.2 ∧ Valued.v p.1 ≤ 1 ∧ Valued.v p.2 ≤ 1} := ⟨_, rfl⟩
   have hZcpt : IsCompact Z := by
-    have hcl : IsClosed {p : (v.adicCompletion K) × (v.adicCompletion K) |
-        W.Equation p.1 p.2} := by
-      have hset : {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} =
-          {p : (v.adicCompletion K) × (v.adicCompletion K) |
-            p.2 ^ 2 + W.a₁ * p.1 * p.2 + W.a₃ * p.2 =
-              p.1 ^ 3 + W.a₂ * p.1 ^ 2 + W.a₄ * p.1 + W.a₆} := by
-        ext p
-        rw [Set.mem_setOf, Set.mem_setOf, W.equation_iff]
-      rw [hset]
-      exact isClosed_eq (by fun_prop) (by fun_prop)
-    have hprod : IsCompact ({a : v.adicCompletion K | Valued.v a ≤ 1} ×ˢ
-        {a : v.adicCompletion K | Valued.v a ≤ 1}) :=
-      isCompact_integerSet.prod isCompact_integerSet
-    have hZeq : Z = ({a : v.adicCompletion K | Valued.v a ≤ 1} ×ˢ
-        {a : v.adicCompletion K | Valued.v a ≤ 1}) ∩
-        {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} := by
-      rw [hZdef]
-      ext p
-      simp only [Set.mem_setOf, Set.mem_inter_iff, Set.mem_prod]
-      tauto
-    rw [hZeq]
-    exact hprod.inter_right hcl
-  -- nonsingularity and congruence levels on `Z`
-  have hmemZ : ∀ p : ↥Z, W.Equation p.1.1 p.1.2 ∧ Valued.v p.1.1 ≤ 1 ∧
-      Valued.v p.1.2 ≤ 1 := fun ⟨q, hq⟩ ↦ by
+    rw [hZdef]
+    exact isCompact_integralPoints
+  have hns : ∀ p : ↥Z, W.Nonsingular p.1.1 p.1.2 := fun ⟨q, hq⟩ ↦
+    (W.equation_iff_nonsingular_of_Δ_ne_zero W.isUnit_Δ.ne_zero).mp (by
+      rw [hZdef] at hq
+      exact hq.1)
+  have hint : ∀ p : ↥Z, Valued.v p.1.1 ≤ 1 := fun ⟨q, hq⟩ ↦ by
     rw [hZdef] at hq
-    exact hq
-  have hns : ∀ p : ↥Z, W.Nonsingular p.1.1 p.1.2 := fun p ↦
-    (W.equation_iff_nonsingular_of_Δ_ne_zero W.isUnit_Δ.ne_zero).mp (hmemZ p).1
-  have hint : ∀ p : ↥Z, Valued.v p.1.1 ≤ 1 ∧ Valued.v p.1.2 ≤ 1 := fun p ↦ (hmemZ p).2
-  have hloc : ∀ p : ↥Z, ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
-      Valued.v (x - p.1.1) ≤ exp (-(s : ℤ)) → Valued.v (y - p.1.2) ≤ exp (-(s : ℤ)) →
-      (.some x y h : W.Point) - .some p.1.1 p.1.2 (hns p) ∈ filtration hW 0 :=
-    fun p ↦ exists_level_sub_mem (hns p) (hint p).1
-  choose sfun hsfun using hloc
-  -- the covering by congruence neighbourhoods and its finite subcover
+    exact hq.2.1
+  choose sfun hsfun using fun p : ↥Z ↦ exists_level_sub_mem (hns p) (hint p)
   obtain ⟨t, ht⟩ := hZcpt.elim_finite_subcover
     (fun p : ↥Z ↦ {b : v.adicCompletion K | Valued.v (b - p.1.1) ≤ exp (-(sfun p : ℤ))} ×ˢ
       {b : v.adicCompletion K | Valued.v (b - p.1.2) ≤ exp (-(sfun p : ℤ))})
@@ -1886,12 +1884,28 @@ theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletion
       refine Set.mem_prod.mpr ⟨?_, ?_⟩ <;>
         · rw [Set.mem_setOf, sub_self, map_zero]
           exact zero_le⟩)
-  -- the counting surjection from the finite subcover
-  refine Finite.of_surjective (α := Option {p : ↥Z // p ∈ t}) (fun o ↦ o.elim
-    (0 : W.Point ⧸ filtration hW 0) (fun p ↦ QuotientAddGroup.mk
-      (.some p.1.1.1 p.1.1.2 (hns p.1)))) fun c ↦ ?_
-  obtain ⟨P, rfl⟩ := QuotientAddGroup.mk_surjective c
-  match P with
+  refine ⟨(fun p : ↥Z ↦ (.some p.1.1 p.1.2 (hns p) : W.Point)) '' t,
+    t.finite_toSet.image _, fun {x y} h hxI hyI ↦ ?_⟩
+  have hqZ : (x, y) ∈ Z := by
+    rw [hZdef]
+    exact ⟨h.left, hxI, hyI⟩
+  obtain ⟨p, hpt, hpU⟩ := Set.mem_iUnion₂.mp (ht hqZ)
+  exact ⟨_, Set.mem_image_of_mem _ hpt,
+    hsfun p h (Set.mem_prod.mp hpU).1 (Set.mem_prod.mp hpU).2⟩
+
+/-- The kernel of reduction has finite index in `E(K_v)`: the complement consists of
+integral points, which a compactness argument covers by finitely many congruence
+neighbourhoods. -/
+theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
+    (v.adicCompletion K)) = W) : (filtration hW 0).FiniteIndex := by
+  rw [AddSubgroup.finiteIndex_iff_finite_quotient]
+  obtain ⟨P, hPfin, hP⟩ := exists_finite_integral_cover (hW := hW)
+  have := hPfin.to_subtype
+  refine Finite.of_surjective (α := Option ↥P)
+    (fun o ↦ o.elim (0 : W.Point ⧸ filtration hW 0) fun p ↦ QuotientAddGroup.mk p.1)
+    fun c ↦ ?_
+  obtain ⟨Q, rfl⟩ := QuotientAddGroup.mk_surjective c
+  match Q with
   | .zero => exact ⟨none, rfl⟩
   | @Point.some _ _ _ x y h =>
     by_cases hmem : (.some x y h : W.Point) ∈ filtration hW 0
@@ -1899,13 +1913,8 @@ theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletion
     · have hxpole : ¬ exp (2 : ℤ) ≤ Valued.v x := fun hc ↦ hmem
         ((some_mem_filtration (hW := hW)).mpr (le_trans (exp_le_exp.mpr (by lia)) hc))
       obtain ⟨hxI, hyI⟩ := integral_of_not_mem hW h.left hxpole
-      have hqZ : (x, y) ∈ Z := by
-        rw [hZdef]
-        exact ⟨h.left, hxI, hyI⟩
-      obtain ⟨p, hpt, hpU⟩ := Set.mem_iUnion₂.mp (ht hqZ)
-      refine ⟨some ⟨p, hpt⟩, ?_⟩
-      have hd := hsfun p h (Set.mem_prod.mp hpU).1 (Set.mem_prod.mp hpU).2
-      exact ((QuotientAddGroup.eq_iff_sub_mem).mpr hd).symm
+      obtain ⟨p, hpP, hd⟩ := hP h hxI hyI
+      exact ⟨some ⟨p, hpP⟩, ((QuotientAddGroup.eq_iff_sub_mem).mpr hd).symm⟩
 
 /-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
 finite index, by induction: each step has finite index in the previous one
