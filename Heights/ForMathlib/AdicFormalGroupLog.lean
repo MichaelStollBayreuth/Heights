@@ -189,6 +189,135 @@ theorem subst_scaledFC_descent (hf : Function.Injective f)
 
 end Descent
 
+/-! ### The multiplication-by-`m` series -/
+
+section MulSeries
+
+variable {O : Type*} [CommRing O] (Φ : FormalGroupLaw O Unit)
+
+/-- The multiplication-by-`m` series of a one-parameter formal group law:
+`ψ_0 = 0` and `ψ_{m+1} = F(X, ψ_m)`. -/
+noncomputable def mulSeries : ℕ → MvPowerSeries Unit O
+  | 0 => 0
+  | m + 1 => MvPowerSeries.subst
+      (Sum.elim (fun _ : Unit ↦ (X () : MvPowerSeries Unit O)) fun _ : Unit ↦ mulSeries m)
+      (Φ.F ())
+
+theorem mulSeries_zero : Φ.mulSeries 0 = 0 := rfl
+
+theorem mulSeries_succ (m : ℕ) : Φ.mulSeries (m + 1) = MvPowerSeries.subst
+    (Sum.elim (fun _ : Unit ↦ (X () : MvPowerSeries Unit O)) fun _ : Unit ↦ Φ.mulSeries m)
+    (Φ.F ()) := rfl
+
+theorem constantCoeff_mulSeries (m : ℕ) : constantCoeff (Φ.mulSeries m) = 0 := by
+  induction m with
+  | zero => rw [mulSeries_zero, map_zero]
+  | succ m ih =>
+    have h0 : ∀ i : Unit ⊕ Unit, constantCoeff (Sum.elim (fun _ : Unit ↦
+        (X () : MvPowerSeries Unit O)) (fun _ : Unit ↦ Φ.mulSeries m) i) = 0 := by
+      rintro (u | u)
+      · exact constantCoeff_X ()
+      · exact ih
+    rw [mulSeries_succ]
+    exact constantCoeff_subst_eq_zero (hasSubst_of_constantCoeff_zero h0) h0
+      (Φ.zero_constantCoeff ())
+
+theorem hasSubst_mulSeries_pair (m : ℕ) : MvPowerSeries.HasSubst
+    (Sum.elim (fun _ : Unit ↦ (X () : MvPowerSeries Unit O)) fun _ : Unit ↦ Φ.mulSeries m) :=
+  hasSubst_of_constantCoeff_zero (by
+    rintro (u | u)
+    · exact constantCoeff_X ()
+    · exact Φ.constantCoeff_mulSeries m)
+
+theorem hasSubst_mulSeries (m : ℕ) :
+    MvPowerSeries.HasSubst (fun _ : Unit ↦ Φ.mulSeries m) :=
+  hasSubst_of_constantCoeff_zero fun _ ↦ Φ.constantCoeff_mulSeries m
+
+theorem map_mulSeries {O' : Type*} [CommRing O'] (f : O →+* O') (m : ℕ) :
+    MvPowerSeries.map f (Φ.mulSeries m) = (Φ.map f).mulSeries m := by
+  induction m with
+  | zero => rw [mulSeries_zero, mulSeries_zero, map_zero]
+  | succ m ih =>
+    rw [mulSeries_succ, mulSeries_succ, map_subst (Φ.hasSubst_mulSeries_pair m)]
+    congr 1
+    funext i
+    rcases i with u | u
+    · exact MvPowerSeries.map_X f _
+    · exact ih
+
+end MulSeries
+
+/-! ### The logarithm of the multiplication series and its derivative -/
+
+section LogMul
+
+private lemma subst_zero_fam {σ R : Type*} [Finite σ] [CommRing R] {f : MvPowerSeries σ R}
+    (hf : constantCoeff f = 0) :
+    MvPowerSeries.subst (fun _ : σ ↦ (0 : MvPowerSeries σ R)) f = 0 := by
+  have h0 : MvPowerSeries.HasSubst (fun _ : σ ↦ (0 : MvPowerSeries σ R)) :=
+    hasSubst_of_constantCoeff_zero fun _ ↦ map_zero _
+  ext d
+  rw [coeff_subst h0]
+  refine (finsum_eq_zero_of_forall_eq_zero fun m ↦ ?_).trans (map_zero (coeff d)).symm
+  rcases eq_or_ne m 0 with rfl | hm
+  · rw [coeff_zero_eq_constantCoeff_apply, hf, zero_smul]
+  · obtain ⟨i, hi⟩ := Finsupp.support_nonempty_iff.mpr hm
+    rw [Finsupp.prod, Finset.prod_eq_zero hi
+      (zero_pow (Finsupp.mem_support_iff.mp hi)), map_zero, smul_zero]
+
+variable {K : Type*} [Field K] [CharZero K] (Φ : FormalGroupLaw K Unit)
+
+/-- The formal logarithm turns the multiplication-by-`m` series into `m • log`. -/
+theorem subst_mulSeries_log (m : ℕ) :
+    MvPowerSeries.subst (fun _ : Unit ↦ Φ.mulSeries m) (Φ.log ()) = m • Φ.log () := by
+  induction m with
+  | zero => rw [mulSeries_zero, zero_smul, subst_zero_fam (Φ.constantCoeff_log ())]
+  | succ m ih =>
+    have hpair := Φ.hasSubst_mulSeries_pair m
+    have hXfam : (fun s : Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ : Unit ↦ X ())
+        (fun _ : Unit ↦ Φ.mulSeries m)) (X (Sum.inl s) : MvPowerSeries (Unit ⊕ Unit) K))
+        = (X ∘ id : Unit → MvPowerSeries Unit K) :=
+      funext fun s ↦ by cases s; rw [subst_X hpair]; rfl
+    have hψfam : (fun s : Unit ↦ MvPowerSeries.subst (Sum.elim (fun _ : Unit ↦ X ())
+        (fun _ : Unit ↦ Φ.mulSeries m)) (X (Sum.inr s) : MvPowerSeries (Unit ⊕ Unit) K))
+        = fun _ : Unit ↦ Φ.mulSeries m :=
+      funext fun s ↦ by rw [subst_X hpair]; rfl
+    have hinl : MvPowerSeries.HasSubst fun s : Unit ↦ (X (Sum.inl s) :
+        MvPowerSeries (Unit ⊕ Unit) K) := hasSubst_of_constantCoeff_zero fun s ↦ by simp
+    have hinr : MvPowerSeries.HasSubst fun s : Unit ↦ (X (Sum.inr s) :
+        MvPowerSeries (Unit ⊕ Unit) K) := hasSubst_of_constantCoeff_zero fun s ↦ by simp
+    calc MvPowerSeries.subst (fun _ : Unit ↦ Φ.mulSeries (m + 1)) (Φ.log ())
+        = MvPowerSeries.subst (Sum.elim (fun _ : Unit ↦ X ()) fun _ : Unit ↦ Φ.mulSeries m)
+            (MvPowerSeries.subst (fun j : Unit ↦ Φ.F j) (Φ.log ())) := by
+          rw [show (fun _ : Unit ↦ Φ.mulSeries (m + 1)) = fun j : Unit ↦ MvPowerSeries.subst
+            (Sum.elim (fun _ : Unit ↦ X ()) fun _ : Unit ↦ Φ.mulSeries m) (Φ.F j) from
+              funext fun j ↦ by cases j; rw [mulSeries_succ],
+            subst_comp_subst_apply (hasSubst_F Φ) hpair]
+      _ = MvPowerSeries.subst (Sum.elim (fun _ : Unit ↦ X ()) fun _ : Unit ↦ Φ.mulSeries m)
+            (MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inl s) :
+                MvPowerSeries (Unit ⊕ Unit) K)) (Φ.log ()))
+          + MvPowerSeries.subst (Sum.elim (fun _ : Unit ↦ X ()) fun _ : Unit ↦ Φ.mulSeries m)
+              (MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inr s) :
+                  MvPowerSeries (Unit ⊕ Unit) K)) (Φ.log ())) := by
+          rw [Φ.log_subst_F (), ← coe_substAlgHom hpair, map_add, coe_substAlgHom hpair]
+      _ = Φ.log () + m • Φ.log () := by
+          rw [subst_comp_subst_apply hinl hpair, subst_comp_subst_apply hinr hpair,
+            hXfam, hψfam, ← rename_eq_subst, rename_id, ih]
+          rfl
+      _ = (m + 1) • Φ.log () := (succ_nsmul' _ _).symm
+
+/-- Differentiating the logarithm identity: `(M⁻¹ ∘ ψ_m) · ψ_m′ = m • M⁻¹`. -/
+theorem subst_mulSeries_diffInv_mul_pderiv (m : ℕ) :
+    MvPowerSeries.subst (fun _ : Unit ↦ Φ.mulSeries m) (Φ.diffMatrix⁻¹ () ())
+        * pderiv () (Φ.mulSeries m)
+      = m • Φ.diffMatrix⁻¹ () () := by
+  have h := congrArg (pderiv ()) (Φ.subst_mulSeries_log m)
+  rw [map_nsmul, pderiv_subst (Φ.hasSubst_mulSeries m), Φ.pderiv_log] at h
+  simp only [Finset.univ_unique, Finset.sum_singleton, Φ.pderiv_log] at h
+  exact h
+
+end LogMul
+
 end FormalGroupLaw
 
 /-! ### The scaled integral logarithm over the valuation ring of a completion -/
