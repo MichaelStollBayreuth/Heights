@@ -22,6 +22,19 @@ group isomorphism onto `(𝔪, +)`.
 
 open MvPowerSeries IsLocalRing
 
+
+namespace IsDedekindDomain.HeightOneSpectrum
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K] (v : HeightOneSpectrum R)
+
+/-- The topology on `𝒪_v` is the `𝔪`-adic topology; this activates the vendored kit. -/
+instance factIsAdic_adicCompletionIntegers :
+    Fact (IsAdic (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K))) :=
+  ⟨v.isAdic_maximalIdeal_adicCompletionIntegers⟩
+
+end IsDedekindDomain.HeightOneSpectrum
+
 namespace ChabautyColeman
 
 section Helpers

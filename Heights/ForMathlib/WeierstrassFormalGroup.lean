@@ -1,6 +1,7 @@
 import Mathlib
 import Heights.ForMathlib.Chabauty.FormalGroupLaw
 import Heights.ForMathlib.FormalGroup
+import Heights.ForMathlib.AdicFormalGroupLog
 
 /-!
 # The formal group of a Weierstrass curve
@@ -2577,14 +2578,3 @@ noncomputable def formalGroupLaw (W : WeierstrassCurve O) : FormalGroupLaw O Uni
 end wSeries
 
 end WeierstrassCurve
-
-namespace IsDedekindDomain.HeightOneSpectrum
-
-variable {R : Type*} [CommRing R] [IsDedekindDomain R]
-  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K] (v : HeightOneSpectrum R)
-
-instance factIsAdic_adicCompletionIntegers :
-    Fact (IsAdic (IsLocalRing.maximalIdeal (v.adicCompletionIntegers K))) :=
-  ⟨v.isAdic_maximalIdeal_adicCompletionIntegers⟩
-
-end IsDedekindDomain.HeightOneSpectrum
