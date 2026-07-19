@@ -1527,7 +1527,9 @@ private lemma relIndex_filtration_succ_ne_zero (k : ℕ) :
     exact mk_add_param (hparam P) (hparam Q)
   obtain ⟨f, hf⟩ : ∃ f : filtration hW k →+ v.adicCompletionIntegers K ⧸
       (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)),
-      f = AddMonoidHom.mk' (fun P ↦ Ideal.Quotient.mk _ (((par P) ()) : v.adicCompletionIntegers K)) hadd := ⟨_, rfl⟩
+      f = AddMonoidHom.mk'
+        (fun P ↦ Ideal.Quotient.mk _ (((par P) ()) : v.adicCompletionIntegers K)) hadd :=
+    ⟨_, rfl⟩
   have hker : f.ker = (filtration hW (k + 1)).addSubgroupOf (filtration hW k) := by
     ext P
     rw [AddMonoidHom.mem_ker, AddSubgroup.mem_addSubgroupOf, hf, AddMonoidHom.mk'_apply,
