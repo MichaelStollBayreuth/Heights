@@ -12,20 +12,16 @@ residue field, and `K_v` the completion (of characteristic `0`). This file state
 structural consequences of the theory of formal groups over `𝒪_v` that the 2-descent
 machinery needs.
 
-* `WeierstrassCurve.Affine.exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers`:
-  for an elliptic curve `E` over `K_v`, the group `E(K_v)` has a subgroup of finite index
-  isomorphic to the additive group `(𝒪_v, +)`.
+* `WeierstrassCurve.Affine.exists_variableChange_map_eq`: every Weierstrass curve over
+  `K_v` has an integral model after an admissible change of variables.
 
-  This is proved from a skeleton of `sorry`ed pieces (Silverman, *Arithmetic of Elliptic
-  Curves*, VII.2 and IV.6): after passing to an integral model
-  (`exists_variableChange_map_eq`), the valuation filtration `E_{n+1}(K_v)` is a subgroup
-  (`filtration`; closure under addition is the group-law part of the formal-group theory),
-  each of its steps is of finite index (`filtration_finiteIndex`; the steps are open in the
-  compact group `E(K_v)`), and a suitable step is identified with `(𝒪_v, +)` by the formal
-  logarithm (`exists_filtration_equiv`, using `k > e/(p-1)`, Silverman IV.6.4). Mathlib's
-  `FormalGroup` (one-dimensional formal group laws) is a starting point for the remaining
-  pieces, but the formal group of an elliptic curve, the formal logarithm, and the topology
-  on the points of an elliptic curve over a local field are all still missing.
+  This feeds the structure theorem
+  `WeierstrassCurve.Affine.exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers`
+  (the group `E(K_v)` has a finite-index subgroup isomorphic to `(𝒪_v, +)`), which now
+  lives in `Heights.ForMathlib.WeierstrassFormalGroupPoints` together with the valuation
+  filtration `E_{n+1}(K_v)` and its identification with the `𝔪`-points of the formal
+  group; the finite-index statement and the formal-logarithm identification of a deep
+  filtration step with `(𝒪_v, +)` are the two remaining `sorry`s there.
 
 * `IsDedekindDomain.HeightOneSpectrum.card_selmerGroup_integralClosure`: for odd residue
   characteristic and a finite separable extension `L` of `K_v` with `B` the integral

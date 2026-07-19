@@ -1,16 +1,37 @@
 import Heights.ForMathlib.WeierstrassFormalGroup
 
 /-!
-# 𝔪-adic evaluation of the formal group data of a Weierstrass curve
+# The 𝔪-points of the formal group of a Weierstrass curve and the kernel of reduction
 
 For a Weierstrass curve `W` over a complete adic local ring `O` (the standing setting of
 the vendored `p`-adic kit), the fixed-point series `w` and the chord data evaluate at
-parameters `t` in the maximal ideal via `ChabautyColeman.MvPSeries.eval`.  This file
-provides that evaluation layer: the value `W.wEval t`, its defining Weierstrass fixed-point
-equation, the factorization `w(t) = t³·v(t)` with `v(t) ≡ 1 mod 𝔪`, and the uniqueness of
-solutions of the fixed-point equation in `𝔪`.  This is the analytic input for the
-equivalence between the `𝔪`-points of the formal group and the kernel of reduction
-`E₁(K_v)` (Silverman, VII.2.2).
+parameters `t` in the maximal ideal via `ChabautyColeman.MvPSeries.eval`.  The first part
+of this file provides that evaluation layer: the value `W.wEval t`, its defining
+Weierstrass fixed-point equation, the factorization `w(t) = t³·v(t)` with `v(t) ≡ 1 mod 𝔪`,
+the uniqueness of solutions of the fixed-point equation in `𝔪`, the evaluated chord data
+(`W.slopeEval`, `W.interceptEval`, `W.thirdRootEval`, `W.addEval`), and the formal inverse
+`W.negPoint` on the `𝔪`-points.
+
+The second part specializes to `O = 𝒪_v` and proves the identification of the `𝔪`-points
+of the formal group of an integral model with the kernel of reduction (Silverman,
+*Arithmetic of Elliptic Curves*, VII.2.2).
+
+## Main definitions and statements
+
+* `WeierstrassCurve.Affine.formalPoint`: the point `(t/w(t), -1/w(t))` of `E(K_v)`
+  attached to an `𝔪`-point with parameter `t` (the point at infinity for `t = 0`).
+* `WeierstrassCurve.Affine.formalPoint_add`: the parametrization is additive.  The chord
+  case evaluates the formal chord identities; doubling uses an auxiliary parameter of very
+  small valuation to reduce to chord cases.
+* `WeierstrassCurve.Affine.filtration`: the subgroup `E_{n+1}(K_v)` of points whose
+  `x`-coordinate has a pole of order at least `2(n+1)`; closure under addition comes from
+  the formal group.
+* `WeierstrassCurve.Affine.exists_points_equiv_filtration`: the additive equivalence
+  `Ê(𝔪) ≃+ E₁(K_v)` matching `𝔪`-power levels with filtration steps.
+* `WeierstrassCurve.Affine.exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers`:
+  the structure theorem — `E(K_v)` has a finite-index subgroup isomorphic to `(𝒪_v, +)`;
+  it rests on the two remaining `sorry`s `filtration_finiteIndex` (openness/compactness)
+  and `exists_filtration_equiv` (the formal logarithm).
 -/
 
 open ChabautyColeman IsLocalRing MvPowerSeries
@@ -22,13 +43,8 @@ variable {O : Type*} [CommRing O] [IsLocalRing O]
 
 /-- An element of `1 + 𝔪` in a local ring is a unit. -/
 theorem _root_.IsLocalRing.isUnit_of_sub_one_mem_maximalIdeal {u : O}
-    (h : u - 1 ∈ maximalIdeal O) : IsUnit u := by
-  by_contra hu
-  have h1 : (1 : O) ∈ maximalIdeal O := by
-    have h2 := Ideal.sub_mem _ ((mem_maximalIdeal u).mpr hu) h
-    simp only [sub_sub_cancel] at h2
-    exact h2
-  exact (maximalIdeal.isMaximal O).ne_top ((Ideal.eq_top_iff_one _).mpr h1)
+    (h : u - 1 ∈ maximalIdeal O) : IsUnit u :=
+  sub_sub_cancel 1 u ▸ isUnit_one_sub_self_of_mem_nonunits _ (by simpa using neg_mem h)
 
 variable (W : WeierstrassCurve O)
 
@@ -390,7 +406,7 @@ omit h₂ in
 /-- The evaluated formal inverse identity: `F(t, ι(t)) = 0`. -/
 theorem addEval_iotaEval : W.addEval t₁ (W.iotaEval t₁) = 0 := by
   have hE : MvPowerSeries.HasEval fun _ : Unit ↦ t₁ := MvPSeries.hasEval_of_mem fun _ ↦ h₁
-  have h := congrArg (MvPSeries.evalRingHom hE) (W.subst_inverse_addSeries)
+  have h := congrArg (MvPSeries.evalRingHom hE) W.subst_inverseSeries_addSeries
   rw [map_zero] at h
   simp only [MvPSeries.evalRingHom_apply] at h
   rw [MvPSeries.eval_subst hE (MvPowerSeries.hasSubst_of_constantCoeff_zero (by
@@ -453,6 +469,50 @@ private lemma algebraMap_eq_coe (x : v.adicCompletionIntegers K) :
     algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) x =
       (x : v.adicCompletion K) := rfl
 
+private lemma valued_coe_le_one (x : v.adicCompletionIntegers K) :
+    Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≤ 1 := x.2
+
+/-- The valuation of (the coercion of) a unit of `𝒪_v` is `1`. -/
+private lemma valued_coe_isUnit {a : v.adicCompletionIntegers K} (ha : IsUnit a) :
+    Valued.v ((a : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 :=
+  (Valuation.integer.integers (Valued.v)).isUnit_iff_valuation_eq_one.mp ha
+
+/-- Membership in the maximal ideal of `𝒪_v` is the valuation bound `exp (-1)`. -/
+private lemma mem_maximalIdeal_iff {x : v.adicCompletionIntegers K} :
+    x ∈ maximalIdeal (v.adicCompletionIntegers K) ↔
+      Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≤ exp (-1 : ℤ) := by
+  have h := mem_maximalIdeal_pow_iff (K := K) (x := x) (n := 1)
+  rwa [pow_one] at h
+
+private lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.iotaEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      -((t : v.adicCompletion K) *
+        ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.iotaEval_eq hm)
+  push_cast at h
+  exact h
+
+private lemma coe_wEval_iotaEval {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.wEval (W₀.iotaEval t) : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      -(((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) *
+        ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.wEval_iotaEval hm)
+  push_cast at h
+  exact h
+
+private lemma coe_uEval_mul_duEval {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.uEval t : v.adicCompletionIntegers K) : v.adicCompletion K) *
+      ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.uEval_mul_duEval hm)
+  push_cast at h
+  exact h
+
 section
 
 include hW
@@ -477,13 +537,11 @@ and the parameter `-x/y` and the value `-1/y` lie in the maximal ideal. -/
 private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : exp (2 : ℤ) ≤ Valued.v x) :
     y ≠ 0 ∧ Valued.v (-x / y) ≤ exp (-1 : ℤ) ∧ Valued.v (-1 / y) ≤ exp (-1 : ℤ) := by
-  have hcoeff : ∀ a : v.adicCompletionIntegers K, Valued.v (a : v.adicCompletion K) ≤ 1 :=
-    fun a ↦ by have h := a.2; rwa [mem_adicCompletionIntegers] at h
-  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ hcoeff W₀.a₁
-  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ hcoeff W₀.a₂
-  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ hcoeff W₀.a₃
-  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ hcoeff W₀.a₄
-  have ha₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ hcoeff W₀.a₆
+  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
+  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
+  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_le_one W₀.a₃
+  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
+  have ha₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ valued_coe_le_one W₀.a₆
   set A := Valued.v x with hA
   have hA1 : (1 : ℤᵐ⁰) < A :=
     lt_of_lt_of_le (by rw [← exp_zero]; exact exp_lt_exp.mpr (by lia)) hx
@@ -586,48 +644,31 @@ private lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
   rw [coe_a₁ hW, coe_a₂ hW, coe_a₃ hW, coe_a₄ hW, coe_a₆ hW] at h
   exact h
 
+/-- The coerced form of the evaluated `u`-series. -/
+private lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.uEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      1 - W.a₁ * t - W.a₃ *
+        ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.uEval_eq hm)
+  push_cast at h
+  rw [coe_a₁ hW, coe_a₃ hW] at h
+  exact h
+
 end
-
-private lemma valued_coe_le_one (x : v.adicCompletionIntegers K) :
-    Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≤ 1 := by
-  have h := x.2
-  rwa [mem_adicCompletionIntegers] at h
-
-/-- The valuation of (the coercion of) a unit of `𝒪_v` is `1`. -/
-private lemma valued_coe_isUnit {a : v.adicCompletionIntegers K} (ha : IsUnit a) :
-    Valued.v ((a : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 := by
-  obtain ⟨u, hu⟩ := ha
-  have hmulinv : ((u : v.adicCompletionIntegers K) : v.adicCompletion K) *
-      (((u⁻¹ : (v.adicCompletionIntegers K)ˣ) : v.adicCompletionIntegers K) :
-        v.adicCompletion K) = 1 := by
-    have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-      u.mul_inv
-    push_cast at h
-    exact h
-  have h1 := congrArg Valued.v hmulinv
-  rw [map_mul, map_one] at h1
-  have h2 := ((u : v.adicCompletionIntegers K)).2
-  have h3 := (((u⁻¹ : (v.adicCompletionIntegers K)ˣ) : v.adicCompletionIntegers K)).2
-  rw [mem_adicCompletionIntegers] at h2 h3
-  rw [← hu]
-  refine le_antisymm h2 ?_
-  calc (1 : ℤᵐ⁰) = _ * _ := h1.symm
-    _ ≤ Valued.v ((u : v.adicCompletionIntegers K) : v.adicCompletion K) * 1 := by gcongr
-    _ = _ := mul_one _
 
 /-- The formal inverse preserves the valuation of the parameter. -/
 private lemma valued_iotaEval {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     Valued.v ((W₀.iotaEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
       Valued.v (t : v.adicCompletion K) := by
-  have hiT := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-    (W₀.iotaEval_eq hm)
-  push_cast at hiT
-  rw [hiT, Valuation.map_neg, map_mul, valued_coe_isUnit (W₀.isUnit_duEval hm), mul_one]
+  rw [coe_iotaEval_eq hm, Valuation.map_neg, map_mul,
+    valued_coe_isUnit (W₀.isUnit_duEval hm), mul_one]
 
 private lemma ne_of_valued_lt {a b : v.adicCompletionIntegers K}
     (h : Valued.v (a : v.adicCompletion K) < Valued.v (b : v.adicCompletion K)) : a ≠ b :=
-  fun he ↦ absurd h (by rw [he]; exact lt_irrefl _)
+  fun he ↦ h.ne (by rw [he])
 
 /-- A parameter of valuation smaller than that of `2` is not its own formal inverse. -/
 private lemma ne_iotaEval_self {s : v.adicCompletionIntegers K}
@@ -696,12 +737,11 @@ private lemma exists_aux_param [CharZero K] {t : v.adicCompletionIntegers K}
     rwa [algebraMap_eq_coe] at h
   have ht0' : Valued.v (t : v.adicCompletion K) ≠ 0 := by
     simp only [ne_eq, _root_.map_eq_zero, ZeroMemClass.coe_eq_zero]
-    simpa using h0
+    exact h0
   obtain ⟨m, htv⟩ : ∃ m : ℤ, Valued.v (t :
       v.adicCompletion K) = exp m := ⟨_, (exp_log ht0').symm⟩
   have hm1 : m ≤ -1 := by
-    have h := (mem_maximalIdeal_pow_iff (K := K) (x := t)
-      (n := 1)).mp (by rwa [pow_one])
+    have h := mem_maximalIdeal_iff.mp hm
     rwa [htv, exp_le_exp] at h
   obtain ⟨c, h2v⟩ : ∃ c : ℤ, Valued.v ((2 : v.adicCompletionIntegers K) :
       v.adicCompletion K) = exp c := ⟨_, (exp_log (by simp [h20])).symm⟩
@@ -720,12 +760,8 @@ private lemma exists_aux_param [CharZero K] {t : v.adicCompletionIntegers K}
     ring
   have hks : -(k : ℤ) < m := by omega
   have hkc : -(k : ℤ) < c := by omega
-  have hsm : s ∈ maximalIdeal (v.adicCompletionIntegers K) := by
-    have h := mem_maximalIdeal_pow_iff (K := K) (x := s) (n := 1)
-    rw [pow_one] at h
-    refine h.mpr ?_
-    rw [hsv, exp_le_exp]
-    lia
+  have hsm : s ∈ maximalIdeal (v.adicCompletionIntegers K) :=
+    mem_maximalIdeal_iff.mpr (by rw [hsv, exp_le_exp]; lia)
   have hs0 : s ≠ 0 := by
     rw [hsdef]
     exact pow_ne_zero _ hπ.ne_zero
@@ -735,7 +771,6 @@ private lemma exists_aux_param [CharZero K] {t : v.adicCompletionIntegers K}
     rw [valued_iotaEval hm, hsv, htv, exp_lt_exp]
     exact hks
   · exact ne_iotaEval_self hsm hs0 (by rw [hsv, h2v, exp_lt_exp]; exact hkc)
-
 
 /-- The valuation of the `x`-coordinate `t/w(t)` is `v(t)⁻²`. -/
 theorem valued_formalPoint_x
@@ -788,7 +823,6 @@ private lemma param_pow_iff {t : v.adicCompletionIntegers K}
   push_cast
   constructor <;> intro h <;> lia
 
-
 variable [W.IsElliptic]
 
 include hW in
@@ -798,17 +832,9 @@ theorem formalPoint_nonsingular
     (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (ht0 : t ≠ 0) :
     W.Nonsingular ((t : v.adicCompletion K) / (W₀.wEval t : v.adicCompletion K))
       (-1 / (W₀.wEval t : v.adicCompletion K)) := by
-  refine W.chord_point_nonsingular ?_ ?_ W.isUnit_Δ.ne_zero
-  · have h := congrArg (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
-      (W₀.wEval_eq ht)
-    rw [wPoly] at h
-    simp only [map_add, map_mul, map_pow, algebraMap_eq_coe] at h
-    rw [← hW]
-    simp only [WeierstrassCurve.map_a₁, WeierstrassCurve.map_a₂, WeierstrassCurve.map_a₃,
-      WeierstrassCurve.map_a₄, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
-    exact h
-  · simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero ht ht0
+  refine W.chord_point_nonsingular (coe_wEval_eq hW ht) ?_ W.isUnit_Δ.ne_zero
+  simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+  exact W₀.wEval_ne_zero ht ht0
 
 variable [DecidableEq (v.adicCompletion K)]
 
@@ -877,14 +903,8 @@ theorem exists_formalPoint_eq_some {x y : v.adicCompletion K} (h : W.Nonsingular
     ⟨-x / y, by rw [mem_adicCompletionIntegers]; exact hs.trans hexp1⟩ with htdef
   set r : v.adicCompletionIntegers K :=
     ⟨-1 / y, by rw [mem_adicCompletionIntegers]; exact hr.trans hexp1⟩ with hrdef
-  have htm : t ∈ maximalIdeal (v.adicCompletionIntegers K) := by
-    have hiff := mem_maximalIdeal_pow_iff (K := K) (x := t) (n := 1)
-    rw [pow_one] at hiff
-    exact hiff.mpr hs
-  have hrm : r ∈ maximalIdeal (v.adicCompletionIntegers K) := by
-    have hiff := mem_maximalIdeal_pow_iff (K := K) (x := r) (n := 1)
-    rw [pow_one] at hiff
-    exact hiff.mpr hr
+  have htm : t ∈ maximalIdeal (v.adicCompletionIntegers K) := mem_maximalIdeal_iff.mpr hs
+  have hrm : r ∈ maximalIdeal (v.adicCompletionIntegers K) := mem_maximalIdeal_iff.mpr hr
   have ht0 : t ≠ 0 := by
     intro hteq
     have h0 : (-x / y : v.adicCompletion K) = 0 := congrArg Subtype.val hteq
@@ -940,47 +960,20 @@ theorem formalPoint_negPoint (z : W₀.formalGroupLaw.Points) :
       formalPoint_of_param_ne_zero hW (by rw [W₀.negPoint_apply_coe]; exact hι0),
       Point.neg_some]
     simp only [Point.some.injEq, W₀.negPoint_apply_coe]
-    set T : v.adicCompletion K := ((z () : v.adicCompletionIntegers K) : v.adicCompletion K)
-      with hT
     have hWT0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
       simp only [ne_eq, ZeroMemClass.coe_eq_zero]
       exact W₀.wEval_ne_zero hm h0
     have hDU0 : ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
       simp only [ne_eq, ZeroMemClass.coe_eq_zero]
       exact (W₀.isUnit_duEval hm).ne_zero
-    have hiota : ((W₀.iotaEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
-        -(T * ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
-      rw [W₀.iotaEval_eq hm]
-      push_cast
-      rfl
-    have hwiota : ((W₀.wEval (W₀.iotaEval (z ())) : v.adicCompletionIntegers K) :
-        v.adicCompletion K) =
-        -(((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) *
-          ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K)) := by
-      rw [W₀.wEval_iotaEval hm]
-      push_cast
-      rfl
-    have hu : ((W₀.uEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) *
-        ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 := by
-      have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-        (W₀.uEval_mul_duEval hm)
-      push_cast at h
-      exact h
-    have hueq : ((W₀.uEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
-        1 - W.a₁ * T - W.a₃ *
-          ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) := by
-      have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-        (W₀.uEval_eq hm)
-      push_cast at h
-      rw [coe_a₁ hW, coe_a₃ hW] at h
-      exact h
     constructor
-    · rw [hiota, hwiota]
+    · rw [coe_iotaEval_eq hm, coe_wEval_iotaEval hm]
       field_simp
-    · rw [hwiota, Affine.negY]
+    · rw [coe_wEval_iotaEval hm, Affine.negY]
       field_simp
-      linear_combination -hu + ((W₀.duEval (z ()) : v.adicCompletionIntegers K) :
-        v.adicCompletion K) * hueq
+      linear_combination -coe_uEval_mul_duEval hm +
+        ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) *
+          coe_uEval_eq hW hm
 
 include hW in
 /-- The chord addition at the level of parameters: for `t₁, t₂ ∈ 𝔪` nonzero with distinct
@@ -1053,28 +1046,18 @@ private lemma paramPoint_add {t₁ t₂ : v.adicCompletionIntegers K}
   rw [hsum]
   simp only [Point.some.injEq]
   -- identify the chord point with the parametrized point at `ι̂(T)`
-  have hDU0' : W₀.duEval (W₀.thirdRootEval t₁ t₂) ≠ 0 := (W₀.isUnit_duEval hTm).ne_zero
-  have hiT := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-    (W₀.iotaEval_eq hTm)
-  have hwiT := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-    (W₀.wEval_iotaEval hTm)
-  have hup := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-    (W₀.uEval_mul_duEval hTm)
-  have huTeq := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-    (W₀.uEval_eq hTm)
-  push_cast at hiT hwiT hup huTeq
-  rw [coe_a₁ hW, coe_a₃ hW] at huTeq
   have hDU0 : ((W₀.duEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
       v.adicCompletion K) ≠ 0 := by
     simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact hDU0'
+    exact (W₀.isUnit_duEval hTm).ne_zero
   constructor
-  · rw [hiT, hwiT]
+  · rw [coe_iotaEval_eq hTm, coe_wEval_iotaEval hTm]
     field_simp
-  · rw [hwiT]
+  · rw [coe_wEval_iotaEval hTm]
     field_simp
-    linear_combination hup - ((W₀.duEval (W₀.thirdRootEval t₁ t₂) :
-      v.adicCompletionIntegers K) : v.adicCompletion K) * huTeq
+    linear_combination coe_uEval_mul_duEval hTm -
+      ((W₀.duEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
+        v.adicCompletion K) * coe_uEval_eq hW hTm
 
 include hW in
 /-- The chord case of additivity: two nonzero parameters whose points have distinct
@@ -1285,18 +1268,18 @@ include hW in
 theorem formalPoint_add (z z' : W₀.formalGroupLaw.Points) :
     formalPoint hW (z + z') = formalPoint hW z + formalPoint hW z' := by
   rcases eq_or_ne (z () : v.adicCompletionIntegers K) 0 with h0 | h0
-  · have hz : z = 0 := funext fun i ↦ Subtype.ext h0
+  · have hz : z = 0 := funext fun _ ↦ Subtype.ext h0
     rw [hz, zero_add, formalPoint_of_param_eq_zero hW (z := 0) (by simp), zero_add]
   rcases eq_or_ne (z' () : v.adicCompletionIntegers K) 0 with h0' | h0'
-  · have hz' : z' = 0 := funext fun i ↦ Subtype.ext h0'
+  · have hz' : z' = 0 := funext fun _ ↦ Subtype.ext h0'
     rw [hz', add_zero, formalPoint_of_param_eq_zero hW (z := 0) (by simp), add_zero]
   rcases eq_or_ne (z' () : v.adicCompletionIntegers K) (W₀.iotaEval (z ())) with hinv | hinv
-  · have hz' : z' = W₀.negPoint z := funext fun i ↦ Subtype.ext hinv
+  · have hz' : z' = W₀.negPoint z := funext fun _ ↦ Subtype.ext hinv
     rw [hz', W₀.add_negPoint, formalPoint_of_param_eq_zero hW (z := 0) (by simp),
       formalPoint_negPoint hW, add_neg_cancel]
   rcases eq_or_ne (z' () : v.adicCompletionIntegers K) (z () : v.adicCompletionIntegers K)
     with heqp | hnep
-  · have hz' : z' = z := funext fun i ↦ Subtype.ext heqp
+  · have hz' : z' = z := funext fun _ ↦ Subtype.ext heqp
     rw [hz']
     exact formalPoint_add_self hW h0 fun h ↦ hinv (heqp.trans h)
   · exact formalPoint_add_of_ne hW h0 h0'

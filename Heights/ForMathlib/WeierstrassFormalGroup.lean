@@ -3,27 +3,26 @@ import Heights.ForMathlib.Chabauty.FormalGroupLaw
 import Heights.ForMathlib.FormalGroup
 
 /-!
-# The formal group of a Weierstrass curve (skeleton)
+# The formal group of a Weierstrass curve
 
 This file connects the elliptic-curve side of `Heights.ForMathlib.FormalGroup` to the
 formal-group-law kit vendored from the Chabauty project
-(`Heights.ForMathlib.Chabauty.FormalGroupLaw`): the plan is to construct the formal group
-of a Weierstrass curve as a one-dimensional `ChabautyColeman.FormalGroupLaw` (with index
-type `Unit`) and to identify its `𝔪`-points with the kernel of reduction
-`E₁(K_v) = filtration hW 0`.
-
-The formal group law itself is fully constructed and proved
-(Silverman, *Arithmetic of Elliptic Curves*, IV.1); the identification of its points with
-the kernel of reduction (VII.2) is still `sorry`ed:
+(`Heights.ForMathlib.Chabauty.FormalGroupLaw`): it constructs the formal group of a
+Weierstrass curve as a one-dimensional `ChabautyColeman.FormalGroupLaw` (with index
+type `Unit`).
 
 * `WeierstrassCurve.wSeries`: the power series `w(t) ∈ O⟦t⟧` describing the curve near the
   origin in the coordinates `t = -x/y`, `w = -1/y`, as the solution of the fixed-point
   equation `w = t³ + a₁tw + a₂t²w + a₃w² + a₄tw² + a₆w³`;
 * `WeierstrassCurve.formalGroupLaw`: the formal group law `F(t₁, t₂)` obtained from the
-  chord construction on the curve `(t, w(t))`;
-* `WeierstrassCurve.exists_points_equiv_filtration`: over `𝒪_v`, the `𝔪`-points of the
-  formal group law of an integral model are the kernel of reduction, compatibly with the
-  filtrations on both sides.
+  chord construction on the curve `(t, w(t))` (Silverman, *Arithmetic of Elliptic
+  Curves*, IV.1), with all axioms proved — associativity via the group law of the
+  universal curve over the fraction field of `ℤ[A₁, …, A₆]⟦t₁, t₂, t₃⟧`;
+* `WeierstrassCurve.subst_inverseSeries_addSeries`: the formal inverse property
+  `F(t, ι(t)) = 0`.
+
+The identification of the `𝔪`-points of this formal group with the kernel of reduction
+`E₁(K_v)` (Silverman, VII.2.2) is in `Heights.ForMathlib.WeierstrassFormalGroupPoints`.
 
 The `Fact (IsAdic (maximalIdeal 𝒪_v))` instance registered here activates the kit's
 standing hypotheses for `O = 𝒪_v` (the remaining ones — completeness, Hausdorffness,
@@ -2450,7 +2449,7 @@ private lemma universal_inverseSeries_ne_X :
 pair `(t, ι(t))`, for any Weierstrass curve — proved for the universal curve via the chord
 geometry (the chord through a point and its inverse has intercept `0`, so its third root
 is `0` by Vieta) and transported by naturality. -/
-theorem subst_inverse_addSeries (W : WeierstrassCurve O) :
+theorem subst_inverseSeries_addSeries (W : WeierstrassCurve O) :
     MvPowerSeries.subst
         (Sum.elim (fun _ ↦ (MvPowerSeries.X () : MvPowerSeries Unit O)) fun _ ↦ W.inverseSeries)
         W.addSeries = 0 := by
