@@ -22,7 +22,6 @@ group isomorphism onto `(𝔪, +)`.
 
 open MvPowerSeries IsLocalRing
 
-
 namespace IsDedekindDomain.HeightOneSpectrum
 
 variable {R : Type*} [CommRing R] [IsDedekindDomain R]
@@ -190,7 +189,6 @@ theorem subst_scaledFC_descent (hf : Function.Injective f)
 
 end Descent
 
-
 end FormalGroupLaw
 
 /-! ### The scaled integral logarithm over the valuation ring of a completion -/
@@ -235,8 +233,7 @@ private lemma exists_valued_eq_exp_neg {x : v.adicCompletionIntegers K}
   push_cast at hle
   exact ⟨(-m).toNat, by lia, by rw [hm]; congr 1; lia⟩
 
-variable [CharZero K]
-
+variable [CharZero K] in
 open FormalGroupLaw in
 /-- The `π^e`-scaled logarithm has integral coefficients: `π^{e(n-1)} · λ_n` has
 valuation at most `1`, since the only denominators of `λ_n` are `p`-powers with exponent
@@ -293,6 +290,151 @@ private lemma exists_integral_scaled_log {p e : ℕ} {π : v.adicCompletionInteg
         (Nat.mul_le_mul_left e (show padicValNat p d.degree ≤ d.degree - 1 by lia))
       lia
   exact ⟨fun d ↦ ⟨_, hint d⟩, fun d ↦ rfl⟩
+
+private lemma unit_finsupp_of_degree_le_one {d : Unit →₀ ℕ} (h : d.degree ≤ 1) :
+    d = 0 ∨ d = Finsupp.single () 1 := by
+  have hd : d = Finsupp.single () (d ()) := Finsupp.ext fun i ↦ by cases i; simp
+  rw [hd, Finsupp.degree_single] at h
+  rcases Nat.le_one_iff_eq_zero_or_eq_one.mp h with h0 | h1
+  · exact .inl (by rw [hd, h0, Finsupp.single_zero])
+  · exact .inr (by rw [hd, h1])
+
+/-- Cancellation of a nonzero scalar on multivariate power series over a domain. -/
+private lemma smul_left_cancel {O : Type*} [CommRing O] [NoZeroDivisors O] {σ : Type*}
+    {c : O} (hc : c ≠ 0) {A B : MvPowerSeries σ O} (h : c • A = c • B) : A = B := by
+  ext d
+  have h' := congrArg (coeff d) h
+  rw [MvPowerSeries.coeff_smul, MvPowerSeries.coeff_smul] at h'
+  exact mul_left_cancel₀ hc h'
+
+section ScaledPackage
+
+variable {e : ℕ} {π : v.adicCompletionIntegers K}
+  {Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit}
+  {lhat : MvPowerSeries Unit (v.adicCompletionIntegers K)}
+
+/-- The scaled-coefficient property of the integral scaled logarithm `lhat`
+(certificate hypothesis for the lemmas below). -/
+private def IsScaledLog (e : ℕ) (π : v.adicCompletionIntegers K)
+    (Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit)
+    (lhat : MvPowerSeries Unit (v.adicCompletionIntegers K)) : Prop :=
+  ∀ d : Unit →₀ ℕ, ((coeff d lhat : v.adicCompletionIntegers K) : v.adicCompletion K)
+    = ((π : v.adicCompletionIntegers K) : v.adicCompletion K) ^ (e * (d.degree - 1)) *
+      coeff d ((Φ.map (algebraMap (v.adicCompletionIntegers K)
+        (v.adicCompletion K))).log ())
+
+open FormalGroupLaw in
+private lemma constantCoeff_of_isScaledLog (hl : IsScaledLog e π Φ lhat) :
+    constantCoeff lhat = 0 := by
+  have h := hl 0
+  rw [map_zero Finsupp.degree, coeff_zero_eq_constantCoeff_apply,
+    coeff_zero_eq_constantCoeff_apply, constantCoeff_log, mul_zero] at h
+  exact Subtype.ext (by push_cast; exact h)
+
+open FormalGroupLaw in
+private lemma coeff_single_of_isScaledLog (hl : IsScaledLog e π Φ lhat) :
+    coeff (Finsupp.single () 1) lhat = 1 := by
+  have h := hl (Finsupp.single () 1)
+  rw [Finsupp.degree_single, Nat.sub_self, mul_zero, pow_zero, one_mul,
+    coeff_single_log] at h
+  simp only [if_pos] at h
+  exact Subtype.ext (by push_cast; exact h)
+
+/-- The scaled logarithm has trivial coefficients in degrees `≤ 1` apart from the linear
+term `X`; this is the hypothesis of the compositional-inverse machinery. -/
+private lemma sub_X_of_isScaledLog (hl : IsScaledLog e π Φ lhat) (i : Unit)
+    (d : Unit →₀ ℕ) (hd : d.degree ≤ 1) :
+    coeff d ((fun _ : Unit ↦ lhat) i - X i) = 0 := by
+  rcases unit_finsupp_of_degree_le_one hd with rfl | rfl
+  · rw [map_sub, coeff_zero_eq_constantCoeff_apply, coeff_zero_eq_constantCoeff_apply,
+      constantCoeff_of_isScaledLog hl, constantCoeff_X, sub_zero]
+  · rw [map_sub, coeff_single_of_isScaledLog hl, MvPowerSeries.coeff_X,
+      if_pos (by cases i; rfl), sub_self]
+
+open FormalGroupLaw in
+/-- The additivity of the divided scaled logarithm for the `π^e`-scaled formal group
+law, obtained from the descended identity for `π^e • lhat` by cancelling `π^e`. -/
+private lemma subst_scaledFC_of_isScaledLog [CharZero K] (hπ0 : π ≠ 0)
+    (hl : IsScaledLog e π Φ lhat) :
+    MvPowerSeries.subst (Φ.scaledFC (π ^ e)) lhat
+      = MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inl s) :
+          MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K))) lhat
+        + MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inr s) :
+            MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K))) lhat := by
+  have : CharZero (v.adicCompletion K) :=
+    charZero_of_injective_algebraMap (algebraMap K (v.adicCompletion K)).injective
+  have hHL : ∀ j : Unit, MvPowerSeries.map
+      (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) ((π ^ e) • lhat)
+      = rescale (fun _ ↦ algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)
+          (π ^ e))
+        ((Φ.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))).log j) := by
+    intro j
+    cases j
+    refine map_eq_rescale_of_forall_coeff fun d ↦ ?_
+    rw [MvPowerSeries.coeff_smul, map_mul, show algebraMap (v.adicCompletionIntegers K)
+      (v.adicCompletion K) (coeff d lhat) = ((coeff d lhat : v.adicCompletionIntegers K) :
+        v.adicCompletion K) from rfl, hl d, map_pow, show algebraMap
+      (v.adicCompletionIntegers K) (v.adicCompletion K) π =
+        ((π : v.adicCompletionIntegers K) : v.adicCompletion K) from rfl]
+    rcases Nat.eq_zero_or_pos d.degree with h0 | hpos
+    · obtain rfl : d = 0 := (Finsupp.degree_eq_zero_iff d).mp h0
+      rw [coeff_zero_eq_constantCoeff_apply, constantCoeff_log, mul_zero, mul_zero, mul_zero]
+    · rw [← mul_assoc, ← pow_add, ← pow_mul]
+      congr 2
+      conv_rhs => rw [← Nat.succ_pred_eq_of_pos hpos]
+      rw [Nat.mul_succ, Nat.pred_eq_sub_one]
+      omega
+  have hInl : HasSubst fun s : Unit ↦ (X (Sum.inl s) :
+      MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K)) :=
+    hasSubst_of_constantCoeff_zero fun s ↦ by simp
+  have hInr : HasSubst fun s : Unit ↦ (X (Sum.inr s) :
+      MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K)) :=
+    hasSubst_of_constantCoeff_zero fun s ↦ by simp
+  have h1 := Φ.subst_scaledFC_descent coe_injective hHL ()
+  rw [subst_smul (Φ.hasSubst_scaledFC _), subst_smul hInl, subst_smul hInr, ← smul_add] at h1
+  exact smul_left_cancel (pow_ne_zero e hπ0) h1
+
+open FormalGroupLaw in
+/-- The scaled-logarithm package over `𝒪_v`: a level `n ≥ 1`, a uniformizer `π`, and a
+pair of integral power series `lhat`, `ehat` — the divided `π^n`-scaled logarithm and its
+compositional inverse — with the composition identities and the additivity of `lhat` for
+the `π^n`-scaled formal group law. -/
+theorem exists_scaledLog [Finite (R ⧸ v.asIdeal)] [CharZero K]
+    (Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit) :
+    ∃ (n : ℕ) (π : v.adicCompletionIntegers K)
+      (lhat ehat : MvPowerSeries Unit (v.adicCompletionIntegers K)),
+      1 ≤ n ∧ maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π} ∧
+      constantCoeff lhat = 0 ∧ constantCoeff ehat = 0 ∧
+      MvPowerSeries.subst (fun _ : Unit ↦ ehat) lhat = X () ∧
+      MvPowerSeries.subst (fun _ : Unit ↦ lhat) ehat = X () ∧
+      MvPowerSeries.subst (Φ.scaledFC (π ^ n)) lhat
+        = MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inl s) :
+            MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K))) lhat
+          + MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inr s) :
+              MvPowerSeries (Unit ⊕ Unit) (v.adicCompletionIntegers K))) lhat := by
+  obtain ⟨p, hp, hpmem⟩ := exists_prime_mem_maximalIdeal (v := v) (K := K)
+  have hchar : CharZero (v.adicCompletion K) :=
+    charZero_of_injective_algebraMap (algebraMap K (v.adicCompletion K)).injective
+  have hp0 : (p : v.adicCompletionIntegers K) ≠ 0 := fun h ↦ hp.ne_zero (by
+    have h' := congrArg (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) h
+    rw [map_natCast, map_zero] at h'
+    exact_mod_cast h')
+  obtain ⟨e, he1, hpe⟩ := exists_valued_eq_exp_neg hpmem hp0
+  obtain ⟨π, hπirr⟩ :=
+    IsDiscreteValuationRing.exists_irreducible (v.adicCompletionIntegers K)
+  obtain ⟨lhat, hl⟩ := exists_integral_scaled_log hp hpmem hpe
+    (v.valued_irreducible_adicCompletionIntegers hπirr) Φ
+  have hl' : IsScaledLog e π Φ lhat := hl
+  have ha := sub_X_of_isScaledLog hl'
+  refine ⟨e, π, lhat, invSubst (fun _ ↦ lhat) (), he1, hπirr.maximalIdeal_eq,
+    constantCoeff_of_isScaledLog hl', constantCoeff_invSubst ha (), ?_, ?_,
+    subst_scaledFC_of_isScaledLog hπirr.ne_zero hl'⟩
+  · rw [show (fun _ : Unit ↦ invSubst (fun _ ↦ lhat) ()) = invSubst (fun _ ↦ lhat) from
+      funext fun i ↦ by cases i; rfl]
+    exact subst_invSubst ha ()
+  · exact subst_a_invSubst ha ()
+
+end ScaledPackage
 
 end AdicScaledLog
 
