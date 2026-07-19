@@ -156,6 +156,42 @@ theorem _root_.ChabautyColeman.MvPSeries.eval_mem_maximalIdeal_pow_mul
   have hsum := tsum_mem (IsAdic.isClosed_pow (I := maximalIdeal O) Fact.out (c * j)) hval
   rwa [htot.tsum_eq] at hsum
 
+omit W in
+/-- The value at points of `𝔪^j` of a series whose coefficients lie in `𝔪^a` and vanish
+below total degree `c` lies in `𝔪^(a + c·j)`. -/
+theorem _root_.ChabautyColeman.MvPSeries.eval_mem_maximalIdeal_pow_add_mul
+    {σ : Type*} [Finite σ] {z₀ : σ → O} (hz₀ : MvPowerSeries.HasEval z₀) {j a c : ℕ}
+    (hmem : ∀ i, z₀ i ∈ maximalIdeal O ^ j) (h : MvPowerSeries σ O)
+    (hcoeff : ∀ d : σ →₀ ℕ, MvPowerSeries.coeff d h ∈ maximalIdeal O ^ a)
+    (hlow : ∀ d : σ →₀ ℕ, d.degree < c → MvPowerSeries.coeff d h = 0) :
+    MvPSeries.eval z₀ h ∈ maximalIdeal O ^ (a + c * j) := by
+  classical
+  have htot := MvPSeries.hasSum_eval hz₀ h
+  have hval : ∀ d : σ →₀ ℕ,
+      MvPowerSeries.coeff d h * d.prod (fun s e ↦ z₀ s ^ e) ∈
+        maximalIdeal O ^ (a + c * j) := by
+    intro d
+    rcases lt_or_ge d.degree c with hlt | hge
+    · rw [hlow d hlt, zero_mul]
+      exact zero_mem _
+    have key : ∀ t : Finset σ, (∏ s ∈ t, z₀ s ^ d s) ∈ maximalIdeal O ^ (j * ∑ s ∈ t, d s) := by
+      intro t
+      induction t using Finset.induction with
+      | empty => simp
+      | insert s t hs ih =>
+        rw [Finset.prod_insert hs, Finset.sum_insert hs, Nat.mul_add, pow_add]
+        exact Ideal.mul_mem_mul (pow_mul (maximalIdeal O) j (d s) ▸
+          Ideal.pow_mem_pow (hmem s) (d s)) ih
+    rw [pow_add]
+    refine Ideal.mul_mem_mul (hcoeff d) (SetLike.le_def.mp
+      (Ideal.pow_le_pow_right (by calc c * j ≤ d.degree * j := by gcongr
+        _ = j * d.degree := mul_comm _ _)) ?_)
+    have hdeg : d.degree = ∑ s ∈ d.support, d s := rfl
+    rw [Finsupp.prod, hdeg]
+    exact key d.support
+  have hsum := tsum_mem (IsAdic.isClosed_pow (I := maximalIdeal O) Fact.out (a + c * j)) hval
+  rwa [htot.tsum_eq] at hsum
+
 /-- The value of the fixed-point series `w` at a parameter `t`. -/
 noncomputable def wEval (t : O) : O := MvPSeries.eval (fun _ : Unit ↦ t) W.wSeries
 
@@ -536,6 +572,53 @@ theorem negPoint_apply_coe (z : W.formalGroupLaw.Points) :
 /-- The coordinate of a sum of `𝔪`-points is the evaluated addition series. -/
 theorem add_apply_coe_eq_addEval (z z' : W.formalGroupLaw.Points) :
     ((z + z') () : O) = W.addEval (z ()) (z' ()) := rfl
+
+/-- The coordinate of an `m`-fold multiple is the value of the multiplication-by-`m`
+series at the parameter. -/
+theorem nsmul_apply_coe_eq_eval (z : W.formalGroupLaw.Points) (m : ℕ) :
+    ((m • z) () : O) = MvPSeries.eval (fun _ : Unit ↦ (z () : O))
+      (W.formalGroupLaw.mulSeries m) := by
+  induction m with
+  | zero => rw [zero_smul, FormalGroupLaw.mulSeries_zero, MvPSeries.eval_zero, FormalGroupLaw.zero_apply_coe]
+  | succ m ih =>
+    have hE : MvPowerSeries.HasEval (fun _ : Unit ↦ (z () : O)) :=
+      MvPSeries.hasEval_of_mem fun _ ↦ (z ()).2
+    rw [succ_nsmul', add_apply_coe_eq_addEval, ih, FormalGroupLaw.mulSeries_succ,
+      MvPSeries.eval_subst hE (W.formalGroupLaw.hasSubst_mulSeries_pair m), addEval]
+    congr 1
+    funext i
+    rcases i with u | u
+    · rw [Sum.elim_inl, Sum.elim_inl, MvPSeries.eval_X]
+    · rw [Sum.elim_inr, Sum.elim_inr]
+
+/-- First-order congruence for multiples: the parameter of `m • z` lies in the same
+`𝔪`-power level as the parameter of `z` and is congruent to `m` times it modulo the
+double level. -/
+theorem nsmul_apply_coe_mem_and_sub_mem {z : W.formalGroupLaw.Points} {k : ℕ} (hk : k ≠ 0)
+    (hz : (z () : O) ∈ maximalIdeal O ^ k) (m : ℕ) :
+    ((m • z) () : O) ∈ maximalIdeal O ^ k ∧
+      ((m • z) () : O) - m • (z () : O) ∈ maximalIdeal O ^ (2 * k) := by
+  induction m with
+  | zero => simp
+  | succ m ih =>
+    have h1 := W.addEval_sub_add_mem hk hz ih.1
+    have hle : maximalIdeal O ^ (2 * k) ≤ maximalIdeal O ^ k :=
+      Ideal.pow_le_pow_right (by lia)
+    constructor
+    · rw [succ_nsmul', add_apply_coe_eq_addEval]
+      have h2 : W.addEval (z () : O) ((m • z) () : O) =
+          ((z () : O) + ((m • z) () : O)) +
+            (W.addEval (z () : O) ((m • z) () : O) - ((z () : O) + ((m • z) () : O))) := by
+        ring
+      rw [h2]
+      exact add_mem (add_mem hz ih.1) (hle h1)
+    · rw [succ_nsmul', add_apply_coe_eq_addEval, succ_nsmul']
+      have h2 : W.addEval (z () : O) ((m • z) () : O) - ((z () : O) + m • (z () : O)) =
+          (W.addEval (z () : O) ((m • z) () : O) - ((z () : O) + ((m • z) () : O))) +
+            (((m • z) () : O) - m • (z () : O)) := by
+        ring
+      rw [h2]
+      exact add_mem h1 ih.2
 
 /-- The formal inverse is a right inverse for the addition of `𝔪`-points. -/
 theorem add_negPoint (z : W.formalGroupLaw.Points) : z + W.negPoint z = 0 := by
