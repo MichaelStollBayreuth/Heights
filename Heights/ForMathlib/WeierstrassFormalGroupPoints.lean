@@ -265,6 +265,24 @@ theorem iotaEval_ne_zero [IsDomain O] (ht0 : t ≠ 0) : W.iotaEval t ≠ 0 := by
   rw [W.iotaEval_eq ht]
   exact neg_ne_zero.mpr (mul_ne_zero ht0 (W.isUnit_duEval ht).ne_zero)
 
+/-- A nonzero parameter that is its own formal inverse satisfies `a₁ t + a₃ w(t) = 2`. -/
+theorem eq_two_of_iotaEval_self [NoZeroDivisors O] (ht0 : t ≠ 0) (h : t = W.iotaEval t) :
+    W.a₁ * t + W.a₃ * W.wEval t = 2 := by
+  have hd := W.iotaEval_eq ht
+  rw [← h] at hd
+  have hdu : W.duEval t = -1 := by
+    have hkey : t * (1 + W.duEval t) = 0 := by linear_combination hd
+    rcases mul_eq_zero.mp hkey with h' | h'
+    · exact absurd h' ht0
+    · linear_combination h'
+  have hu1 : W.uEval t = -1 := by
+    have h' := W.uEval_mul_duEval ht
+    rw [hdu] at h'
+    linear_combination -h'
+  have h' := W.uEval_eq ht
+  rw [hu1] at h'
+  linear_combination h'
+
 omit W in
 /-- Evaluation of a one-variable substitution is evaluation at the value. -/
 theorem eval_subst_single {f : PowerSeries O} (hf : PowerSeries.constantCoeff f = 0)
@@ -468,6 +486,19 @@ omit h₁ h₂ in
 theorem iotaEval_zero : W.iotaEval 0 = 0 := by
   rw [W.iotaEval_eq (zero_mem _)]
   ring
+
+/-- The third root does not vanish when the two points have distinct `x`-coordinates
+(else the chord would be vertical). -/
+theorem thirdRootEval_ne_zero [IsDomain O] (hx : t₁ * W.wEval t₂ ≠ t₂ * W.wEval t₁) :
+    W.thirdRootEval t₁ t₂ ≠ 0 := by
+  intro h
+  have honl := W.wEval_thirdRootEval h₁ h₂
+  rw [h, mul_zero, zero_add, W.wEval_zero] at honl
+  refine hx ?_
+  have hν : W.interceptEval t₁ t₂ * (t₂ - t₁) = t₂ * W.wEval t₁ - t₁ * W.wEval t₂ := by
+    linear_combination t₂ * W.interceptEval_eq h₁ h₂ - t₁ * W.interceptEval_eq' h₁ h₂
+  rw [← honl, zero_mul] at hν
+  linear_combination hν
 
 omit h₂ in
 /-- The evaluated formal inverse identity: `F(t, ι(t)) = 0`. -/
@@ -893,6 +924,16 @@ private lemma valued_iotaEval {t : v.adicCompletionIntegers K}
   rw [coe_iotaEval_eq hm, Valuation.map_neg, map_mul,
     valued_coe_isUnit (W₀.isUnit_duEval hm), mul_one]
 
+/-- The valuation of (the coercion of) `w(t)` is `v(t)³`. -/
+private lemma valued_coe_wEval {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    Valued.v ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
+      Valued.v (t : v.adicCompletion K) ^ 3 := by
+  have h := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.wEval_eq_cube_mul hm)
+  push_cast at h
+  rw [h, map_mul, map_pow, valued_coe_isUnit (W₀.isUnit_vEval hm), mul_one]
+
 private lemma ne_of_valued_lt {a b : v.adicCompletionIntegers K}
     (h : Valued.v (a : v.adicCompletion K) < Valued.v (b : v.adicCompletion K)) : a ≠ b :=
   fun he ↦ h.ne (by rw [he])
@@ -904,34 +945,17 @@ private lemma ne_iotaEval_self {s : v.adicCompletionIntegers K}
       Valued.v ((2 : v.adicCompletionIntegers K) : v.adicCompletion K)) :
     s ≠ W₀.iotaEval s := by
   intro h
-  have hd := W₀.iotaEval_eq hsm
-  rw [← h] at hd
-  have hdu : W₀.duEval s = -1 := by
-    have hkey : s * (1 + W₀.duEval s) = 0 := by linear_combination hd
-    rcases mul_eq_zero.mp hkey with h' | h'
-    · exact absurd h' hs0
-    · linear_combination h'
-  have h2eq : W₀.a₁ * s + W₀.a₃ * W₀.wEval s = 2 := by
-    have hu1 : W₀.uEval s = -1 := by
-      have h' := W₀.uEval_mul_duEval hsm
-      rw [hdu] at h'
-      linear_combination -h'
-    have h' := W₀.uEval_eq hsm
-    rw [hu1] at h'
-    linear_combination h'
   have hws_le : Valued.v ((W₀.wEval s : v.adicCompletionIntegers K) : v.adicCompletion K) ≤
       Valued.v (s : v.adicCompletion K) := by
-    have h' := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
-      (W₀.wEval_eq_cube_mul hsm)
-    push_cast at h'
-    rw [h', map_mul, map_pow, valued_coe_isUnit (W₀.isUnit_vEval hsm), mul_one]
+    rw [valued_coe_wEval hsm]
     calc Valued.v (s : v.adicCompletion K) ^ 3
         = Valued.v (s : v.adicCompletion K) * Valued.v (s : v.adicCompletion K) ^ 2 :=
           pow_succ' _ 2
       _ ≤ Valued.v (s : v.adicCompletion K) * 1 :=
           mul_le_mul' le_rfl (pow_le_one' (valued_coe_le_one s) 2)
       _ = Valued.v (s : v.adicCompletion K) := mul_one _
-  have hcoe2 := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K)) h2eq
+  have hcoe2 := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K))
+    (W₀.eq_two_of_iotaEval_self hsm hs0 h)
   push_cast at hcoe2
   have hval2 : Valued.v ((2 : v.adicCompletionIntegers K) : v.adicCompletion K) ≤
       Valued.v (s : v.adicCompletion K) := by
@@ -1395,23 +1419,11 @@ private lemma formalPoint_add_of_x_ne {z z' : W₀.formalGroupLaw.Points}
   have hm' := (z' ()).2
   -- the third root does not vanish (else the chord would be vertical)
   have hT0 : W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
-      (z' () : v.adicCompletionIntegers K) ≠ 0 := by
-    intro h
-    have honl := W₀.wEval_thirdRootEval hm hm'
-    rw [h, mul_zero, zero_add, W₀.wEval_zero] at honl
-    have hν : W₀.interceptEval (z () : v.adicCompletionIntegers K)
-        (z' () : v.adicCompletionIntegers K) *
-          ((z' () : v.adicCompletionIntegers K) - (z () : v.adicCompletionIntegers K)) =
-        (z' () : v.adicCompletionIntegers K) * W₀.wEval (z ()) -
-          (z () : v.adicCompletionIntegers K) * W₀.wEval (z' ()) := by
-      linear_combination ((z' () : v.adicCompletionIntegers K)) *
-          W₀.interceptEval_eq hm hm' -
-        ((z () : v.adicCompletionIntegers K)) * W₀.interceptEval_eq' hm hm'
-    rw [← honl, zero_mul] at hν
-    apply hx
-    have hc := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K)) hν
-    push_cast at hc
-    linear_combination hc
+      (z' () : v.adicCompletionIntegers K) ≠ 0 :=
+    W₀.thirdRootEval_ne_zero hm hm' fun hc ↦ hx (by
+      have := congrArg (fun a : v.adicCompletionIntegers K ↦ (a : v.adicCompletion K)) hc
+      push_cast at this
+      exact this)
   have hTm := W₀.thirdRootEval_mem hm hm'
   have hιm : W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
       (z' () : v.adicCompletionIntegers K)) ∈ maximalIdeal (v.adicCompletionIntegers K) :=
@@ -1478,7 +1490,6 @@ private lemma formalPoint_add_of_ne {z z' : W₀.formalGroupLaw.Points}
   rcases eq_or_eq_negPoint_of_x_cond hW h0 h0' hx with h | h
   · exact hne h
   · exact hnneg h
-
 
 include hW in
 /-- If additivity holds for a pair whose second point is not the negative of the first,
