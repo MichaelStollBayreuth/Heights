@@ -349,7 +349,7 @@ private lemma exists_prime_mem_maximalIdeal [Finite (R ⧸ v.asIdeal)] :
 
 /-- The valuation of a nonzero element of the maximal ideal is `exp (-e)` for some
 `e ≥ 1`. -/
-private lemma exists_valued_eq_exp_neg {x : v.adicCompletionIntegers K}
+theorem exists_valued_eq_exp_neg {x : v.adicCompletionIntegers K}
     (hx : x ∈ maximalIdeal (v.adicCompletionIntegers K)) (hx0 : x ≠ 0) :
     ∃ e : ℕ, 1 ≤ e ∧
       Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) = exp (-(e : ℤ)) := by
@@ -660,5 +660,96 @@ theorem eval_F_eq_mul_eval_scaledFC (Φ : FormalGroupLaw O Unit) (c : O)
   exact h1
 
 end EvalLayer
+
+/-! ### Divisibility of the multiplication-by-`p` coefficients over `𝒪_v` -/
+
+section AdicMulSeries
+
+open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum FormalGroupLaw
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K] {v : HeightOneSpectrum R}
+  (Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit)
+
+private lemma constantCoeff_diffInv :
+    constantCoeff (Φ.diffMatrix⁻¹ () ()) = 1 := by
+  have h := congrArg (fun A ↦ A () ()) Φ.diffMatrixInv_map_constantCoeff
+  simpa using h
+
+variable [CharZero K]
+
+/-- The derivative identity `(M⁻¹ ∘ ψ_m) · ψ_m′ = m • M⁻¹`, descended to `𝒪_v`. -/
+private lemma subst_mulSeries_diffInv_mul_pderiv_int (m : ℕ) :
+    MvPowerSeries.subst (fun _ : Unit ↦ Φ.mulSeries m) (Φ.diffMatrix⁻¹ () ())
+        * pderiv () (Φ.mulSeries m)
+      = m • Φ.diffMatrix⁻¹ () () := by
+  have hchar : CharZero (v.adicCompletion K) :=
+    charZero_of_injective_algebraMap (algebraMap K (v.adicCompletion K)).injective
+  apply map_injective_of_injective coe_injective
+  rw [map_mul, map_subst (Φ.hasSubst_mulSeries m), map_pderiv, map_nsmul,
+    show (fun i : Unit ↦ MvPowerSeries.map (algebraMap (v.adicCompletionIntegers K)
+        (v.adicCompletion K)) (Φ.mulSeries m))
+      = fun _ : Unit ↦ (Φ.map (algebraMap (v.adicCompletionIntegers K)
+          (v.adicCompletion K))).mulSeries m from
+      funext fun _ ↦ Φ.map_mulSeries _ m,
+    Φ.map_mulSeries _ m,
+    show MvPowerSeries.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
+        (Φ.diffMatrix⁻¹ () ())
+      = (Φ.map (algebraMap (v.adicCompletionIntegers K)
+          (v.adicCompletion K))).diffMatrix⁻¹ () () from by
+      rw [Φ.diffMatrixInv_map]
+      rfl]
+  exact (Φ.map _).subst_mulSeries_diffInv_mul_pderiv m
+
+/-- The coefficients of the derivative of `ψ_m` are divisible by `m`. -/
+private lemma coeff_pderiv_mulSeries_mem (m : ℕ) (e : Unit →₀ ℕ) :
+    coeff e (pderiv () (Φ.mulSeries m)) ∈
+      Ideal.span {(m : v.adicCompletionIntegers K)} := by
+  have hU : IsUnit (MvPowerSeries.subst (fun _ : Unit ↦ Φ.mulSeries m)
+      (Φ.diffMatrix⁻¹ () ())) := by
+    rw [MvPowerSeries.isUnit_iff_constantCoeff,
+      constantCoeff_subst_of_constantCoeff_zero (Φ.hasSubst_mulSeries m)
+        (fun _ ↦ Φ.constantCoeff_mulSeries m), constantCoeff_diffInv Φ]
+    exact isUnit_one
+  obtain ⟨Uinv, hUinv⟩ := hU.exists_left_inv
+  have hψ : pderiv () (Φ.mulSeries m) = Uinv * (m • Φ.diffMatrix⁻¹ () ()) := by
+    rw [← subst_mulSeries_diffInv_mul_pderiv_int Φ m, ← mul_assoc, hUinv, one_mul]
+  rw [hψ, MvPowerSeries.coeff_mul]
+  refine Ideal.sum_mem _ fun x hx ↦ ?_
+  rw [map_nsmul, nsmul_eq_mul]
+  exact Ideal.mul_mem_left _ _ (Ideal.mul_mem_right _ _
+    (Ideal.mem_span_singleton_self _))
+
+/-- The linear coefficient of the multiplication-by-`m` series is `m`. -/
+theorem coeff_single_mulSeries (m : ℕ) :
+    coeff (Finsupp.single () 1) (Φ.mulSeries m) = m := by
+  have h := congrArg constantCoeff (subst_mulSeries_diffInv_mul_pderiv_int Φ m)
+  rw [map_mul, constantCoeff_subst_of_constantCoeff_zero (Φ.hasSubst_mulSeries m)
+      (fun _ ↦ Φ.constantCoeff_mulSeries m), constantCoeff_diffInv Φ, one_mul, map_nsmul,
+    constantCoeff_diffInv, ← coeff_zero_eq_constantCoeff_apply, coeff_pderiv] at h
+  simpa using h
+
+/-- The coefficients of `ψ_p` in degrees not divisible by `p` are divisible by `p`. -/
+theorem coeff_mulSeries_mem_span {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    {d : Unit →₀ ℕ} (hd : ¬ p ∣ d ()) :
+    coeff d (Φ.mulSeries p) ∈ Ideal.span {(p : v.adicCompletionIntegers K)} := by
+  have hne : d () ≠ 0 := fun h ↦ hd (h ▸ dvd_zero p)
+  have hstep := coeff_pderiv_mulSeries_mem Φ p (d - Finsupp.single () 1)
+  rw [coeff_pderiv] at hstep
+  have hd1 : (d - Finsupp.single () 1) + Finsupp.single () 1 = d :=
+    Finsupp.ext fun i ↦ by
+      cases i
+      simp [Nat.sub_add_cancel (Nat.one_le_iff_ne_zero.mpr hne)]
+  have hd2 : (d - Finsupp.single () 1 : Unit →₀ ℕ) () + 1 = d () := by
+    simp [Finsupp.tsub_apply, Nat.sub_add_cancel (Nat.one_le_iff_ne_zero.mpr hne)]
+  rw [hd1, hd2] at hstep
+  obtain ⟨u, hu⟩ := (isUnit_natCast_of_not_dvd hp hpmem hd).exists_left_inv
+  rw [show coeff d (Φ.mulSeries p)
+      = u * ((d () : v.adicCompletionIntegers K) * coeff d (Φ.mulSeries p)) by
+    rw [← mul_assoc, hu, one_mul]]
+  exact Ideal.mul_mem_left _ _ hstep
+
+end AdicMulSeries
 
 end ChabautyColeman
