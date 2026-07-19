@@ -1019,6 +1019,72 @@ private lemma finite_quotient_pow [Finite (R ⧸ v.asIdeal)] (m : ℕ) :
     Finite.of_equiv _ (v.residueFieldEquivAdicCompletionIntegers (K := K)).toEquiv
   exact Ideal.finite_quotient_pow (IsNoetherian.noetherian _) m
 
+/-- Closed balls (with nonzero radius) in the completion are open. -/
+private lemma isOpen_le_ball (a : v.adicCompletion K) (m : ℤ) :
+    IsOpen {b : v.adicCompletion K | Valued.v (b - a) ≤ exp m} := by
+  obtain ⟨z, hz⟩ := v.valuedAdicCompletion_surjective K (exp m)
+  have hr0 : Valued.v.restrict z ≠ 0 := fun h0 ↦ exp_ne_zero (hz ▸ (by
+    rw [← Valuation.embedding_restrict, h0, map_zero] : Valued.v z = 0))
+  have hset : {b : v.adicCompletion K | Valued.v (b - a) ≤ exp m} = (fun b ↦ b - a) ⁻¹'
+      {y | Valued.v.restrict y ≤ Valued.v.restrict z} := by
+    ext b
+    rw [Set.mem_preimage, Set.mem_setOf, Set.mem_setOf,
+      Valuation.restrict_le_iff_le_embedding, Valuation.embedding_restrict, hz]
+  rw [hset]
+  exact (Valued.isOpen_closedBall _ hr0).preimage (continuous_id.sub continuous_const)
+
+/-- The valuation ring inside the completion is a compact subset: it is closed, and totally
+bounded because the quotients `𝒪_v/𝔪^n` are finite. -/
+private lemma isCompact_integerSet [Finite (R ⧸ v.asIdeal)] :
+    IsCompact {a : v.adicCompletion K | Valued.v a ≤ 1} := by
+  rw [isCompact_iff_totallyBounded_isComplete]
+  constructor
+  · -- totally bounded: cover by cosets of `𝔪^n`
+    rw [(Valued.hasBasis_uniformity _ _).totallyBounded_iff]
+    intro γ _
+    obtain ⟨m, hm⟩ : ∃ m : ℤ,
+        exp m < MonoidWithZeroHom.ValueGroup₀.embedding γ.1 := by
+      obtain ⟨a, ha⟩ :=
+        WithZero.ne_zero_iff_exists.mp (MonoidWithZeroHom.ValueGroup₀.embedding_unit_ne_zero γ)
+      refine ⟨Multiplicative.toAdd a - 1, ?_⟩
+      rw [← ha, show (a : ℤᵐ⁰) = exp (Multiplicative.toAdd a) from rfl]
+      exact exp_lt_exp.mpr (by lia)
+    set n : ℕ := (-m).toNat with hn
+    have hfq : Finite (v.adicCompletionIntegers K ⧸
+        (maximalIdeal (v.adicCompletionIntegers K) ^ n)) := finite_quotient_pow n
+    refine ⟨Set.range (fun c : v.adicCompletionIntegers K ⧸
+        (maximalIdeal (v.adicCompletionIntegers K) ^ n) ↦
+        ((Quotient.out c : v.adicCompletionIntegers K) : v.adicCompletion K)),
+      Set.finite_range _, fun x hx ↦ ?_⟩
+    have hxm : Valued.v x ≤ 1 := hx
+    obtain ⟨c, hc⟩ : ∃ c, c = Ideal.Quotient.mk
+        (maximalIdeal (v.adicCompletionIntegers K) ^ n) ⟨x, hxm⟩ := ⟨_, rfl⟩
+    refine Set.mem_iUnion₂.mpr ⟨((Quotient.out c : v.adicCompletionIntegers K) :
+      v.adicCompletion K), Set.mem_range_self c, ?_⟩
+    have hsub : (⟨x, hxm⟩ - Quotient.out c : v.adicCompletionIntegers K) ∈
+        maximalIdeal (v.adicCompletionIntegers K) ^ n := by
+      rw [← Ideal.Quotient.mk_eq_mk_iff_sub_mem, ← hc]
+      exact (Quotient.out_eq c).symm
+    have hval : Valued.v (((Quotient.out c : v.adicCompletionIntegers K) :
+        v.adicCompletion K) - x) ≤ exp (-(n : ℤ)) := by
+      have h1 := (v.mem_maximalIdeal_pow_iff (K := K)).mp hsub
+      rw [show ((⟨x, hxm⟩ - Quotient.out c : v.adicCompletionIntegers K) :
+        v.adicCompletion K) = x - ((Quotient.out c : v.adicCompletionIntegers K) :
+          v.adicCompletion K) from rfl] at h1
+      rwa [← Valuation.map_sub_swap] at h1
+    refine Set.mem_setOf.mpr ((Valuation.restrict_lt_iff_lt_embedding (v := Valued.v)).mpr
+      (lt_of_le_of_lt hval ?_))
+    refine lt_of_le_of_lt (exp_le_exp.mpr ?_) hm
+    rw [hn]
+    lia
+  · -- complete: the valuation ring is closed in the complete field
+    have hset : {a : v.adicCompletion K | Valued.v a ≤ 1} =
+        (((Valued.v : Valuation (v.adicCompletion K) ℤᵐ⁰).valuationSubring :
+          ValuationSubring (v.adicCompletion K)) : Set (v.adicCompletion K)) := rfl
+    rw [hset]
+    exact (Valued.isClosed_valuationSubring _).isComplete
+
+
 variable [W.IsElliptic]
 
 include hW in
@@ -1614,52 +1680,6 @@ theorem filtration_anti {m n : ℕ} (hmn : m ≤ n) : filtration hW n ≤ filtra
     refine le_trans (exp_le_exp.mpr ?_) hP
     lia
 
-variable [Finite (R ⧸ v.asIdeal)]
-
-/-- Each filtration step has finite index in the previous one: the parameter map modulo
-`𝔪^(k+2)` is additive on the `k`-th step (the formal group law is `t₁ + t₂` to first
-order) with kernel the next step, and it takes values in a finite quotient. -/
-private lemma relIndex_filtration_succ_ne_zero (k : ℕ) :
-    (filtration hW (k + 1)).relIndex (filtration hW k) ≠ 0 := by
-  obtain ⟨θ, hθ⟩ := exists_points_equiv_filtration (hW := hW)
-  -- the parameter of a point of the `k`-th filtration step
-  obtain ⟨par, hpar⟩ : ∃ par : filtration hW k → W₀.formalGroupLaw.Points,
-      par = fun P ↦ θ.symm ⟨P.1, filtration_anti (Nat.zero_le k) P.2⟩ := ⟨_, rfl⟩
-  have hθpar (P : filtration hW k) : ((θ (par P) : filtration hW 0) : W.Point) = P.1 := by
-    rw [hpar, θ.apply_symm_apply]
-  have hparam (P : filtration hW k) : ((par P) () : v.adicCompletionIntegers K) ∈
-      maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1) :=
-    (hθ _ k).mpr (by rw [hθpar]; exact P.2)
-  have hpar_add (P Q : filtration hW k) : par (P + Q) = par P + par Q := by
-    simp only [hpar]
-    rw [← map_add]
-    exact congrArg θ.symm (Subtype.ext rfl)
-  -- the parameter map modulo `𝔪^(k+2)` is additive
-  have hadd (P Q : filtration hW k) :
-      Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
-          ((par (P + Q)) ()) =
-        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
-          ((par P) ()) +
-        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
-          ((par Q) ()) := by
-    rw [hpar_add]
-    exact mk_add_param (hparam P) (hparam Q)
-  obtain ⟨f, hf⟩ : ∃ f : filtration hW k →+ v.adicCompletionIntegers K ⧸
-      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)),
-      f = AddMonoidHom.mk'
-        (fun P ↦ Ideal.Quotient.mk _ (((par P) ()) : v.adicCompletionIntegers K)) hadd :=
-    ⟨_, rfl⟩
-  have hker : f.ker = (filtration hW (k + 1)).addSubgroupOf (filtration hW k) := by
-    ext P
-    rw [AddMonoidHom.mem_ker, AddSubgroup.mem_addSubgroupOf, hf, AddMonoidHom.mk'_apply,
-      Ideal.Quotient.eq_zero_iff_mem, hθ _ (k + 1), hθpar]
-  have hfin : Finite (v.adicCompletionIntegers K ⧸
-      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))) := finite_quotient_pow (k + 2)
-  have hrel : (filtration hW (k + 1)).relIndex (filtration hW k) = f.ker.index :=
-    congrArg AddSubgroup.index hker.symm
-  rw [hrel, AddSubgroup.index_ker, Nat.card_ne_zero]
-  exact ⟨⟨0, 0, map_zero f⟩, Set.Finite.to_subtype (Set.toFinite _)⟩
-
 /-- If the chord slope towards the negative of the base point has valuation at least
 `exp 1`, the difference of the two (integral) points lies in the kernel of reduction. -/
 private lemma sub_mem_filtration_of_slope {x₀ y₀ x y : v.adicCompletion K}
@@ -1851,11 +1871,126 @@ private lemma exists_level_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.No
       have hdx' : dx ≤ -(s : ℤ) := by rwa [hdx, exp_le_exp] at hx
       lia
 
+variable [Finite (R ⧸ v.asIdeal)]
+
+/-- Each filtration step has finite index in the previous one: the parameter map modulo
+`𝔪^(k+2)` is additive on the `k`-th step (the formal group law is `t₁ + t₂` to first
+order) with kernel the next step, and it takes values in a finite quotient. -/
+private lemma relIndex_filtration_succ_ne_zero (k : ℕ) :
+    (filtration hW (k + 1)).relIndex (filtration hW k) ≠ 0 := by
+  obtain ⟨θ, hθ⟩ := exists_points_equiv_filtration (hW := hW)
+  -- the parameter of a point of the `k`-th filtration step
+  obtain ⟨par, hpar⟩ : ∃ par : filtration hW k → W₀.formalGroupLaw.Points,
+      par = fun P ↦ θ.symm ⟨P.1, filtration_anti (Nat.zero_le k) P.2⟩ := ⟨_, rfl⟩
+  have hθpar (P : filtration hW k) : ((θ (par P) : filtration hW 0) : W.Point) = P.1 := by
+    rw [hpar, θ.apply_symm_apply]
+  have hparam (P : filtration hW k) : ((par P) () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1) :=
+    (hθ _ k).mpr (by rw [hθpar]; exact P.2)
+  have hpar_add (P Q : filtration hW k) : par (P + Q) = par P + par Q := by
+    simp only [hpar]
+    rw [← map_add]
+    exact congrArg θ.symm (Subtype.ext rfl)
+  -- the parameter map modulo `𝔪^(k+2)` is additive
+  have hadd (P Q : filtration hW k) :
+      Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par (P + Q)) ()) =
+        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par P) ()) +
+        Ideal.Quotient.mk (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))
+          ((par Q) ()) := by
+    rw [hpar_add]
+    exact mk_add_param (hparam P) (hparam Q)
+  obtain ⟨f, hf⟩ : ∃ f : filtration hW k →+ v.adicCompletionIntegers K ⧸
+      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2)),
+      f = AddMonoidHom.mk'
+        (fun P ↦ Ideal.Quotient.mk _ (((par P) ()) : v.adicCompletionIntegers K)) hadd :=
+    ⟨_, rfl⟩
+  have hker : f.ker = (filtration hW (k + 1)).addSubgroupOf (filtration hW k) := by
+    ext P
+    rw [AddMonoidHom.mem_ker, AddSubgroup.mem_addSubgroupOf, hf, AddMonoidHom.mk'_apply,
+      Ideal.Quotient.eq_zero_iff_mem, hθ _ (k + 1), hθpar]
+  have hfin : Finite (v.adicCompletionIntegers K ⧸
+      (maximalIdeal (v.adicCompletionIntegers K) ^ (k + 2))) := finite_quotient_pow (k + 2)
+  have hrel : (filtration hW (k + 1)).relIndex (filtration hW k) = f.ker.index :=
+    congrArg AddSubgroup.index hker.symm
+  rw [hrel, AddSubgroup.index_ker, Nat.card_ne_zero]
+  exact ⟨⟨0, 0, map_zero f⟩, Set.Finite.to_subtype (Set.toFinite _)⟩
+
 /-- The index of the `0`-th filtration step — the kernel of reduction `E₁(K_v)` — in
-`E(K_v)` is finite.  This is the remaining core of the finite-index statement. -/
+`E(K_v)` is finite: the complement consists of integral points, which form a compact set
+covered by finitely many congruence neighbourhoods, each inside a single coset. -/
 theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
-    (v.adicCompletion K)) = W) : (filtration hW 0).FiniteIndex :=
-  sorry
+    (v.adicCompletion K)) = W) : (filtration hW 0).FiniteIndex := by
+  rw [AddSubgroup.finiteIndex_iff_finite_quotient]
+  -- the compact set of integral points of the curve
+  obtain ⟨Z, hZdef⟩ : ∃ Z : Set ((v.adicCompletion K) × (v.adicCompletion K)),
+      Z = {p | W.Equation p.1 p.2 ∧ Valued.v p.1 ≤ 1 ∧ Valued.v p.2 ≤ 1} := ⟨_, rfl⟩
+  have hZcpt : IsCompact Z := by
+    have hcl : IsClosed {p : (v.adicCompletion K) × (v.adicCompletion K) |
+        W.Equation p.1 p.2} := by
+      have hset : {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} =
+          {p : (v.adicCompletion K) × (v.adicCompletion K) |
+            p.2 ^ 2 + W.a₁ * p.1 * p.2 + W.a₃ * p.2 =
+              p.1 ^ 3 + W.a₂ * p.1 ^ 2 + W.a₄ * p.1 + W.a₆} := by
+        ext p
+        rw [Set.mem_setOf, Set.mem_setOf, W.equation_iff]
+      rw [hset]
+      exact isClosed_eq (by fun_prop) (by fun_prop)
+    have hprod : IsCompact ({a : v.adicCompletion K | Valued.v a ≤ 1} ×ˢ
+        {a : v.adicCompletion K | Valued.v a ≤ 1}) :=
+      isCompact_integerSet.prod isCompact_integerSet
+    have hZeq : Z = ({a : v.adicCompletion K | Valued.v a ≤ 1} ×ˢ
+        {a : v.adicCompletion K | Valued.v a ≤ 1}) ∩
+        {p : (v.adicCompletion K) × (v.adicCompletion K) | W.Equation p.1 p.2} := by
+      rw [hZdef]
+      ext p
+      simp only [Set.mem_setOf, Set.mem_inter_iff, Set.mem_prod]
+      tauto
+    rw [hZeq]
+    exact hprod.inter_right hcl
+  -- nonsingularity and congruence levels on `Z`
+  have hmemZ : ∀ p : ↥Z, W.Equation p.1.1 p.1.2 ∧ Valued.v p.1.1 ≤ 1 ∧
+      Valued.v p.1.2 ≤ 1 := fun ⟨q, hq⟩ ↦ by
+    rw [hZdef] at hq
+    exact hq
+  have hns : ∀ p : ↥Z, W.Nonsingular p.1.1 p.1.2 := fun p ↦
+    (W.equation_iff_nonsingular_of_Δ_ne_zero W.isUnit_Δ.ne_zero).mp (hmemZ p).1
+  have hint : ∀ p : ↥Z, Valued.v p.1.1 ≤ 1 ∧ Valued.v p.1.2 ≤ 1 := fun p ↦ (hmemZ p).2
+  have hloc : ∀ p : ↥Z, ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
+      Valued.v (x - p.1.1) ≤ exp (-(s : ℤ)) → Valued.v (y - p.1.2) ≤ exp (-(s : ℤ)) →
+      (.some x y h : W.Point) - .some p.1.1 p.1.2 (hns p) ∈ filtration hW 0 :=
+    fun p ↦ exists_level_sub_mem (hns p) (hint p).1 (hint p).2
+  choose sfun hsfun using hloc
+  -- the covering by congruence neighbourhoods and its finite subcover
+  obtain ⟨t, ht⟩ := hZcpt.elim_finite_subcover
+    (fun p : ↥Z ↦ {b : v.adicCompletion K | Valued.v (b - p.1.1) ≤ exp (-(sfun p : ℤ))} ×ˢ
+      {b : v.adicCompletion K | Valued.v (b - p.1.2) ≤ exp (-(sfun p : ℤ))})
+    (fun p ↦ (isOpen_le_ball _ _).prod (isOpen_le_ball _ _))
+    (fun q hq ↦ Set.mem_iUnion.mpr ⟨⟨q, hq⟩, by
+      refine Set.mem_prod.mpr ⟨?_, ?_⟩ <;>
+        · rw [Set.mem_setOf, sub_self, map_zero]
+          exact zero_le⟩)
+  -- the counting surjection from the finite subcover
+  refine Finite.of_surjective (α := Option {p : ↥Z // p ∈ t}) (fun o ↦ o.elim
+    (0 : W.Point ⧸ filtration hW 0) (fun p ↦ QuotientAddGroup.mk
+      (.some p.1.1.1 p.1.1.2 (hns p.1)))) fun c ↦ ?_
+  obtain ⟨P, rfl⟩ := QuotientAddGroup.mk_surjective c
+  match P with
+  | .zero => exact ⟨none, rfl⟩
+  | @Point.some _ _ _ x y h =>
+    by_cases hmem : (.some x y h : W.Point) ∈ filtration hW 0
+    · exact ⟨none, ((QuotientAddGroup.eq_zero_iff _).mpr hmem).symm⟩
+    · have hxpole : ¬ exp (2 : ℤ) ≤ Valued.v x := fun hc ↦ hmem
+        ((some_mem_filtration (hW := hW)).mpr (le_trans (exp_le_exp.mpr (by lia)) hc))
+      obtain ⟨hxI, hyI⟩ := integral_of_not_mem hW h.left hxpole
+      have hqZ : (x, y) ∈ Z := by
+        rw [hZdef]
+        exact ⟨h.left, hxI, hyI⟩
+      obtain ⟨p, hpt, hpU⟩ := Set.mem_iUnion₂.mp (ht hqZ)
+      refine ⟨some ⟨p, hpt⟩, ?_⟩
+      have hd := hsfun p h (Set.mem_prod.mp hpU).1 (Set.mem_prod.mp hpU).2
+      exact ((QuotientAddGroup.eq_iff_sub_mem).mpr hd).symm
 
 /-- Each step of the valuation filtration on the points of an elliptic curve over `K_v` has
 finite index, by induction: each step has finite index in the previous one
