@@ -190,6 +190,110 @@ theorem subst_scaledFC_descent (hf : Function.Injective f)
 
 end Descent
 
+
 end FormalGroupLaw
+
+/-! ### The scaled integral logarithm over the valuation ring of a completion -/
+
+section AdicScaledLog
+
+open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum WithZero
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K] {v : HeightOneSpectrum R}
+
+private lemma coe_injective :
+    Function.Injective
+      (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) :=
+  fun _ _ h ↦ Subtype.ext h
+
+/-- The residue characteristic: a prime number lying in the maximal ideal of `𝒪_v`. -/
+private lemma exists_prime_mem_maximalIdeal [Finite (R ⧸ v.asIdeal)] :
+    ∃ p : ℕ, p.Prime ∧
+      (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K) := by
+  have hfin : Finite (v.adicCompletionIntegers K ⧸ maximalIdeal (v.adicCompletionIntegers K)) :=
+    Finite.of_equiv _ (v.residueFieldEquivAdicCompletionIntegers (K := K)).toEquiv
+  have := Fintype.ofFinite (v.adicCompletionIntegers K ⧸ maximalIdeal (v.adicCompletionIntegers K))
+  set p := ringChar (v.adicCompletionIntegers K ⧸ maximalIdeal (v.adicCompletionIntegers K))
+  refine ⟨p, CharP.char_is_prime
+    (v.adicCompletionIntegers K ⧸ maximalIdeal (v.adicCompletionIntegers K)) p, ?_⟩
+  rw [← Ideal.Quotient.eq_zero_iff_mem, map_natCast]
+  exact CharP.cast_eq_zero _ p
+
+/-- The valuation of a nonzero element of the maximal ideal is `exp (-e)` for some
+`e ≥ 1`. -/
+private lemma exists_valued_eq_exp_neg {x : v.adicCompletionIntegers K}
+    (hx : x ∈ maximalIdeal (v.adicCompletionIntegers K)) (hx0 : x ≠ 0) :
+    ∃ e : ℕ, 1 ≤ e ∧
+      Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) = exp (-(e : ℤ)) := by
+  have hv0 : Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+    simpa using hx0
+  obtain ⟨m, hm⟩ : ∃ m : ℤ, Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K)
+      = exp m := ⟨_, (exp_log hv0).symm⟩
+  have hle := (v.mem_maximalIdeal_pow_iff (K := K) (x := x) (n := 1)).mp (by rwa [pow_one])
+  rw [hm, exp_le_exp] at hle
+  push_cast at hle
+  exact ⟨(-m).toNat, by lia, by rw [hm]; congr 1; lia⟩
+
+variable [CharZero K]
+
+open FormalGroupLaw in
+/-- The `π^e`-scaled logarithm has integral coefficients: `π^{e(n-1)} · λ_n` has
+valuation at most `1`, since the only denominators of `λ_n` are `p`-powers with exponent
+`v_p(n) ≤ n - 1` and `v(p) = exp (-e)`. -/
+private lemma exists_integral_scaled_log {p e : ℕ} {π : v.adicCompletionIntegers K}
+    (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpe : Valued.v (((p : v.adicCompletionIntegers K) :
+      v.adicCompletionIntegers K) : v.adicCompletion K) = exp (-(e : ℤ)))
+    (hπe : Valued.v ((π : v.adicCompletionIntegers K) : v.adicCompletion K) = exp (-1 : ℤ))
+    (Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit) :
+    ∃ lhat : MvPowerSeries Unit (v.adicCompletionIntegers K), ∀ d : Unit →₀ ℕ,
+      ((coeff d lhat : v.adicCompletionIntegers K) : v.adicCompletion K)
+        = ((π : v.adicCompletionIntegers K) : v.adicCompletion K) ^ (e * (d.degree - 1)) *
+          coeff d ((Φ.map (algebraMap (v.adicCompletionIntegers K)
+            (v.adicCompletion K))).log ()) := by
+  have hchar : CharZero (v.adicCompletion K) :=
+    charZero_of_injective_algebraMap (algebraMap K (v.adicCompletion K)).injective
+  have hfp : algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)
+      (p : v.adicCompletionIntegers K) ≠ 0 := by
+    rw [map_natCast]
+    exact_mod_cast hp.pos.ne'
+  have hint : ∀ d : Unit →₀ ℕ,
+      Valued.v (((π : v.adicCompletionIntegers K) : v.adicCompletion K) ^ (e * (d.degree - 1)) *
+        coeff d ((Φ.map (algebraMap (v.adicCompletionIntegers K)
+          (v.adicCompletion K))).log ())) ≤ 1 := by
+    intro d
+    rcases Nat.eq_zero_or_pos d.degree with h0 | hpos
+    · obtain rfl : d = 0 := (Finsupp.degree_eq_zero_iff d).mp h0
+      rw [coeff_zero_eq_constantCoeff_apply, constantCoeff_log, mul_zero, map_zero]
+      exact zero_le_one
+    · obtain ⟨b, hb⟩ := Φ.coeff_log_map_padic hp hpmem _ hfp () d
+      have hvp : padicValNat p d.degree < d.degree :=
+        lt_of_lt_of_le (Nat.lt_pow_self hp.one_lt)
+          (Nat.le_of_dvd hpos pow_padicValNat_dvd)
+      -- the coefficient of the logarithm has valuation at most `exp (e·v_p(n))`
+      have h1 := congrArg Valued.v hb
+      rw [map_mul, map_pow, show algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)
+          (p : v.adicCompletionIntegers K) = (((p : v.adicCompletionIntegers K) :
+            v.adicCompletionIntegers K) : v.adicCompletion K) from rfl, hpe] at h1
+      have hfb : Valued.v (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) b)
+          ≤ 1 := b.2
+      have h3 : Valued.v (coeff d ((Φ.map (algebraMap (v.adicCompletionIntegers K)
+          (v.adicCompletion K))).log ())) ≤ exp ((e * padicValNat p d.degree : ℕ) : ℤ) := by
+        have h4 := mul_le_mul_right (h1.le.trans hfb)
+          (exp ((e * padicValNat p d.degree : ℕ) : ℤ))
+        rwa [mul_one, ← mul_assoc, ← exp_nsmul, nsmul_eq_mul, ← exp_add,
+          show ((e * padicValNat p d.degree : ℕ) : ℤ) + (padicValNat p d.degree : ℤ) *
+            -(e : ℤ) = 0 by push_cast; ring, exp_zero, one_mul] at h4
+      rw [map_mul, map_pow, hπe]
+      refine le_trans (mul_le_mul_right h3 _) ?_
+      rw [← exp_nsmul, nsmul_eq_mul, ← exp_add, ← exp_zero, exp_le_exp]
+      have hmono := (Nat.cast_le (α := ℤ)).mpr
+        (Nat.mul_le_mul_left e (show padicValNat p d.degree ≤ d.degree - 1 by lia))
+      lia
+  exact ⟨fun d ↦ ⟨_, hint d⟩, fun d ↦ rfl⟩
+
+end AdicScaledLog
 
 end ChabautyColeman
