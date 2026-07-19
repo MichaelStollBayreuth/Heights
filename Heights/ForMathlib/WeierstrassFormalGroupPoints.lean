@@ -28,10 +28,13 @@ of the formal group of an integral model with the kernel of reduction (Silverman
   the formal group.
 * `WeierstrassCurve.Affine.exists_points_equiv_filtration`: the additive equivalence
   `Ê(𝔪) ≃+ E₁(K_v)` matching `𝔪`-power levels with filtration steps.
+* `WeierstrassCurve.Affine.filtration_finiteIndex`: every filtration step has finite
+  index in `E(K_v)`, by compactness of the integral locus and the congruence levels.
+* `WeierstrassCurve.Affine.exists_filtration_equiv`: a deep filtration step is isomorphic
+  to `(𝒪_v, +)` via the scaled formal logarithm
+  (`ChabautyColeman.exists_scaledLog`).
 * `WeierstrassCurve.Affine.exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers`:
-  the structure theorem — `E(K_v)` has a finite-index subgroup isomorphic to `(𝒪_v, +)`;
-  it rests on the two remaining `sorry`s `filtration_finiteIndex` (openness/compactness)
-  and `exists_filtration_equiv` (the formal logarithm).
+  the structure theorem — `E(K_v)` has a finite-index subgroup isomorphic to `(𝒪_v, +)`.
 -/
 
 open ChabautyColeman IsLocalRing MvPowerSeries
@@ -1083,6 +1086,24 @@ private lemma add_param_mem_pow {z z' : W₀.formalGroupLaw.Points} {n : ℕ}
 
 /-- For a nonzero parameter `t ∈ 𝔪`, membership in `𝔪^(n+1)` is the pole condition on
 the `x`-coordinate of the associated point. -/
+private lemma exists_pi_pow_factor {π t : v.adicCompletionIntegers K} {n : ℕ}
+    (hmax : maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π})
+    (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1)) :
+    ∃ s ∈ maximalIdeal (v.adicCompletionIntegers K), t = π ^ n * s := by
+  rw [hmax, Ideal.span_singleton_pow, Ideal.mem_span_singleton] at ht
+  obtain ⟨u, hu⟩ := ht
+  refine ⟨π * u, ?_, by rw [hu, pow_succ]; ring⟩
+  rw [hmax]
+  exact Ideal.mem_span_singleton.mpr (dvd_mul_right ..)
+
+/-- Division by a uniformizer: the maximal ideal of `𝒪_v` is additively isomorphic to
+`𝒪_v` itself. -/
+private lemma maximalIdeal_addEquiv {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
+    (hmax : maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π}) :
+    Nonempty (maximalIdeal (v.adicCompletionIntegers K) ≃+ v.adicCompletionIntegers K) :=
+  ⟨((LinearEquiv.ofEq _ _ (by rw [hmax])).trans
+    (LinearEquiv.toSpanNonzeroSingleton _ _ π hπ0).symm).toAddEquiv⟩
+
 private lemma param_pow_iff {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (h0 : t ≠ 0) (n : ℕ) :
     t ∈ maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
@@ -1822,6 +1843,85 @@ private lemma exists_level_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.No
   · exact exists_level_sub_mem_of_two_torsion h₀ hx₀ hψ0
   · exact exists_level_sub_mem_of_ne_negY h₀ hx₀ hψ0
 
+private lemma sfun_add {n : ℕ} {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
+    (θ : W₀.formalGroupLaw.Points ≃+ filtration hW 0) {sfun : filtration hW n →
+      v.adicCompletionIntegers K}
+    (hsmem : ∀ P, sfun P ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hseq : ∀ P, (θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) P) () :
+      v.adicCompletionIntegers K) = π ^ n * sfun P) (P Q : filtration hW n) :
+    sfun (P + Q) = MvPSeries.eval (Sum.elim (fun _ : Unit ↦ sfun P) fun _ : Unit ↦ sfun Q)
+      (W₀.formalGroupLaw.scaledFC (π ^ n) ()) := by
+  refine mul_left_cancel₀ (pow_ne_zero n hπ0) ?_
+  calc π ^ n * sfun (P + Q)
+      = (θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) (P + Q)) () :
+          v.adicCompletionIntegers K) := (hseq _).symm
+    _ = W₀.addEval (π ^ n * sfun P) (π ^ n * sfun Q) := by
+        rw [map_add, map_add, W₀.add_apply_coe_eq_addEval, hseq, hseq]
+    _ = π ^ n * MvPSeries.eval (Sum.elim (fun _ : Unit ↦ sfun P) fun _ : Unit ↦ sfun Q)
+          (W₀.formalGroupLaw.scaledFC (π ^ n) ()) :=
+        ChabautyColeman.eval_F_eq_mul_eval_scaledFC W₀.formalGroupLaw (π ^ n)
+          (hsmem P) (hsmem Q)
+
+private lemma sfun_eval_injective {n : ℕ} {π : v.adicCompletionIntegers K}
+    (θ : W₀.formalGroupLaw.Points ≃+ filtration hW 0)
+    {lhat ehat : MvPowerSeries Unit (v.adicCompletionIntegers K)}
+    (hl0 : MvPowerSeries.constantCoeff lhat = 0)
+    (hel : MvPowerSeries.subst (fun _ : Unit ↦ lhat) ehat = MvPowerSeries.X ())
+    {sfun : filtration hW n → v.adicCompletionIntegers K}
+    (hsmem : ∀ P, sfun P ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hseq : ∀ P, (θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) P) () :
+      v.adicCompletionIntegers K) = π ^ n * sfun P) {P Q : filtration hW n}
+    (h : MvPSeries.eval (fun _ : Unit ↦ sfun P) lhat
+      = MvPSeries.eval (fun _ : Unit ↦ sfun Q) lhat) : P = Q := by
+  have h1 := congrArg (fun x ↦ MvPSeries.eval (fun _ : Unit ↦ x) ehat) h
+  rw [ChabautyColeman.eval_eval_of_subst_eq_X (hsmem P) hl0 hel,
+    ChabautyColeman.eval_eval_of_subst_eq_X (hsmem Q) hl0 hel] at h1
+  have h2 : θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) P)
+      = θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) Q) := by
+    funext i
+    cases i
+    exact Subtype.ext (by rw [hseq P, hseq Q, h1])
+  exact AddSubgroup.inclusion_injective _ (θ.symm.injective h2)
+
+private lemma exists_sfun_eval_eq {n : ℕ} {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
+    (hmax : maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π})
+    (θ : W₀.formalGroupLaw.Points ≃+ filtration hW 0)
+    (hθ : ∀ (z : W₀.formalGroupLaw.Points) (m : ℕ),
+      ((z () : v.adicCompletionIntegers K) ∈
+          maximalIdeal (v.adicCompletionIntegers K) ^ (m + 1) ↔
+        ((θ z : filtration hW 0) : W.Point) ∈ filtration hW m))
+    {lhat ehat : MvPowerSeries Unit (v.adicCompletionIntegers K)}
+    (he0 : MvPowerSeries.constantCoeff ehat = 0)
+    (hle : MvPowerSeries.subst (fun _ : Unit ↦ ehat) lhat = MvPowerSeries.X ())
+    {sfun : filtration hW n → v.adicCompletionIntegers K}
+    (hseq : ∀ P, (θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) P) () :
+      v.adicCompletionIntegers K) = π ^ n * sfun P)
+    {w : v.adicCompletionIntegers K} (hw : w ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ∃ P : filtration hW n, MvPSeries.eval (fun _ : Unit ↦ sfun P) lhat = w := by
+  have hsw : MvPSeries.eval (fun _ : Unit ↦ w) ehat ∈
+      maximalIdeal (v.adicCompletionIntegers K) := ChabautyColeman.eval_unit_mem hw he0
+  obtain ⟨z, hzdef⟩ : ∃ z : W₀.formalGroupLaw.Points, z = fun _ ↦
+    ⟨π ^ n * MvPSeries.eval (fun _ : Unit ↦ w) ehat, Ideal.mul_mem_left _ _ hsw⟩ := ⟨_, rfl⟩
+  have hzpow : (z () : v.adicCompletionIntegers K) ∈
+      maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) := by
+    have hz : (z () : v.adicCompletionIntegers K)
+        = π ^ n * MvPSeries.eval (fun _ : Unit ↦ w) ehat := by rw [hzdef]
+    rw [hz, hmax, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+    obtain ⟨u, hu⟩ := Ideal.mem_span_singleton.mp (hmax ▸ hsw)
+    exact ⟨u, by rw [hu, pow_succ]; ring⟩
+  refine ⟨⟨((θ z : filtration hW 0) : W.Point), (hθ z n).mp hzpow⟩, ?_⟩
+  have hP : θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le)
+      ⟨((θ z : filtration hW 0) : W.Point), (hθ z n).mp hzpow⟩) = z := by
+    rw [show AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le)
+      ⟨((θ z : filtration hW 0) : W.Point), (hθ z n).mp hzpow⟩ = θ z from
+        Subtype.ext rfl, θ.symm_apply_apply]
+  have hsfun : sfun ⟨((θ z : filtration hW 0) : W.Point), (hθ z n).mp hzpow⟩
+      = MvPSeries.eval (fun _ : Unit ↦ w) ehat := by
+    refine mul_left_cancel₀ (pow_ne_zero n hπ0) ?_
+    rw [← hseq, hP, hzdef]
+  rw [hsfun]
+  exact ChabautyColeman.eval_eval_of_subst_eq_X hw he0 hle
+
 variable [Finite (R ⧸ v.asIdeal)]
 
 /-- Each filtration step has finite index in the previous one: the parameter map modulo
@@ -1942,12 +2042,39 @@ theorem filtration_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletionInteg
 
 /-- Some step of the valuation filtration on the points of an elliptic curve over `K_v` is
 isomorphic to the additive group of `𝒪_v`: for `𝔪^k` past the ramification of the residue
-characteristic, the formal logarithm identifies `Ê(𝔪^k)` with `(𝔪^k, +) ≅ (𝒪_v, +)`
+characteristic, the scaled formal logarithm identifies `Ê(𝔪^k)` with `(𝔪^k, +) ≅ (𝒪_v, +)`
 (Silverman, IV.6.4). -/
 theorem exists_filtration_equiv (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
     (v.adicCompletion K)) = W) :
-    ∃ n, Nonempty (filtration hW n ≃+ v.adicCompletionIntegers K) :=
-  sorry
+    ∃ n, Nonempty (filtration hW n ≃+ v.adicCompletionIntegers K) := by
+  obtain ⟨n, π, lhat, ehat, -, hπ0, hmax, hl0, he0, hle, hel, hadd⟩ :=
+    exists_scaledLog (v := v) (K := K) W₀.formalGroupLaw
+  obtain ⟨θ, hθ⟩ := exists_points_equiv_filtration (hW := hW)
+  -- the scaled parameter `s_P` of a point of the `n`-th filtration step
+  have hs (P : filtration hW n) : ∃ s ∈ maximalIdeal (v.adicCompletionIntegers K),
+      (θ.symm (AddSubgroup.inclusion (filtration_anti (hW := hW) n.zero_le) P) () :
+        v.adicCompletionIntegers K) = π ^ n * s := by
+    refine exists_pi_pow_factor hmax ((hθ _ n).mpr ?_)
+    rw [θ.apply_symm_apply, AddSubgroup.coe_inclusion]
+    exact P.2
+  choose sfun hsmem hseq using hs
+  have hℓmem (P : filtration hW n) : MvPSeries.eval (fun _ : Unit ↦ sfun P) lhat ∈
+      maximalIdeal (v.adicCompletionIntegers K) :=
+    ChabautyColeman.eval_unit_mem (hsmem P) hl0
+  have hbij : Function.Bijective (fun P : filtration hW n ↦
+      (⟨MvPSeries.eval (fun _ : Unit ↦ sfun P) lhat, hℓmem P⟩ :
+        maximalIdeal (v.adicCompletionIntegers K))) := by
+    refine ⟨fun P Q h ↦ sfun_eval_injective θ hl0 hel hsmem hseq ?_, fun ⟨w, hw⟩ ↦ ?_⟩
+    · rwa [Subtype.mk.injEq] at h
+    · obtain ⟨P, hP⟩ := exists_sfun_eval_eq hπ0 hmax θ hθ he0 hle hseq hw
+      exact ⟨P, Subtype.ext hP⟩
+  obtain ⟨E2⟩ := maximalIdeal_addEquiv hπ0 hmax
+  refine ⟨n, ⟨(AddEquiv.ofBijective (AddMonoidHom.mk' _ fun P Q ↦ Subtype.ext ?_)
+    hbij).trans E2⟩⟩
+  change MvPSeries.eval (fun _ : Unit ↦ sfun (P + Q)) lhat
+    = MvPSeries.eval (fun _ : Unit ↦ sfun P) lhat + MvPSeries.eval (fun _ : Unit ↦ sfun Q) lhat
+  rw [sfun_add hπ0 θ hsmem hseq P Q]
+  exact ChabautyColeman.eval_scaledFC_add W₀.formalGroupLaw hadd (hsmem P) (hsmem Q)
 
 end WeierstrassCurve.Affine
 

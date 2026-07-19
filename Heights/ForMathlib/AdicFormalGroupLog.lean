@@ -403,7 +403,7 @@ theorem exists_scaledLog [Finite (R ⧸ v.asIdeal)] [CharZero K]
     (Φ : FormalGroupLaw (v.adicCompletionIntegers K) Unit) :
     ∃ (n : ℕ) (π : v.adicCompletionIntegers K)
       (lhat ehat : MvPowerSeries Unit (v.adicCompletionIntegers K)),
-      1 ≤ n ∧ maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π} ∧
+      1 ≤ n ∧ π ≠ 0 ∧ maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π} ∧
       constantCoeff lhat = 0 ∧ constantCoeff ehat = 0 ∧
       MvPowerSeries.subst (fun _ : Unit ↦ ehat) lhat = X () ∧
       MvPowerSeries.subst (fun _ : Unit ↦ lhat) ehat = X () ∧
@@ -426,7 +426,7 @@ theorem exists_scaledLog [Finite (R ⧸ v.asIdeal)] [CharZero K]
     (v.valued_irreducible_adicCompletionIntegers hπirr) Φ
   have hl' : IsScaledLog e π Φ lhat := hl
   have ha := sub_X_of_isScaledLog hl'
-  refine ⟨e, π, lhat, invSubst (fun _ ↦ lhat) (), he1, hπirr.maximalIdeal_eq,
+  refine ⟨e, π, lhat, invSubst (fun _ ↦ lhat) (), he1, hπirr.ne_zero, hπirr.maximalIdeal_eq,
     constantCoeff_of_isScaledLog hl', constantCoeff_invSubst ha (), ?_, ?_,
     subst_scaledFC_of_isScaledLog hπirr.ne_zero hl'⟩
   · rw [show (fun _ : Unit ↦ invSubst (fun _ ↦ lhat) ()) = invSubst (fun _ ↦ lhat) from
@@ -454,13 +454,13 @@ private lemma hasEval_pair {s₁ s₂ : O} (h₁ : s₁ ∈ maximalIdeal O) (h�
 variable [IsUniformAddGroup O] [CompleteSpace O] [T2Space O] [IsTopologicalRing O]
 
 /-- Evaluation of a one-variable series without constant term maps `𝔪` to `𝔪`. -/
-private lemma eval_unit_mem {t : O} (ht : t ∈ maximalIdeal O) {h : MvPowerSeries Unit O}
+theorem eval_unit_mem {t : O} (ht : t ∈ maximalIdeal O) {h : MvPowerSeries Unit O}
     (hcc : constantCoeff h = 0) : eval (fun _ : Unit ↦ t) h ∈ maximalIdeal O :=
   eval_mem_maximalIdeal (hasEval_of_mem fun _ ↦ ht) (fun _ ↦ ht) h (hcc ▸ zero_mem _)
 
 /-- Evaluating a composition identity `h ∘ g = X`: the evaluations of `g` and `h` are
 mutually inverse on `𝔪`. -/
-private lemma eval_eval_of_subst_eq_X {t : O} (ht : t ∈ maximalIdeal O)
+theorem eval_eval_of_subst_eq_X {t : O} (ht : t ∈ maximalIdeal O)
     {g h : MvPowerSeries Unit O} (hg0 : constantCoeff g = 0)
     (hcomp : MvPowerSeries.subst (fun _ : Unit ↦ g) h = X ()) :
     eval (fun _ : Unit ↦ eval (fun _ : Unit ↦ t) g) h = t := by
@@ -473,7 +473,7 @@ private lemma eval_eval_of_subst_eq_X {t : O} (ht : t ∈ maximalIdeal O)
 open FormalGroupLaw in
 /-- Additivity of the evaluated scaled logarithm: evaluating the descended identity at a
 pair of points of `𝔪`. -/
-private lemma eval_scaledFC_add (Φ : FormalGroupLaw O Unit) {c : O}
+theorem eval_scaledFC_add (Φ : FormalGroupLaw O Unit) {c : O}
     {lhat : MvPowerSeries Unit O}
     (hadd : MvPowerSeries.subst (Φ.scaledFC c) lhat
       = MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inl s) :
@@ -503,7 +503,7 @@ private lemma eval_scaledFC_add (Φ : FormalGroupLaw O Unit) {c : O}
 open FormalGroupLaw in
 /-- Compatibility of the scaled formal group sum with the original one: evaluating `F` at
 `(c·s₁, c·s₂)` is `c` times the evaluated scaled sum. -/
-private lemma eval_F_eq_mul_eval_scaledFC (Φ : FormalGroupLaw O Unit) (c : O)
+theorem eval_F_eq_mul_eval_scaledFC (Φ : FormalGroupLaw O Unit) (c : O)
     {s₁ s₂ : O} (h₁ : s₁ ∈ maximalIdeal O) (h₂ : s₂ ∈ maximalIdeal O) :
     eval (Sum.elim (fun _ : Unit ↦ c * s₁) fun _ : Unit ↦ c * s₂) (Φ.F ())
       = c * eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂) (Φ.scaledFC c ()) := by

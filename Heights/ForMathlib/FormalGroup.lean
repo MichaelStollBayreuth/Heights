@@ -20,8 +20,8 @@ machinery needs.
   (the group `E(K_v)` has a finite-index subgroup isomorphic to `(𝒪_v, +)`), which now
   lives in `Heights.ForMathlib.WeierstrassFormalGroupPoints` together with the valuation
   filtration `E_{n+1}(K_v)` and its identification with the `𝔪`-points of the formal
-  group; the finite-index statement and the formal-logarithm identification of a deep
-  filtration step with `(𝒪_v, +)` are the two remaining `sorry`s there.
+  group, the finite-index statement, and the formal-logarithm identification of a deep
+  filtration step with `(𝒪_v, +)` (all fully proved).
 
 * `IsDedekindDomain.HeightOneSpectrum.card_selmerGroup_integralClosure`: for odd residue
   characteristic and a finite separable extension `L` of `K_v` with `B` the integral

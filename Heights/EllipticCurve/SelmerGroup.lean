@@ -39,17 +39,17 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   the local statement that at a good place the image of `μ_v` is exactly the group of
   unramified classes with trivial norm (`selmerGroupA_inf_ker_normM_eq_range_μ`) is proved
   by counting. The
-  whole reduction rests only on the `sorry`ed interface statements of
-  `Heights.ForMathlib.FormalGroup`.
+  whole reduction is now fully proved, resting on the formal-group results of
+  `Heights.ForMathlib.WeierstrassFormalGroupPoints`.
 * `card_range_μ_adicCompletion`, `card_range_μ_completion_isReal`,
   `card_range_μ_completion_isComplex`: the size of the local image is
   `#E(K_v)[2] · ‖2‖_v⁻¹` — concretely `#E(K_v)[2] · (#𝔽_v)^(v(2))` at a finite place (so
   `#E(K_v)[2]` when the residue characteristic is odd), `#E(K_v)[2] / 2` at a real place, and
   `1` at a complex place. These formulas certify that a computed local image is the full one.
   The real and complex formulas are proved outright (the real case by a sign analysis over
-  `ℝ`, transported along `v.Completion ≃+* ℝ`); the finite-place formula is proved modulo the
-  interface statement of `Heights.ForMathlib.FormalGroup` (a finite-index subgroup of
-  `E(F_v)` is isomorphic to `(𝒪_v, +)`, `sorry`ed there).
+  `ℝ`, transported along `v.Completion ≃+* ℝ`); the finite-place formula rests on the
+  formal-group structure theorem (a finite-index subgroup of `E(F_v)` is isomorphic to
+  `(𝒪_v, +)`, proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints`).
 
 ## Towards explicit computations
 
@@ -641,8 +641,7 @@ algebra: for parity of valuations, ramification is harmless in both directions.
 The remaining local statement — at a good place, the image of `μ_v` is exactly the group of
 unramified square classes with trivial norm (`selmerGroupA_inf_ker_normM_eq_range_μ`) — is
 proved by counting both sides against `#E(F_v)[2]`. All in all, the reduction of the 2-Selmer
-group to the bad places now rests only on the two `sorry`ed interface statements of
-`Heights.ForMathlib.FormalGroup`.
+group to the bad places is fully proved.
 -/
 
 section Semilocal
@@ -1075,8 +1074,8 @@ open scoped Classical in
 `#(im μ_v) = #E(F_v)[2] · (#𝔽_v)^(v(2))`. For odd residue characteristic the second factor
 is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`.
 
-The formal-group input (`Heights.ForMathlib.FormalGroup`, still `sorry`ed) is that a
-finite-index subgroup of `E(F_v)` is isomorphic to `(𝒪_v, +)`; the quantity
+The formal-group input (proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints`) is
+that a finite-index subgroup of `E(F_v)` is isomorphic to `(𝒪_v, +)`; the quantity
 `#(G/2G) / #G[2]` is insensitive to passing to that subgroup
 (`AddSubgroup.index_range_nsmul_mul_card_ker`), and for `(𝒪_v, +)` it is
 `#(𝒪_v/2𝒪_v) = (#𝔽_v)^(v(2))`. -/
