@@ -536,6 +536,14 @@ private lemma mem_maximalIdeal_iff {x : v.adicCompletionIntegers K} :
   have h := mem_maximalIdeal_pow_iff (K := K) (x := x) (n := 1)
   rwa [pow_one] at h
 
+/-- An element within distance `exp (-n)` of an integral element is integral. -/
+private lemma valued_le_one_of_sub {a b : v.adicCompletion K} {n : ℕ}
+    (h : Valued.v (a - b) ≤ exp (-(n : ℤ))) (hb : Valued.v b ≤ 1) : Valued.v a ≤ 1 := by
+  rw [show a = (a - b) + b by ring]
+  refine le_trans (Valued.v.map_add _ _) (max_le (h.trans ?_) hb)
+  rw [← exp_zero, exp_le_exp]
+  lia
+
 private lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.iotaEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
@@ -584,16 +592,22 @@ private lemma coe_a₄ : ((W₀.a₄ : v.adicCompletionIntegers K) : v.adicCompl
 private lemma coe_a₆ : ((W₀.a₆ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₆ := by
   rw [← hW, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
 
+private lemma valued_a₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
+private lemma valued_a₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
+private lemma valued_a₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_le_one W₀.a₃
+private lemma valued_a₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
+private lemma valued_a₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ valued_coe_le_one W₀.a₆
+
 /-- On an affine point of the kernel of reduction, `v(y)² = v(x)³`; in particular `y ≠ 0`,
 and the parameter `-x/y` and the value `-1/y` lie in the maximal ideal. -/
 private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : exp (2 : ℤ) ≤ Valued.v x) :
     y ≠ 0 ∧ Valued.v (-x / y) ≤ exp (-1 : ℤ) ∧ Valued.v (-1 / y) ≤ exp (-1 : ℤ) := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
-  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
-  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_le_one W₀.a₃
-  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
-  have ha₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ valued_coe_le_one W₀.a₆
+  have ha₁ : Valued.v W.a₁ ≤ 1 := valued_a₁ hW
+  have ha₂ : Valued.v W.a₂ ≤ 1 := valued_a₂ hW
+  have ha₃ : Valued.v W.a₃ ≤ 1 := valued_a₃ hW
+  have ha₄ : Valued.v W.a₄ ≤ 1 := valued_a₄ hW
+  have ha₆ : Valued.v W.a₆ ≤ 1 := valued_a₆ hW
   set A := Valued.v x with hA
   have hA1 : (1 : ℤᵐ⁰) < A :=
     lt_of_lt_of_le (by rw [← exp_zero]; exact exp_lt_exp.mpr (by lia)) hx
@@ -683,11 +697,11 @@ poles on a Weierstrass curve with integral coefficients have even order at `x`. 
 private lemma integral_of_not_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : ¬ exp (2 : ℤ) ≤ Valued.v x) :
     Valued.v x ≤ 1 ∧ Valued.v y ≤ 1 := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
-  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
-  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_le_one W₀.a₃
-  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
-  have ha₆ : Valued.v W.a₆ ≤ 1 := coe_a₆ hW ▸ valued_coe_le_one W₀.a₆
+  have ha₁ : Valued.v W.a₁ ≤ 1 := valued_a₁ hW
+  have ha₂ : Valued.v W.a₂ ≤ 1 := valued_a₂ hW
+  have ha₃ : Valued.v W.a₃ ≤ 1 := valued_a₃ hW
+  have ha₄ : Valued.v W.a₄ ≤ 1 := valued_a₄ hW
+  have ha₆ : Valued.v W.a₆ ≤ 1 := valued_a₆ hW
   have heq' : y ^ 2 + (W.a₁ * x * y + W.a₃ * y) =
       x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆)) := by
     linear_combination (W.equation_iff x y).mp hxy
@@ -827,7 +841,62 @@ private lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
   rw [coe_a₁ hW, coe_a₃ hW] at h
   exact h
 
+/-- Near a `2`-torsion base point `(x₀, y₀)`, the second factor of the finite-difference
+identity `(y - negY x₀ y₀) * (y - y₀) = (x - x₀) * (…)` is congruent to the negative of the
+partial derivative in `x` at the base point, hence has the same valuation `exp c`. -/
+private lemma valued_num_of_two_torsion {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
+    (hx₀ : Valued.v x₀ ≤ 1)
+    (hc : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = exp c)
+    (hsc : 1 - c ≤ (s : ℤ)) (hx : Valued.v (x - x₀) ≤ exp (-(s : ℤ)))
+    (hy : Valued.v (y - y₀) ≤ exp (-(s : ℤ))) :
+    Valued.v (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) = exp c := by
+  have hdiff : Valued.v ((x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) -
+      -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄))) ≤ exp (-(s : ℤ)) := by
+    rw [show (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) -
+        -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) =
+        (x - x₀) * (x + 2 * x₀ + W.a₂) - W.a₁ * (y - y₀) by ring]
+    refine le_trans (Valuation.map_sub _ _ _) (max_le ?_ ?_)
+    · rw [map_mul]
+      refine le_trans (mul_le_mul' hx ?_) (by rw [mul_one])
+      refine le_trans (Valued.v.map_add _ _) (max_le (le_trans (Valued.v.map_add _ _)
+        (max_le (valued_le_one_of_sub hx hx₀) ?_)) (valued_a₂ hW))
+      calc Valued.v (2 * x₀) ≤ Valued.v 2 * Valued.v x₀ := le_of_eq (map_mul _ _ _)
+        _ ≤ 1 * 1 := mul_le_mul' (valued_coe_le_one 2) hx₀
+        _ = 1 := one_mul 1
+    · rw [map_mul]
+      exact le_trans (mul_le_mul' (valued_a₁ hW) hy) (by rw [one_mul])
+  rw [show x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y =
+      -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) +
+      ((x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) -
+        -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄))) by ring,
+    Valuation.map_add_eq_of_lt_left, Valuation.map_neg, hc]
+  refine lt_of_le_of_lt hdiff ?_
+  rw [Valuation.map_neg, hc, exp_lt_exp]
+  lia
+
 end
+
+/-- Lower bound for the valuation of the chord slope towards the negative of the base
+point, from the product form of the numerator valuation supplied by the finite-difference
+identity. -/
+private lemma exp_one_le_valued_slope {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
+    (hxx : x ≠ x₀) (hsc : 1 - c ≤ (s : ℤ)) (hy : Valued.v (y - y₀) ≤ exp (-(s : ℤ)))
+    (hprod : Valued.v (y - W.negY x₀ y₀) * Valued.v (y - y₀) = Valued.v (x - x₀) * exp c) :
+    exp (1 : ℤ) ≤ Valued.v ((y - W.negY x₀ y₀) / (x - x₀)) := by
+  obtain ⟨dx, hdx⟩ : ∃ dx : ℤ, Valued.v (x - x₀) = exp dx :=
+    ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hxx)).symm⟩
+  obtain ⟨dy, hdy⟩ : ∃ dy : ℤ, Valued.v (y - y₀) = exp dy := by
+    refine ⟨_, (exp_log fun h0 ↦ ?_).symm⟩
+    rw [h0, mul_zero, hdx] at hprod
+    exact mul_ne_zero exp_ne_zero exp_ne_zero hprod.symm
+  obtain ⟨nv, hnv⟩ : ∃ nv : ℤ, Valued.v (y - W.negY x₀ y₀) = exp nv := by
+    refine ⟨_, (exp_log fun h0 ↦ ?_).symm⟩
+    rw [h0, zero_mul, hdx] at hprod
+    exact mul_ne_zero exp_ne_zero exp_ne_zero hprod.symm
+  rw [hnv, hdy, hdx, ← exp_add, ← exp_add, exp_inj] at hprod
+  have hdy' : dy ≤ -(s : ℤ) := by rwa [hdy, exp_le_exp] at hy
+  rw [map_div₀, hnv, hdx, ← exp_sub, exp_le_exp]
+  lia
 
 /-- The formal inverse preserves the valuation of the parameter. -/
 private lemma valued_iotaEval {t : v.adicCompletionIntegers K}
@@ -1083,7 +1152,6 @@ private lemma isCompact_integerSet [Finite (R ⧸ v.asIdeal)] :
           ValuationSubring (v.adicCompletion K)) : Set (v.adicCompletion K)) := rfl
     rw [hset]
     exact (Valued.isClosed_valuationSubring _).isComplete
-
 
 variable [W.IsElliptic]
 
@@ -1687,8 +1755,8 @@ private lemma sub_mem_filtration_of_slope {x₀ y₀ x y : v.adicCompletion K}
     (hx₀ : Valued.v x₀ ≤ 1) (hxI : Valued.v x ≤ 1)
     (hs : exp (1 : ℤ) ≤ Valued.v ((y - W.negY x₀ y₀) / (x - x₀))) :
     (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
-  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
+  have ha₁ : Valued.v W.a₁ ≤ 1 := valued_a₁ hW
+  have ha₂ : Valued.v W.a₂ ≤ 1 := valued_a₂ hW
   rw [sub_eq_add_neg, Point.neg_some,
     Point.add_some (fun hc ↦ hxx hc.1), some_mem_filtration]
   rw [Affine.slope_of_X_ne hxx, Affine.addX]
@@ -1714,162 +1782,91 @@ private lemma sub_mem_filtration_of_slope {x₀ y₀ x y : v.adicCompletion K}
   rw [← exp_nsmul, nsmul_eq_mul]
   norm_num
 
-/-- Around each integral point of the curve there is a congruence level `s` such that
-every on-curve point congruent to it modulo `𝔪^s` differs from it by an element of the
-kernel of reduction.  Near a `2`-torsion point the chord slope is estimated through the
-finite-difference identity (nonsingularity provides the nonvanishing partial). -/
-private lemma exists_level_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y₀)
-    (hx₀ : Valued.v x₀ ≤ 1) (hy₀ : Valued.v y₀ ≤ 1) :
+/-- The congruence level around a `2`-torsion base point: the chord slope is estimated
+through the finite-difference identity, whose second factor is congruent to the partial
+derivative in `x` (nonvanishing by nonsingularity). -/
+private lemma exists_level_sub_mem_of_two_torsion {x₀ y₀ : v.adicCompletion K}
+    (h₀ : W.Nonsingular x₀ y₀) (hx₀ : Valued.v x₀ ≤ 1) (hψ0 : y₀ - W.negY x₀ y₀ = 0) :
     ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
       Valued.v (x - x₀) ≤ exp (-(s : ℤ)) → Valued.v (y - y₀) ≤ exp (-(s : ℤ)) →
       (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
-  have ha₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
-  have ha₂ : Valued.v W.a₂ ≤ 1 := coe_a₂ hW ▸ valued_coe_le_one W₀.a₂
-  have ha₃ : Valued.v W.a₃ ≤ 1 := coe_a₃ hW ▸ valued_coe_le_one W₀.a₃
-  have ha₄ : Valued.v W.a₄ ≤ 1 := coe_a₄ hW ▸ valued_coe_le_one W₀.a₄
-  rcases eq_or_ne (y₀ - W.negY x₀ y₀) 0 with hψ0 | hψ0
-  · -- `2`-torsion base point: the partial in `x` does not vanish
-    have hφ0 : W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄) ≠ 0 := by
-      refine ((W.nonsingular_iff' x₀ y₀).mp h₀).2.resolve_right fun hc ↦ hc ?_
-      rw [Affine.negY] at hψ0
-      linear_combination hψ0
-    have hφv : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) ≠ 0 := by
-      simpa using hφ0
-    obtain ⟨c, hc⟩ : ∃ c : ℤ, Valued.v (W.a₁ * y₀ -
-        (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = exp c := ⟨_, (exp_log hφv).symm⟩
-    refine ⟨(1 - c).toNat, fun {x y} h hx hy ↦ ?_⟩
-    set s : ℕ := (1 - c).toNat with hsdef
-    have hsc : 1 - c ≤ (s : ℤ) := by
-      rw [hsdef]
-      exact Int.self_le_toNat _
-    rcases eq_or_ne x x₀ with heq | hxx
-    · -- same `x`-coordinate: the points coincide (`ψ = 0` collapses the dichotomy)
-      have hy0 : y = y₀ := by
-        rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
-        · exact hy'
-        · rw [hy', ← sub_eq_zero, show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring,
-            hψ0, neg_zero]
-      have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by
-        subst heq hy0
-        rfl
+  have hφ0 : W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄) ≠ 0 := by
+    refine ((W.nonsingular_iff' x₀ y₀).mp h₀).2.resolve_right fun hc ↦ hc ?_
+    rw [Affine.negY] at hψ0
+    linear_combination hψ0
+  obtain ⟨c, hc⟩ : ∃ c : ℤ,
+      Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = exp c :=
+    ⟨_, (exp_log (by simpa using hφ0)).symm⟩
+  set s : ℕ := (1 - c).toNat
+  refine ⟨s, fun {x y} h hx hy ↦ ?_⟩
+  have hsc : 1 - c ≤ (s : ℤ) := Int.self_le_toNat _
+  rcases eq_or_ne x x₀ with heq | hxx
+  · -- same `x`-coordinate: the points coincide (`ψ = 0` collapses the dichotomy)
+    have hy0 : y = y₀ := by
+      rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
+      · exact hy'
+      · rw [hy', ← sub_eq_zero, show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring,
+          hψ0, neg_zero]
+    have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by subst heq hy0; rfl
+    rw [hPQ, sub_self]
+    exact zero_mem _
+  · -- distinct `x`-coordinates: the finite-difference identity gives the numerator bound
+    have hid : (y - W.negY x₀ y₀) * (y - y₀) = (x - x₀) *
+        (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) := by
+      rw [Affine.negY]
+      linear_combination (W.equation_iff x y).mp h.left - (W.equation_iff x₀ y₀).mp h₀.left
+    have hval := congrArg Valued.v hid
+    rw [map_mul, map_mul, valued_num_of_two_torsion hW hx₀ hc hsc hx hy] at hval
+    exact sub_mem_filtration_of_slope h₀ h hxx hx₀ (valued_le_one_of_sub hx hx₀)
+      (exp_one_le_valued_slope hxx hsc hy hval)
+
+/-- The congruence level around a non-`2`-torsion base point: the slope numerator is
+dominated by `ψ = y₀ - negY x₀ y₀`. -/
+private lemma exists_level_sub_mem_of_ne_negY {x₀ y₀ : v.adicCompletion K}
+    (h₀ : W.Nonsingular x₀ y₀) (hx₀ : Valued.v x₀ ≤ 1) (hψ0 : y₀ - W.negY x₀ y₀ ≠ 0) :
+    ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
+      Valued.v (x - x₀) ≤ exp (-(s : ℤ)) → Valued.v (y - y₀) ≤ exp (-(s : ℤ)) →
+      (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
+  obtain ⟨c, hc⟩ : ∃ c : ℤ, Valued.v (y₀ - W.negY x₀ y₀) = exp c :=
+    ⟨_, (exp_log (by simpa using hψ0)).symm⟩
+  set s : ℕ := (1 - c).toNat
+  refine ⟨s, fun {x y} h hx hy ↦ ?_⟩
+  have hsc : 1 - c ≤ (s : ℤ) := Int.self_le_toNat _
+  rcases eq_or_ne x x₀ with heq | hxx
+  · rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
+    · have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by subst heq hy'; rfl
       rw [hPQ, sub_self]
       exact zero_mem _
-    · -- distinct `x`-coordinates: slope via the finite-difference identity
-      have hxI : Valued.v x ≤ 1 := by
-        rw [show x = (x - x₀) + x₀ by ring]
-        exact le_trans (Valued.v.map_add _ _) (max_le
-          (hx.trans (by rw [← exp_zero, exp_le_exp]; lia)) hx₀)
-      have hid : (y - W.negY x₀ y₀) * (y - y₀) = (x - x₀) *
-          (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) := by
-        rw [Affine.negY]
-        linear_combination (W.equation_iff x y).mp h.left -
-          (W.equation_iff x₀ y₀).mp h₀.left
-      -- the difference quotient is congruent to the partial, hence of its valuation
-      have hyI : Valued.v y ≤ 1 := by
-        rw [show y = (y - y₀) + y₀ by ring]
-        exact le_trans (Valued.v.map_add _ _) (max_le
-          (hy.trans (by rw [← exp_zero, exp_le_exp]; lia)) hy₀)
-      have hdiff : Valued.v ((x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ -
-          W.a₁ * y) - -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄))) ≤
-          exp (-(s : ℤ)) := by
-        rw [show (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) -
-            -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) =
-            (x - x₀) * (x + 2 * x₀ + W.a₂) - W.a₁ * (y - y₀) by ring]
-        refine le_trans (Valuation.map_sub _ _ _) (max_le ?_ ?_)
-        · rw [map_mul]
-          refine le_trans (mul_le_mul' hx ?_) (by rw [mul_one])
-          refine le_trans (Valued.v.map_add _ _) (max_le (le_trans (Valued.v.map_add _ _)
-            (max_le hxI ?_)) ha₂)
-          calc Valued.v (2 * x₀) ≤ Valued.v 2 * Valued.v x₀ := le_of_eq (map_mul _ _ _)
-            _ ≤ 1 * 1 := mul_le_mul' (valued_coe_le_one 2) hx₀
-            _ = 1 := one_mul 1
-        · rw [map_mul]
-          exact le_trans (mul_le_mul' ha₁ hy) (by rw [one_mul])
-      have hhv : Valued.v (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ -
-          W.a₁ * y) = exp c := by
-        rw [show (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) =
-          -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) +
-            ((x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) -
-              -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄))) by ring,
-          Valuation.map_add_eq_of_lt_left, Valuation.map_neg, hc]
-        refine lt_of_le_of_lt hdiff ?_
-        rw [Valuation.map_neg, hc, exp_lt_exp]
-        lia
-      -- `y ≠ y₀`, and the valuation identity gives the slope bound
-      have hyy : y ≠ y₀ := by
-        intro hyeq
-        have h0' : (x - x₀) * (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ -
-            W.a₁ * y) = 0 := by
-          rw [← hid, hyeq, sub_self, mul_zero]
-        rcases mul_eq_zero.mp h0' with hc' | hc'
-        · exact hxx (sub_eq_zero.mp hc')
-        · rw [hc', map_zero] at hhv
-          exact exp_ne_zero hhv.symm
-      have hval := congrArg Valued.v hid
-      rw [map_mul, map_mul, hhv] at hval
-      refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
-      rw [map_div₀]
-      obtain ⟨dx, hdx⟩ : ∃ dx : ℤ, Valued.v (x - x₀) = exp dx :=
-        ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hxx)).symm⟩
-      obtain ⟨dy, hdy⟩ : ∃ dy : ℤ, Valued.v (y - y₀) = exp dy :=
-        ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hyy)).symm⟩
-      rw [hdx, hdy] at hval
-      obtain ⟨nv, hnv⟩ : ∃ nv : ℤ, Valued.v (y - W.negY x₀ y₀) = exp nv := by
-        refine ⟨_, (exp_log fun hc' ↦ ?_).symm⟩
-        rw [hc', zero_mul] at hval
-        exact mul_ne_zero exp_ne_zero exp_ne_zero hval.symm
-      rw [hnv, ← exp_add, ← exp_add, exp_inj] at hval
-      rw [hnv, hdx, ← exp_sub, exp_le_exp]
-      have hdy' : dy ≤ -(s : ℤ) := by rwa [hdy, exp_le_exp] at hy
+    · -- `y = negY`: excluded, since `y − y₀ = −ψ` is too large
+      exfalso
+      rw [hy', show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring, Valuation.map_neg,
+        hc, exp_le_exp] at hy
       lia
-  · -- non-`2`-torsion base point: the slope numerator is dominated by `ψ`
-    have hψv : Valued.v (y₀ - W.negY x₀ y₀) ≠ 0 := by simpa using hψ0
-    obtain ⟨c, hc⟩ : ∃ c : ℤ, Valued.v (y₀ - W.negY x₀ y₀) = exp c :=
-      ⟨_, (exp_log hψv).symm⟩
-    refine ⟨(1 - c).toNat, fun {x y} h hx hy ↦ ?_⟩
-    set s : ℕ := (1 - c).toNat with hsdef
-    have hsc : 1 - c ≤ (s : ℤ) := by
-      rw [hsdef]
-      exact Int.self_le_toNat _
-    have hcle : c ≤ 0 := by
-      have h1 : Valued.v (y₀ - W.negY x₀ y₀) ≤ 1 := by
-        rw [Affine.negY, show y₀ - (-y₀ - W.a₁ * x₀ - W.a₃) =
-          y₀ + (y₀ + (W.a₁ * x₀ + W.a₃)) by ring]
-        refine le_trans (Valued.v.map_add _ _) (max_le hy₀ (le_trans (Valued.v.map_add _ _)
-          (max_le hy₀ (le_trans (Valued.v.map_add _ _) (max_le ?_ ha₃)))))
-        rw [map_mul]
-        exact le_trans (mul_le_mul' ha₁ hx₀) (by rw [one_mul])
-      rwa [hc, ← exp_zero, exp_le_exp] at h1
-    rcases eq_or_ne x x₀ with heq | hxx
-    · rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
-      · have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by
-          subst heq hy'
-          rfl
-        rw [hPQ, sub_self]
-        exact zero_mem _
-      · -- `y = negY`: excluded, since `y − y₀ = −ψ` is too large
-        exfalso
-        rw [hy', show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring, Valuation.map_neg,
-          hc, exp_le_exp] at hy
-        lia
-    · -- distinct `x`-coordinates: the numerator has valuation `v(ψ)`
-      have hxI : Valued.v x ≤ 1 := by
-        rw [show x = (x - x₀) + x₀ by ring]
-        exact le_trans (Valued.v.map_add _ _) (max_le
-          (hx.trans (by rw [← exp_zero, exp_le_exp]; lia)) hx₀)
-      have hnum : Valued.v (y - W.negY x₀ y₀) = exp c := by
-        rw [show y - W.negY x₀ y₀ = (y₀ - W.negY x₀ y₀) + (y - y₀) by ring,
-          Valuation.map_add_eq_of_lt_left, hc]
-        refine lt_of_le_of_lt hy ?_
-        rw [hc, exp_lt_exp]
-        lia
-      refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
-      rw [map_div₀, hnum]
-      obtain ⟨dx, hdx⟩ : ∃ dx : ℤ, Valued.v (x - x₀) = exp dx :=
-        ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hxx)).symm⟩
-      rw [hdx, ← exp_sub, exp_le_exp]
-      have hdx' : dx ≤ -(s : ℤ) := by rwa [hdx, exp_le_exp] at hx
+  · -- distinct `x`-coordinates: the numerator has valuation `v(ψ)`
+    have hnum : Valued.v (y - W.negY x₀ y₀) = exp c := by
+      rw [show y - W.negY x₀ y₀ = (y₀ - W.negY x₀ y₀) + (y - y₀) by ring,
+        Valuation.map_add_eq_of_lt_left, hc]
+      refine lt_of_le_of_lt hy ?_
+      rw [hc, exp_lt_exp]
       lia
+    refine sub_mem_filtration_of_slope h₀ h hxx hx₀ (valued_le_one_of_sub hx hx₀) ?_
+    obtain ⟨dx, hdx⟩ : ∃ dx : ℤ, Valued.v (x - x₀) = exp dx :=
+      ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hxx)).symm⟩
+    rw [map_div₀, hnum, hdx, ← exp_sub, exp_le_exp]
+    have hdx' : dx ≤ -(s : ℤ) := by rwa [hdx, exp_le_exp] at hx
+    lia
+
+/-- Around each integral point of the curve there is a congruence level `s` such that
+every on-curve point congruent to it modulo `𝔪^s` differs from it by an element of the
+kernel of reduction. -/
+private lemma exists_level_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y₀)
+    (hx₀ : Valued.v x₀ ≤ 1) :
+    ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
+      Valued.v (x - x₀) ≤ exp (-(s : ℤ)) → Valued.v (y - y₀) ≤ exp (-(s : ℤ)) →
+      (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
+  rcases eq_or_ne (y₀ - W.negY x₀ y₀) 0 with hψ0 | hψ0
+  · exact exists_level_sub_mem_of_two_torsion h₀ hx₀ hψ0
+  · exact exists_level_sub_mem_of_ne_negY h₀ hx₀ hψ0
 
 variable [Finite (R ⧸ v.asIdeal)]
 
@@ -1960,7 +1957,7 @@ theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletion
   have hloc : ∀ p : ↥Z, ∃ s : ℕ, ∀ {x y : v.adicCompletion K} (h : W.Nonsingular x y),
       Valued.v (x - p.1.1) ≤ exp (-(s : ℤ)) → Valued.v (y - p.1.2) ≤ exp (-(s : ℤ)) →
       (.some x y h : W.Point) - .some p.1.1 p.1.2 (hns p) ∈ filtration hW 0 :=
-    fun p ↦ exists_level_sub_mem (hns p) (hint p).1 (hint p).2
+    fun p ↦ exists_level_sub_mem (hns p) (hint p).1
   choose sfun hsfun using hloc
   -- the covering by congruence neighbourhoods and its finite subcover
   obtain ⟨t, ht⟩ := hZcpt.elim_finite_subcover
