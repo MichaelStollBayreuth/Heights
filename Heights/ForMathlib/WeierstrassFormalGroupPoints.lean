@@ -250,6 +250,10 @@ theorem iotaEval_mem : W.iotaEval t ∈ maximalIdeal O :=
         PowerSeries.constantCoeff W.inverseSeries from rfl, W.constantCoeff_inverseSeries]
       exact zero_mem _)
 
+theorem iotaEval_ne_zero [IsDomain O] (ht0 : t ≠ 0) : W.iotaEval t ≠ 0 := by
+  rw [W.iotaEval_eq ht]
+  exact neg_ne_zero.mpr (mul_ne_zero ht0 (W.isUnit_duEval ht).ne_zero)
+
 omit W in
 /-- Evaluation of a one-variable substitution is evaluation at the value. -/
 theorem eval_subst_single {f : PowerSeries O} (hf : PowerSeries.constantCoeff f = 0)
@@ -543,6 +547,18 @@ private lemma valued_le_one_of_sub {a b : v.adicCompletion K} {n : ℕ}
   refine le_trans (Valued.v.map_add _ _) (max_le (h.trans ?_) hb)
   rw [← exp_zero, exp_le_exp]
   lia
+
+private lemma coe_wEval_ne_zero {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (h0 : t ≠ 0) :
+    ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+  simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+  exact W₀.wEval_ne_zero hm h0
+
+private lemma coe_duEval_ne_zero {t : v.adicCompletionIntegers K}
+    (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
+    ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
+  simp only [ne_eq, ZeroMemClass.coe_eq_zero]
+  exact (W₀.isUnit_duEval hm).ne_zero
 
 private lemma valued_lhs_eq_rhs {x y : v.adicCompletion K} (hxy : W.Equation x y) :
     Valued.v (y ^ 2 + (W.a₁ * x * y + W.a₃ * y)) =
@@ -1108,9 +1124,8 @@ theorem formalPoint_nonsingular
     (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (ht0 : t ≠ 0) :
     W.Nonsingular ((t : v.adicCompletion K) / (W₀.wEval t : v.adicCompletion K))
       (-1 / (W₀.wEval t : v.adicCompletion K)) := by
-  refine W.chord_point_nonsingular (coe_wEval_eq hW ht) ?_ W.isUnit_Δ.ne_zero
-  simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-  exact W₀.wEval_ne_zero ht ht0
+  exact W.chord_point_nonsingular (coe_wEval_eq hW ht) (coe_wEval_ne_zero ht ht0)
+    W.isUnit_Δ.ne_zero
 
 variable [DecidableEq (v.adicCompletion K)]
 
@@ -1145,14 +1160,8 @@ theorem formalPoint_injective : Function.Injective (formalPoint hW) := by
     · rw [formalPoint_of_param_ne_zero hW h0, formalPoint_of_param_ne_zero hW h0'] at h
       simp only [Point.some.injEq] at h
       obtain ⟨hX, hY⟩ := h
-      have hw0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) :
-          v.adicCompletion K) ≠ 0 := by
-        simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-        exact W₀.wEval_ne_zero (z ()).2 h0
-      have hw0' : ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) :
-          v.adicCompletion K) ≠ 0 := by
-        simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-        exact W₀.wEval_ne_zero (z' ()).2 h0'
+      have hw0 := coe_wEval_ne_zero (W₀ := W₀) (z ()).2 h0
+      have hw0' := coe_wEval_ne_zero (W₀ := W₀) (z' ()).2 h0'
       have hw : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) =
           ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) := by
         field_simp at hY
@@ -1229,19 +1238,14 @@ theorem formalPoint_negPoint (z : W₀.formalGroupLaw.Points) :
   · rw [formalPoint_of_param_eq_zero hW h0, formalPoint_of_param_eq_zero hW
       (by rw [W₀.negPoint_apply_coe, h0, W₀.iotaEval_zero]), neg_zero]
   · have hm := (z ()).2
-    have hι0 : W₀.iotaEval (z () : v.adicCompletionIntegers K) ≠ 0 := by
-      rw [W₀.iotaEval_eq hm]
-      exact neg_ne_zero.mpr (mul_ne_zero h0 (W₀.isUnit_duEval hm).ne_zero)
+    have hι0 : W₀.iotaEval (z () : v.adicCompletionIntegers K) ≠ 0 :=
+      W₀.iotaEval_ne_zero hm h0
     rw [formalPoint_of_param_ne_zero hW h0,
       formalPoint_of_param_ne_zero hW (by rw [W₀.negPoint_apply_coe]; exact hι0),
       Point.neg_some]
     simp only [Point.some.injEq, W₀.negPoint_apply_coe]
-    have hWT0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-      simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-      exact W₀.wEval_ne_zero hm h0
-    have hDU0 : ((W₀.duEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-      simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-      exact (W₀.isUnit_duEval hm).ne_zero
+    have hWT0 := coe_wEval_ne_zero (W₀ := W₀) hm h0
+    have hDU0 := coe_duEval_ne_zero (W₀ := W₀) hm
     constructor
     · rw [coe_iotaEval_eq hm, coe_wEval_iotaEval hm]
       field_simp
@@ -1306,26 +1310,16 @@ private lemma paramPoint_add {t₁ t₂ : v.adicCompletionIntegers K}
     push_cast
     rw [coe_a₂ hW, coe_a₄ hW, coe_a₆ hW]
     exact hc
-  have hw₁0 : ((W₀.wEval t₁ : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero hm h0
-  have hw₂0 : ((W₀.wEval t₂ : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero hm' h0'
-  have hwT0 : ((W₀.wEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
-      v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero hTm hT0
+  have hw₁0 := coe_wEval_ne_zero (W₀ := W₀) hm h0
+  have hw₂0 := coe_wEval_ne_zero (W₀ := W₀) hm' h0'
+  have hwT0 := coe_wEval_ne_zero (W₀ := W₀) hTm hT0
   obtain ⟨h₃, hsum⟩ := W.chord_point_add (coe_wEval_eq hW hm) (coe_wEval_eq hW hm')
     hslope hNc hT₃c hwTc hAc hw₁0 hw₂0 hwT0 (sub_ne_zero.mpr hx)
     (formalPoint_nonsingular hW hm h0) (formalPoint_nonsingular hW hm' h0')
   rw [hsum]
   simp only [Point.some.injEq]
   -- identify the chord point with the parametrized point at `ι̂(T)`
-  have hDU0 : ((W₀.duEval (W₀.thirdRootEval t₁ t₂) : v.adicCompletionIntegers K) :
-      v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact (W₀.isUnit_duEval hTm).ne_zero
+  have hDU0 := coe_duEval_ne_zero (W₀ := W₀) hTm
   constructor
   · rw [coe_iotaEval_eq hTm, coe_wEval_iotaEval hTm]
     field_simp
@@ -1372,9 +1366,7 @@ private lemma formalPoint_add_of_x_ne {z z' : W₀.formalGroupLaw.Points}
       (z' () : v.adicCompletionIntegers K)) ∈ maximalIdeal (v.adicCompletionIntegers K) :=
     W₀.iotaEval_mem hTm
   have hι0 : W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
-      (z' () : v.adicCompletionIntegers K)) ≠ 0 := by
-    rw [W₀.iotaEval_eq hTm]
-    exact neg_ne_zero.mpr (mul_ne_zero hT0 (W₀.isUnit_duEval hTm).ne_zero)
+      (z' () : v.adicCompletionIntegers K)) ≠ 0 := W₀.iotaEval_ne_zero hTm hT0
   have hpcoe : ((z + z') () : v.adicCompletionIntegers K) =
       W₀.iotaEval (W₀.thirdRootEval (z () : v.adicCompletionIntegers K)
         (z' () : v.adicCompletionIntegers K)) := by
@@ -1400,12 +1392,8 @@ private lemma eq_or_eq_negPoint_of_x_cond {z z' : W₀.formalGroupLaw.Points}
     z' = z ∨ z' = W₀.negPoint z := by
   have hm := (z ()).2
   have hm' := (z' ()).2
-  have hWT0 : ((W₀.wEval (z ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero hm h0
-  have hWT0' : ((W₀.wEval (z' ()) : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
-    simp only [ne_eq, ZeroMemClass.coe_eq_zero]
-    exact W₀.wEval_ne_zero hm' h0'
+  have hWT0 := coe_wEval_ne_zero (W₀ := W₀) hm h0
+  have hWT0' := coe_wEval_ne_zero (W₀ := W₀) hm' h0'
   have hns := formalPoint_nonsingular hW hm h0
   have hns' := formalPoint_nonsingular hW hm' h0'
   have hxeq : ((z' () : v.adicCompletionIntegers K) : v.adicCompletion K) /
@@ -1468,8 +1456,8 @@ private lemma formalPoint_add_self {z : W₀.formalGroupLaw.Points}
   have husm : (u () : v.adicCompletionIntegers K) ∈
       maximalIdeal (v.adicCompletionIntegers K) := (u ()).2
   have hnu0 : ((W₀.negPoint u) () : v.adicCompletionIntegers K) ≠ 0 := by
-    rw [W₀.negPoint_apply_coe, hus, W₀.iotaEval_eq hsm]
-    exact neg_ne_zero.mpr (mul_ne_zero hs0 (W₀.isUnit_duEval hsm).ne_zero)
+    rw [W₀.negPoint_apply_coe, hus]
+    exact W₀.iotaEval_ne_zero hsm hs0
   have hnune : W₀.negPoint u ≠ z := by
     intro h
     apply hsιt
