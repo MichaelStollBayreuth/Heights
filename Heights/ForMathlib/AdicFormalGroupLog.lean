@@ -438,4 +438,98 @@ end ScaledPackage
 
 end AdicScaledLog
 
+/-! ### The evaluated scaled logarithm on the maximal ideal -/
+
+section EvalLayer
+
+open MvPSeries
+
+variable {O : Type*} [CommRing O] [IsLocalRing O] [UniformSpace O]
+  [Fact (IsAdic (maximalIdeal O))]
+
+private lemma hasEval_pair {s₁ s₂ : O} (h₁ : s₁ ∈ maximalIdeal O) (h₂ : s₂ ∈ maximalIdeal O) :
+    MvPowerSeries.HasEval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂) :=
+  hasEval_of_mem fun i ↦ by rcases i with u | u <;> simpa
+
+variable [IsUniformAddGroup O] [CompleteSpace O] [T2Space O] [IsTopologicalRing O]
+
+/-- Evaluation of a one-variable series without constant term maps `𝔪` to `𝔪`. -/
+private lemma eval_unit_mem {t : O} (ht : t ∈ maximalIdeal O) {h : MvPowerSeries Unit O}
+    (hcc : constantCoeff h = 0) : eval (fun _ : Unit ↦ t) h ∈ maximalIdeal O :=
+  eval_mem_maximalIdeal (hasEval_of_mem fun _ ↦ ht) (fun _ ↦ ht) h (hcc ▸ zero_mem _)
+
+/-- Evaluating a composition identity `h ∘ g = X`: the evaluations of `g` and `h` are
+mutually inverse on `𝔪`. -/
+private lemma eval_eval_of_subst_eq_X {t : O} (ht : t ∈ maximalIdeal O)
+    {g h : MvPowerSeries Unit O} (hg0 : constantCoeff g = 0)
+    (hcomp : MvPowerSeries.subst (fun _ : Unit ↦ g) h = X ()) :
+    eval (fun _ : Unit ↦ eval (fun _ : Unit ↦ t) g) h = t := by
+  have hE : MvPowerSeries.HasEval (fun _ : Unit ↦ t) := hasEval_of_mem fun _ ↦ ht
+  have hS : MvPowerSeries.HasSubst (fun _ : Unit ↦ g) :=
+    hasSubst_of_constantCoeff_zero fun _ ↦ hg0
+  have h1 := congrArg (eval (fun _ : Unit ↦ t)) hcomp
+  rwa [eval_subst hE hS, eval_X] at h1
+
+open FormalGroupLaw in
+/-- Additivity of the evaluated scaled logarithm: evaluating the descended identity at a
+pair of points of `𝔪`. -/
+private lemma eval_scaledFC_add (Φ : FormalGroupLaw O Unit) {c : O}
+    {lhat : MvPowerSeries Unit O}
+    (hadd : MvPowerSeries.subst (Φ.scaledFC c) lhat
+      = MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inl s) :
+          MvPowerSeries (Unit ⊕ Unit) O)) lhat
+        + MvPowerSeries.subst (fun s : Unit ↦ (X (Sum.inr s) :
+            MvPowerSeries (Unit ⊕ Unit) O)) lhat)
+    {s₁ s₂ : O} (h₁ : s₁ ∈ maximalIdeal O) (h₂ : s₂ ∈ maximalIdeal O) :
+    eval (fun _ : Unit ↦ eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)
+        (Φ.scaledFC c ())) lhat
+      = eval (fun _ : Unit ↦ s₁) lhat + eval (fun _ : Unit ↦ s₂) lhat := by
+  have hE := hasEval_pair h₁ h₂
+  have hInl : MvPowerSeries.HasSubst fun s : Unit ↦ (X (Sum.inl s) :
+      MvPowerSeries (Unit ⊕ Unit) O) := hasSubst_of_constantCoeff_zero fun s ↦ by simp
+  have hInr : MvPowerSeries.HasSubst fun s : Unit ↦ (X (Sum.inr s) :
+      MvPowerSeries (Unit ⊕ Unit) O) := hasSubst_of_constantCoeff_zero fun s ↦ by simp
+  have h1 := congrArg (eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)) hadd
+  rw [eval_add hE, eval_subst hE (Φ.hasSubst_scaledFC c), eval_subst hE hInl,
+    eval_subst hE hInr,
+    show (fun s : Unit ↦ eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)
+      (X (Sum.inl s) : MvPowerSeries (Unit ⊕ Unit) O)) = fun _ : Unit ↦ s₁ from
+      funext fun s ↦ by rw [eval_X, Sum.elim_inl],
+    show (fun s : Unit ↦ eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)
+      (X (Sum.inr s) : MvPowerSeries (Unit ⊕ Unit) O)) = fun _ : Unit ↦ s₂ from
+      funext fun s ↦ by rw [eval_X, Sum.elim_inr]] at h1
+  exact h1
+
+open FormalGroupLaw in
+/-- Compatibility of the scaled formal group sum with the original one: evaluating `F` at
+`(c·s₁, c·s₂)` is `c` times the evaluated scaled sum. -/
+private lemma eval_F_eq_mul_eval_scaledFC (Φ : FormalGroupLaw O Unit) (c : O)
+    {s₁ s₂ : O} (h₁ : s₁ ∈ maximalIdeal O) (h₂ : s₂ ∈ maximalIdeal O) :
+    eval (Sum.elim (fun _ : Unit ↦ c * s₁) fun _ : Unit ↦ c * s₂) (Φ.F ())
+      = c * eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂) (Φ.scaledFC c ()) := by
+  have hE := hasEval_pair h₁ h₂
+  have hcX : MvPowerSeries.HasSubst fun t : Unit ⊕ Unit ↦ c • (X t :
+      MvPowerSeries (Unit ⊕ Unit) O) := hasSubst_of_constantCoeff_zero fun s ↦ by simp
+  have hform : MvPowerSeries.subst (fun t : Unit ⊕ Unit ↦ c • X t) (Φ.F ())
+      = C c * Φ.scaledFC c () := by
+    rw [← rescale_const_eq_subst]
+    ext d
+    rw [coeff_rescale, MvPowerSeries.coeff_C_mul, coeff_scaledFC, Finsupp.prod,
+      Finset.prod_pow_eq_pow_sum, ← Finsupp.degree_apply]
+    rcases Nat.eq_zero_or_pos d.degree with h0 | hpos
+    · obtain rfl : d = 0 := (Finsupp.degree_eq_zero_iff d).mp h0
+      rw [coeff_zero_eq_constantCoeff_apply, Φ.zero_constantCoeff, mul_zero, mul_zero,
+        mul_zero]
+    · rw [← mul_assoc, ← pow_succ', Nat.sub_add_cancel hpos]
+  have h1 := congrArg (eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)) hform
+  rw [eval_subst hE hcX, eval_mul hE, eval_C,
+    show (fun t : Unit ⊕ Unit ↦ eval (Sum.elim (fun _ : Unit ↦ s₁) fun _ : Unit ↦ s₂)
+      (c • (X t : MvPowerSeries (Unit ⊕ Unit) O)))
+      = Sum.elim (fun _ : Unit ↦ c * s₁) fun _ : Unit ↦ c * s₂ from funext fun t ↦ by
+        rcases t with u | u <;>
+          rw [smul_eq_C_mul, eval_mul hE, eval_C, eval_X] <;> simp] at h1
+  exact h1
+
+end EvalLayer
+
 end ChabautyColeman
