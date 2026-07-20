@@ -2536,6 +2536,30 @@ lemma redCoord_addY {x₁ x₂ y₁ ℓ : v.adicCompletion K} (h₁ : Valued.v x
   exact ((W₀.toAffine).map_addY (IsLocalRing.residue (v.adicCompletionIntegers K))
     ⟨x₁, h₁⟩ ⟨y₁, hy₁⟩ ⟨x₂, h₂⟩ ⟨ℓ, hℓ⟩).symm
 
+include hW in
+lemma res_a₁ : IsLocalRing.residue _ ⟨W.a₁, valued_a₁ hW⟩ = (redCurve W₀).a₁ := by
+  rw [show (⟨W.a₁, valued_a₁ hW⟩ : v.adicCompletionIntegers K) = W₀.a₁ from
+    Subtype.ext (coe_a₁ hW).symm]
+  exact (W₀.map_a₁ (IsLocalRing.residue (v.adicCompletionIntegers K))).symm
+
+include hW in
+lemma res_a₂ : IsLocalRing.residue _ ⟨W.a₂, valued_a₂ hW⟩ = (redCurve W₀).a₂ := by
+  rw [show (⟨W.a₂, valued_a₂ hW⟩ : v.adicCompletionIntegers K) = W₀.a₂ from
+    Subtype.ext (coe_a₂ hW).symm]
+  exact (W₀.map_a₂ (IsLocalRing.residue (v.adicCompletionIntegers K))).symm
+
+include hW in
+lemma res_a₃ : IsLocalRing.residue _ ⟨W.a₃, valued_a₃ hW⟩ = (redCurve W₀).a₃ := by
+  rw [show (⟨W.a₃, valued_a₃ hW⟩ : v.adicCompletionIntegers K) = W₀.a₃ from
+    Subtype.ext (coe_a₃ hW).symm]
+  exact (W₀.map_a₃ (IsLocalRing.residue (v.adicCompletionIntegers K))).symm
+
+include hW in
+lemma res_a₄ : IsLocalRing.residue _ ⟨W.a₄, valued_a₄ hW⟩ = (redCurve W₀).a₄ := by
+  rw [show (⟨W.a₄, valued_a₄ hW⟩ : v.adicCompletionIntegers K) = W₀.a₄ from
+    Subtype.ext (coe_a₄ hW).symm]
+  exact (W₀.map_a₄ (IsLocalRing.residue (v.adicCompletionIntegers K))).symm
+
 variable [W₀.IsElliptic]
 
 include hW in
