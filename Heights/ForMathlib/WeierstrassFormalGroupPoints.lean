@@ -2417,3 +2417,99 @@ theorem exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers :
   · exact ⟨((AddEquiv.addSubgroupMap (Point.equivVariableChange W C) _).symm.trans e)⟩
 
 end WeierstrassCurve.Affine
+
+/-!
+### The point-level reduction map
+
+For a good integral model `W₀` of `W` over `𝒪_v` (good reduction: `[W₀.IsElliptic]`), the
+reduction map `E(K_v) → Ẽ(k_v)` sends a point with integral coordinates to their residues and a
+point of the kernel of reduction (a pole at `x`) to the point at infinity.  This section builds
+the map and identifies its kernel with the filtration step `E₁(K_v)`.
+-/
+
+namespace WeierstrassCurve.Affine
+
+open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum WithZero
+
+variable {R : Type*} [CommRing R] [IsDedekindDomain R]
+  {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+  {v : HeightOneSpectrum R} {W : Affine (v.adicCompletion K)}
+  {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
+  (hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W)
+
+/-- The reduction `Ẽ` of the good integral model `W₀` modulo the maximal ideal, an elliptic
+curve over the residue field `k_v` (good reduction is the hypothesis `[W₀.IsElliptic]`). -/
+noncomputable abbrev redCurve (W₀ : WeierstrassCurve (v.adicCompletionIntegers K)) :
+    Affine (ResidueField (v.adicCompletionIntegers K)) :=
+  (W₀.map (IsLocalRing.residue (v.adicCompletionIntegers K))).toAffine
+
+include hW in
+/-- An integral solution of the Weierstrass equation over `K_v` is a solution over `𝒪_v`. -/
+lemma equation_integral {x y : v.adicCompletion K} (h : W.Equation x y)
+    (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1) :
+    (W₀.toAffine).Equation (⟨x, hx⟩ : v.adicCompletionIntegers K) ⟨y, hy⟩ := by
+  have hinj : Function.Injective
+      (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) :=
+    IsFractionRing.injective (v.adicCompletionIntegers K) (v.adicCompletion K)
+  rw [← hW] at h
+  exact ((W₀.toAffine).map_equation hinj (⟨x, hx⟩ : v.adicCompletionIntegers K) ⟨y, hy⟩).mp h
+
+variable [W₀.IsElliptic]
+
+include hW in
+/-- The reduced coordinates of an integral point are nonsingular on the smooth curve `Ẽ`. -/
+lemma red_nonsingular {x y : v.adicCompletion K} (h : W.Equation x y)
+    (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1) :
+    (redCurve W₀).Nonsingular (IsLocalRing.residue _ ⟨x, hx⟩)
+      (IsLocalRing.residue _ ⟨y, hy⟩) := by
+  rw [← equation_iff_nonsingular]
+  exact Equation.map (IsLocalRing.residue (v.adicCompletionIntegers K))
+    (equation_integral hW h hx hy)
+
+include hW in
+/-- The point-level reduction map. `0 ↦ 0`; an affine point with a pole of order `≥ 2` at `x`
+(the kernel of reduction) ↦ `0`; otherwise the coordinatewise reduction. -/
+noncomputable def red : W.Point → (redCurve W₀).Point
+  | .zero => 0
+  | .some x y h =>
+      if hx : exp (2 : ℤ) ≤ Valued.v x then 0
+      else
+        .some (IsLocalRing.residue _ ⟨x, (integral_of_not_mem hW h.left hx).1⟩)
+              (IsLocalRing.residue _ ⟨y, (integral_of_not_mem hW h.left hx).2⟩)
+              (red_nonsingular hW h.left (integral_of_not_mem hW h.left hx).1
+                (integral_of_not_mem hW h.left hx).2)
+
+@[simp] lemma red_zero : red hW (0 : W.Point) = 0 := rfl
+
+include hW in
+/-- Unfolding lemma for `red` on a kernel point. -/
+lemma red_some_of_mem {x y : v.adicCompletion K} {h : W.Nonsingular x y}
+    (hx : exp (2 : ℤ) ≤ Valued.v x) : red hW (.some x y h) = 0 :=
+  dif_pos hx
+
+include hW in
+/-- Unfolding lemma for `red` on an integral (non-kernel) point. -/
+lemma red_some_of_not_mem {x y : v.adicCompletion K} {h : W.Nonsingular x y}
+    (hx : ¬ exp (2 : ℤ) ≤ Valued.v x) :
+    red hW (.some x y h)
+      = .some (IsLocalRing.residue _ ⟨x, (integral_of_not_mem hW h.left hx).1⟩)
+          (IsLocalRing.residue _ ⟨y, (integral_of_not_mem hW h.left hx).2⟩)
+          (red_nonsingular hW h.left (integral_of_not_mem hW h.left hx).1
+            (integral_of_not_mem hW h.left hx).2) :=
+  dif_neg hx
+
+variable [W.IsElliptic] [DecidableEq (v.adicCompletion K)] [CharZero K]
+
+include hW in
+/-- The kernel of `red` is exactly the kernel of reduction `E₁(K_v) = filtration hW 0`. -/
+lemma red_eq_zero_iff {P : W.Point} : red hW P = 0 ↔ P ∈ filtration hW 0 := by
+  match P with
+  | .zero => exact iff_of_true rfl zero_mem_filtration
+  | .some x y h =>
+      rw [some_mem_filtration]
+      by_cases hx : exp (2 : ℤ) ≤ Valued.v x
+      · exact iff_of_true (red_some_of_mem hW hx) (le_trans (exp_le_exp.mpr (by lia)) hx)
+      · refine iff_of_false ?_ (fun hc ↦ hx (le_trans (exp_le_exp.mpr (by lia)) hc))
+        rw [red_some_of_not_mem hW hx]; exact Point.some_ne_zero _
+
+end WeierstrassCurve.Affine
