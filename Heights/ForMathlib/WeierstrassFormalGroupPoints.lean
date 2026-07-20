@@ -2681,6 +2681,44 @@ lemma red_slope {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hx₁ : Valued.v x�
       residue_div' hnum hden hdenu, res_sub hx₁ hx₂ hden, res_sub hy₁ hy₂ hnum,
       (redCurve W₀).slope_of_X_ne hXeq]
 
+include hW in
+/-- Off the reduced anti-diagonal, the chord/tangent slope of two integral points is integral. -/
+lemma valued_slope_le {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hx₁ : Valued.v x₁ ≤ 1)
+    (hx₂ : Valued.v x₂ ≤ 1) (hy₁ : Valued.v y₁ ≤ 1) (hy₂ : Valued.v y₂ ≤ 1)
+    (hc₁ : W.Equation x₁ y₁) (hc₂ : W.Equation x₂ y₂)
+    (hne : ¬ (res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩ ∧
+      res ⟨y₁, hy₁⟩ = (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩))) :
+    Valued.v (W.slope x₁ x₂ y₁ y₂) ≤ 1 := by
+  by_cases hXeq : res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩
+  · have hYne : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K)
+        ≠ (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩) := fun h ↦ hne ⟨hXeq, h⟩
+    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
+      rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+    have hDint : Valued.v (y₁ - W.negY x₂ y₂) ≤ 1 := valued_sub_le hy₁ hnegYint
+    have hDu : res (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) ≠ 0 := by
+      rw [res_sub hy₁ hnegYint hDint, redCoord_negY hW hx₂ hy₂ hnegYint]
+      exact sub_ne_zero.mpr hYne
+    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := fun h ↦ hDu <| by
+      rw [show (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) = 0 from
+        Subtype.ext (by push_cast; exact h), map_zero]
+    have hNint : Valued.v
+        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 := by
+      rw [show x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁
+          = ((⟨x₁, hx₁⟩ ^ 2 + ⟨x₁, hx₁⟩ * ⟨x₂, hx₂⟩ + ⟨x₂, hx₂⟩ ^ 2
+              + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, hx₁⟩ + ⟨x₂, hx₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
+              - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) :
+            v.adicCompletion K) from by push_cast; ring]
+      exact valued_coe_le_one _
+    rw [slope_eq_div hc₁ hc₂ hD0, map_div₀,
+      valued_coe_isUnit ((residue_ne_zero_iff_isUnit _).mp hDu), div_one]
+    exact hNint
+  · have hxx : x₁ ≠ x₂ := fun h ↦ hXeq (congrArg (IsLocalRing.residue _) (Subtype.ext h))
+    have hden : Valued.v (x₁ - x₂) ≤ 1 := valued_sub_le hx₁ hx₂
+    have hdenu : res (⟨x₁ - x₂, hden⟩ : v.adicCompletionIntegers K) ≠ 0 := by
+      rw [res_sub hx₁ hx₂ hden]; exact sub_ne_zero.mpr hXeq
+    rw [W.slope_of_X_ne hxx, map_div₀,
+      valued_coe_isUnit ((residue_ne_zero_iff_isUnit _).mp hdenu), div_one]
+    exact valued_sub_le hy₁ hy₂
 
 end
 
@@ -2753,5 +2791,48 @@ lemma red_eq_zero_iff {P : W.Point} : red hW P = 0 ↔ P ∈ filtration hW 0 := 
       · exact iff_of_true (red_some_of_mem hW hx) (le_trans (exp_le_exp.mpr (by lia)) hx)
       · refine iff_of_false ?_ (fun hc ↦ hx (le_trans (exp_le_exp.mpr (by lia)) hc))
         rw [red_some_of_not_mem hW hx]; exact Point.some_ne_zero _
+
+variable [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))]
+
+include hW in
+/-- **Additivity of `red` on the good, reduced-non-opposite locus.** Two integral points whose
+reductions are not opposite have an integral sum, and `red` respects that sum. -/
+lemma red_add_of_reduced_ne_neg {x₁ x₂ y₁ y₂ : v.adicCompletion K}
+    (h₁ : W.Nonsingular x₁ y₁) (h₂ : W.Nonsingular x₂ y₂)
+    (hP : ¬ exp (2 : ℤ) ≤ Valued.v x₁) (hQ : ¬ exp (2 : ℤ) ≤ Valued.v x₂)
+    (hne : red hW (.some x₁ y₁ h₁) ≠ - red hW (.some x₂ y₂ h₂)) :
+    ((.some x₁ y₁ h₁ : W.Point) + .some x₂ y₂ h₂ ∉ filtration hW 0) ∧
+      red hW (.some x₁ y₁ h₁ + .some x₂ y₂ h₂)
+        = red hW (.some x₁ y₁ h₁) + red hW (.some x₂ y₂ h₂) := by
+  obtain ⟨hx₁, hy₁⟩ := integral_of_not_mem hW h₁.left hP
+  obtain ⟨hx₂, hy₂⟩ := integral_of_not_mem hW h₂.left hQ
+  have hne_res : ¬ (res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩ ∧
+      res ⟨y₁, hy₁⟩ = (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩)) := fun ⟨e1, e2⟩ ↦
+    hne (by rw [red_some_of_not_mem hW hP, red_some_of_not_mem hW hQ, Point.neg_some,
+      Point.some.injEq]; exact ⟨e1, e2⟩)
+  have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
+    rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+  have hxy : ¬ (x₁ = x₂ ∧ y₁ = W.negY x₂ y₂) := by
+    rintro ⟨ex, ey⟩
+    refine hne_res ⟨congrArg (IsLocalRing.residue _) (Subtype.ext ex), ?_⟩
+    rw [show (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) = ⟨W.negY x₂ y₂, hnegYint⟩ from
+      Subtype.ext ey, redCoord_negY hW hx₂ hy₂ hnegYint]
+  have hℓ : Valued.v (W.slope x₁ x₂ y₁ y₂) ≤ 1 :=
+    valued_slope_le hW hx₁ hx₂ hy₁ hy₂ h₁.left h₂.left hne_res
+  have haXint : Valued.v (W.addX x₁ x₂ (W.slope x₁ x₂ y₁ y₂)) ≤ 1 := by
+    rw [coe_addX hW hx₁ hx₂ hℓ]; exact valued_coe_le_one _
+  have haYint : Valued.v (W.addY x₁ x₂ y₁ (W.slope x₁ x₂ y₁ y₂)) ≤ 1 := by
+    rw [coe_addY hW hx₁ hx₂ hy₁ hℓ]; exact valued_coe_le_one _
+  have hgate : ¬ exp (2 : ℤ) ≤ Valued.v (W.addX x₁ x₂ (W.slope x₁ x₂ y₁ y₂)) := fun hc ↦
+    absurd (le_trans hc haXint) (by rw [not_le, ← exp_zero]; exact exp_lt_exp.mpr (by lia))
+  have hsum : (.some x₁ y₁ h₁ : W.Point) + .some x₂ y₂ h₂
+      = .some (W.addX x₁ x₂ (W.slope x₁ x₂ y₁ y₂)) (W.addY x₁ x₂ y₁ (W.slope x₁ x₂ y₁ y₂))
+        (nonsingular_add h₁ h₂ hxy) := Point.add_some hxy
+  have hslope := red_slope hW hx₁ hx₂ hy₁ hy₂ h₁.left h₂.left hℓ hne_res
+  refine ⟨by rw [hsum, some_mem_filtration]; exact hgate, ?_⟩
+  rw [hsum, red_some_of_not_mem hW hgate, red_some_of_not_mem hW hP, red_some_of_not_mem hW hQ,
+    Point.add_some hne_res, Point.some.injEq]
+  exact ⟨(redCoord_addX hW hx₁ hx₂ hℓ haXint).trans (by rw [hslope]),
+    (redCoord_addY hW hx₁ hx₂ hy₁ hℓ haYint).trans (by rw [hslope])⟩
 
 end WeierstrassCurve.Affine
