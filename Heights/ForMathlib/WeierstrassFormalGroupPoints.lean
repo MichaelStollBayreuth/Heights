@@ -1862,21 +1862,21 @@ def filtration (hW : W₀.map (algebraMap (v.adicCompletionIntegers K)
     (v.adicCompletion K)) = W) (n : ℕ) : AddSubgroup W.Point where
   carrier := {P | match P with
     | .zero => True
-    | @Point.some _ _ _ x _ _ => exp (2 * (n + 1) : ℤ) ≤ Valued.v x}
+    | .some x _ _ => exp (2 * (n + 1) : ℤ) ≤ Valued.v x}
   zero_mem' := trivial
   neg_mem' {P} hP := by
     match P with
     | .zero => exact hP
-    | @Point.some _ _ _ x y h => rw [Set.mem_setOf_eq, Point.neg_some]; exact hP
+    | .some x y h => rw [Set.mem_setOf_eq, Point.neg_some]; exact hP
   add_mem' {P Q} hP hQ := by
     match P, Q with
     | .zero, Q =>
       rw [show (Point.zero : W.Point) = 0 from rfl, zero_add]
       exact hQ
-    | @Point.some _ _ _ x₁ y₁ h₁, .zero =>
+    | .some x₁ y₁ h₁, .zero =>
       rw [show (Point.zero : W.Point) = 0 from rfl, add_zero]
       exact hP
-    | @Point.some _ _ _ x₁ y₁ h₁, @Point.some _ _ _ x₂ y₂ h₂ =>
+    | .some x₁ y₁ h₁, .some x₂ y₂ h₂ =>
       rw [Set.mem_setOf_eq] at hP hQ
       obtain ⟨z, hz⟩ := exists_formalPoint_eq_some hW h₁
         (le_trans (exp_le_exp.mpr (by lia)) hP)
@@ -1979,7 +1979,7 @@ theorem filtration_anti {m n : ℕ} (hmn : m ≤ n) : filtration hW n ≤ filtra
   intro P hP
   match P with
   | .zero => trivial
-  | @Point.some _ _ _ x y h =>
+  | .some x y h =>
     rw [some_mem_filtration] at hP ⊢
     refine le_trans (exp_le_exp.mpr ?_) hP
     lia
@@ -2331,7 +2331,7 @@ theorem filtration_zero_finiteIndex (hW : W₀.map (algebraMap (v.adicCompletion
   obtain ⟨Q, rfl⟩ := QuotientAddGroup.mk_surjective c
   match Q with
   | .zero => exact ⟨none, rfl⟩
-  | @Point.some _ _ _ x y h =>
+  | .some x y h =>
     by_cases hmem : (.some x y h : W.Point) ∈ filtration hW 0
     · exact ⟨none, ((QuotientAddGroup.eq_zero_iff _).mpr hmem).symm⟩
     · have hxpole : ¬ exp (2 : ℤ) ≤ Valued.v x := fun hc ↦ hmem
