@@ -2454,6 +2454,27 @@ lemma equation_integral {x y : v.adicCompletion K} (h : W.Equation x y)
   rw [← hW] at h
   exact ((W₀.toAffine).map_equation hinj (⟨x, hx⟩ : v.adicCompletionIntegers K) ⟨y, hy⟩).mp h
 
+include hW in
+/-- `W.negY` of integral coordinates is the coercion of `W₀.negY`. -/
+lemma coe_negY {x y : v.adicCompletion K} (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1) :
+    W.negY x y = ((W₀.toAffine).negY (⟨x, hx⟩ : v.adicCompletionIntegers K) ⟨y, hy⟩ :
+      v.adicCompletion K) := by
+  conv_lhs => rw [← hW]
+  exact (W₀.toAffine).map_negY (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
+    ⟨x, hx⟩ ⟨y, hy⟩
+
+include hW in
+/-- Reduction commutes with `negY` on integral coordinates. -/
+lemma redCoord_negY {x y : v.adicCompletion K} (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1)
+    (hn : Valued.v (W.negY x y) ≤ 1) :
+    IsLocalRing.residue _ ⟨W.negY x y, hn⟩
+      = (redCurve W₀).negY (IsLocalRing.residue _ ⟨x, hx⟩) (IsLocalRing.residue _ ⟨y, hy⟩) := by
+  have hsub : (⟨W.negY x y, hn⟩ : v.adicCompletionIntegers K)
+      = (W₀.toAffine).negY ⟨x, hx⟩ ⟨y, hy⟩ := Subtype.ext (coe_negY hW hx hy)
+  rw [hsub]
+  exact ((W₀.toAffine).map_negY (IsLocalRing.residue (v.adicCompletionIntegers K))
+    ⟨x, hx⟩ ⟨y, hy⟩).symm
+
 variable [W₀.IsElliptic]
 
 include hW in
@@ -2497,6 +2518,18 @@ lemma red_some_of_not_mem {x y : v.adicCompletion K} {h : W.Nonsingular x y}
           (red_nonsingular hW h.left (integral_of_not_mem hW h.left hx).1
             (integral_of_not_mem hW h.left hx).2) :=
   dif_neg hx
+
+include hW in
+/-- `red` commutes with negation. -/
+lemma red_neg (P : W.Point) : red hW (-P) = - red hW P := by
+  match P with
+  | .zero => rfl
+  | .some x y h =>
+      by_cases hx : exp (2 : ℤ) ≤ Valued.v x
+      · rw [Point.neg_some, red_some_of_mem hW hx, red_some_of_mem hW hx]; simp
+      · rw [Point.neg_some, red_some_of_not_mem hW hx, red_some_of_not_mem hW hx,
+          Point.neg_some, Point.some.injEq]
+        exact ⟨rfl, redCoord_negY hW _ _ _⟩
 
 variable [W.IsElliptic] [DecidableEq (v.adicCompletion K)] [CharZero K]
 
