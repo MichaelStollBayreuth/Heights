@@ -2437,6 +2437,20 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
   {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
   (hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W)
 
+/-- Reduction commutes with division by a residue-unit denominator. -/
+lemma residue_div_of_isUnit {a b : v.adicCompletionIntegers K} (hb : IsUnit b)
+    (hab : Valued.v ((a : v.adicCompletion K) / (b : v.adicCompletion K)) ≤ 1) :
+    IsLocalRing.residue _ ⟨(a : v.adicCompletion K) / (b : v.adicCompletion K), hab⟩
+      = IsLocalRing.residue _ a / IsLocalRing.residue _ b := by
+  have hb0 : (b : v.adicCompletion K) ≠ 0 :=
+    (Valuation.ne_zero_iff Valued.v).mp (by rw [valued_coe_isUnit hb]; exact one_ne_zero)
+  have hbr : IsUnit (IsLocalRing.residue (v.adicCompletionIntegers K) b) := hb.map _
+  rw [eq_div_iff hbr.ne_zero, ← map_mul]
+  congr 1
+  apply Subtype.ext
+  push_cast
+  field_simp
+
 /-- The reduction `Ẽ` of the good integral model `W₀` modulo the maximal ideal, an elliptic
 curve over the residue field `k_v` (good reduction is the hypothesis `[W₀.IsElliptic]`). -/
 noncomputable abbrev redCurve (W₀ : WeierstrassCurve (v.adicCompletionIntegers K)) :
