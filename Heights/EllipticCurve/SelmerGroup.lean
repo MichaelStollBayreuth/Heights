@@ -1,7 +1,7 @@
 import Mathlib
 import Heights.ForMathlib.Basic
 import Heights.ForMathlib.AdicCompletionExtension
-import Heights.ForMathlib.WeierstrassFormalGroupPoints
+import Heights.ForMathlib.WeierstrassFormalGroupPoints.Filtration
 import Heights.ForMathlib.RealEtale
 import Heights.EllipticCurve.WeakMordellWeil
 
@@ -40,7 +40,7 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   unramified classes with trivial norm (`selmerGroupA_inf_ker_normM_eq_range_μ`) is proved
   by counting. The
   whole reduction is now fully proved, resting on the formal-group results of
-  `Heights.ForMathlib.WeierstrassFormalGroupPoints`.
+  `Heights.ForMathlib.WeierstrassFormalGroupPoints.Filtration`.
 * `card_range_μ_adicCompletion`, `card_range_μ_completion_isReal`,
   `card_range_μ_completion_isComplex`: the size of the local image is
   `#E(K_v)[2] · ‖2‖_v⁻¹` — concretely `#E(K_v)[2] · (#𝔽_v)^(v(2))` at a finite place (so
@@ -49,7 +49,7 @@ number field case): see `WeierstrassCurve.Affine.selmerGroup₂`. For a number f
   The real and complex formulas are proved outright (the real case by a sign analysis over
   `ℝ`, transported along `v.Completion ≃+* ℝ`); the finite-place formula rests on the
   formal-group structure theorem (a finite-index subgroup of `E(F_v)` is isomorphic to
-  `(𝒪_v, +)`, proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints`).
+  `(𝒪_v, +)`, proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints.Filtration`).
 
 ## Towards explicit computations
 
@@ -1074,7 +1074,7 @@ open scoped Classical in
 `#(im μ_v) = #E(F_v)[2] · (#𝔽_v)^(v(2))`. For odd residue characteristic the second factor
 is `1`; the general formula is `#E(F_v)[2] · ‖2‖_v⁻¹`.
 
-The formal-group input (proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints`) is
+The formal-group input (proved in `Heights.ForMathlib.WeierstrassFormalGroupPoints.Filtration`) is
 that a finite-index subgroup of `E(F_v)` is isomorphic to `(𝒪_v, +)`; the quantity
 `#(G/2G) / #G[2]` is insensitive to passing to that subgroup
 (`AddSubgroup.index_range_nsmul_mul_card_ker`), and for `(𝒪_v, +)` it is
