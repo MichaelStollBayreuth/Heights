@@ -3013,4 +3013,75 @@ lemma sub_mem_filtration_of_red_eq {P Q : W.Point} (hPQ : red hW P = red hW Q) :
         (residue_eq_zero_iff _ |>.mp ?_)
       rw [res_sub hyi hyi₀ (valued_sub_le hyi hyi₀), hPQ.2, sub_self]
 
+include hW in
+/-- **Additivity of `red` off the kernel of reduction.** Two points not in `E₁(K_v)`
+have `red (P + Q) = red P + red Q`. -/
+lemma red_add_of_not_mem {P Q : W.Point} (hP : P ∉ filtration hW 0)
+    (hQ : Q ∉ filtration hW 0) : red hW (P + Q) = red hW P + red hW Q := by
+  rcases P with _ | ⟨x₁, y₁, h₁⟩
+  · exact absurd zero_mem_filtration hP
+  rcases Q with _ | ⟨x₂, y₂, h₂⟩
+  · exact absurd zero_mem_filtration hQ
+  have hPm : ¬ exp (2 : ℤ) ≤ Valued.v x₁ := fun hc ↦ hP (some_mem_filtration.mpr hc)
+  have hQm : ¬ exp (2 : ℤ) ≤ Valued.v x₂ := fun hc ↦ hQ (some_mem_filtration.mpr hc)
+  by_cases hop : red hW (.some x₁ y₁ h₁) = - red hW (.some x₂ y₂ h₂)
+  · rw [hop, neg_add_cancel, red_eq_zero_iff hW]
+    have hcongr : red hW (.some x₁ y₁ h₁) = red hW (-(.some x₂ y₂ h₂)) :=
+      hop.trans (red_neg hW _).symm
+    have := sub_mem_filtration_of_red_eq hW hcongr
+    rwa [sub_neg_eq_add] at this
+  · exact (red_add_of_reduced_ne_neg hW h₁ h₂ hPm hQm hop).2
+
+include hW in
+/-- Adding a kernel-of-reduction point does not change the reduction. -/
+lemma red_add_of_mem_left {P : W.Point} (hP : P ∈ filtration hW 0) (Q : W.Point) :
+    red hW (P + Q) = red hW Q := by
+  by_cases hQ : Q ∈ filtration hW 0
+  · rw [(red_eq_zero_iff hW).mpr (add_mem hP hQ), (red_eq_zero_iff hW).mpr hQ]
+  · have hPQ : P + Q ∉ filtration hW 0 := fun h ↦ hQ (by
+      have := AddSubgroup.sub_mem _ h hP
+      rwa [show P + Q - P = Q from by abel] at this)
+    have hnQ : -Q ∉ filtration hW 0 := fun h ↦ hQ (by simpa using neg_mem h)
+    have key := red_add_of_not_mem hW hPQ hnQ
+    rw [show P + Q + -Q = P from by abel, red_neg, (red_eq_zero_iff hW).mpr hP, eq_comm,
+      add_neg_eq_zero] at key
+    exact key
+
+include hW in
+/-- **The reduction map is additive.** -/
+lemma red_add (P Q : W.Point) : red hW (P + Q) = red hW P + red hW Q := by
+  by_cases hP : P ∈ filtration hW 0
+  · rw [red_add_of_mem_left hW hP, (red_eq_zero_iff hW).mpr hP, zero_add]
+  · by_cases hQ : Q ∈ filtration hW 0
+    · rw [add_comm P Q, red_add_of_mem_left hW hQ, (red_eq_zero_iff hW).mpr hQ, add_zero]
+    · exact red_add_of_not_mem hW hP hQ
+
+include hW in
+/-- **The reduction homomorphism** `E(K_v) →+ Ẽ(k_v)`. -/
+noncomputable def redHom : W.Point →+ (redCurve W₀).Point :=
+  AddMonoidHom.mk' (red hW) (red_add hW)
+
+@[simp] lemma coe_redHom : ⇑(redHom hW) = red hW := rfl
+
+omit [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))] in
+include hW in
+/-- `red` is injective on torsion: a torsion point in the kernel of reduction is zero. -/
+lemma eq_zero_of_isOfFinAddOrder_of_red_eq_zero {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {P : W.Point} (hP : IsOfFinAddOrder P) (h0 : red hW P = 0) : P = 0 :=
+  eq_zero_of_isOfFinAddOrder_of_mem_filtration hp hpmem hpram ((red_eq_zero_iff hW).mp h0) hP
+
+include hW in
+/-- If a torsion point's reduction is annihilated by `m`, then so is the point itself. -/
+lemma nsmul_eq_zero_of_red_nsmul_eq_zero {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {P : W.Point} (hP : IsOfFinAddOrder P) {m : ℕ} (h : m • red hW P = 0) :
+    m • P = 0 :=
+  eq_zero_of_isOfFinAddOrder_of_red_eq_zero hW hp hpmem hpram hP.nsmul
+    (by simpa only [← coe_redHom hW, map_nsmul] using h)
+
 end WeierstrassCurve.Affine
