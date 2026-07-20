@@ -2437,6 +2437,8 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
   {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)}
   (hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K)) = W)
 
+local notation:max "res" x:max => IsLocalRing.residue (v.adicCompletionIntegers K) x
+
 /-- Reduction commutes with division by a residue-unit denominator. -/
 lemma residue_div_of_isUnit {a b : v.adicCompletionIntegers K} (hb : IsUnit b)
     (hab : Valued.v ((a : v.adicCompletion K) / (b : v.adicCompletion K)) ≤ 1) :
@@ -2559,6 +2561,128 @@ lemma res_a₄ : IsLocalRing.residue _ ⟨W.a₄, valued_a₄ hW⟩ = (redCurve 
   rw [show (⟨W.a₄, valued_a₄ hW⟩ : v.adicCompletionIntegers K) = W₀.a₄ from
     Subtype.ext (coe_a₄ hW).symm]
   exact (W₀.map_a₄ (IsLocalRing.residue (v.adicCompletionIntegers K))).symm
+
+
+/-- Residue of a difference of integral elements. -/
+lemma res_sub {a b : v.adicCompletion K} (ha : Valued.v a ≤ 1) (hb : Valued.v b ≤ 1)
+    (hab : Valued.v (a - b) ≤ 1) :
+    res (⟨a - b, hab⟩ : v.adicCompletionIntegers K) = res ⟨a, ha⟩ - res ⟨b, hb⟩ := by
+  rw [show (⟨a - b, hab⟩ : v.adicCompletionIntegers K) = ⟨a, ha⟩ - ⟨b, hb⟩ from
+    Subtype.ext (by push_cast; ring), map_sub]
+
+/-- Reduction commutes with division by a residue-unit denominator (field-element form). -/
+lemma residue_div' {p q : v.adicCompletion K} (hp : Valued.v p ≤ 1) (hq : Valued.v q ≤ 1)
+    (hqu : res (⟨q, hq⟩ : v.adicCompletionIntegers K) ≠ 0) (hpq : Valued.v (p / q) ≤ 1) :
+    res (⟨p / q, hpq⟩ : v.adicCompletionIntegers K) = res ⟨p, hp⟩ / res ⟨q, hq⟩ := by
+  have hq0 : (q : v.adicCompletion K) ≠ 0 := fun h ↦ hqu <| by
+    rw [show (⟨q, hq⟩ : v.adicCompletionIntegers K) = 0 from Subtype.ext (by push_cast; exact h),
+      map_zero]
+  rw [eq_div_iff hqu, ← map_mul]
+  congr 1
+  apply Subtype.ext
+  push_cast
+  field_simp
+
+include hW in
+/-- Residue of the finite-difference numerator. -/
+lemma res_ficoNum {x₁ x₂ y₁ : v.adicCompletion K} (h₁ : Valued.v x₁ ≤ 1) (h₂ : Valued.v x₂ ≤ 1)
+    (hy₁ : Valued.v y₁ ≤ 1)
+    (hN : Valued.v (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1) :
+    res (⟨x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁, hN⟩ :
+        v.adicCompletionIntegers K)
+      = res ⟨x₁, h₁⟩ ^ 2 + res ⟨x₁, h₁⟩ * res ⟨x₂, h₂⟩ + res ⟨x₂, h₂⟩ ^ 2
+        + (redCurve W₀).a₂ * (res ⟨x₁, h₁⟩ + res ⟨x₂, h₂⟩) + (redCurve W₀).a₄
+        - (redCurve W₀).a₁ * res ⟨y₁, hy₁⟩ := by
+  rw [← res_a₁ hW, ← res_a₂ hW, ← res_a₄ hW,
+    show (⟨x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁, hN⟩ :
+        v.adicCompletionIntegers K)
+      = ⟨x₁, h₁⟩ ^ 2 + ⟨x₁, h₁⟩ * ⟨x₂, h₂⟩ + ⟨x₂, h₂⟩ ^ 2
+        + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, h₁⟩ + ⟨x₂, h₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
+        - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ from Subtype.ext (by push_cast; ring)]
+  simp only [map_add, map_sub, map_mul, map_pow]
+
+/-- Valuation of a difference of integral elements is `≤ 1`. -/
+private lemma valued_sub_le {a b : v.adicCompletion K} (ha : Valued.v a ≤ 1)
+    (hb : Valued.v b ≤ 1) : Valued.v (a - b) ≤ 1 :=
+  (Valued.v.map_sub _ _).trans (max_le ha hb)
+
+section
+
+variable [DecidableEq (v.adicCompletion K)]
+
+/-- On the curve, the chord/tangent slope is the finite-difference quotient
+`N / (y₁ - negY x₂ y₂)`; valid in the honest-tangent case too, where `y₁ = y₂`. -/
+lemma slope_eq_div {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hc₁ : W.Equation x₁ y₁)
+    (hc₂ : W.Equation x₂ y₂) (hD0 : y₁ - W.negY x₂ y₂ ≠ 0) :
+    W.slope x₁ x₂ y₁ y₂
+      = (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁)
+        / (y₁ - W.negY x₂ y₂) := by
+  by_cases hxx : x₁ = x₂
+  · have hyne : y₁ ≠ W.negY x₂ y₂ := sub_ne_zero.mp hD0
+    rw [W.slope_of_Y_ne hxx hyne, ← hxx,
+      ← (W.Y_eq_of_X_eq hc₁ hc₂ hxx).resolve_right hyne]
+    ring
+  · rw [W.slope_of_X_ne hxx, div_eq_div_iff (sub_ne_zero.mpr hxx) hD0, Affine.negY]
+    linear_combination (W.equation_iff x₁ y₁).mp hc₁ - (W.equation_iff x₂ y₂).mp hc₂
+
+variable [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))]
+
+include hW in
+/-- **Reduction commutes with the chord/tangent slope**, off the reduced anti-diagonal.
+Mathlib's `map_slope` cannot apply (the residue map is not an injective field hom), so the
+secant/tangent branch is chosen by the *reduced* points: the finite-difference identity turns a
+`K_v`-secant that reduces to a tangent into a genuine tangent downstairs. -/
+lemma red_slope {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hx₁ : Valued.v x₁ ≤ 1)
+    (hx₂ : Valued.v x₂ ≤ 1) (hy₁ : Valued.v y₁ ≤ 1) (hy₂ : Valued.v y₂ ≤ 1)
+    (hc₁ : W.Equation x₁ y₁) (hc₂ : W.Equation x₂ y₂) (hℓ : Valued.v (W.slope x₁ x₂ y₁ y₂) ≤ 1)
+    (hne : ¬ (res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩ ∧
+      res ⟨y₁, hy₁⟩ = (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩))) :
+    res (⟨W.slope x₁ x₂ y₁ y₂, hℓ⟩ : v.adicCompletionIntegers K) = (redCurve W₀).slope
+      (res ⟨x₁, hx₁⟩) (res ⟨x₂, hx₂⟩) (res ⟨y₁, hy₁⟩) (res ⟨y₂, hy₂⟩) := by
+  by_cases hXeq : res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩
+  · -- tangent: `x₁, x₂` reduce equal; the reduced slope is the tangent form
+    have hYne : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K)
+        ≠ (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩) := fun h ↦ hne ⟨hXeq, h⟩
+    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
+      rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+    have hDint : Valued.v (y₁ - W.negY x₂ y₂) ≤ 1 := valued_sub_le hy₁ hnegYint
+    have hDu : res (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) ≠ 0 := by
+      rw [res_sub hy₁ hnegYint hDint, redCoord_negY hW hx₂ hy₂ hnegYint]
+      exact sub_ne_zero.mpr hYne
+    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := fun h ↦ hDu <| by
+      rw [show (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) = 0 from
+        Subtype.ext (by push_cast; exact h), map_zero]
+    have hNint : Valued.v
+        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 := by
+      rw [show x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁
+          = ((⟨x₁, hx₁⟩ ^ 2 + ⟨x₁, hx₁⟩ * ⟨x₂, hx₂⟩ + ⟨x₂, hx₂⟩ ^ 2
+              + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, hx₁⟩ + ⟨x₂, hx₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
+              - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) :
+            v.adicCompletion K) from by push_cast; ring]
+      exact valued_coe_le_one _
+    have hYeq : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) = res ⟨y₂, hy₂⟩ :=
+      ((redCurve W₀).Y_eq_of_X_eq (Equation.map _ (equation_integral hW hc₁ hx₁ hy₁))
+        (Equation.map _ (equation_integral hW hc₂ hx₂ hy₂)) hXeq).resolve_right hYne
+    rw [show (⟨W.slope x₁ x₂ y₁ y₂, hℓ⟩ : v.adicCompletionIntegers K)
+        = ⟨_, W.slope_eq_div hc₁ hc₂ hD0 ▸ hℓ⟩ from Subtype.ext (W.slope_eq_div hc₁ hc₂ hD0),
+      residue_div' hNint hDint hDu, res_ficoNum hW hx₁ hx₂ hy₁,
+      res_sub hy₁ hnegYint hDint, redCoord_negY hW hx₂ hy₂ hnegYint,
+      (redCurve W₀).slope_of_Y_ne hXeq hYne, ← hXeq, ← hYeq]
+    ring
+  · -- secant: `x₁, x₂` reduce distinct, so `x₁ - x₂` is a unit
+    have hxx : x₁ ≠ x₂ := fun h ↦ hXeq (congrArg (IsLocalRing.residue _) (Subtype.ext h))
+    have hden : Valued.v (x₁ - x₂) ≤ 1 := valued_sub_le hx₁ hx₂
+    have hnum : Valued.v (y₁ - y₂) ≤ 1 := valued_sub_le hy₁ hy₂
+    have hdenu : res (⟨x₁ - x₂, hden⟩ : v.adicCompletionIntegers K) ≠ 0 := by
+      rw [res_sub hx₁ hx₂ hden]; exact sub_ne_zero.mpr hXeq
+    rw [show (⟨W.slope x₁ x₂ y₁ y₂, hℓ⟩ : v.adicCompletionIntegers K)
+        = ⟨(y₁ - y₂) / (x₁ - x₂), W.slope_of_X_ne hxx ▸ hℓ⟩ from
+        Subtype.ext (W.slope_of_X_ne hxx),
+      residue_div' hnum hden hdenu, res_sub hx₁ hx₂ hden, res_sub hy₁ hy₂ hnum,
+      (redCurve W₀).slope_of_X_ne hXeq]
+
+
+end
 
 variable [W₀.IsElliptic]
 
