@@ -3025,11 +3025,8 @@ lemma red_add_of_not_mem {P Q : W.Point} (hP : P ∉ filtration hW 0)
   have hPm : ¬ exp (2 : ℤ) ≤ Valued.v x₁ := fun hc ↦ hP (some_mem_filtration.mpr hc)
   have hQm : ¬ exp (2 : ℤ) ≤ Valued.v x₂ := fun hc ↦ hQ (some_mem_filtration.mpr hc)
   by_cases hop : red hW (.some x₁ y₁ h₁) = - red hW (.some x₂ y₂ h₂)
-  · rw [hop, neg_add_cancel, red_eq_zero_iff hW]
-    have hcongr : red hW (.some x₁ y₁ h₁) = red hW (-(.some x₂ y₂ h₂)) :=
-      hop.trans (red_neg hW _).symm
-    have := sub_mem_filtration_of_red_eq hW hcongr
-    rwa [sub_neg_eq_add] at this
+  · rw [hop, neg_add_cancel, red_eq_zero_iff hW, ← sub_neg_eq_add]
+    exact sub_mem_filtration_of_red_eq hW (hop.trans (red_neg hW _).symm)
   · exact (red_add_of_reduced_ne_neg hW h₁ h₂ hPm hQm hop).2
 
 include hW in
@@ -3038,14 +3035,11 @@ lemma red_add_of_mem_left {P : W.Point} (hP : P ∈ filtration hW 0) (Q : W.Poin
     red hW (P + Q) = red hW Q := by
   by_cases hQ : Q ∈ filtration hW 0
   · rw [(red_eq_zero_iff hW).mpr (add_mem hP hQ), (red_eq_zero_iff hW).mpr hQ]
-  · have hPQ : P + Q ∉ filtration hW 0 := fun h ↦ hQ (by
-      have := AddSubgroup.sub_mem _ h hP
-      rwa [show P + Q - P = Q from by abel] at this)
+  · have hPQ : P + Q ∉ filtration hW 0 := fun h ↦ hQ (by simpa using AddSubgroup.sub_mem _ h hP)
     have hnQ : -Q ∉ filtration hW 0 := fun h ↦ hQ (by simpa using neg_mem h)
     have key := red_add_of_not_mem hW hPQ hnQ
-    rw [show P + Q + -Q = P from by abel, red_neg, (red_eq_zero_iff hW).mpr hP, eq_comm,
+    rwa [show P + Q + -Q = P from by abel, red_neg, (red_eq_zero_iff hW).mpr hP, eq_comm,
       add_neg_eq_zero] at key
-    exact key
 
 include hW in
 /-- **The reduction map is additive.** -/
@@ -3083,5 +3077,19 @@ lemma nsmul_eq_zero_of_red_nsmul_eq_zero {p : ℕ} (hp : p.Prime)
     m • P = 0 :=
   eq_zero_of_isOfFinAddOrder_of_red_eq_zero hW hp hpmem hpram hP.nsmul
     (by simpa only [← coe_redHom hW, map_nsmul] using h)
+
+include hW in
+/-- **`red` preserves the additive order of a torsion point** (it is injective on torsion, so no
+collapse of order can occur). -/
+lemma addOrderOf_red {p : ℕ} (hp : p.Prime)
+    (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
+    (hpram : (p : v.adicCompletionIntegers K) ∉
+      maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
+    {P : W.Point} (hP : IsOfFinAddOrder P) : addOrderOf (red hW P) = addOrderOf P :=
+  Nat.dvd_antisymm
+    (addOrderOf_dvd_of_nsmul_eq_zero
+      (by rw [← coe_redHom hW, ← map_nsmul, addOrderOf_nsmul_eq_zero, map_zero]))
+    (addOrderOf_dvd_of_nsmul_eq_zero
+      (nsmul_eq_zero_of_red_nsmul_eq_zero hW hp hpmem hpram hP (addOrderOf_nsmul_eq_zero _)))
 
 end WeierstrassCurve.Affine
