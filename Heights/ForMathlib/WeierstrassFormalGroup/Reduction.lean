@@ -1,4 +1,4 @@
-import Heights.ForMathlib.WeierstrassFormalGroupPoints.Filtration
+import Heights.ForMathlib.WeierstrassFormalGroup.Filtration
 
 /-!
 # The point-level reduction map

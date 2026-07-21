@@ -1,4 +1,4 @@
-import Heights.ForMathlib.WeierstrassFormalGroupPoints.Foundations
+import Heights.ForMathlib.WeierstrassFormalGroup.Foundations
 
 /-!
 # The formal point, the filtration, and the structure of `E(K_v)`

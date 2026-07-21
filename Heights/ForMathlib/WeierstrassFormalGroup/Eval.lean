@@ -1,4 +1,4 @@
-import Heights.ForMathlib.WeierstrassFormalGroup
+import Heights.ForMathlib.WeierstrassFormalGroup.GroupLaw
 
 /-!
 # Evaluation of the formal group series of a Weierstrass curve

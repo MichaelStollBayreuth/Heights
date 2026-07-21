@@ -1,4 +1,4 @@
-import Heights.ForMathlib.WeierstrassFormalGroupPoints.Eval
+import Heights.ForMathlib.WeierstrassFormalGroup.Eval
 
 /-!
 # Valuation estimates for the integral model of a Weierstrass curve
