@@ -742,7 +742,7 @@ private lemma algebraMap_adicCompletion_comp (p : W.f.Factors)
     (w : HeightOneSpectrum (W.ringOfIntegersFactor (𝓞 F) p)) [w.asIdeal.LiesOver v.asIdeal] :
     (algebraMap F_[v] (w.adicCompletion (𝕃 p))).comp (algebraMap F F_[v]) =
       (algebraMap (𝕃 p) (w.adicCompletion (𝕃 p))).comp (algebraMap F (𝕃 p)) := by
-  ext c
+  refine RingHom.ext fun c ↦ ?_
   exact adicCompletionExtension_coe F (𝕃 p) v w c
 
 -- Evaluating a base-changed polynomial at the image of the root in the completion.
@@ -860,7 +860,7 @@ private lemma comap_localFactorIntegerEmb_ne_bot (p : W.f.Factors)
   have hsq0 : (W.localFactorIntegerEmb v p w).comp
       (algebraMap 𝒪_[v] (𝕎[v].ringOfIntegersFactor 𝒪_[v] (W.localFactor v p w))) =
       adicCompletionIntegersExtension F (𝕃 p) v w := by
-    ext c
+    ext c : 2
     exact RingHom.congr_fun (W.localFactorEmb_comp_algebraMap v p w) c
   rw [Ideal.comap_comap, hsq0, IsDiscreteValuationRing.asIdeal_maximalIdeal,
     comap_maximalIdeal_adicCompletionIntegersExtension]

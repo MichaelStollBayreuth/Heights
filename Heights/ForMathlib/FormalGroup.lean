@@ -109,7 +109,7 @@ theorem exists_variableChange_map_eq :
   refine ⟨C, ⟨⟨_, key W.a₁ hb₁ le_rfl⟩, ⟨_, key W.a₂ hb₂ one_le_two⟩,
     ⟨_, key W.a₃ hb₃ (i := 3) (by lia)⟩, ⟨_, key W.a₄ hb₄ (i := 4) (by lia)⟩,
     ⟨_, key W.a₆ hb₆ (i := 6) (by lia)⟩⟩, ?_⟩
-  ext
+  ext : 1
   · show (z ^ N) ^ 1 * W.a₁ = (C • W).a₁
     rw [variableChange_a₁, ← hu 1]
     ring

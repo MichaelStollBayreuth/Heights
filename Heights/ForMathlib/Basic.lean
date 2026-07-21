@@ -600,8 +600,7 @@ theorem comap_maximalIdeal_adicCompletionIntegers (v : HeightOneSpectrum R) :
     (WithZero (Multiplicative ℤ))))).trans ?_
   rw [show ((algebraMap R (v.adicCompletionIntegers K) x : v.adicCompletionIntegers K) :
     v.adicCompletion K) = ((algebraMap R K x : K) : v.adicCompletion K) from rfl,
-    Valued.valuedCompletion_apply]
-  exact Iff.rfl
+    valuedAdicCompletion_eq_valuation']
 
 end IsDedekindDomain.HeightOneSpectrum
 

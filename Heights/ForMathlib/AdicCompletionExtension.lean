@@ -361,23 +361,37 @@ variable (K L)
 extending `K → L` continuously. Adapted from the FLT project
 (`FLT.DedekindDomain.Completion.BaseChange`, by Kevin Buzzard, Andrew Yang, Matthew Jasper). -/
 noncomputable def adicCompletionExtension : v.adicCompletion K →+* w.adicCompletion L :=
-  UniformSpace.Completion.mapRingHom
-    (algebraMap (WithVal (v.valuation K)) (WithVal (w.valuation L)))
-    (uniformContinuous_algebraMap_liesOver (K := K) (L := L) v w).continuous
+  (adicCompletion.equiv L w).symm.toRingHom.comp <|
+    (UniformSpace.Completion.mapRingHom
+      (algebraMap (WithVal (v.valuation K)) (WithVal (w.valuation L)))
+      (uniformContinuous_algebraMap_liesOver (K := K) (L := L) v w).continuous).comp
+      (adicCompletion.equiv K v).toRingHom
+
+/-- The completion of `x : K_v` under `adicCompletionExtension` is the base change of its
+underlying element of the completion of `WithVal (v.valuation K)`. -/
+lemma toCompletion_adicCompletionExtension (x : v.adicCompletion K) :
+    (adicCompletionExtension K L v w x).toCompletion =
+      UniformSpace.Completion.mapRingHom
+        (algebraMap (WithVal (v.valuation K)) (WithVal (w.valuation L)))
+        (uniformContinuous_algebraMap_liesOver (K := K) (L := L) v w).continuous x.toCompletion :=
+  rfl
 
 /-- The square with sides `K → K_v → L_w` and `K → L → L_w` commutes. -/
 lemma adicCompletionExtension_coe (x : K) :
     adicCompletionExtension K L v w (x : v.adicCompletion K) =
-      (algebraMap K L x : w.adicCompletion L) :=
-  UniformSpace.Completion.mapRingHom_coe
-    (uniformContinuous_algebraMap_liesOver (K := K) (L := L) v w).continuous
-    ((WithVal.equiv (v.valuation K)).symm x)
+      (algebraMap K L x : w.adicCompletion L) := by
+  apply adicCompletion.ext
+  rw [toCompletion_adicCompletionExtension, show (↑x : v.adicCompletion K).toCompletion
+      = ((WithVal.equiv (v.valuation K)).symm x : (v.valuation K).Completion) from rfl,
+    UniformSpace.Completion.mapRingHom_coe]
+  rfl
 
 lemma adicCompletionExtension_coe' (a : WithVal (v.valuation K)) :
     adicCompletionExtension K L v w ↑a =
-      ↑(algebraMap (WithVal (v.valuation K)) (WithVal (w.valuation L)) a) :=
-  UniformSpace.Completion.mapRingHom_coe
-    (uniformContinuous_algebraMap_liesOver (K := K) (L := L) v w).continuous a
+      ↑(algebraMap (WithVal (v.valuation K)) (WithVal (w.valuation L)) a) := by
+  apply adicCompletion.ext
+  rw [toCompletion_adicCompletionExtension, show (↑a : v.adicCompletion K).toCompletion
+      = (a : (v.valuation K).Completion) from rfl, UniformSpace.Completion.mapRingHom_coe]
 
 open WithZeroTopology in
 /-- The valuation on `L_w` restricted along `K_v → L_w` is the valuation on `K_v` raised to
@@ -386,16 +400,22 @@ the ramification index of `w` over `v`. Adapted from FLT's
 lemma valued_adicCompletionExtension (x : v.adicCompletion K) :
     Valued.v (adicCompletionExtension K L v w x) =
       Valued.v x ^ v.asIdeal.ramificationIdx' w.asIdeal := by
-  revert x
+  rw [← adicCompletion.valued_toCompletion L w (adicCompletionExtension K L v w x),
+    toCompletion_adicCompletionExtension, ← adicCompletion.valued_toCompletion K v x]
+  have hsurjK : Function.Surjective (⇑(Valued.v : Valuation (v.valuation K).Completion ℤᵐ⁰)) :=
+    Valued.valuedCompletion_surjective_iff.mpr <| .of_comp (v.valuation_surjective K)
+  have hsurjL : Function.Surjective (⇑(Valued.v : Valuation (w.valuation L).Completion ℤᵐ⁰)) :=
+    Valued.valuedCompletion_surjective_iff.mpr <| .of_comp (w.valuation_surjective L)
+  generalize x.toCompletion = y
+  revert y
   apply funext_iff.mp
   symm
   apply UniformSpace.Completion.ext
-  · exact (Valued.continuous_valuation_of_surjective
-      (v.valuedAdicCompletion_surjective K)).pow _
-  · exact (Valued.continuous_valuation_of_surjective
-      (w.valuedAdicCompletion_surjective L)).comp UniformSpace.Completion.continuous_map
+  · exact (Valued.continuous_valuation_of_surjective hsurjK).pow _
+  · exact (Valued.continuous_valuation_of_surjective hsurjL).comp
+      UniformSpace.Completion.continuous_map
   intro a
-  rw [adicCompletionExtension_coe' K L v w a, Valued.valuedCompletion_apply,
+  rw [UniformSpace.Completion.mapRingHom_coe, Valued.valuedCompletion_apply,
     Valued.valuedCompletion_apply]
   exact valuation_liesOver (K := K) L v w (WithVal.equiv (v.valuation K) a)
 
