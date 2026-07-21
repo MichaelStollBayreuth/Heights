@@ -73,6 +73,12 @@ lemma coe_negY {x y : v.adicCompletion K} (hx : Valued.v x ≤ 1) (hy : Valued.v
     ⟨x, hx⟩ ⟨y, hy⟩
 
 include hW in
+/-- `W.negY` of integral coordinates is integral. -/
+lemma valued_negY_le {x y : v.adicCompletion K} (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1) :
+    Valued.v (W.negY x y) ≤ 1 := by
+  rw [coe_negY hW hx hy]; exact valued_coe_le_one _
+
+include hW in
 /-- Reduction commutes with `negY` on integral coordinates. -/
 lemma redCoord_negY {x y : v.adicCompletion K} (hx : Valued.v x ≤ 1) (hy : Valued.v y ≤ 1)
     (hn : Valued.v (W.negY x y) ≤ 1) :
@@ -199,6 +205,18 @@ private lemma valued_sub_le {a b : v.adicCompletion K} (ha : Valued.v a ≤ 1)
     (hb : Valued.v b ≤ 1) : Valued.v (a - b) ≤ 1 :=
   (Valued.v.map_sub _ _).trans (max_le ha hb)
 
+include hW in
+/-- The finite-difference numerator of integral coordinates is integral. -/
+lemma valued_ficoNum_le {x₁ x₂ y₁ : v.adicCompletion K} (h₁ : Valued.v x₁ ≤ 1)
+    (h₂ : Valued.v x₂ ≤ 1) (hy₁ : Valued.v y₁ ≤ 1) :
+    Valued.v (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 := by
+  rw [show x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁
+      = ((⟨x₁, h₁⟩ ^ 2 + ⟨x₁, h₁⟩ * ⟨x₂, h₂⟩ + ⟨x₂, h₂⟩ ^ 2
+          + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, h₁⟩ + ⟨x₂, h₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
+          - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) :
+        v.adicCompletion K) from by push_cast; ring]
+  exact valued_coe_le_one _
+
 lemma nonsingular_deriv_disj {F : Type*} [Field F] {E' : Affine F} {a b : F}
     (h : E'.Nonsingular a b) :
     E'.a₁ * b - (3 * a ^ 2 + 2 * E'.a₂ * a + E'.a₄) ≠ 0 ∨ b - E'.negY a b ≠ 0 := by
@@ -214,6 +232,11 @@ lemma valued_eq_one_of_residue_ne {a : v.adicCompletion K} (ha : Valued.v a ≤ 
     (h : res (⟨a, ha⟩ : v.adicCompletionIntegers K) ≠ 0) : Valued.v a = 1 :=
   valued_coe_isUnit (a := (⟨a, ha⟩ : v.adicCompletionIntegers K))
     ((residue_ne_zero_iff_isUnit (⟨a, ha⟩ : v.adicCompletionIntegers K)).mp h)
+
+/-- An integral element with nonzero reduction is nonzero. -/
+lemma ne_zero_of_residue_ne {a : v.adicCompletion K} (ha : Valued.v a ≤ 1)
+    (h : res (⟨a, ha⟩ : v.adicCompletionIntegers K) ≠ 0) : a ≠ 0 := by
+  rintro rfl; exact h (map_zero _)
 
 section
 
@@ -252,23 +275,15 @@ lemma red_slope {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hx₁ : Valued.v x�
   · -- tangent: `x₁, x₂` reduce equal; the reduced slope is the tangent form
     have hYne : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K)
         ≠ (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩) := fun h ↦ hne ⟨hXeq, h⟩
-    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
-      rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := valued_negY_le hW hx₂ hy₂
     have hDint : Valued.v (y₁ - W.negY x₂ y₂) ≤ 1 := valued_sub_le hy₁ hnegYint
     have hDu : res (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) ≠ 0 := by
       rw [res_sub hy₁ hnegYint hDint, redCoord_negY hW hx₂ hy₂ hnegYint]
       exact sub_ne_zero.mpr hYne
-    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := fun h ↦ hDu <| by
-      rw [show (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) = 0 from
-        Subtype.ext (by push_cast; exact h), map_zero]
+    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := ne_zero_of_residue_ne hDint hDu
     have hNint : Valued.v
-        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 := by
-      rw [show x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁
-          = ((⟨x₁, hx₁⟩ ^ 2 + ⟨x₁, hx₁⟩ * ⟨x₂, hx₂⟩ + ⟨x₂, hx₂⟩ ^ 2
-              + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, hx₁⟩ + ⟨x₂, hx₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
-              - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) :
-            v.adicCompletion K) from by push_cast; ring]
-      exact valued_coe_le_one _
+        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 :=
+      valued_ficoNum_le hW hx₁ hx₂ hy₁
     have hYeq : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) = res ⟨y₂, hy₂⟩ :=
       ((redCurve W₀).Y_eq_of_X_eq (Equation.map _ (equation_integral hW hc₁ hx₁ hy₁))
         (Equation.map _ (equation_integral hW hc₂ hx₂ hy₂)) hXeq).resolve_right hYne
@@ -301,23 +316,15 @@ lemma valued_slope_le {x₁ x₂ y₁ y₂ : v.adicCompletion K} (hx₁ : Valued
   by_cases hXeq : res (⟨x₁, hx₁⟩ : v.adicCompletionIntegers K) = res ⟨x₂, hx₂⟩
   · have hYne : res (⟨y₁, hy₁⟩ : v.adicCompletionIntegers K)
         ≠ (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩) := fun h ↦ hne ⟨hXeq, h⟩
-    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
-      rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+    have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := valued_negY_le hW hx₂ hy₂
     have hDint : Valued.v (y₁ - W.negY x₂ y₂) ≤ 1 := valued_sub_le hy₁ hnegYint
     have hDu : res (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) ≠ 0 := by
       rw [res_sub hy₁ hnegYint hDint, redCoord_negY hW hx₂ hy₂ hnegYint]
       exact sub_ne_zero.mpr hYne
-    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := fun h ↦ hDu <| by
-      rw [show (⟨y₁ - W.negY x₂ y₂, hDint⟩ : v.adicCompletionIntegers K) = 0 from
-        Subtype.ext (by push_cast; exact h), map_zero]
+    have hD0 : y₁ - W.negY x₂ y₂ ≠ 0 := ne_zero_of_residue_ne hDint hDu
     have hNint : Valued.v
-        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 := by
-      rw [show x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁
-          = ((⟨x₁, hx₁⟩ ^ 2 + ⟨x₁, hx₁⟩ * ⟨x₂, hx₂⟩ + ⟨x₂, hx₂⟩ ^ 2
-              + ⟨W.a₂, valued_a₂ hW⟩ * (⟨x₁, hx₁⟩ + ⟨x₂, hx₂⟩) + ⟨W.a₄, valued_a₄ hW⟩
-              - ⟨W.a₁, valued_a₁ hW⟩ * ⟨y₁, hy₁⟩ : v.adicCompletionIntegers K) :
-            v.adicCompletion K) from by push_cast; ring]
-      exact valued_coe_le_one _
+        (x₁ ^ 2 + x₁ * x₂ + x₂ ^ 2 + W.a₂ * (x₁ + x₂) + W.a₄ - W.a₁ * y₁) ≤ 1 :=
+      valued_ficoNum_le hW hx₁ hx₂ hy₁
     rw [slope_eq_div hc₁ hc₂ hD0, map_div₀,
       valued_coe_isUnit ((residue_ne_zero_iff_isUnit _).mp hDu), div_one]
     exact hNint
@@ -419,8 +426,7 @@ lemma red_add_of_reduced_ne_neg {x₁ x₂ y₁ y₂ : v.adicCompletion K}
       res ⟨y₁, hy₁⟩ = (redCurve W₀).negY (res ⟨x₂, hx₂⟩) (res ⟨y₂, hy₂⟩)) := fun ⟨e1, e2⟩ ↦
     hne (by rw [red_some_of_not_mem hW hP, red_some_of_not_mem hW hQ, Point.neg_some,
       Point.some.injEq]; exact ⟨e1, e2⟩)
-  have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := by
-    rw [coe_negY hW hx₂ hy₂]; exact valued_coe_le_one _
+  have hnegYint : Valued.v (W.negY x₂ y₂) ≤ 1 := valued_negY_le hW hx₂ hy₂
   have hxy : ¬ (x₁ = x₂ ∧ y₁ = W.negY x₂ y₂) := by
     rintro ⟨ex, ey⟩
     refine hne_res ⟨congrArg (IsLocalRing.residue _) (Subtype.ext ex), ?_⟩
@@ -451,8 +457,7 @@ lemma unit_deriv {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y�
     (hx₀ : Valued.v x₀ ≤ 1) (hy₀ : Valued.v y₀ ≤ 1) :
     Valued.v (y₀ - W.negY x₀ y₀) = 1 ∨
       Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = 1 := by
-  have hnegYint : Valued.v (W.negY x₀ y₀) ≤ 1 := by
-    rw [coe_negY hW hx₀ hy₀]; exact valued_coe_le_one _
+  have hnegYint : Valued.v (W.negY x₀ y₀) ≤ 1 := valued_negY_le hW hx₀ hy₀
   have hψint : Valued.v (y₀ - W.negY x₀ y₀) ≤ 1 := valued_sub_le hy₀ hnegYint
   have hφint : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) ≤ 1 := by
     rw [show W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)
