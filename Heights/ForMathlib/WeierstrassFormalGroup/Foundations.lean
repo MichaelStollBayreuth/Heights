@@ -1,4 +1,9 @@
-import Heights.ForMathlib.WeierstrassFormalGroup.Eval
+module
+
+public import Heights.ForMathlib.WeierstrassFormalGroup.Eval
+import all Heights.ForMathlib.WeierstrassFormalGroup.Eval
+
+@[expose] public section
 
 /-!
 # Valuation estimates for the integral model of a Weierstrass curve
@@ -29,36 +34,36 @@ private lemma algebraMap_eq_coe (x : v.adicCompletionIntegers K) :
     algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K) x =
       (x : v.adicCompletion K) := rfl
 
-lemma valued_coe_le_one (x : v.adicCompletionIntegers K) :
+private lemma valued_coe_le_one (x : v.adicCompletionIntegers K) :
     Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≤ 1 := x.2
 
 /-- The valuation of (the coercion of) a unit of `𝒪_v` is `1`. -/
-lemma valued_coe_isUnit {a : v.adicCompletionIntegers K} (ha : IsUnit a) :
+private lemma valued_coe_isUnit {a : v.adicCompletionIntegers K} (ha : IsUnit a) :
     Valued.v ((a : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 :=
   (Valuation.integer.integers (Valued.v)).isUnit_iff_valuation_eq_one.mp ha
 
 /-- Membership in the maximal ideal of `𝒪_v` is the valuation bound `exp (-1)`. -/
-lemma mem_maximalIdeal_iff {x : v.adicCompletionIntegers K} :
+private lemma mem_maximalIdeal_iff {x : v.adicCompletionIntegers K} :
     x ∈ maximalIdeal (v.adicCompletionIntegers K) ↔
       Valued.v ((x : v.adicCompletionIntegers K) : v.adicCompletion K) ≤ exp (-1 : ℤ) := by
   have h := mem_maximalIdeal_pow_iff (K := K) (x := x) (n := 1)
   rwa [pow_one] at h
 
 /-- An element within distance `exp (-n)` of an integral element is integral. -/
-lemma valued_le_one_of_sub {a b : v.adicCompletion K} {n : ℕ}
+private lemma valued_le_one_of_sub {a b : v.adicCompletion K} {n : ℕ}
     (h : Valued.v (a - b) ≤ exp (-(n : ℤ))) (hb : Valued.v b ≤ 1) : Valued.v a ≤ 1 := by
   rw [show a = (a - b) + b by ring]
   refine le_trans (Valued.v.map_add _ _) (max_le (h.trans ?_) hb)
   rw [← exp_zero, exp_le_exp]
   lia
 
-lemma coe_wEval_ne_zero {t : v.adicCompletionIntegers K}
+private lemma coe_wEval_ne_zero {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (h0 : t ≠ 0) :
     ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
   simp only [ne_eq, ZeroMemClass.coe_eq_zero]
   exact W₀.wEval_ne_zero hm h0
 
-lemma coe_duEval_ne_zero {t : v.adicCompletionIntegers K}
+private lemma coe_duEval_ne_zero {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K) ≠ 0 := by
   simp only [ne_eq, ZeroMemClass.coe_eq_zero]
@@ -69,7 +74,7 @@ private lemma valued_lhs_eq_rhs {x y : v.adicCompletion K} (hxy : W.Equation x y
       Valued.v (x ^ 3 + (W.a₂ * x ^ 2 + (W.a₄ * x + W.a₆))) :=
   congrArg Valued.v (by linear_combination (W.equation_iff x y).mp hxy)
 
-lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
+private lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.iotaEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
       -((t : v.adicCompletion K) *
@@ -79,7 +84,7 @@ lemma coe_iotaEval_eq {t : v.adicCompletionIntegers K}
   push_cast at h
   exact h
 
-lemma coe_wEval_iotaEval {t : v.adicCompletionIntegers K}
+private lemma coe_wEval_iotaEval {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.wEval (W₀.iotaEval t) : v.adicCompletionIntegers K) : v.adicCompletion K) =
       -(((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) *
@@ -89,7 +94,7 @@ lemma coe_wEval_iotaEval {t : v.adicCompletionIntegers K}
   push_cast at h
   exact h
 
-lemma coe_uEval_mul_duEval {t : v.adicCompletionIntegers K}
+private lemma coe_uEval_mul_duEval {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.uEval t : v.adicCompletionIntegers K) : v.adicCompletion K) *
       ((W₀.duEval t : v.adicCompletionIntegers K) : v.adicCompletion K) = 1 := by
@@ -102,19 +107,19 @@ section
 
 include hW
 
-lemma coe_a₁ : ((W₀.a₁ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₁ := by
+private lemma coe_a₁ : ((W₀.a₁ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₁ := by
   rw [← hW, WeierstrassCurve.map_a₁, algebraMap_eq_coe]
 
-lemma coe_a₂ : ((W₀.a₂ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₂ := by
+private lemma coe_a₂ : ((W₀.a₂ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₂ := by
   rw [← hW, WeierstrassCurve.map_a₂, algebraMap_eq_coe]
 
-lemma coe_a₃ : ((W₀.a₃ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₃ := by
+private lemma coe_a₃ : ((W₀.a₃ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₃ := by
   rw [← hW, WeierstrassCurve.map_a₃, algebraMap_eq_coe]
 
-lemma coe_a₄ : ((W₀.a₄ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₄ := by
+private lemma coe_a₄ : ((W₀.a₄ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₄ := by
   rw [← hW, WeierstrassCurve.map_a₄, algebraMap_eq_coe]
 
-lemma coe_a₆ : ((W₀.a₆ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₆ := by
+private lemma coe_a₆ : ((W₀.a₆ : v.adicCompletionIntegers K) : v.adicCompletion K) = W.a₆ := by
   rw [← hW, WeierstrassCurve.map_a₆, algebraMap_eq_coe]
 
 lemma valued_a₁ : Valued.v W.a₁ ≤ 1 := coe_a₁ hW ▸ valued_coe_le_one W₀.a₁
@@ -220,7 +225,7 @@ private lemma valued_ne_exp_one {x y : v.adicCompletion K} (hxy : W.Equation x y
 
 /-- On an affine point of the kernel of reduction, `v(y)² = v(x)³`; in particular `y ≠ 0`,
 and the parameter `-x/y` and the value `-1/y` lie in the maximal ideal. -/
-lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
+private lemma valued_of_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
     (hx : exp (2 : ℤ) ≤ Valued.v x) :
     y ≠ 0 ∧ Valued.v (-x / y) ≤ exp (-1 : ℤ) ∧ Valued.v (-1 / y) ≤ exp (-1 : ℤ) := by
   have hA1 : (1 : ℤᵐ⁰) < Valued.v x :=
@@ -278,7 +283,7 @@ lemma integral_of_not_mem {x y : v.adicCompletion K} (hxy : W.Equation x y)
   exact absurd h (not_le.mpr (one_lt_pow₀ hB1 (by lia)))
 
 /-- The coerced Weierstrass fixed-point equation for the value of `w`. -/
-lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
+private lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.wEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
       (t : v.adicCompletion K) ^ 3 +
@@ -296,7 +301,7 @@ lemma coe_wEval_eq {t : v.adicCompletionIntegers K}
   exact h
 
 /-- The coerced form of the evaluated `u`-series. -/
-lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
+private lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     ((W₀.uEval t : v.adicCompletionIntegers K) : v.adicCompletion K) =
       1 - W.a₁ * t - W.a₃ *
@@ -308,7 +313,7 @@ lemma coe_uEval_eq {t : v.adicCompletionIntegers K}
   exact h
 
 /-- The coerced chord-cubic leading coefficient does not vanish. -/
-lemma coe_chordCoeff_ne_zero {Λ : v.adicCompletionIntegers K}
+private lemma coe_chordCoeff_ne_zero {Λ : v.adicCompletionIntegers K}
     (hΛ : Λ ∈ maximalIdeal (v.adicCompletionIntegers K)) :
     (1 : v.adicCompletion K) +
       W.a₂ * ((Λ : v.adicCompletionIntegers K) : v.adicCompletion K) +
@@ -324,7 +329,7 @@ lemma coe_chordCoeff_ne_zero {Λ : v.adicCompletionIntegers K}
 /-- Near a `2`-torsion base point `(x₀, y₀)`, the second factor of the finite-difference
 identity `(y - negY x₀ y₀) * (y - y₀) = (x - x₀) * (…)` is congruent to the negative of the
 partial derivative in `x` at the base point, hence has the same valuation `exp c`. -/
-lemma valued_num_of_two_torsion {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
+private lemma valued_num_of_two_torsion {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
     (hx₀ : Valued.v x₀ ≤ 1)
     (hc : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = exp c)
     (hsc : 1 - c ≤ (s : ℤ)) (hx : Valued.v (x - x₀) ≤ exp (-(s : ℤ)))
@@ -359,7 +364,7 @@ end
 /-- Lower bound for the valuation of the chord slope towards the negative of the base
 point, from the product form of the numerator valuation supplied by the finite-difference
 identity. -/
-lemma exp_one_le_valued_slope {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
+private lemma exp_one_le_valued_slope {x₀ y₀ x y : v.adicCompletion K} {c : ℤ} {s : ℕ}
     (hxx : x ≠ x₀) (hsc : 1 - c ≤ (s : ℤ)) (hy : Valued.v (y - y₀) ≤ exp (-(s : ℤ)))
     (hprod : Valued.v (y - W.negY x₀ y₀) * Valued.v (y - y₀) = Valued.v (x - x₀) * exp c) :
     exp (1 : ℤ) ≤ Valued.v ((y - W.negY x₀ y₀) / (x - x₀)) := by
@@ -493,7 +498,7 @@ private lemma ne_of_coe_ne {z z' : W₀.formalGroupLaw.Points}
 /-- An auxiliary point of the formal group avoiding a given nonzero point `z`, its formal
 inverse, and its own formal inverse (so that all sums involved in doubling `z` are chord
 cases). -/
-lemma exists_aux_point [CharZero K] {z : W₀.formalGroupLaw.Points}
+private lemma exists_aux_point [CharZero K] {z : W₀.formalGroupLaw.Points}
     (h0 : (z () : v.adicCompletionIntegers K) ≠ 0) :
     ∃ u : W₀.formalGroupLaw.Points, (u () : v.adicCompletionIntegers K) ≠ 0 ∧
       u ≠ z ∧ u ≠ W₀.negPoint z ∧ W₀.negPoint u ≠ z ∧ W₀.negPoint u ≠ W₀.negPoint z ∧
@@ -530,7 +535,7 @@ theorem valued_formalPoint_x
 
 /-- The parameter of a sum of `𝔪`-points lies in every `𝔪`-power containing both
 parameters (evaluation of the addition series preserves the level). -/
-lemma add_param_mem_pow {z z' : W₀.formalGroupLaw.Points} {n : ℕ}
+private lemma add_param_mem_pow {z z' : W₀.formalGroupLaw.Points} {n : ℕ}
     (hz : (z () : v.adicCompletionIntegers K) ∈
       maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1))
     (hz' : (z' () : v.adicCompletionIntegers K) ∈
@@ -545,7 +550,7 @@ lemma add_param_mem_pow {z z' : W₀.formalGroupLaw.Points} {n : ℕ}
 
 /-- For a nonzero parameter `t ∈ 𝔪`, membership in `𝔪^(n+1)` is the pole condition on
 the `x`-coordinate of the associated point. -/
-lemma exists_pi_pow_factor {π t : v.adicCompletionIntegers K} {n : ℕ}
+private lemma exists_pi_pow_factor {π t : v.adicCompletionIntegers K} {n : ℕ}
     (hmax : maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π})
     (ht : t ∈ maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1)) :
     ∃ s ∈ maximalIdeal (v.adicCompletionIntegers K), t = π ^ n * s := by
@@ -561,7 +566,7 @@ private lemma points_ne_zero_param {z : W₀.formalGroupLaw.Points} (hz0 : z ≠
 
 /-- A point of the formal group killed by a prime different from the residue
 characteristic is trivial. -/
-lemma points_eq_zero_of_nsmul_prime_ne {p q : ℕ} (hp : p.Prime) (hq : q.Prime)
+private lemma points_eq_zero_of_nsmul_prime_ne {p q : ℕ} (hp : p.Prime) (hq : q.Prime)
     (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
     (hqp : q ≠ p) {z : W₀.formalGroupLaw.Points} (hz : q • z = 0) : z = 0 := by
   by_contra hz0
@@ -680,7 +685,7 @@ private lemma exists_ramificationBound [CharZero K] {p : ℕ} (hp : p.Prime)
 /-- A point of the formal group killed by the residue characteristic `p` is trivial
 under the ramification condition `p ∉ 𝔪^(p-1)` (that is, `e < p − 1`): the value
 `ψ_p(t) = p·t + A(t) + B(t)` cannot vanish, since `v(p·t)` beats both tails. -/
-lemma points_eq_zero_of_nsmul_residueChar [CharZero K] {p : ℕ} (hp : p.Prime)
+private lemma points_eq_zero_of_nsmul_residueChar [CharZero K] {p : ℕ} (hp : p.Prime)
     (hpmem : (p : v.adicCompletionIntegers K) ∈ maximalIdeal (v.adicCompletionIntegers K))
     (hpram : (p : v.adicCompletionIntegers K) ∉
       maximalIdeal (v.adicCompletionIntegers K) ^ (p - 1))
@@ -733,13 +738,13 @@ lemma points_eq_zero_of_nsmul_residueChar [CharZero K] {p : ℕ} (hp : p.Prime)
 
 /-- Division by a uniformizer: the maximal ideal of `𝒪_v` is additively isomorphic to
 `𝒪_v` itself. -/
-lemma maximalIdeal_addEquiv {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
+private lemma maximalIdeal_addEquiv {π : v.adicCompletionIntegers K} (hπ0 : π ≠ 0)
     (hmax : maximalIdeal (v.adicCompletionIntegers K) = Ideal.span {π}) :
     Nonempty (maximalIdeal (v.adicCompletionIntegers K) ≃+ v.adicCompletionIntegers K) :=
   ⟨((LinearEquiv.ofEq _ _ (by rw [hmax])).trans
     (LinearEquiv.toSpanNonzeroSingleton _ _ π hπ0).symm).toAddEquiv⟩
 
-lemma param_pow_iff {t : v.adicCompletionIntegers K}
+private lemma param_pow_iff {t : v.adicCompletionIntegers K}
     (hm : t ∈ maximalIdeal (v.adicCompletionIntegers K)) (h0 : t ≠ 0) (n : ℕ) :
     t ∈ maximalIdeal (v.adicCompletionIntegers K) ^ (n + 1) ↔
       exp (2 * (n + 1) : ℤ) ≤ Valued.v ((t : v.adicCompletion K) /
@@ -755,7 +760,7 @@ lemma param_pow_iff {t : v.adicCompletionIntegers K}
   constructor <;> intro h <;> lia
 
 /-- The parameter map modulo `𝔪^(k+2)` is additive on parameters in `𝔪^(k+1)`. -/
-lemma mk_add_param {k : ℕ} {z z' : W₀.formalGroupLaw.Points}
+private lemma mk_add_param {k : ℕ} {z z' : W₀.formalGroupLaw.Points}
     (hz : (z () : v.adicCompletionIntegers K) ∈
       maximalIdeal (v.adicCompletionIntegers K) ^ (k + 1))
     (hz' : (z' () : v.adicCompletionIntegers K) ∈
@@ -771,7 +776,7 @@ lemma mk_add_param {k : ℕ} {z z' : W₀.formalGroupLaw.Points}
     (Ideal.pow_le_pow_right (m := k + 2) (n := 2 * (k + 1)) (by lia)) ?_
   exact W₀.addEval_sub_add_mem (Nat.succ_ne_zero k) hz hz'
 
-lemma finite_quotient_pow [Finite (R ⧸ v.asIdeal)] (m : ℕ) :
+private lemma finite_quotient_pow [Finite (R ⧸ v.asIdeal)] (m : ℕ) :
     Finite (v.adicCompletionIntegers K ⧸
       (maximalIdeal (v.adicCompletionIntegers K) ^ m)) := by
   have hfin : Finite (v.adicCompletionIntegers K ⧸
@@ -780,7 +785,7 @@ lemma finite_quotient_pow [Finite (R ⧸ v.asIdeal)] (m : ℕ) :
   exact Ideal.finite_quotient_pow (IsNoetherian.noetherian _) m
 
 /-- Closed balls (with nonzero radius) in the completion are open. -/
-lemma isOpen_le_ball (a : v.adicCompletion K) (m : ℤ) :
+private lemma isOpen_le_ball (a : v.adicCompletion K) (m : ℤ) :
     IsOpen {b : v.adicCompletion K | Valued.v (b - a) ≤ exp m} := by
   obtain ⟨z, hz⟩ := v.valuedAdicCompletion_surjective K (exp m)
   have hr0 : Valued.v.restrict z ≠ 0 := fun h0 ↦ exp_ne_zero (hz ▸ (by
@@ -845,7 +850,7 @@ private lemma isCompact_integerSet [Finite (R ⧸ v.asIdeal)] :
     exact (Valued.isClosed_valuationSubring _).isComplete
 
 /-- The set of integral points of a Weierstrass curve over `K_v` is compact. -/
-lemma isCompact_integralPoints [Finite (R ⧸ v.asIdeal)] :
+private lemma isCompact_integralPoints [Finite (R ⧸ v.asIdeal)] :
     IsCompact {p : (v.adicCompletion K) × (v.adicCompletion K) |
       W.Equation p.1 p.2 ∧ Valued.v p.1 ≤ 1 ∧ Valued.v p.2 ≤ 1} := by
   have hcl : IsClosed {p : (v.adicCompletion K) × (v.adicCompletion K) |
@@ -870,3 +875,5 @@ lemma isCompact_integralPoints [Finite (R ⧸ v.asIdeal)] :
   exact (isCompact_integerSet.prod isCompact_integerSet).inter_right hcl
 
 end WeierstrassCurve.Affine
+
+end

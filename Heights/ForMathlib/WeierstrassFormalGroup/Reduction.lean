@@ -1,4 +1,10 @@
-import Heights.ForMathlib.WeierstrassFormalGroup.Filtration
+module
+
+public import Heights.ForMathlib.WeierstrassFormalGroup.Filtration
+import all Heights.ForMathlib.WeierstrassFormalGroup.Filtration
+import all Heights.ForMathlib.WeierstrassFormalGroup.Foundations
+
+@[expose] public section
 
 /-!
 # The point-level reduction map
@@ -680,3 +686,5 @@ lemma addOrderOf_red {p : ℕ} (hp : p.Prime)
       (nsmul_eq_zero_of_red_nsmul_eq_zero hW hp hpmem hpram hP (addOrderOf_nsmul_eq_zero _)))
 
 end WeierstrassCurve.Affine
+
+end

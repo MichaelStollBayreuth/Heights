@@ -1,4 +1,9 @@
-import Heights.ForMathlib.WeierstrassFormalGroup.Foundations
+module
+
+public import Heights.ForMathlib.WeierstrassFormalGroup.Foundations
+import all Heights.ForMathlib.WeierstrassFormalGroup.Foundations
+
+@[expose] public section
 
 /-!
 # The formal point, the filtration, and the structure of `E(K_v)`
@@ -516,7 +521,7 @@ theorem filtration_anti {m n : ℕ} (hmn : m ≤ n) : filtration hW n ≤ filtra
 
 /-- If the chord slope towards the negative of the base point has valuation at least
 `exp 1`, the difference of the two (integral) points lies in the kernel of reduction. -/
-lemma sub_mem_filtration_of_slope {x₀ y₀ x y : v.adicCompletion K}
+private lemma sub_mem_filtration_of_slope {x₀ y₀ x y : v.adicCompletion K}
     (h₀ : W.Nonsingular x₀ y₀) (h : W.Nonsingular x y) (hxx : x ≠ x₀)
     (hx₀ : Valued.v x₀ ≤ 1) (hxI : Valued.v x ≤ 1)
     (hs : exp (1 : ℤ) ≤ Valued.v ((y - W.negY x₀ y₀) / (x - x₀))) :
@@ -947,3 +952,5 @@ theorem exists_finiteIndex_addSubgroup_equiv_adicCompletionIntegers :
   · exact ⟨((AddEquiv.addSubgroupMap (Point.equivVariableChange W C) _).symm.trans e)⟩
 
 end WeierstrassCurve.Affine
+
+end

@@ -1,4 +1,8 @@
-import Heights.ForMathlib.WeierstrassFormalGroup.GroupLaw
+module
+
+public import Heights.ForMathlib.WeierstrassFormalGroup.GroupLaw
+
+@[expose] public section
 
 /-!
 # Evaluation of the formal group series of a Weierstrass curve
@@ -67,7 +71,7 @@ lemma isUnit_chordCoeff {Λ : O} (hΛ : Λ ∈ maximalIdeal O) :
 variable [UniformSpace O] [Fact (IsAdic (maximalIdeal O))]
 
 omit W in
-lemma hasEval_pairElim {t₁ t₂ : O} (h₁ : t₁ ∈ maximalIdeal O)
+private lemma hasEval_pairElim {t₁ t₂ : O} (h₁ : t₁ ∈ maximalIdeal O)
     (h₂ : t₂ ∈ maximalIdeal O) :
     MvPowerSeries.HasEval (Sum.elim (fun _ ↦ t₁) fun _ ↦ t₂ : Unit ⊕ Unit → O) :=
   MvPSeries.hasEval_of_mem (by rintro (j | j) <;> assumption)
@@ -606,3 +610,5 @@ theorem add_negPoint (z : W.formalGroupLaw.Points) : z + W.negPoint z = 0 := by
   rfl
 
 end WeierstrassCurve
+
+end
