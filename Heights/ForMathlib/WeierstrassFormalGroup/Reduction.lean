@@ -32,20 +32,6 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R]
 
 local notation:max "res" x:max => IsLocalRing.residue (v.adicCompletionIntegers K) x
 
-/-- Reduction commutes with division by a residue-unit denominator. -/
-lemma residue_div_of_isUnit {a b : v.adicCompletionIntegers K} (hb : IsUnit b)
-    (hab : Valued.v ((a : v.adicCompletion K) / (b : v.adicCompletion K)) ≤ 1) :
-    IsLocalRing.residue _ ⟨(a : v.adicCompletion K) / (b : v.adicCompletion K), hab⟩
-      = IsLocalRing.residue _ a / IsLocalRing.residue _ b := by
-  have hb0 : (b : v.adicCompletion K) ≠ 0 :=
-    (Valuation.ne_zero_iff Valued.v).mp (by rw [valued_coe_isUnit hb]; exact one_ne_zero)
-  have hbr : IsUnit (IsLocalRing.residue (v.adicCompletionIntegers K) b) := hb.map _
-  rw [eq_div_iff hbr.ne_zero, ← map_mul]
-  congr 1
-  apply Subtype.ext
-  push_cast
-  field_simp
-
 /-- The reduction `Ẽ` of the good integral model `W₀` modulo the maximal ideal, an elliptic
 curve over the residue field `k_v` (good reduction is the hypothesis `[W₀.IsElliptic]`). -/
 noncomputable abbrev redCurve (W₀ : WeierstrassCurve (v.adicCompletionIntegers K)) :
@@ -217,6 +203,8 @@ lemma valued_ficoNum_le {x₁ x₂ y₁ : v.adicCompletion K} (h₁ : Valued.v x
         v.adicCompletion K) from by push_cast; ring]
   exact valued_coe_le_one _
 
+/-- At a nonsingular point of a Weierstrass curve, one of the two partial derivatives of the
+Weierstrass polynomial is nonzero. -/
 lemma nonsingular_deriv_disj {F : Type*} [Field F] {E' : Affine F} {a b : F}
     (h : E'.Nonsingular a b) :
     E'.a₁ * b - (3 * a ^ 2 + 2 * E'.a₂ * a + E'.a₄) ≠ 0 ∨ b - E'.negY a b ≠ 0 := by
@@ -453,6 +441,8 @@ lemma red_add_of_reduced_ne_neg {x₁ x₂ y₁ y₂ : v.adicCompletion K}
 omit [W.IsElliptic] [DecidableEq (v.adicCompletion K)] [CharZero K]
   [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))] in
 include hW in
+/-- At an integral nonsingular point, one of the two partial derivatives of the Weierstrass
+polynomial reduces to a unit (has valuation `1`). -/
 lemma unit_deriv {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y₀)
     (hx₀ : Valued.v x₀ ≤ 1) (hy₀ : Valued.v y₀ ≤ 1) :
     Valued.v (y₀ - W.negY x₀ y₀) = 1 ∨
@@ -528,6 +518,8 @@ lemma sub_mem_filtration_of_eq {x y x₀ y₀ : v.adicCompletion K} (h : W.Nonsi
 
 omit [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))] in
 include hW in
+/-- Two integral points whose coordinates are congruent modulo `𝔪` (differ by elements of
+valuation `≤ exp (-1)`) differ by a kernel-of-reduction element. -/
 lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y₀)
     (hx₀ : Valued.v x₀ ≤ 1) (hy₀ : Valued.v y₀ ≤ 1) {x y : v.adicCompletion K}
     (h : W.Nonsingular x y) (hx : Valued.v (x - x₀) ≤ exp (-1 : ℤ))
@@ -549,7 +541,7 @@ lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsin
         -- `P = -Q`, so `P - Q = -(Q + Q)` lies in the kernel of reduction
         have hφ1 : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = 1 := by
           rcases unit_deriv hW h₀ hx₀ hy₀ with hψ1 | hφ1
-          · exact absurd hψsmall (by rw [hψ1, ← exp_zero, exp_le_exp]; omega)
+          · exact absurd hψsmall (by rw [hψ1, ← exp_zero, exp_le_exp]; lia)
           · exact hφ1
         have hψne : y₀ ≠ W.negY x₀ y₀ := fun hc ↦ hψ0 (sub_eq_zero.mpr hc)
         have hP : (.some x₀ y h : W.Point) = -.some x₀ y₀ h₀ := by
@@ -566,7 +558,7 @@ lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsin
             Valuation.map_neg, hφ1]
         rw [hnumφ, hdψ, ← exp_zero, ← exp_sub, exp_le_exp]
         have hdψ' : dψ ≤ -1 := by rwa [hdψ, exp_le_exp] at hψsmall
-        omega
+        lia
   · -- `x ≠ x₀`: the secant slope through the two points is large
     refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
     rcases unit_deriv hW h₀ hx₀ hy₀ with hψ1 | hφ1
@@ -575,12 +567,12 @@ lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsin
         rw [show y - W.negY x₀ y₀ = (y₀ - W.negY x₀ y₀) + (y - y₀) by ring,
           Valuation.map_add_eq_of_lt_left, hψ1]
         refine lt_of_le_of_lt hy ?_
-        rw [hψ1, ← exp_zero, exp_lt_exp]; omega
+        rw [hψ1, ← exp_zero, exp_lt_exp]; lia
       obtain ⟨dx, hdx⟩ : ∃ dx : ℤ, Valued.v (x - x₀) = exp dx :=
         ⟨_, (exp_log (by simpa using sub_ne_zero.mpr hxx)).symm⟩
       rw [map_div₀, hnum, hdx, ← exp_zero, ← exp_sub, exp_le_exp]
       have hdx' : dx ≤ -1 := by rwa [hdx, exp_le_exp] at hx
-      omega
+      lia
     · -- `φ` a unit: use the finite-difference identity for the numerator
       have hid : (y - W.negY x₀ y₀) * (y - y₀) = (x - x₀) *
           (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) := by
