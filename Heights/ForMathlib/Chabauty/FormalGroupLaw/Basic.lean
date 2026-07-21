@@ -3,13 +3,17 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Basic.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Basic.lean`).
 
-import Heights.ForMathlib.Chabauty.MvPSeries
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Data.Finsupp.Weight
-import Heights.ForMathlib.Chabauty.MvPowerSeriesComp
+module
+
+public import Heights.ForMathlib.Chabauty.MvPSeries
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Data.Finsupp.Weight
+public import Heights.ForMathlib.Chabauty.MvPowerSeriesComp
+
+@[expose] public section
 
 
 /-!
@@ -308,3 +312,4 @@ end FormalGroupLaw
 
 end ChabautyColeman
 
+end

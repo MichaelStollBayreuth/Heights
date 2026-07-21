@@ -1,4 +1,8 @@
-import Mathlib
+module
+
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # The group of fractional ideals is free abelian on the primes
@@ -424,3 +428,5 @@ lemma nthRootClass_eq_one_iff {n : ℕ} (hn : n ≠ 0) (u : unitsNDivisible R K 
 end NthRootClass
 
 end FractionalIdeal
+
+end

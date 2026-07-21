@@ -1,8 +1,12 @@
-import Mathlib
-import Heights.ForMathlib.Henselian
-import Heights.ForMathlib.AdicCompletionExtension
-import Heights.ForMathlib.SelmerGroup
-import Heights.ForMathlib.VariableChange
+module
+
+public import Mathlib
+public import Heights.ForMathlib.Henselian
+public import Heights.ForMathlib.AdicCompletionExtension
+public import Heights.ForMathlib.SelmerGroup
+public import Heights.ForMathlib.VariableChange
+
+@[expose] public section
 
 /-!
 # Interface to formal-group theory over a local field
@@ -411,3 +415,5 @@ theorem card_selmerGroup_integralClosure (hv2 : (2 : R) ∉ v.asIdeal) :
   exact Nat.card_units_quotient_squares_of_henselian (v.isUnit_two_integralClosure L hv2)
 
 end IsDedekindDomain.HeightOneSpectrum
+
+end

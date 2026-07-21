@@ -3,16 +3,20 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/MvPowerSeriesComp.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/MvPowerSeriesComp.lean`).
 
-import Heights.ForMathlib.Chabauty.MvPowerSeriesPDeriv
-import Mathlib.Data.Finsupp.Weight
+module
 
-import Mathlib.Data.Finsupp.Order
-import Mathlib.RingTheory.MvPowerSeries.Order
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
+public import Heights.ForMathlib.Chabauty.MvPowerSeriesPDeriv
+public import Mathlib.Data.Finsupp.Weight
+
+public import Mathlib.Data.Finsupp.Order
+public import Mathlib.RingTheory.MvPowerSeries.Order
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Compositional inverses of multivariate formal substitutions
@@ -309,3 +313,4 @@ end CompositionalInverse
 
 end MvPowerSeries
 
+end

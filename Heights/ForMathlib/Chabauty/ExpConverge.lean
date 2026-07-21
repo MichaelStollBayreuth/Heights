@@ -3,12 +3,16 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/ExpConverge.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/ExpConverge.lean`).
 
-import Heights.ForMathlib.Chabauty.FormalGroupLaw
+module
 
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.NumberTheory.Padics.PadicVal.Basic
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw
+
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.NumberTheory.Padics.PadicVal.Basic
+
+@[expose] public section
 
 /-!
 # Convergence of the formal exponential
@@ -387,3 +391,4 @@ end FormalGroupLaw
 
 end ChabautyColeman
 
+end

@@ -3,12 +3,16 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw.lean`).
 
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Basic
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Invariance
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Points
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Log
+module
+
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Basic
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Invariance
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Points
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Log
+
+@[expose] public section
 
 /-!
 # Formal group laws and their points in the maximal ideal
@@ -32,3 +36,5 @@ The development is split across the files re-exported here:
 
 Blueprint nodes: `def:fgl`, `def:fgl-diff`, `def:fgl-log`.
 -/
+
+end

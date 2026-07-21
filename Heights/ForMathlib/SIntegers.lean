@@ -1,6 +1,10 @@
-import Heights.ForMathlib.Basic
-import Heights.ForMathlib.FractionalIdeal
-import Mathlib
+module
+
+public import Heights.ForMathlib.Basic
+public import Heights.ForMathlib.FractionalIdeal
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # The ring of `S`-integers is a Dedekind domain
@@ -545,3 +549,5 @@ noncomputable def classGroupEquiv :
     (QuotientGroup.quotientMulEquivOfEq (ker_extendedHom K S))
 
 end IsDedekindDomain.SInteger
+
+end

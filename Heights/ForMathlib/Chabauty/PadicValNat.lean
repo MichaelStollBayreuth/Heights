@@ -3,12 +3,16 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/PadicValNat.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/PadicValNat.lean`).
 
-import Mathlib.NumberTheory.Padics.PadicVal.Basic
-import Mathlib.Order.Filter.AtTopBot.Tendsto
+module
 
-import Mathlib.Data.Nat.Log
+public import Mathlib.NumberTheory.Padics.PadicVal.Basic
+public import Mathlib.Order.Filter.AtTopBot.Tendsto
+
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # The gap `n - v_p(n)` grows
@@ -60,3 +64,4 @@ theorem tendsto_sub_padicValNat_atTop {p : ℕ} (hp : 1 < p) :
   tendsto_atTop_mono (fun n ↦ Nat.sub_le_sub_left (padicValNat_le_nat_log n) n)
     (tendsto_sub_log_atTop hp)
 
+end

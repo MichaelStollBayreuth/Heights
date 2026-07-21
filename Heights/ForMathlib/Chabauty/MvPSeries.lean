@@ -3,14 +3,18 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/MvPSeries.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/MvPSeries.lean`).
 
-import Mathlib.RingTheory.MvPowerSeries.Evaluation
-import Mathlib.RingTheory.MvPowerSeries.Substitution
-import Heights.ForMathlib.Chabauty.MvPowerSeriesPDeriv
-import Heights.ForMathlib.Chabauty.PSeries
+module
 
-import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
+public import Mathlib.RingTheory.MvPowerSeries.Evaluation
+public import Mathlib.RingTheory.MvPowerSeries.Substitution
+public import Heights.ForMathlib.Chabauty.MvPowerSeriesPDeriv
+public import Heights.ForMathlib.Chabauty.PSeries
+
+public import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
+
+@[expose] public section
 
 /-!
 # The p-adic kit: multivariate evaluation
@@ -529,3 +533,4 @@ end MvPSeries
 
 end ChabautyColeman
 
+end

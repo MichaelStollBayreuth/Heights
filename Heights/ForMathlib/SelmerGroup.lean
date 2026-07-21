@@ -1,7 +1,11 @@
-import Heights.ForMathlib.Basic
-import Heights.ForMathlib.FractionalIdeal
-import Heights.ForMathlib.SIntegers
-import Mathlib
+module
+
+public import Heights.ForMathlib.Basic
+public import Heights.ForMathlib.FractionalIdeal
+public import Heights.ForMathlib.SIntegers
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # Finiteness of Selmer groups
@@ -927,3 +931,5 @@ theorem finrank_sUnit_of_numberField (hS : S.Finite) :
 end NumberField
 
 end IsDedekindDomain
+
+end

@@ -3,13 +3,17 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/LocalRing.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/LocalRing.lean`).
 
-import Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
-import Mathlib.RingTheory.LocalRing.ResidueField.Defs
-import Mathlib.Data.Nat.Prime.Basic
+module
 
-import Mathlib.RingTheory.Coprime.Lemmas
+public import Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
+public import Mathlib.RingTheory.LocalRing.ResidueField.Defs
+public import Mathlib.Data.Nat.Prime.Basic
+
+public import Mathlib.RingTheory.Coprime.Lemmas
+
+@[expose] public section
 
 /-!
 # Units in a local ring of prescribed residue characteristic
@@ -42,3 +46,4 @@ theorem isUnit_sub_of_residue_ne {O : Type*} [CommRing O] [IsLocalRing O] {a b :
   rw [map_sub] at this
   exact sub_eq_zero.mp this
 
+end

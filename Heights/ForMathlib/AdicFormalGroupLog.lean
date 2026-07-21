@@ -1,5 +1,9 @@
-import Heights.ForMathlib.Chabauty.LogIso
-import Heights.ForMathlib.AdicCompletionExtension
+module
+
+public import Heights.ForMathlib.Chabauty.LogIso
+public import Heights.ForMathlib.AdicCompletionExtension
+
+@[expose] public section
 
 /-!
 # The scaled formal logarithm of a formal group law
@@ -753,3 +757,5 @@ theorem coeff_mulSeries_mem_span {p : ℕ} (hp : p.Prime)
 end AdicMulSeries
 
 end ChabautyColeman
+
+end

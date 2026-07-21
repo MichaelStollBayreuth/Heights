@@ -1,5 +1,9 @@
-import Mathlib
-import Heights.ForMathlib.Basic
+module
+
+public import Mathlib
+public import Heights.ForMathlib.Basic
+
+@[expose] public section
 
 /-!
 # Extension of adic completions along an extension of Dedekind domains
@@ -433,3 +437,4 @@ end Extension
 
 end IsDedekindDomain.HeightOneSpectrum
 
+end

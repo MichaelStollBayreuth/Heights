@@ -3,9 +3,13 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/LogIso.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/LogIso.lean`).
 
-import Heights.ForMathlib.Chabauty.ExpConverge
+module
+
+public import Heights.ForMathlib.Chabauty.ExpConverge
+
+@[expose] public section
 
 /-!
 # The logarithm isomorphism
@@ -546,4 +550,4 @@ end ScaledLogEval
 
 end ChabautyColeman.FormalGroupLaw
 
-
+end

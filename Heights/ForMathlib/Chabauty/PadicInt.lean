@@ -3,10 +3,14 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/PadicInt.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/PadicInt.lean`).
 
-import Mathlib.NumberTheory.Padics.PadicIntegers
-import Mathlib.Topology.Algebra.Nonarchimedean.AdicTopology
+module
+
+public import Mathlib.NumberTheory.Padics.PadicIntegers
+public import Mathlib.Topology.Algebra.Nonarchimedean.AdicTopology
+
+@[expose] public section
 
 /-!
 # The topology of `ℤ_p` is the maximal-ideal-adic one
@@ -50,3 +54,4 @@ instance instFactIsAdic : Fact (IsAdic (maximalIdeal ℤ_[p])) := ⟨isAdic⟩
 
 end PadicInt
 
+end

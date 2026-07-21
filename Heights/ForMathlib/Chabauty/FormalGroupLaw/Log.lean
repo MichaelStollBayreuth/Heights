@@ -3,14 +3,18 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Log.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Log.lean`).
 
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Invariance
-import Mathlib.NumberTheory.Padics.PadicVal.Defs
+module
 
-import Mathlib.NumberTheory.Padics.PadicVal.Basic
-import Heights.ForMathlib.Chabauty.PadicValNat
-import Heights.ForMathlib.Chabauty.LocalRing
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Invariance
+public import Mathlib.NumberTheory.Padics.PadicVal.Defs
+
+public import Mathlib.NumberTheory.Padics.PadicVal.Basic
+public import Heights.ForMathlib.Chabauty.PadicValNat
+public import Heights.ForMathlib.Chabauty.LocalRing
+
+@[expose] public section
 
 /-!
 # The formal logarithm of a formal group law
@@ -370,3 +374,4 @@ end FormalGroupLaw
 
 end ChabautyColeman
 
+end

@@ -3,7 +3,11 @@ Copyright (c) 2026 Andrew Yang. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Andrew Yang
 -/
-import Mathlib
+module
+
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # Finite algebras over Henselian local rings (vendored from FLT)
@@ -707,3 +711,5 @@ lemma HenselianLocalRing.exist_algEquiv_residueFieldMap_eq_of_etale
     simp only [ResidueField.map_comp, ResidueField.map_id, *]
     ext; simp
   exact ⟨.ofAlgHom φ ψ ‹_› ‹_›, _, hφ'⟩
+
+end

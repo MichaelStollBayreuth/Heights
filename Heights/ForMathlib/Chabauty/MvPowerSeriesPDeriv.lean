@@ -3,13 +3,17 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/MvPowerSeriesPDeriv.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/MvPowerSeriesPDeriv.lean`).
 
-import Mathlib.Algebra.MvPolynomial.PDeriv
-import Mathlib.RingTheory.MvPowerSeries.Rename
-import Mathlib.RingTheory.MvPowerSeries.Substitution
+module
 
-import Mathlib.RingTheory.MvPowerSeries.PiTopology
+public import Mathlib.Algebra.MvPolynomial.PDeriv
+public import Mathlib.RingTheory.MvPowerSeries.Rename
+public import Mathlib.RingTheory.MvPowerSeries.Substitution
+
+public import Mathlib.RingTheory.MvPowerSeries.PiTopology
+
+@[expose] public section
 
 /-!
 # Formal partial derivatives of multivariate power series
@@ -332,3 +336,4 @@ theorem map_pderiv {S : Type*} [CommRing S] (f : R →+* S) (s : σ) (g : MvPowe
 
 end MvPowerSeries
 
+end

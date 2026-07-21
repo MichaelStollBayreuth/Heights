@@ -3,10 +3,14 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/ForMathlib/AdicTopology.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/ForMathlib/AdicTopology.lean`).
 
-import Mathlib.Topology.Algebra.Nonarchimedean.AdicTopology
-import Mathlib.Topology.Algebra.TopologicallyNilpotent
+module
+
+public import Mathlib.Topology.Algebra.Nonarchimedean.AdicTopology
+public import Mathlib.Topology.Algebra.TopologicallyNilpotent
+
+@[expose] public section
 
 /-!
 # Additions to the `IsAdic` API
@@ -65,3 +69,4 @@ theorem IsAdic.tendsto_zero_of_mem_pow (hI : IsAdic I) {γ : Type*} {l : Filter 
   filter_upwards [he.eventually_ge_atTop k] with i hi
   exact Ideal.pow_le_pow_right hi (hg i)
 
+end

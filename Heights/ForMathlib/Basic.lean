@@ -1,4 +1,8 @@
-import Mathlib
+module
+
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # Material for Mathlib
@@ -1239,3 +1243,5 @@ theorem NumberField.fg_units_integralClosure :
     (Units.mapEquiv e.symm.toRingEquiv.toMulEquiv).surjective
 
 end NumberField
+
+end

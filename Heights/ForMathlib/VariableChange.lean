@@ -3,7 +3,11 @@ Copyright (c) 2026 Kevin Buzzard. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll, Claude
 -/
-import Mathlib
+module
+
+public import Mathlib
+
+@[expose] public section
 
 /-!
 # Isomorphism of point groups induced by a change of variables
@@ -219,3 +223,5 @@ lemma equivVariableChange_some {x y : F} (h : (C • W).toAffine.Nonsingular x y
 end Point
 
 end WeierstrassCurve.Affine
+
+end

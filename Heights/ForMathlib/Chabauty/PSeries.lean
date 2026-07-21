@@ -3,19 +3,23 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/PSeries.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/PSeries.lean`).
 
-import Mathlib.RingTheory.PowerSeries.Evaluation
-import Mathlib.RingTheory.PowerSeries.Derivative
-import Mathlib.RingTheory.LocalRing.MaximalIdeal.Defs
-import Mathlib.RingTheory.AdicCompletion.Basic
-import Heights.ForMathlib.Chabauty.AdicTopology
+module
 
-import Mathlib.RingTheory.MvPowerSeries.LinearTopology
-import Mathlib.RingTheory.AdicCompletion.Topology
-import Mathlib.RingTheory.PowerSeries.WeierstrassPreparation
-import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
-import Heights.ForMathlib.Chabauty.PadicInt
+public import Mathlib.RingTheory.PowerSeries.Evaluation
+public import Mathlib.RingTheory.PowerSeries.Derivative
+public import Mathlib.RingTheory.LocalRing.MaximalIdeal.Defs
+public import Mathlib.RingTheory.AdicCompletion.Basic
+public import Heights.ForMathlib.Chabauty.AdicTopology
+
+public import Mathlib.RingTheory.MvPowerSeries.LinearTopology
+public import Mathlib.RingTheory.AdicCompletion.Topology
+public import Mathlib.RingTheory.PowerSeries.WeierstrassPreparation
+public import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
+public import Heights.ForMathlib.Chabauty.PadicInt
+
+@[expose] public section
 
 /-!
 # The p-adic kit: evaluation of power series
@@ -317,3 +321,4 @@ example {p : ℕ} [Fact p.Prime] (h : PowerSeries ℤ_[p]) {z₀ : ℤ_[p]}
 
 end instantiation
 
+end

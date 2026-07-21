@@ -3,11 +3,15 @@ Copyright (c) 2026 Michael Stoll. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Stoll
 -/
--- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Invariance.lean`), stripped of the module system.
+-- Vendored from the Chabauty project (`Chabauty/Series/FormalGroupLaw/Invariance.lean`).
 
-import Heights.ForMathlib.Chabauty.FormalGroupLaw.Basic
+module
 
-import Mathlib.RingTheory.MvPowerSeries.Rename
+public import Heights.ForMathlib.Chabauty.FormalGroupLaw.Basic
+
+public import Mathlib.RingTheory.MvPowerSeries.Rename
+
+@[expose] public section
 
 /-!
 # Invariance: closedness of the invariant differential
@@ -643,3 +647,4 @@ end FormalGroupLaw
 
 end ChabautyColeman
 
+end
