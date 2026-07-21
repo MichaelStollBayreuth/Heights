@@ -1,4 +1,4 @@
-import Heights.InstancesWithTypes
+import Heights.Archive.WithTypes.InstancesWithTypes
 
 /-!
 ### Heights over ℚ

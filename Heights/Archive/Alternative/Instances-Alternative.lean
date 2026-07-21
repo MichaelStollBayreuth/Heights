@@ -1,4 +1,4 @@
-import Heights.«Basic-Alternative»
+import Heights.Archive.Alternative.«Basic-Alternative»
 import Mathlib.NumberTheory.NumberField.ProductFormula
 
 /-!

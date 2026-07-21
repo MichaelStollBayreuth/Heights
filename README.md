@@ -1,233 +1,107 @@
 # Heights
 
-This is an attempt at formalizing some basic properties of height functions.
+This project formalizes some basic properties of height functions, at a level of generality that
+applies uniformly to algebraic number fields, to function fields, and beyond.
 
-We aim at a level of generality that allows to apply the theory to algebraic number fields
-and to function fields (and possibly beyond).
-
-The general set-up for heights is the following. Let `K` be a field.
+The general set-up is the following. Let `K` be a field.
 * We need a family of absolute values `|·|ᵥ` on `K`.
 * All but finitely many of these are non-archimedean (i.e., `|x+y| ≤ max |x| |y|`).
 * For a given `x ≠ 0` in `K`, `|x|ᵥ = 1` for all but finitely many `v`.
 * We have the *product formula* `∏ v, |x|ᵥ = 1` for all `x ≠ 0` in `K`.
 
-## Implementation
+## Status
 
-We try several implementations of the class `AdmissibleAbsValues K` that reflects
-these requirements.
+The core of this theory was developed here and has since been **upstreamed to Mathlib**, where it
+now lives under [`Mathlib.NumberTheory.Height`](https://leanprover-community.github.io/mathlib4_docs/Mathlib/NumberTheory/Height/Basic.html)
+(the individual locations are given below). This repository remains as the development ground and a
+record of the work — in particular of several alternative implementations that were explored along
+the way, now collected under [`Heights/Archive`](Heights/Archive).
 
-* In [__Basic-Alternative.lean__](Heights/Basic-Alternative.lean) we use *one* indexing type for *all*
-  absolute values, non-archimedean and archimedean alike. Since we want to use
-  powers of standard archimedean absolute values, we only require a weaker triangle inequality:
-  `|x+y|ᵥ ≤ Cᵥ * max |x|ᵥ |y|ᵥ` for some constant `Cᵥ`.
-  (The usual triangle inequality implies this with `Cᵥ = 2`.) 
-  The requirement "all but finitely many absolute values are non-archimedean" then translates into
-  `Cᵥ = 1` for all but finitely many `v`. A disadvantage is that we cannot use the existing
-  `AbsoluteValue` type (because that requires the usual triangle inequality). Instead, we
-  use `K →*₀ ℝ≥0` together with the weak triangle inequality above. A slight further disadvantage
-  is that we obtain less-than-optimal bounds for heights of sums with more than two terms,
-  e.g., we get that `H_ℚ (x + y + z) ≤ 4 * H_ℚ x * H_ℚ y * H_ℚ z` instead of `≤ 3 * ⋯`.
-  A downside of this approach is that it becomes rather cumbersome to set up the relevant
-  structure for a number field. The natural indexing type is the sum type
-  `InfinitePlace K ⊕ FinitePlace K`, which requires all functions and proofs to
-  either go via `Sum.elim` or `match` expressions, and the API for such functions
-  (e.g., for `mulSupport` or `finprod`) is a bit lacking.
-  See [__Instances-Alternative.lean__](Heights/Instances-Alternative.lean) for an attempt at providing
-  an instance of `AdmissibleAbsValues` for a number field.
+The **elliptic-curve application** built on top of this machinery — the Mordell-Weil theorem and
+explicit 2-descent (the 2-Selmer group, formal groups over local fields, …), together with the
+`ForMathlib` supporting theory — has moved to its own repository,
+[EllipticCurves](https://github.com/MichaelStollBayreuth/EllipticCurves).
 
-* In [__BasicWithTypes.lean__](Heights/BasicWithTypes.lean) we instead use *two* indexing types,
-  one for the archimedean and one for the non-archimedean absolute values.
-  For the archimedean ones, we need "weights" (which are the exponents with which
-  the absolute values occur in the product formula). We can then use the type `AbsoluteValue K ℝ`.
-  A downside is that the definitions of the various heights (and therefore also the
-  proofs of their basic properties) are more involved, because they involve a
-  product of a `Finset.prod` for the archimedean absolute values and a `finprod` for
-  the non-archimedean ones instead of just one `finprod` over all places.
-  A big advantage is that it is now quite easy to set up an instance of
-  `AdmissibleAbsValues K` for number fields `K` (thanks to Fabrizio Barroero's
-  preparatory work); see [__InstancesWithTypes.lean__](Heights/InstancesWithTypes.lean).
+## Main definitions (now in Mathlib)
 
-* In [__Basic.lean__](Heights/Basic.lean) we replace the indexing types by 
-  a `Multiset` of (archimedean) absolute values (with multiplicities corresponding to weights)
-  and a `Set` of nonarchimedean absolte values. As can be seen in
-  [__NumberField.lean__](Heights/NumberField.lean), this needs a bit more glue to set up the
-  instance for number fields, but otherwise is quite workable.
+We define *multiplicative heights* and *logarithmic heights* (the latter are the real logarithms of
+the former). All of the following are now in `Mathlib.NumberTheory.Height`; they were first
+developed here in [`Heights/Basic.lean`](Heights/Basic.lean).
 
-* A further variant can be found in [__BasicNoTypes.lean__](Heights/BasicNoTypes.lean).
-  Here we use a `Finset` for the archimedean absolute values with a weight function,
-  together with a `Set` for the nonarchimedean ones. 
+* `mulHeight₁ x` and `logHeight₁ x` for `x : K` — the height of an element of `K`
+  (`Mathlib.NumberTheory.Height.Basic`).
+* `mulHeight x` and `logHeight x` for `x : ι → K` with `ι` finite — the height of a tuple
+  representing a point in projective space, invariant under scaling by nonzero elements of `K`
+  (`Mathlib.NumberTheory.Height.Basic`).
+* `Finsupp.mulHeight x` and `Finsupp.logHeight x` for `x : α →₀ K` — the height of `x` restricted to
+  any finite subtype containing its support (`Mathlib.NumberTheory.Height.Basic`).
+* `Projectivization.mulHeight` and `Projectivization.logHeight` on `Projectivization K (ι → K)`
+  (assuming `Finite ι`) — the height of a point on projective space
+  (`Mathlib.NumberTheory.Height.Projectivization`).
 
-There are actually several independent design decisions involved:
-* absolute values with values in `ℝ≥0` vs. with values in `ℝ`
-* one common indexing type vs. two separate ones for archimedean/non-archimedean
-  absolute values
-* or no indexing type at all; instead use Finsets or Multisets and Sets
+The class packaging the requirements above is `Height.AdmissibleAbsValues K`
+(`Mathlib.NumberTheory.Height.Basic`).
 
-The various versions implemented here combine
-* `ℝ≥0` with one indexing type (Basic-Alternative.lean),
-* `ℝ` with two indexing types and weights (BasicWithTypes.lean),
-* `ℝ` with a multiset and a set (Basic.lean),
-* `ℝ` with a finset (plus weights) and a set.
+## Main results (now in Mathlib)
 
-Advantage of `ℝ≥0` over `ℝ`:
-* `ℝ≥0` is an `OrderedCommMonoid` (which `ℝ` is not); this gives access to a broader API
-  for arguments that involve the order (which are rather pervasive in our context).
+First developed here in [`Heights/NumberField.lean`](Heights/NumberField.lean),
+[`Heights/Rat.lean`](Heights/Rat.lean) and [`Heights/MvPolynomial.lean`](Heights/MvPolynomial.lean),
+now in `Mathlib.NumberTheory.Height`:
 
-Disadvantage:
-* The `FinitePlace`s and `InfinitePlace`s of a `NumberField` are defined to be
-  `AbsoluteValue`s with values in `ℝ`, so there is some friction in translating
-  to a setting with `ℝ≥0`-valued absolute values.
-  See [Instances-Alternative.lean](Heights/Instances-Alternative.lean)
-  for what this means. (Instead of using `ℝ` in `AdmissibleAbsValues`, one could
-  of course refactor the other side to use `ℝ≥0`. I don't have a feeling for the
-  ramifications of that.)
+* The instance of `AdmissibleAbsValues` for number fields
+  (`Mathlib.NumberTheory.Height.NumberField`).
+* The **Northcott property**: sets of elements of bounded height are finite —
+  `NumberField.finite_setOf_mulHeight₁_le` and `finite_setOf_logHeight₁_le`, and the propagation
+  from `mulHeight₁` to the other heights in `Mathlib.NumberTheory.Height.Northcott`.
+* The multiplicative height of a tuple of rational numbers consisting of coprime integers is the
+  maximum of the absolute values of the entries — `mulHeight_eq_max_abs_of_gcd_eq_one`
+  (`Mathlib.NumberTheory.Height.NumberField`).
+* Bounds on heights of images under tuples of homogeneous polynomials — `mulHeight_eval_le`,
+  `logHeight_eval_le`, … (`Mathlib.NumberTheory.Height.MvPolynomial`).
+* The naïve height on an elliptic curve and the *approximate parallelogram law*
+  (`Mathlib.NumberTheory.Height.EllipticCurve`).
 
-In a comment on the
-[first PR to Mathlib](https://github.com/leanprover-community/mathlib4/pull/33054)
-(which was following BasicWithTypes.lean),
-it was pointed out that a class using indexing types could potentially lead to problems
-with universes later on. We will therefore switch to the multiset+set approach
-as in [__Basic.lean__](Heights/Basic.lean) and [__NumberField.lean__](Heights/NumberField.lean).
+The *descent* argument underlying the Mordell-Weil theorem — an abelian group `G` with a suitable
+height function and `G/2G` finite is finitely generated — was also first developed here and is now
+`AddCommGroup.fg_of_descent` in `Mathlib.GroupTheory.Descent`.
 
+## Implementation and the archived variants
 
-## Main definitions
+`AdmissibleAbsValues` can be implemented in several ways; the design involves a few independent
+choices:
 
-We define *multiplicative heights* and *logarithmic heights* (which are just defined to
-be the (real) logarithm of the corresponding multiplicative height). This leads to some
-duplication (in the definitions and statements; the proofs are reduced to those for the
-multiplicative height), which is justified, as both versions are frequently used.
+* absolute values valued in `ℝ≥0` vs. in `ℝ`;
+* one common indexing type for all absolute values, two separate ones (archimedean /
+  non-archimedean), or no indexing type at all (`Finset`s/`Multiset`s and `Set`s).
 
-We define the following variants.
-* `mulHeight₁ x` and `logHeight₁ x` for `x : K`. This is the height of an element of `K`.
-* `mulHeight x` and `logHeight x` for `x : ι → K` with `ι` finite. This is the height
-  of a tuple of elements of `K` representing a point in projective space.
-  It is invariant under scaling by nonzero elements of `K`.
-* `Finsupp.mulHeight x` and `Finsupp.logHeight x` for `x : α →₀ K`. This is the same
-  as the height of `x` restricted to any finite subtype containing the support of `x`.
-* `Projectivization.mulHeight` and `Projectivization.logHeight` on
-  `Projectivization K (ι → K)` (assuming `Finite ι`). This is the height of a point
-  on projective space (with fixed basis).
+The version that was finally chosen and upstreamed uses a `Multiset` of (archimedean) absolute
+values — with multiplicities corresponding to weights — together with a `Set` of nonarchimedean
+ones ([`Heights/Basic.lean`](Heights/Basic.lean), with the number-field instance in
+[`Heights/NumberField.lean`](Heights/NumberField.lean)). The switch to this approach was prompted by
+a comment on the [first PR to Mathlib](https://github.com/leanprover-community/mathlib4/pull/33054):
+a class using indexing types could lead to universe problems later on.
 
-## Main results
+Three earlier approaches are kept under [`Heights/Archive`](Heights/Archive):
 
-We set up an instance of `AdmissibleAbsValues` for number fields
-(see [__NumberField.lean__](Heights/NumberField.lean)).
+* [`Archive/Alternative`](Heights/Archive/Alternative) — *one* indexing type for all absolute
+  values, valued in `K →*₀ ℝ≥0` with a weakened triangle inequality `|x+y|ᵥ ≤ Cᵥ·max |x|ᵥ |y|ᵥ`
+  (so that `Cᵥ = 1` for all but finitely many `v`). This gives access to the richer
+  `OrderedCommMonoid` API of `ℝ≥0`, but cannot reuse the existing `AbsoluteValue` type, yields
+  slightly weaker bounds for sums of several terms, and makes the number-field instance cumbersome
+  (the natural index `InfinitePlace K ⊕ FinitePlace K` forces `Sum.elim`/`match` throughout).
+* [`Archive/WithTypes`](Heights/Archive/WithTypes) — *two* indexing types, archimedean and
+  non-archimedean, with weights for the archimedean ones and `AbsoluteValue K ℝ`. The number-field
+  instance is easy (thanks to Fabrizio Barroero's preparatory work), but the heights are defined via
+  a product of a `Finset.prod` and a `finprod` rather than a single `finprod`.
+* [`Archive/NoTypes`](Heights/Archive/NoTypes) — a `Finset` of archimedean absolute values with a
+  weight function, together with a `Set` of nonarchimedean ones.
 
-Apart from basic properties of `mulHeight₁` and `mulHeight` (and their logarithmic counterparts),
-we also show (using the implementation in [Basic.lean](Heights/Basic.lean)):
-* The multiplicative height of a tuple of rational numbers consisting of coprime integers
-  is the maximum of the absolute values of the entries
-  (see `Rat.mulHeight_eq_max_abs_of_gcd_eq_one` in [__Rat.lean__](Heights/Rat.lean)).
-* The height on projective space over `ℚ` satisfies the *Northcott Property*:
-  the set of elements of bounded height is finite (see
-  `Projectivization.Rat.finite_of_mulHeight_le` and `Projectivization.Rat.finite_of_logHeight_le`
-  in [__Rat.lean__](Heights/Rat.lean)).
-* The height on `ℚ` satisfies the *Northcott Property* (see `Rat.finite_of_mulHeight_le` and
-  `Rat.finite_of_logHeight_le` in [__Rat.lean__](Heights/Rat.lean)).
-
-## The Mordell-Weil Theorem
-
-The main application of the heights machinery so far is a complete proof
-of the **Mordell-Weil Theorem**: the group `E(K)` of `K`-rational points of an elliptic
-curve `E` over a number field `K` is finitely generated. The end result is
-`WeierstrassCurve.Affine.fg_point_of_numberField` in
-[__EllipticCurve/MordellWeil.lean__](Heights/EllipticCurve/MordellWeil.lean), for arbitrary
-Weierstrass models. It is deduced from the more general `WeierstrassCurve.Affine.fg_point`,
-which works for `E` given by a Weierstrass equation `y² = x³ + a₂·x² + a₄·x + a₆` (so with
-`a₁ = a₃ = 0`) over the fraction field `K` of a Dedekind domain `R` such that `K` has
-admissible absolute values satisfying the Northcott property and such that for each
-irreducible factor `p` of the cubic, the integral closure of `R` in `K[X]/(p)` has finite
-class group and finitely generated unit group. (These per-factor hypotheses cannot be
-replaced by the corresponding hypotheses on `R` itself; see the docstring of `fg_point`.)
-The reduction to this normal form (`fg_point_of_variableChange`) completes the square via an
-admissible change of variables, which is possible whenever `2` is invertible in `K`, and
-uses the induced isomorphism of the groups of points.
-
-The proof follows the classical route and consists of the following parts.
-
-* The *descent* argument: an abelian group `G` carrying a suitable height function such
-  that `G/2G` is finite is finitely generated. This was originally developed here and has
-  meanwhile been upstreamed to Mathlib (`Mathlib.GroupTheory.Descent`; see
-  `AddCommGroup.fg_of_descent`).
-* The height function: in [__EllipticCurve/MordellWeil.lean__](Heights/EllipticCurve/MordellWeil.lean) we show
-  that the naïve height `h(P) = logHeight (x(P))` on `E(K)` satisfies the *approximate
-  parallelogram law* `|h(P+Q) + h(P−Q) − 2·h(P) − 2·h(Q)| ≤ C`
-  (`approx_parallelogram_law`), using the bounds on heights of images under tuples of
-  homogeneous polynomials from [__MvPolynomial.lean__](Heights/MvPolynomial.lean), and
-  that sets of points of bounded height are finite when `K` has the Northcott property.
-  This also yields the finiteness of the torsion subgroup of `E(K)` (`finite_torsion`).
-* The **Weak Mordell-Weil Theorem**: `E(K)/2E(K)` is finite; this is
-  `finite_index_range_nsmulAddMonoidHom_two` in
-  [__EllipticCurve/WeakMordellWeil.lean__](Heights/EllipticCurve/WeakMordellWeil.lean), proved over fraction fields of
-  Dedekind domains (with the finiteness hypotheses above) via the `x - T` descent map:
-  `E(K)/2E(K)` embeds into the group of square classes of the étale algebra
-  `A = K[X]/(f)` for the cubic `f` with `y² = f(x)`, with image contained in the
-  `2`-Selmer group `A(S, 2)`
-  for the finite set `S` of bad primes, and the latter group is finite.
-
-The supporting theory for the last step is developed in the folder
-[__Heights/ForMathlib/__](Heights/ForMathlib/); its contents are independent of elliptic
-curves and are intended for eventual upstreaming to Mathlib:
-
-* [__ForMathlib/FractionalIdeal.lean__](Heights/ForMathlib/FractionalIdeal.lean): the group
-  of invertible fractional ideals of a Dedekind domain is free abelian on the height one primes
-  (`FractionalIdeal.factorization`); `n`-th roots of `n`-divisible fractional ideals and
-  their classes in the class group, with the exactness statement
-  `nthRootClass_eq_one_iff`.
-* [__ForMathlib/SIntegers.lean__](Heights/ForMathlib/SIntegers.lean): the ring `𝒪_S` of `S`-integers of `K` is
-  a Dedekind domain with fraction field `K`; its height one primes are exactly the
-  `v ∉ S` (compatibly with the valuations); and its class group is the quotient of
-  `Cl(R)` by the subgroup generated by the classes of the primes in `S` — in particular,
-  it is finite when `Cl(R)` is. Mathlib defines `𝒪_S`, but has essentially no API for it.
-* [__ForMathlib/SelmerGroup.lean__](Heights/ForMathlib/SelmerGroup.lean): the fundamental exact sequence
-  `1 → 𝒪_S^×/(𝒪_S^×)ⁿ → K(S, n) → Cl(𝒪_S)[n] → 1` for the Selmer group
-  `K(S, n) = IsDedekindDomain.selmerGroup` from Mathlib. Consequently, `K(S, n)` is
-  finite when `S` is finite, `Cl(R)` is finite and `R^×` is finitely generated
-  (`finite_selmerGroup`; listed as a TODO in Mathlib), together with the corresponding
-  statement for étale algebras (finite products of finite separable field extensions).
-  On the way, we prove Dirichlet's `S`-unit theorem: `𝒪_S^×` is finitely generated, of
-  rank `rank R^× + #S` (`fg_sUnit`, `finrank_sUnit`).
-* [__ForMathlib/Basic.lean__](Heights/ForMathlib/Basic.lean): general-purpose ingredients, e.g., the
-  group `Units.modPow A n` of units modulo `n`-th powers, the decomposition of an étale
-  algebra `K[X]/(f)` (for `f` squarefree) into a product of field factors indexed by the
-  monic irreducible factors of `f`, norms on `AdjoinRoot` via resultants, and the primes
-  of an extension lying above a given set of primes.
-* [__ForMathlib/VariableChange.lean__](Heights/ForMathlib/VariableChange.lean): the group
-  isomorphism `(C • W).Point ≃+ W.Point` induced by an admissible change of variables `C`
-  on the points of a Weierstrass curve `W` (shared with the FLT project); this is what
-  transfers the Mordell-Weil theorem from the normal form `y² = cubic` to arbitrary models.
-* [__ForMathlib/AdicCompletionExtension.lean__](Heights/ForMathlib/AdicCompletionExtension.lean):
-  the extension `K_v →+* L_w` of adic completions along an extension of Dedekind domains with
-  `w ∣ v`, its compatibility with the valuations (up to the ramification index) and with the
-  rings of integers (adapted from the FLT project), the identification of the height-one
-  valuation of the discrete valuation ring `𝒪_v` with the valuation of the completion, and
-  the identification of the residue field of `𝒪_v` with the residue field of `v`.
-* [__ForMathlib/FormalGroup.lean__](Heights/ForMathlib/FormalGroup.lean): the interface to
-  formal-group theory over a local field — `E(K_v)` has a subgroup of finite index
-  isomorphic to `(𝒪_v, +)`, and the group of everywhere-unramified square classes of a
-  finite extension of `K_v` has order `2` at odd residue characteristic (the `𝔾ₘ`-analogue).
-  The statements are `sorry`ed; their proofs (via formal groups and their logarithms) are a
-  separate project.
-
-## Work in progress
-
-* [__EllipticCurve/SelmerGroup.lean__](Heights/EllipticCurve/SelmerGroup.lean) sets up the
-  **2-Selmer group** of an elliptic curve: local conditions at the completions of `K`, the
-  Selmer group as a subgroup of the square classes of the étale algebra, the rank bound
-  coming from `im μ ≤ Sel₂`, the reduction of its computation to the local conditions at the
-  bad and infinite places (which also gives finiteness), and the size formulas for the local
-  images. The semilocal comparison between unramifiedness over `𝒪_S` and over the completions
-  at the good places is proved in both directions; the size formulas at the real and complex
-  places are proved outright (the real case by a sign analysis over `ℝ`, transported along
-  `v.Completion ≃+* ℝ`); the size formula at the finite places and the local statement that
-  at a good place every unramified class with trivial norm comes from a point are proved
-  modulo the two formal-group interface statements above, which are all that remains
-  `sorry`ed. The goal is a
-  formal proof that the Mordell-Weil group of `y² = x³ - x + 1` over `ℚ` is isomorphic
-  to `ℤ`, as a show-piece for formalized explicit 2-descent.
+(A note on `ℝ≥0` vs `ℝ`: `ℝ≥0` is an `OrderedCommMonoid`, which is convenient for the pervasive
+order arguments; but `FinitePlace`/`InfinitePlace` of a number field are `ℝ`-valued, so an
+`ℝ≥0`-valued setup incurs friction in the number-field instance.)
 
 ## Further developments
 
-* In [__WeakAbsoluteValue.lean__](Heights/WeakAbsoluteValue.lean) we provide a proof of the
-  fact that a "weak" `ℝ`-valued absolute value `v` (i.e., satisfying only the weaker triangle
-  inequality `v (x + y) ≤ 2 * max (v x) (v y)`) is in fact an absolute value.
+* In [`Heights/WeakAbsoluteValue.lean`](Heights/WeakAbsoluteValue.lean) we prove that a "weak"
+  `ℝ`-valued absolute value `v` — one satisfying only `v (x + y) ≤ 2 · max (v x) (v y)` — is in fact
+  an absolute value.

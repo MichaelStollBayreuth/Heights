@@ -1,4 +1,4 @@
-import Heights.InstancesNoTypes
+import Heights.Archive.NoTypes.InstancesNoTypes
 import Mathlib.NumberTheory.NumberField.InfinitePlace.TotallyRealComplex
 
 /-!
