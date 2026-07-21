@@ -516,6 +516,16 @@ lemma add_self_mem_filtration_of_slope {x₀ y₀ : v.adicCompletion K} (h₀ : 
   rw [← exp_nsmul, nsmul_eq_mul]
   norm_num
 
+omit [W₀.IsElliptic] [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))] in
+include hW in
+/-- Two integral points with equal coordinates differ by `0`, hence lie in every filtration
+step. -/
+lemma sub_mem_filtration_of_eq {x y x₀ y₀ : v.adicCompletion K} (h : W.Nonsingular x y)
+    (h₀ : W.Nonsingular x₀ y₀) (hx : x = x₀) (hy : y = y₀) :
+    (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
+  rw [show (.some x y h : W.Point) = .some x₀ y₀ h₀ by subst hx hy; rfl, sub_self]
+  exact zero_mem _
+
 omit [DecidableEq (IsLocalRing.ResidueField (v.adicCompletionIntegers K))] in
 include hW in
 lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsingular x₀ y₀)
@@ -524,16 +534,43 @@ lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsin
     (hy : Valued.v (y - y₀) ≤ exp (-1 : ℤ)) :
     (.some x y h : W.Point) - .some x₀ y₀ h₀ ∈ filtration hW 0 := by
   have hxI : Valued.v x ≤ 1 := valued_le_one_of_sub hx hx₀
-  rcases unit_deriv hW h₀ hx₀ hy₀ with hψ1 | hφ1
-  · rcases eq_or_ne x x₀ with heq | hxx
-    · rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
-      · have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by subst heq hy'; rfl
-        rw [hPQ, sub_self]; exact zero_mem _
-      · exfalso
-        rw [hy', show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring, Valuation.map_neg,
-          hψ1, ← exp_zero, exp_le_exp] at hy
+  rcases eq_or_ne x x₀ with heq | hxx
+  · -- `x = x₀`: the coordinates agree, so compare the `y`-coordinates
+    subst x
+    rcases W.Y_eq_of_X_eq h.left h₀.left rfl with hy' | hy'
+    · exact sub_mem_filtration_of_eq hW h h₀ rfl hy'
+    · have hψsmall : Valued.v (y₀ - W.negY x₀ y₀) ≤ exp (-1 : ℤ) := by
+        rw [show y₀ - W.negY x₀ y₀ = -(y - y₀) by rw [hy']; ring, Valuation.map_neg]; exact hy
+      rcases eq_or_ne (y₀ - W.negY x₀ y₀) 0 with hψ0 | hψ0
+      · refine sub_mem_filtration_of_eq hW h h₀ rfl ?_
+        rw [hy', ← sub_eq_zero, show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring,
+          hψ0, neg_zero]
+      · -- `Q` reduces to a `2`-torsion point (`φ` a unit) without being `2`-torsion, and
+        -- `P = -Q`, so `P - Q = -(Q + Q)` lies in the kernel of reduction
+        have hφ1 : Valued.v (W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) = 1 := by
+          rcases unit_deriv hW h₀ hx₀ hy₀ with hψ1 | hφ1
+          · exact absurd hψsmall (by rw [hψ1, ← exp_zero, exp_le_exp]; omega)
+          · exact hφ1
+        have hψne : y₀ ≠ W.negY x₀ y₀ := fun hc ↦ hψ0 (sub_eq_zero.mpr hc)
+        have hP : (.some x₀ y h : W.Point) = -.some x₀ y₀ h₀ := by
+          rw [Point.neg_some]; subst hy'; rfl
+        rw [hP, show -(.some x₀ y₀ h₀ : W.Point) - .some x₀ y₀ h₀
+            = -(.some x₀ y₀ h₀ + .some x₀ y₀ h₀) by abel]
+        refine neg_mem (add_self_mem_filtration_of_slope hW h₀ hx₀ hψne ?_)
+        rw [W.slope_of_Y_ne rfl hψne, map_div₀]
+        obtain ⟨dψ, hdψ⟩ : ∃ dψ : ℤ, Valued.v (y₀ - W.negY x₀ y₀) = exp dψ :=
+          ⟨_, (exp_log (by simpa using hψ0)).symm⟩
+        have hnumφ : Valued.v (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄ - W.a₁ * y₀) = 1 := by
+          rw [show 3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄ - W.a₁ * y₀
+              = -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) by ring,
+            Valuation.map_neg, hφ1]
+        rw [hnumφ, hdψ, ← exp_zero, ← exp_sub, exp_le_exp]
+        have hdψ' : dψ ≤ -1 := by rwa [hdψ, exp_le_exp] at hψsmall
         omega
-    · refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
+  · -- `x ≠ x₀`: the secant slope through the two points is large
+    refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
+    rcases unit_deriv hW h₀ hx₀ hy₀ with hψ1 | hφ1
+    · -- `ψ` a unit: the numerator `y - negY x₀ y₀` is a unit
       have hnum : Valued.v (y - W.negY x₀ y₀) = 1 := by
         rw [show y - W.negY x₀ y₀ = (y₀ - W.negY x₀ y₀) + (y - y₀) by ring,
           Valuation.map_add_eq_of_lt_left, hψ1]
@@ -544,36 +581,7 @@ lemma exists_level_one_sub_mem {x₀ y₀ : v.adicCompletion K} (h₀ : W.Nonsin
       rw [map_div₀, hnum, hdx, ← exp_zero, ← exp_sub, exp_le_exp]
       have hdx' : dx ≤ -1 := by rwa [hdx, exp_le_exp] at hx
       omega
-  · rcases eq_or_ne x x₀ with heq | hxx
-    · rcases W.Y_eq_of_X_eq h.left h₀.left heq with hy' | hy'
-      · have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by subst heq hy'; rfl
-        rw [hPQ, sub_self]; exact zero_mem _
-      · rcases eq_or_ne (y₀ - W.negY x₀ y₀) 0 with hψ0 | hψ0
-        · have hyy : y = y₀ := by
-            rw [hy', ← sub_eq_zero, show W.negY x₀ y₀ - y₀ = -(y₀ - W.negY x₀ y₀) by ring,
-              hψ0, neg_zero]
-          have hPQ : (.some x y h : W.Point) = .some x₀ y₀ h₀ := by subst heq hyy; rfl
-          rw [hPQ, sub_self]; exact zero_mem _
-        · subst x
-          have hψne : y₀ ≠ W.negY x₀ y₀ := fun hc ↦ hψ0 (sub_eq_zero.mpr hc)
-          have hψsmall : Valued.v (y₀ - W.negY x₀ y₀) ≤ exp (-1 : ℤ) := by
-            rw [show y₀ - W.negY x₀ y₀ = -(y - y₀) by rw [hy']; ring, Valuation.map_neg]; exact hy
-          have hP : (.some x₀ y h : W.Point) = -.some x₀ y₀ h₀ := by
-            rw [Point.neg_some]; subst hy'; rfl
-          rw [hP, show -(.some x₀ y₀ h₀ : W.Point) - .some x₀ y₀ h₀
-              = -(.some x₀ y₀ h₀ + .some x₀ y₀ h₀) by abel]
-          refine neg_mem (add_self_mem_filtration_of_slope hW h₀ hx₀ hψne ?_)
-          rw [W.slope_of_Y_ne rfl hψne, map_div₀]
-          obtain ⟨dψ, hdψ⟩ : ∃ dψ : ℤ, Valued.v (y₀ - W.negY x₀ y₀) = exp dψ :=
-            ⟨_, (exp_log (by simpa using hψ0)).symm⟩
-          have hnumφ : Valued.v (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄ - W.a₁ * y₀) = 1 := by
-            rw [show 3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄ - W.a₁ * y₀
-                = -(W.a₁ * y₀ - (3 * x₀ ^ 2 + 2 * W.a₂ * x₀ + W.a₄)) by ring,
-              Valuation.map_neg, hφ1]
-          rw [hnumφ, hdψ, ← exp_zero, ← exp_sub, exp_le_exp]
-          have hdψ' : dψ ≤ -1 := by rwa [hdψ, exp_le_exp] at hψsmall
-          omega
-    · refine sub_mem_filtration_of_slope h₀ h hxx hx₀ hxI ?_
+    · -- `φ` a unit: use the finite-difference identity for the numerator
       have hid : (y - W.negY x₀ y₀) * (y - y₀) = (x - x₀) *
           (x ^ 2 + x * x₀ + x₀ ^ 2 + W.a₂ * (x + x₀) + W.a₄ - W.a₁ * y) := by
         rw [Affine.negY]
