@@ -172,7 +172,7 @@ lemma baseChange_self : (W⁄K).toAffine = W := by
 
 section PointMap
 
-variable [DecidableEq K]
+variable [DecidableEq K] [DecidableEq L]
 
 /-- Transport of points along an equality of Weierstrass curves. -/
 def Point.congr {W₁ W₂ : Affine K} (h : W₁ = W₂) : W₁.Point ≃+ W₂.Point := by
@@ -185,7 +185,6 @@ lemma Point.congr_some {W₁ W₂ : Affine K} (h : W₁ = W₂) {x y : K}
     (hp : W₁.Nonsingular x y) :
     Point.congr h (Point.some x y hp) = Point.some x y (h ▸ hp) := by subst h; rfl
 
-open scoped Classical in
 /-- The base-change homomorphism on points, `E(K) →+ E(L)`: Mathlib's
 `WeierstrassCurve.Affine.Point.map`, aligned with the plain base change `W⁄L` via
 `baseChange_self`. -/
@@ -193,11 +192,9 @@ noncomputable def pointMap : W.Point →+ (W⁄L).toAffine.Point :=
   (Point.map (W' := W) (Algebra.ofId K L)).comp
     (Point.congr (W.baseChange_self).symm).toAddMonoidHom
 
-open scoped Classical in
 lemma pointMap_zero : W.pointMap L 0 = 0 := by
   simp [pointMap, Point.congr_zero]
 
-open scoped Classical in
 lemma pointMap_some {x y : K} (h : W.Nonsingular x y) :
     W.pointMap L (Point.some x y h) =
       Point.some (W' := (W⁄L).toAffine) (algebraMap K L x) (algebraMap K L y)

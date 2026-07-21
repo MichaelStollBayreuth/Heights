@@ -24,14 +24,13 @@ nonzero point at two good primes are torsion of coprime orders, the point cannot
 
 ## Implementation notes
 
-The reduction map `WeierstrassCurve.Affine.red` and the base change `pointMap` both take a
-`DecidableEq` instance on a field with no computable equality, so this file works under
-`open scoped Classical` rather than threading those instances through every signature.
+The base change `pointMap` and the reduction map `red` take `DecidableEq` instances on `K`, on the
+completions `K_v` and on the residue fields; these are carried as instance arguments and discharged
+with `classical` at a concrete use site (the completion and residue fields have no computable
+equality).
 -/
 
 open Function IsDedekindDomain IsDedekindDomain.HeightOneSpectrum IsLocalRing
-
-open scoped Classical
 
 /-- An element of an additive monoid annihilated by two coprime multiples is zero. -/
 private theorem eq_zero_of_nsmul_eq_zero_of_coprime {A : Type*} [AddMonoid A] {P : A} {m n : ℕ}
@@ -41,10 +40,11 @@ private theorem eq_zero_of_nsmul_eq_zero_of_coprime {A : Type*} [AddMonoid A] {P
 
 namespace WeierstrassCurve.Affine
 
-variable {K : Type*} [Field K] (E : Affine K)
+variable {K : Type*} [Field K] [DecidableEq K] (E : Affine K)
 
 /-- The base change of points along a field extension `K → L` is injective. -/
-lemma pointMap_injective (L : Type*) [Field L] [Algebra K L] : Injective (E.pointMap L) := by
+lemma pointMap_injective (L : Type*) [Field L] [DecidableEq L] [Algebra K L] :
+    Injective (E.pointMap L) := by
   rw [pointMap]
   exact (Point.map_injective _).comp (Point.congr _).injective
 
@@ -53,7 +53,8 @@ variable {R : Type*} [CommRing R] [IsDedekindDomain R] [Algebra R K] [IsFraction
 
 section OnePrime
 
-variable {v : HeightOneSpectrum R}
+variable {v : HeightOneSpectrum R} [DecidableEq (v.adicCompletion K)]
+  [DecidableEq (ResidueField (v.adicCompletionIntegers K))]
   {W₀ : WeierstrassCurve (v.adicCompletionIntegers K)} [W₀.IsElliptic]
   (hW : W₀.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
     = (E ⁄ (v.adicCompletion K)).toAffine)
@@ -78,6 +79,8 @@ good primes `v`, `w` are torsion of coprime orders (`m • red_v P = 0`, `n • 
 `m`, `n` coprime) has infinite order. `W₀ᵥ`, `W₀w` are good integral models of `E` at `v`, `w`,
 and `p`, `q` are the (lightly ramified) residue characteristics. -/
 theorem not_isOfFinAddOrder_of_coprime_red {v w : HeightOneSpectrum R}
+    [DecidableEq (v.adicCompletion K)] [DecidableEq (ResidueField (v.adicCompletionIntegers K))]
+    [DecidableEq (w.adicCompletion K)] [DecidableEq (ResidueField (w.adicCompletionIntegers K))]
     {W₀ᵥ : WeierstrassCurve (v.adicCompletionIntegers K)} [W₀ᵥ.IsElliptic]
     (hWᵥ : W₀ᵥ.map (algebraMap (v.adicCompletionIntegers K) (v.adicCompletion K))
       = (E ⁄ (v.adicCompletion K)).toAffine)
