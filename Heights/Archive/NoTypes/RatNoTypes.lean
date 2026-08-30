@@ -29,7 +29,8 @@ lemma Rat.prod_infinitePlace {M : Type*} [CommMonoid M] (f : AbsoluteValue ℚ �
 
 @[simp]
 lemma Rat.weight_eq_one (v : AbsoluteValue ℚ ℝ) : weight v = 1 := by
-  simp [weight, weight']
+  simp only [weight, weight', dite_eq_right_iff]
+  exact fun h ↦ IsTotallyReal.mult_eq (⟨v, h⟩ : InfinitePlace ℚ)
 
 
 -- The following are not needed, after all, but might be useful eventually.
@@ -100,7 +101,7 @@ ideal is equivalent to divisibility by the corresponding prime number. -/
 lemma IsDedekindDomain.HeightOneSpectrum.mem_iff_dvd (v : HeightOneSpectrum ℤ) (x : ℤ) :
     x ∈ v.asIdeal ↔ (Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ) ∣ x := by
   have : v.asIdeal = span {(Int.natPrimesEquivHeightOneSpectrum.symm v : ℤ)} := by
-    simp only [Int.natPrimesEquivHeightOneSpectrum, submodule_span_eq, Equiv.coe_fn_symm_mk]
+    simp only [Int.natPrimesEquivHeightOneSpectrum, submodule_span_eq]
     have := (Submodule.IsPrincipal.principal v.asIdeal).choose_spec
     rw [submodule_span_eq] at this
     exact this.trans <| span_singleton_eq_span_singleton.mpr <| Int.associated_natAbs _
@@ -290,11 +291,11 @@ lemma Projectivization.Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
       simp only [Function.eval, Set.image]
       have : {z | ∃ a ∈ {x : ι → ℤ | ∀ (i : ι), |(x i : ℝ)| ≤ B}, a i = z} ⊆ {z | |(z : ℝ)| ≤ B} := by
         intro z hz
-        obtain ⟨a, ha, rfl⟩ := Set.mem_setOf.mp hz
+        obtain ⟨a, ha, rfl⟩ := Set.mem_ofPred.mp hz
         exact ha i
       refine Set.Finite.subset ?_ this
       simpa only [abs_le, ← Int.ceil_le, ← Int.le_floor, Set.Icc_def] using Set.finite_Icc ..
-    · simp only [Set.mem_image, Set.mem_setOf_eq, Subtype.exists, exists_and_left, exists_prop,
+    · simp only [Set.mem_image, Set.mem_ofPred_eq, Subtype.exists, exists_and_left, exists_prop,
         exists_eq_right_right] at hx -- `↑(⨆ i, |x i|) ≤ B ∧ Finset.univ.gcd x = 1`
       have : ((⨆ i, |x i| :) : ℝ) = ⨆ i, (|x i| : ℝ) := by
         conv => enter [2, 1, i]; rw [← Int.cast_abs]
@@ -306,7 +307,7 @@ lemma Projectivization.Rat.finite_of_mulHeight_le [Nonempty ι] (B : ℝ) :
   · rw [Set.mem_image, Subtype.exists]
     have ⟨y, hy⟩ := Rat.coprimeIntToProjective_surjective x
     exact ⟨y.val, y.prop,
-      by simp [s, Rat.mulHeight_coprimeIntToProjective_eq, hy, Set.mem_setOf.mp hx], hy⟩
+      by simp [s, Rat.mulHeight_coprimeIntToProjective_eq, hy, Set.mem_ofPred.mp hx], hy⟩
 
 /-- The height on `ℙⁿ(ℚ)` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (logarithmic) height. -/
@@ -339,11 +340,11 @@ lemma toProjectivization_injective {K : Type*} [Field K] :
 points of bounded (multiplicative) height. -/
 lemma Rat.finite_of_mulHeight_le (B : ℝ) : {x : ℚ | mulHeight₁ x ≤ B}.Finite := by
   refine Set.Finite.of_finite_image ?_ toProjectivization_injective.injOn
-  simp_rw [Set.image, mulHeight₁_eq_mulHeight, Set.mem_setOf]
+  simp_rw [Set.image, mulHeight₁_eq_mulHeight, Set.mem_ofPred]
   have : {x | ∃ a : ℚ, mulHeight ![a, 1] ≤ B ∧ toProjectivization a = x} ⊆
       {x | x.mulHeight ≤ B} := by
     intro x hx
-    simp only [Set.mem_setOf] at hx ⊢
+    simp only [Set.mem_ofPred] at hx ⊢
     obtain ⟨a, ha, rfl⟩ := hx
     exact ha
   exact Set.Finite.subset (Projectivization.Rat.finite_of_mulHeight_le B) this

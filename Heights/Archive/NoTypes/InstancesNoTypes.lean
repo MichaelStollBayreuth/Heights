@@ -67,13 +67,13 @@ lemma prod_finsetInfinitePlace_eq {f : AbsoluteValue K ℝ → ℝ} :
     ∏ v ∈ finsetInfinitePlace K, f v ^ weight' v = ∏ v : InfinitePlace K, f v.val ^ v.mult :=
   Finset.prod_bij' (fun w hw ↦ ⟨w, mem_finsetInfinitePlace.mp hw⟩)
     (fun v _ ↦ v.val) (by grind) (fun v _ ↦ by simp [v.isInfinitePlace])
-    (by grind) (by simp) fun w hw ↦ by simp [weight', mem_finsetInfinitePlace.mp hw]
+    (by grind) (fun _ _ ↦ rfl) fun w hw ↦ by simp [weight', mem_finsetInfinitePlace.mp hw]
 
 noncomputable
 instance instAdmissibleAbsValues : AdmissibleAbsValues K where
   archAbsVal := finsetInfinitePlace K
   weight := weight'
-  weight_pos v hv := by simp_all [weight', InfinitePlace.mult_pos]
+  weight_pos v hv := by simpa [weight', mem_finsetInfinitePlace.mp hv] using InfinitePlace.mult_pos
   nonarchAbsVal := {v | IsFinitePlace v}
   strong_triangle_ineq v hv := FinitePlace.add_le ⟨v, by simpa [IsFinitePlace] using hv⟩
   hasFiniteMulSupport_nonarchAbsVal := FinitePlace.hasFiniteMulSupport

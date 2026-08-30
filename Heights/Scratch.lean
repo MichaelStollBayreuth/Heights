@@ -50,6 +50,11 @@ def vadicAbv (v : HeightOneSpectrum (Polynomial K)) : AbsoluteValue R ℝ where
   add_le' x y :=
     (vadicAbv_aux_add_le v x y).trans <| max_le_add_of_nonneg (zero_le_norm ..) (zero_le_norm ..)
 
+@[simp]
+lemma vadicAbv_apply (v : HeightOneSpectrum (Polynomial K)) (x : R) :
+    vadicAbv R v x = (toNNReal NNReal.e_ne_zero (v.valuation R x) : ℝ) :=
+  rfl
+
 lemma vadicAbv.add_le_max (v : HeightOneSpectrum (Polynomial K)) (x y : R) :
     vadicAbv R v (x + y) ≤ max (vadicAbv R v x) (vadicAbv R v y) :=
   vadicAbv_aux_add_le v x y
@@ -143,15 +148,12 @@ lemma vadicAbv.mulSupport_finite_polynomial {x : Polynomial K} (hx : x ≠ 0) :
   have (v : HeightOneSpectrum <| Polynomial K) :
       vadicAbv R v (algebraMap (Polynomial K) R x) ≠ 1 ↔
         vadicAbv R v (algebraMap (Polynomial K) R x) < 1 := by
-    simp only [vadicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk, vadicAbv_aux, ne_eq,
-      NNReal.coe_eq_one, NNReal.coe_lt_one, ne_iff_lt_iff_le, v.valuation_of_algebraMap x]
-    exact (toNNReal_le_one_iff NNReal.one_lt_e).mpr <| v.intValuation_le_one x
+    simp only [vadicAbv_apply, ne_eq, NNReal.coe_eq_one, NNReal.coe_lt_one, ne_iff_lt_iff_le]
+    exact (toNNReal_le_one_iff NNReal.one_lt_e).mpr <| v.valuation_le_one x
   have H (v : HeightOneSpectrum <| Polynomial K) :
       (vadicAbv R v) ((algebraMap (Polynomial K) R) x) < 1 ↔ x ∈ v.asIdeal := by
-    simp only [vadicAbv, AbsoluteValue.coe_mk, MulHom.coe_mk, vadicAbv_aux, NNReal.coe_lt_one]
-    rw [WithZeroMulInt.toNNReal_lt_one_iff NNReal.one_lt_e, valuation_of_algebraMap,
-      intValuation_lt_one_iff_dvd]
-    exact dvd_span_singleton
+    simp only [vadicAbv_apply, NNReal.coe_lt_one, toNNReal_lt_one_iff NNReal.one_lt_e]
+    exact v.valuation_lt_one_iff_mem x
   simp_rw [Function.mulSupport, this, H, ← Ideal.dvd_span_singleton]
   apply Ideal.finite_factors
   simp only [Submodule.zero_eq_bot, ne_eq, span_singleton_eq_bot, hx, not_false_eq_true]
