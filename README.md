@@ -51,8 +51,8 @@ now in `Mathlib.NumberTheory.Height`:
 * The instance of `AdmissibleAbsValues` for number fields
   (`Mathlib.NumberTheory.Height.NumberField`).
 * The **Northcott property**: sets of elements of bounded height are finite —
-  `NumberField.finite_setOf_mulHeight₁_le` and `finite_setOf_logHeight₁_le`, and the propagation
-  from `mulHeight₁` to the other heights in `Mathlib.NumberTheory.Height.Northcott`.
+  `NumberField.finite_setOfPred_mulHeight₁_le` and `finite_setOfPred_logHeight₁_le`, and the
+  propagation from `mulHeight₁` to the other heights in `Mathlib.NumberTheory.Height.Northcott`.
 * The multiplicative height of a tuple of rational numbers consisting of coprime integers is the
   maximum of the absolute values of the entries — `mulHeight_eq_max_abs_of_gcd_eq_one`
   (`Mathlib.NumberTheory.Height.NumberField`).
