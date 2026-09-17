@@ -142,7 +142,7 @@ lemma mulHeight₁_one : mulHeight₁ (1 : K) = 1 := by
 lemma one_le_mulHeight₁ (x : K) : 1 ≤ mulHeight₁ x := by
   classical
   refine one_le_mul_of_one_le_of_one_le ?_ ?_
-  · exact Finset.one_le_prod fun _ _ ↦ one_le_pow₀ <| le_max_right ..
+  · exact Finset.one_le_prod₀ fun _ _ ↦ one_le_pow₀ <| le_max_right ..
   · exact one_le_finprod fun _ ↦ le_max_right ..
 
 -- This is needed as a side condition in proofs about logarithmic heights
@@ -248,7 +248,7 @@ lemma one_le_mulHeight {x : ι → K} (hx : x ≠ 0) : 1 ≤ mulHeight x := by
   rw [← mulHeight_smul_eq_mulHeight <| inv_ne_zero hi, mulHeight]
   refine one_le_mul_of_one_le_of_one_le ?_ ?_
   · classical
-    refine Finset.one_le_prod fun v _ ↦ ?_
+    refine Finset.one_le_prod₀ fun v _ ↦ ?_
     refine Finite.le_ciSup_of_le i ?_
     rw [Pi.smul_apply, smul_eq_mul, AbsoluteValue.map_mul, map_inv₀,
       inv_mul_cancel₀ <| (AbsoluteValue.ne_zero_iff _).mpr hi, one_pow]

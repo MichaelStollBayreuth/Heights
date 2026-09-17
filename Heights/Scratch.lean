@@ -86,8 +86,7 @@ lemma infiniteAbv_aux_add_le (x y : R) :
     simp
   rcases eq_or_ne (x + y) 0 with hxy | hxy
   · set_option backward.isDefEq.respectTransparency false in -- temporary measure
-    simp [infiniteAbv_aux, infiniteAbv_aux', hxy, hx, hy, -le_sup_iff]
-    positivity
+    simp [infiniteAbv_aux, infiniteAbv_aux', hxy, hx, hy, Real.exp_nonneg]
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
   simp only [infiniteAbv_aux, infiniteAbv_aux', map_add, EmbeddingLike.map_eq_zero_iff, hx,
     ↓reduceIte, hy]
