@@ -337,7 +337,7 @@ lemma mulHeight₁_add_le (x y : K) :
   rw [← finprod_mul_distrib mulSupport_ineqBounds_finite (mulSupport_max_absValue_finite x),
     ← finprod_mul_distrib hf₁ (mulSupport_max_absValue_finite y)]
   set_option backward.isDefEq.respectTransparency false in -- temporary measure
-  refine finprod_mono (mulSupport_max_absValue_finite (x + y)) hf₂ fun v ↦ sup_le ?_ ?_
+  refine finprod_le_finprod (mulSupport_max_absValue_finite (x + y)) hf₂ fun v ↦ sup_le ?_ ?_
   · rw [mul_assoc]
     refine (weak_triangle_inequality v x y).trans ?_
     gcongr

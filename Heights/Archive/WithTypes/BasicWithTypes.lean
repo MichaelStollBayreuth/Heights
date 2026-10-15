@@ -1,4 +1,5 @@
 import Heights.Auxiliary
+import Mathlib.Algebra.Order.Hom.Lattice
 import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 import Mathlib.LinearAlgebra.Projectivization.Basic
 import Mathlib.Data.Fintype.Order
@@ -179,7 +180,7 @@ variable {ι : Type*} [Fintype ι]
 
 lemma mulSupport_iSup_absValue_finite {x : ι → K} (hx : x ≠ 0) :
     (Function.mulSupport fun v ↦ ⨆ i, nonarchAbsVal v (x i)).Finite := by
-  simp_rw [AbsoluteValue.iSup_eq_subtype _ hx]
+  simp_rw [Finite.iSup_eq_iSup_subtype hx]
   have : Nonempty {j // x j ≠ 0} := nonempty_subtype.mpr <| Function.ne_iff.mp hx
   exact (Set.finite_iUnion fun i ↦ hasFiniteMulSupport_nonarchAbsVal i.prop).subset <|
     Function.mulSupport_iSup _
@@ -233,9 +234,9 @@ lemma mulHeight_smul_eq_mulHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
   simp only [mulHeight, Pi.smul_apply, smul_eq_mul, map_mul]
   conv =>
     enter [1, 1, 2, v]
-    rw [← Real.iSup_pow_of_nonneg fun _ ↦ by positivity,
+    rw [← Real.iSup_pow fun _ ↦ by positivity,
       ← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg .., mul_pow,
-      Real.iSup_pow_of_nonneg fun _ ↦ (AbsoluteValue.nonneg ..)]
+      Real.iSup_pow fun _ ↦ (AbsoluteValue.nonneg ..)]
   conv =>
     enter [1, 2, 1, v]
     rw [← Real.mul_iSup_of_nonneg <| AbsoluteValue.nonneg ..]
@@ -274,7 +275,7 @@ lemma logHeight_smul_eq_logHeight {x : ι → K} {c : K} (hc : c ≠ 0) :
 lemma mulHeight₁_eq_mulHeight (x : K) : mulHeight₁ x = mulHeight ![x, 1] := by
   simp only [mulHeight₁, mulHeight, Nat.succ_eq_add_one, Nat.reduceAdd]
   congr <;> ext1 v
-  · rw [(archAbsVal v).max_one_eq_iSup, Real.iSup_pow_of_nonneg fun _ ↦ AbsoluteValue.nonneg ..]
+  · rw [(archAbsVal v).max_one_eq_iSup, Real.iSup_pow fun _ ↦ AbsoluteValue.nonneg ..]
   · exact AbsoluteValue.max_one_eq_iSup ..
 
 lemma logHeight₁_eq_logHeight (x : K) : logHeight₁ x = logHeight ![x, 1] := by
@@ -296,9 +297,9 @@ lemma mulHeight_pow {x : ι → K} (hx : x ≠ 0) (n : ℕ) : mulHeight (x ^ n) 
   simp only [mulHeight, Pi.pow_apply, map_pow]
   rw [mul_pow, finprod_pow <| mulSupport_iSup_absValue_finite hx, ← Finset.prod_pow]
   congr 2 <;> ext1 v
-  · rw [Real.iSup_pow_of_nonneg fun _ ↦ by positivity]
+  · rw [Real.iSup_pow fun _ ↦ by positivity]
     simp only [pow_right_comm]
-  · exact (Real.iSup_pow_of_nonneg (fun _ ↦ AbsoluteValue.nonneg ..) n).symm
+  · exact (Real.iSup_pow (fun _ ↦ AbsoluteValue.nonneg ..) n).symm
 
 /-- The logarithmic height of the coordinate-wise `n`th power of a (nonzero) tuple
 is the `n` times its logarithmic height. -/
@@ -372,7 +373,7 @@ lemma mulHeight₁_add_le (x y : K) :
     --   ∏ᶠ v, ((nonarchAbsVal v) x ⊔ 1) * ((nonarchAbsVal v) y ⊔ 1)
     have hf := Function.mulSupport_mul_finite (mulSupport_max_absValue_finite x)
       (mulSupport_max_absValue_finite y)
-    refine finprod_mono' (mulSupport_max_absValue_finite _)
+    refine finprod_le_finprod₀ (mulSupport_max_absValue_finite _)
       (fun _ ↦ zero_le_one.trans <| le_max_right _ 1) hf fun v ↦ sup_le ?_ <| one_le_mul_max_max ..
     exact (strong_triangle_ineq v x y).trans <|
       sup_le (le_mul_max_max_left ..) (le_mul_max_max_right ..)

@@ -1,28 +1,10 @@
+import Mathlib.Algebra.Order.Hom.Lattice
 import Mathlib.Algebra.Order.Ring.IsNonarchimedean
 import Mathlib.Algebra.Polynomial.Homogenize
 import Mathlib.NumberTheory.Height.MvPolynomial
 
 -- NOTE: There is some slight divergence between this file and the contents of the corresponding
 --       file in the sequence of PRs.
-
--- #39127
-
-lemma Finite.iSup_eq_iSup_subtype {ι K M F : Type*} [Finite ι] [Zero K] [Zero M]
-    [ConditionallyCompleteLattice M] [FunLike F K M] [ZeroHomClass F K M] [NonnegHomClass F K M]
-    {x : ι → K} (hx : x ≠ 0) {v : F} :
-    ⨆ i, v (x i) =  ⨆ i : {j // x j ≠ 0}, v (x i) := by
-  obtain ⟨i, hi⟩ : ∃ j, x j ≠ 0 := Function.ne_iff.mp hx
-  have : Nonempty {j // x j ≠ 0} := .intro ⟨i, hi⟩
-  have : Nonempty ι := .intro i
-  refine le_antisymm ?_ <| ciSup_le fun ⟨j, hj⟩ ↦ le_ciSup_of_le j le_rfl
-  refine ciSup_le fun j ↦ ?_
-  rcases eq_or_ne (x j) 0 with h | h
-  · rw [h, map_zero]
-    exact le_ciSup_of_le ⟨i, hi⟩ (NonnegHomClass.apply_nonneg ..)
-  · exact le_ciSup_of_le ⟨j, h⟩ le_rfl
--- #find_home! iSup_eq_iSup_subtype -> new file
-
--- end #39127
 
 namespace Height
 
@@ -72,7 +54,7 @@ open AdmissibleAbsValues
 namespace MvPolynomial
 
 lemma mulHeightBound_zero_one : mulHeightBound ![(0 : MvPolynomial (Fin 2) K), 1] = 1 := by
-  simp only [mulHeightBound, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
+  simp only [mulHeightBound_eq, Nat.succ_eq_add_one, Nat.reduceAdd, iSup_fun_eq_max]
   conv_rhs => rw [← one_mul 1]
   congr
   · convert Multiset.prod_map_one with v

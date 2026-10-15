@@ -144,7 +144,7 @@ lemma Rat.finite_of_mulHeight_le (B : ℝ) : {x : ℚ | mulHeight₁ x ≤ B}.Fi
 /-- The height on `ℚ` satisfies the *Northcott Property*: there are only finitely many
 points of bounded (logarithmic) height. -/
 lemma Rat.finite_of_logHeight_le (B : ℝ) : {x : ℚ | logHeight₁ x ≤ B}.Finite := by
-  simpa only [logHeight₁, Real.log_le_iff_le_exp <| mulHeight₁_pos _]
+  simpa only [logHeight₁_eq_log_mulHeight₁, Real.log_le_iff_le_exp <| mulHeight₁_pos _]
     using finite_of_mulHeight_le (Real.exp B)
 
 end projective

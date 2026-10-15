@@ -50,7 +50,7 @@ lemma rpow_add_le_of_isNonarchimedean {v : AbsoluteValue R ℝ} (hv : IsNonarchi
     v (x + y) ^ e ≤ v x ^ e ⊔ v y ^ e := by
   calc
   _ ≤ (v x ⊔ v y) ^ e := Real.rpow_le_rpow (v.nonneg _) (hv x y) he.le
-  _ = v x ^ e ⊔ v y ^ e := (Real.max_map_rpow (v.nonneg _) (v.nonneg _) he.le).symm
+  _ = v x ^ e ⊔ v y ^ e := Real.rpow_max (v.nonneg _) (v.nonneg _) he.le
 
 @[simps]
 noncomputable
@@ -277,14 +277,16 @@ lemma uniformContinuous_equivWithAbs_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ
     UniformContinuous (congr v₁ v₂ (RingEquiv.refl F)) :=
   uniformContinuous_of_continuousAt_zero _ (continuous_equivWithAbs h).continuousAt
 
-/-- If `v₁` and `v₂` are equivalent absolute values on `F`, then `WithAbs.equivWithAbs v₁ v₂`
-is an equivalence of uniformities. This gives the `UniformEquiv`. -/
+/-- If `v₁` and `v₂` are equivalent absolute values on `F`, then the identity map
+`WithAbs.congr v₁ v₂ (RingEquiv.refl F)` is an equivalence of uniformities.
+This gives the `UniformEquiv`. -/
 def uniformEquivOfIsEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     WithAbs v₁ ≃ᵤ WithAbs v₂ :=
   UniformEquiv.mk (congr v₁ v₂ (RingEquiv.refl F)) (uniformContinuous_equivWithAbs_of_isEquiv h)
     (uniformContinuous_equivWithAbs_of_isEquiv <| Setoid.symm h)
 
-/-- The underlying equivalence of `uniformEquivOfIsEquiv h` is `WithAbs.equivWithAbs _ _`. -/
+/-- The underlying equivalence of `AbsoluteValue.uniformEquivOfIsEquiv h` is
+`WithAbs.congr _ _ (RingEquiv.refl F)`. -/
 lemma uniformEquiv_eq_equiv₂ {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     (uniformEquivOfIsEquiv h).toEquiv = (congr v₁ v₂ (RingEquiv.refl F)).toEquiv :=
   rfl

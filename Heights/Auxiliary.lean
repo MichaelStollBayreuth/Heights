@@ -59,15 +59,6 @@ lemma bijective_of_bijective_comp {R₁ R₂ R₃ R₄ : Type*} [NonAssocSemirin
 
 end RingHom
 
-section Rat
-
--- maybe unnecessary...
-@[simp]
-lemma Rat.castHom_apply {R : Type*} [DivisionRing R] [CharZero R] (x : ℚ) :
-  castHom R x = x := rfl
-
-end Rat
-
 section aux
 
 variable {α β : Type*}
@@ -76,54 +67,6 @@ variable {α β : Type*}
 lemma max_eq_iSup [ConditionallyCompleteLattice α] (a b : α) : max a b = iSup ![a, b] :=
   eq_of_forall_ge_iff <| by simp [ciSup_le_iff, Fin.forall_fin_two]
 
--- [Mathlib.Analysis.SpecialFunctions.Pow.Real]
-lemma Real.max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
-    max (x ^ c) (y ^ c) = max x y ^ c := by
-  rcases le_total x y with h | h
-  · simpa only [h, sup_of_le_right, sup_eq_right] using Real.rpow_le_rpow hx h hc
-  · simpa only [h, sup_of_le_left, sup_eq_left] using Real.rpow_le_rpow hy h hc
-
--- needed later
-lemma Real.iSup_pow_of_nonneg [Fintype α] [Nonempty α] {f : α → ℝ} (hf : ∀ a, 0 ≤ f a) (n : ℕ) :
-    (⨆ a, f a) ^ n = ⨆ a, (f a ^ n) := by
-  have H a : ((f a).toNNReal  : ℝ) = f a := Real.coe_toNNReal (f a) (hf a)
-  conv => enter [1, 1, 1, a]; rw [← H]
-  conv => enter [2, 1, a]; rw [← H]
-  norm_cast
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
-  exact Monotone.map_ciSup_of_continuousAt ((continuous_pow n).continuousAt)
-    (pow_left_mono n) (Finite.bddAbove_range _)
-
-@[to_additive]
-lemma finprod_mono [CommMonoid β] [PartialOrder β] [IsOrderedMonoid β] {f g : α → β}
-    (hf : f.mulSupport.Finite) (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  have hf₁ : f.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_left, s]
-  have hg₁ : g.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finsetProd_of_mulSupport_subset f hf₁,
-    finprod_eq_finsetProd_of_mulSupport_subset g hg₁]
-  exact Finset.prod_le_prod fun i _ ↦ h i
-
-/-- Monotonicity of `finprod`. See `finprod_mono` for a variant
-where `β` is an ordered `CommMonoid`. -/
-lemma finprod_mono' [CommMonoidWithZero β] [PartialOrder β] [ZeroLEOneClass β] [PosMulMono β]
-    {f g : α → β} (hf : f.mulSupport.Finite) (hf₀ : ∀ a, 0 ≤ f a)
-    (hg : g.mulSupport.Finite) (h : f ≤ g) :
-    ∏ᶠ a, f a ≤ ∏ᶠ a, g a := by
-  have : Fintype ↑(f.mulSupport ∪ g.mulSupport) := (Set.Finite.union hf hg).fintype
-  let s := (f.mulSupport ∪ g.mulSupport).toFinset
-  have hf₁ : f.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_left, s]
-  have hg₁ : g.mulSupport ⊆ s := by
-    simp only [Set.coe_toFinset, Set.subset_union_right, s]
-  rw [finprod_eq_finsetProd_of_mulSupport_subset f hf₁,
-    finprod_eq_finsetProd_of_mulSupport_subset g hg₁]
-  exact Finset.prod_le_prod₀ (fun i _ ↦ hf₀ i) fun i _ ↦ h i
-
 -- needed later
 @[to_additive]
 lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSupport.Finite)
@@ -131,21 +74,7 @@ lemma Function.mulSupport_mul_finite [Monoid β] {f g : α → β} (hf : f.mulSu
     (Function.mulSupport fun a ↦ f a * g a).Finite :=
   (hf.union hg).subset <| mulSupport_mul f g
 
-variable {K : Type*} [Field K] {ι : Type*} [Finite ι]
-
--- needed later
-lemma AbsoluteValue.iSup_eq_subtype (v : AbsoluteValue K ℝ) {x : ι → K} (hx : x ≠ 0) :
-    ⨆ i, v (x i) = ⨆ i : {j // x j ≠ 0}, v (x i) := by
-  have ⟨i, hi⟩ : ∃ j, x j ≠ 0 := Function.ne_iff.mp hx
-  have : Nonempty {j // x j ≠ 0} := Nonempty.intro ⟨i, hi⟩
-  have : Nonempty ι := Nonempty.intro i
-  apply le_antisymm
-  · refine ciSup_le fun j ↦ ?_
-    rcases eq_or_ne (x j) 0 with h | h
-    · rw [h, AbsoluteValue.map_zero]
-      exact Real.iSup_nonneg' ⟨⟨i, hi⟩, AbsoluteValue.nonneg ..⟩
-    · exact le_ciSup_of_le (Finite.bddAbove_range _) ⟨j, h⟩ le_rfl
-  · exact ciSup_le fun ⟨j, hj⟩ ↦ le_ciSup_of_le (Finite.bddAbove_range _) j le_rfl
+variable {K : Type*} [Field K]
 
 -- needed later
 lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
@@ -153,11 +82,6 @@ lemma AbsoluteValue.max_one_eq_iSup (v : AbsoluteValue K ℝ) (x : K) :
   have H (i : Fin 2) : v (![x, 1] i) = ![v x, 1] i := by fin_cases i <;> simp
   simp_rw [H]
   exact max_eq_iSup (v x) 1
-
-variable [NumberField K]
-
-instance : NonarchimedeanHomClass (NumberField.FinitePlace K) K ℝ where
-  map_add_le_max v a b := NumberField.FinitePlace.add_le v a b
 
 end aux
 

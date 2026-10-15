@@ -15,13 +15,6 @@ triangle inequality. The main result here is that this implies the triangle ineq
 
 namespace Real
 
--- [Mathlib.Analysis.SpecialFunctions.Pow.Real]
-lemma max_map_rpow {x y c : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (hc : 0 ≤ c) :
-    max (x ^ c) (y ^ c) = max x y ^ c := by
-  lift x to NNReal using hx
-  lift y to NNReal using hy
-  exact_mod_cast ((NNReal.monotone_rpow_of_nonneg hc).map_sup ..).symm
-
 open Filter in
 lemma le_of_forall_pow_le_mul_pow {a b x y : ℝ} (ha : 0 < a) (hb : 0 ≤ b) (hx : 0 ≤ x)
     (hy : 0 ≤ y) (h : ∀ᶠ (N : ℕ) in atTop, x ^ N ≤ (a * N + b) * y ^ N) :
