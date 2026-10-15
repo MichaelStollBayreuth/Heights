@@ -17,4 +17,6 @@ rev = "v4.35.0"
 
 [[lean_lib]]
 name = "Heights"
-globs = ["Heights.+"]
+# The explicit "Heights" glob elaborates the root module itself; with only the ".+" submodule
+# glob a broken import line in `Heights.lean` would go unnoticed.
+globs = ["Heights", "Heights.+"]
