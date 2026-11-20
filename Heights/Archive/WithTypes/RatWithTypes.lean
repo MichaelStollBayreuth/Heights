@@ -101,7 +101,7 @@ def RingEquiv.mapIsDedekindDomainHeightOneSpectrum {R S : Type*} [CommRing R] [I
       (by have := v.isPrime
           exact map_isPrime_of_equiv e (I := v.asIdeal))
       (by have := v.ne_bot
-          contrapose! this
+          contrapose this
           rwa [map_eq_bot_iff_of_injective <| RingEquiv.injective e] at this)
 
 /-- A ring isomorphism (of Dedekind domains) induces an equivalence
@@ -220,7 +220,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   let r := x.rep
   let d := Finset.univ.lcm (Rat.den ∘ r)
   have hr : d • r ≠ 0 := by
-    refine smul_ne_zero (fun hd ↦ ?_) x.rep_nonzero
+    refine smul_ne_zero (fun hd ↦ ?_) x.rep_ne_zero
     rw [Finset.lcm_eq_zero_iff] at hd
     simp at hd
   have ⟨R, hR⟩ : ∃ z : ι → ℤ, d • r = ((↑) : ℤ → ℚ) ∘ z := by
@@ -229,7 +229,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
       exact (exists_int_mul_eq_cast ..).mpr <| Finset.dvd_lcm (Finset.mem_univ i)
     exact ⟨fun i ↦ (this i).choose, funext fun i ↦ (this i).choose_spec⟩
   have hR₀ : R ≠ 0 := by
-    contrapose! hr
+    contrapose hr
     simpa only [hr, Pi.comp_zero, Int.cast_zero, Function.const_zero] using hR
   have ⟨R', hR₁, hR₂⟩ := Finset.extract_gcd R Finset.univ_nonempty
   have hg : Finset.univ.gcd R ≠ 0 := by
@@ -251,7 +251,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   refine ⟨⟨R', hR₂⟩, ?_⟩
   simp only [coprimeIntToProjective]
   rw [← x.mk_rep]
-  refine (Projectivization.mk_eq_mk_iff ℚ _ _ (Int.ne_zero_of_gcd_eq_one hR₂) x.rep_nonzero).mpr ?_
+  refine (Projectivization.mk_eq_mk_iff ℚ _ _ (Int.ne_zero_of_gcd_eq_one hR₂) x.rep_ne_zero).mpr ?_
   have ha : (d : ℚ) / Finset.univ.gcd R ≠ 0 := by
     refine div_ne_zero (fun hd ↦ ?_) <| mod_cast hg
     norm_cast at hd

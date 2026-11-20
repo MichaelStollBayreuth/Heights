@@ -95,7 +95,7 @@ lemma infiniteAbv_aux_add_le (x y : R) :
   simp only [this, ↓reduceIte]
   rw [← Monotone.map_sup Real.exp_monotone, Real.exp_le_exp]
   norm_cast
-  exact intDegree_add_le ((RingEquiv.map_ne_zero_iff _).mpr hy) <| by rwa [← map_add]
+  exact intDegree_add_le <| by rwa [← map_add]
 
 private
 lemma zero_le_infiniteAbv_aux (x : R) : 0 ≤ infiniteAbv_aux K x := by

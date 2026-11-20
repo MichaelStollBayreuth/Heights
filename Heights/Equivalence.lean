@@ -216,21 +216,21 @@ lemma homeomorph_of_isEquiv_toFun_eq {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁
     ⇑(homeomorph_of_isEquiv h) = ⇑(WithAbs.congr v₁ v₂ (RingEquiv.refl F)) :=
   rfl
 
-set_option backward.isDefEq.respectTransparency false in -- temporary measure
 /-- The induced ring homomorphism between two completions with respect to equivalent
 absolute values. -/
 noncomputable
 def ringHom_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion →+* v₂.Completion :=
-  UniformSpace.Completion.mapRingHom (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) <|
-    ((isEquiv_iff_isHomeomorph v₁ v₂).mp h).continuous
+  Completion.ofCompletion.comp <|
+    (UniformSpace.Completion.mapRingHom (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) <|
+      ((isEquiv_iff_isHomeomorph v₁ v₂).mp h).continuous).comp Completion.toCompletion
 
 /-- The induced ring isomorphism between two completions with respect to equivalent
 absolute values. -/
 noncomputable
 def ringEquiv_completion_of_isEquiv {v₁ v₂ : AbsoluteValue F ℝ} (h : v₁ ≈ v₂) :
     v₁.Completion ≃+* v₂.Completion := by
-  set_option backward.isDefEq.respectTransparency false in -- temporary measure
+  refine (Completion.equiv v₁).trans <| .trans ?_ (Completion.equiv v₂).symm
   refine UniformSpace.Completion.mapRingEquiv (WithAbs.congr v₁ v₂ (RingEquiv.refl F)) ?_ ?_
   · rw [← homeomorph_of_isEquiv_toFun_eq h]
     exact Homeomorph.continuous (homeomorph_of_isEquiv h)

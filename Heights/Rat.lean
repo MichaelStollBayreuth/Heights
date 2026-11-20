@@ -38,7 +38,7 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   intro x
   let d := Finset.univ.lcm (den ∘ x.rep)
   have hd₀ : d ≠ 0 := by simp [d, Finset.lcm_eq_zero_iff]
-  have hr : d • x.rep ≠ 0 := smul_ne_zero hd₀ x.rep_nonzero
+  have hr : d • x.rep ≠ 0 := smul_ne_zero hd₀ x.rep_ne_zero
   obtain ⟨R, hR⟩ : ∃ z : ι → ℤ, d • x.rep = ((↑) : ℤ → ℚ) ∘ z := by
     have (i : ι) : ∃ y : ℤ, (d • x.rep) i = y := by
       simp only [nsmul_eq_mul, Pi.natCast_def, Pi.mul_apply, d]
@@ -48,9 +48,9 @@ lemma Rat.coprimeIntToProjective_surjective [Nonempty ι] :
   obtain ⟨R', hR₁, hR₂⟩ := Finset.extract_gcd R Finset.univ_nonempty
   refine ⟨⟨R', hR₂⟩, ?_⟩
   rw [coprimeIntToProjective, ← x.mk_rep]
-  refine (Projectivization.mk_eq_mk_iff ℚ _ _ (Int.ne_zero_of_gcd_eq_one hR₂) x.rep_nonzero).mpr ?_
+  refine (Projectivization.mk_eq_mk_iff ℚ _ _ (Int.ne_zero_of_gcd_eq_one hR₂) x.rep_ne_zero).mpr ?_
   have hg : Finset.univ.gcd R ≠ 0 := by
-    contrapose! hR₀
+    contrapose hR₀
     simp [funext_iff, Finset.gcd_eq_zero_iff.mp hR₀]
   have ha : (d : ℚ) / Finset.univ.gcd R ≠ 0 :=
     div_ne_zero (mod_cast (smul_ne_zero_iff.mp hr).1) <| mod_cast hg

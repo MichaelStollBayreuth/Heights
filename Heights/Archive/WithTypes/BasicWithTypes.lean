@@ -472,7 +472,7 @@ lemma logHeight_eq_log_mulHeight (x : Projectivization K (ι → K)) :
 
 lemma one_le_mulHeight (x : Projectivization K (ι → K)) : 1 ≤ mulHeight x := by
   rw [← x.mk_rep, mulHeight_mk]
-  exact Height.one_le_mulHeight x.rep_nonzero
+  exact Height.one_le_mulHeight x.rep_ne_zero
 
 lemma mulHeight_pos (x : Projectivization K (ι → K)) : 0 < mulHeight x :=
   zero_lt_one.trans_le <| one_le_mulHeight x
